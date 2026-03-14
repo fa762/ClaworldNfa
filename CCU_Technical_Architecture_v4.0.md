@@ -255,9 +255,24 @@ function depositCLW(uint256 nfaId, uint256 amount) external { // 不限owner
 }
 ```
 
-### 4.4 buyAndDeposit：一步到位充值
+### 4.4 毕业前 vs 毕业后充值流程
 
-新玩家手里只有 BNB，没有 CLW。合约集成 PancakeSwap，一笔交易完成 BNB→CLW 兑换+充值：
+> **v4.0 新增**：CLW 从 Flap Bonding Curve 毕业到 PancakeSwap 前后，充值方式不同。
+
+#### 毕业前（Bonding Curve 阶段）
+
+CLW 尚未在 PancakeSwap 上有流动性池，`buyAndDeposit` 不可用。玩家通过**官网 NFA 详情页**（WalletConnect 接入）使用外部钱包操作：
+
+| 操作 | 合约调用 | 说明 |
+| --- | --- | --- |
+| 给龙虾充 BNB | `fundAgent(tokenId){value: x}` | BNB 进入龙虾 BAP-578 钱包 |
+| 给龙虾充 CLW | `approve` → `depositCLW(nfaId, amount)` | 先在 Flap 平台用 BNB 购买 CLW，再充入龙虾游戏积分 |
+
+支持钱包：MetaMask、Binance Web3 Wallet、OKX Wallet、Trust Wallet 等（通过 WalletConnect 协议统一接入）。
+
+#### 毕业后（PancakeSwap 阶段）
+
+CLW 在 PancakeSwap 有流动性池后，解锁 Telegram 内一步到位充值：
 
 ```solidity
 function buyAndDeposit(uint256 nfaId) external payable {
@@ -265,9 +280,21 @@ function buyAndDeposit(uint256 nfaId) external payable {
 }
 ```
 
-> **注意**：buyAndDeposit 需要 CLW 在 PancakeSwap 上有流动性。CLW 通过 Flap Bonding Curve 毕业到 PancakeSwap 后，此功能自动可用。
+玩家在 Telegram 里说"用 0.1 BNB 买 CLW"，一句话搞定。不需要离开 Telegram，不需要做 approve。
 
-玩家说"用 0.1 BNB 买 CLW"，一句话搞定。不需要离开 Telegram，不需要做 approve。
+官网充值入口（`fundAgent` / `depositCLW`）毕业后依然可用。
+
+#### 充值流程总结
+
+```
+毕业前：
+  官网 NFA 详情页 → 连接外部钱包 → 充 BNB（fundAgent）或 充 CLW（depositCLW）
+  Telegram 内：仅支持游戏操作（任务/PK/市场），不支持充值
+
+毕业后：
+  官网：同上，依然可用
+  Telegram：buyAndDeposit 一步到位（BNB → CLW → 龙虾积分）
+```
 
 ### 4.5 提现（仅 owner + 6h 冷却）
 
@@ -786,6 +813,152 @@ OpenClaw 自带 DM 配对机制、白名单、Docker 沙箱。未授权的 Teleg
 | Phase 3 | task.skill(v2) + pk.skill(v2) + learningModule | Month 3 |
 | Phase 4 | market.skill + Tax 期 Vault 运营 | Month 4 |
 | Phase 5 | equip.skill 逻辑集成 | TBD |
+
+---
+
+## 10. 测试方案
+
+> **v4.0 新增**：Flap 蝴蝶平台无 BSC 测试网部署，需分两阶段验证完整交互链路。
+
+### 10.1 测试网阶段（BSC Testnet — 零成本）
+
+Flap 仅部署在 BSC 主网，测试网需自建简化版 Bonding Curve 模拟合约。
+
+#### MockBondingCurve.sol
+
+模拟 Flap 核心逻辑（Flap 代币合约开源，后续获取源码可更精确模拟）：
+
+| 功能 | 说明 |
+| --- | --- |
+| `buyTokens()` | BNB 买入 → 按常数乘积公式铸造 MockCLW |
+| `sellTokens()` | MockCLW 卖出 → 销毁并返还 BNB |
+| `graduate()` | 模拟毕业 → 在测试网 PancakeSwap 创建流动性池 |
+
+#### 测试网部署清单
+
+| 合约 | 说明 |
+| --- | --- |
+| MockCLW | ERC-20 测试代币 |
+| MockBondingCurve | 模拟 Flap Bonding Curve |
+| BAP578 | NFA 标准合约 |
+| ClawRouter | 游戏中间层（depositCLW/buyAndDeposit/日消耗等） |
+| WorldState | 世界状态引擎 |
+| ClawOracle | AI 预言机 |
+
+#### 测试场景清单
+
+| # | 场景 | 阶段 | 验证内容 |
+| --- | --- | --- | --- |
+| 1 | 外部钱包充 BNB | 毕业前 | `fundAgent(tokenId)` → 龙虾 BNB 余额增加 |
+| 2 | 外部钱包充 CLW | 毕业前 | Flap 买 CLW → `approve` → `depositCLW` → 龙虾积分增加 |
+| 3 | 一步到位充值 | 毕业后 | `buyAndDeposit` → PancakeSwap 换 CLW → 龙虾积分增加 |
+| 4 | 提现冷却 | 通用 | `requestWithdrawCLW` → 6h 后 `claimWithdrawCLW` |
+| 5 | 日消耗 | 通用 | CLW 自动扣除，等级越高消耗越大，Grit 降低消耗 |
+| 6 | 休眠/复活 | 通用 | CLW=0 超 72h → DORMANT → 充值后自动 ALIVE |
+| 7 | 官网前端→合约 | 通用 | WalletConnect 连接 → NFA 详情页充值 → 链上确认 |
+| 8 | 任务/PK/市场 | 通用 | Skill 合约基础功能验证 |
+
+#### 测试网资源
+
+- BSC 测试网 tBNB 水龙头：https://testnet.bnbchain.org/faucet-smart
+- BSC 测试网浏览器：https://testnet.bscscan.com
+
+### 10.2 主网验证（BSC Mainnet — 低成本）
+
+在真实 Flap 平台上验证集成：
+
+1. **创建测试代币**：调用 Flap Portal 的 `newTokenV2`，设置 `dexThresh = _1_PERCENT`（1% 供应量即可毕业，专为测试设计）
+2. **Bonding Curve 测试**：用极少 BNB 买卖测试代币，验证曲线行为
+3. **快速毕业**：买入 1% 供应量触发毕业 → 自动创建 PancakeSwap 流动性池
+4. **集成验证**：`buyAndDeposit` 通过 PancakeSwap Router 正确换币+充值
+5. **预估成本**：< 0.1 BNB（创建 ~0.001 BNB + 买入少量 + Gas）
+
+> **注意**：主网测试代币会真实存在于 Flap 平台上，建议在代币名称中标明 TEST 字样。
+
+---
+
+## 11. 官网规划
+
+> **v4.0 新增**：项目官网是面向玩家的门户，整合内容展示 + 链上交互入口。
+
+### 11.1 页面结构
+
+| 页面 | 内容 | 数据来源 |
+| --- | --- | --- |
+| 首页 | 项目介绍、世界状态看板、CLW 代币信息、社交链接 | WorldState.sol + PancakeSwap/Flap |
+| 游戏指南 | 游戏说明文档 Web 版（7 章） | 静态内容 |
+| 世界观 | 小说第一幕、第二幕全文阅读 | 静态内容 |
+| NFA 合集 | 所有龙虾列表 → 筛选/排序 → 点击进入详情页 | BAP578 + ClawRouter 合约 |
+| NFA 详情 | 图片 + 属性可视化 + 充值入口 + 历史记录 | 链上读取 + IPFS |
+
+### 11.2 NFA 合集页
+
+龙虾卡片列表展示，支持浏览全部已 Mint 的龙虾：
+
+- **卡片信息**：NFT 图片缩略图 + 稀有度徽章 + SHELTER 标签 + 等级 + 状态（ALIVE/DORMANT）
+- **筛选**：稀有度、SHELTER、等级范围、状态
+- **排序**：等级、稀有度、Mint 时间
+- **钱包连接**：连接钱包后高亮"我的龙虾"，支持快速切换查看
+
+### 11.3 NFA 详情页
+
+单只龙虾的完整信息展示 + 交互入口：
+
+**属性可视化**：
+
+| 组件 | 展示内容 |
+| --- | --- |
+| NFT 图片 | 从 IPFS（vaultURI）加载全尺寸图 |
+| Personality 雷达图 | 勇气/智慧/社交/创造/韧性 5 维，0-100 |
+| DNA 条形图 | STR/DEF/SPD/VIT 4 基因 + 变异槽状态（已解锁/未解锁） |
+| 基础信息 | 稀有度徽章、SHELTER 标签、等级/XP 进度条、状态 |
+| 历史记录 | Merkle 树读取：性格进化记录、DNA 变异记录、PK 战绩 |
+
+**充值入口**（需连接钱包）：
+
+| 操作 | 合约调用 | 可用阶段 |
+| --- | --- | --- |
+| 充 BNB | `fundAgent(tokenId){value: x}` | 始终可用 |
+| 充 CLW | `approve` → `depositCLW(nfaId, amount)` | 始终可用 |
+| 一键 BNB→CLW | `buyAndDeposit(nfaId){value: x}` | 毕业后可用 |
+
+### 11.4 世界状态看板（首页组件）
+
+从 WorldState.sol 实时读取全局游戏参数：
+
+| 展示项 | 数据源 |
+| --- | --- |
+| 当前奖励系数 | `rewardMultiplier` |
+| PK 质押上限 | `pkStakeLimit` |
+| 变异概率加成 | `mutationBonus` |
+| 日消耗系数 | `dailyCostMultiplier` |
+| 活跃事件 | `activeEvents` → 解析标志位显示事件名称（泡沫/寒冬/繁荣/新领地等） |
+
+### 11.5 CLW 代币信息（首页组件）
+
+| 展示项 | 数据源 |
+| --- | --- |
+| 当前价格 | PancakeSwap LP / Flap Bonding Curve |
+| 24h 交易量 | 链上事件聚合 |
+| 持有人数 | ERC-20 Transfer 事件统计 |
+| 购买链接 | 毕业前 → Flap 平台 / 毕业后 → PancakeSwap |
+| 合约地址 | CLW Token 地址（可复制） |
+
+### 11.6 技术栈
+
+| 层 | 技术 | 说明 |
+| --- | --- | --- |
+| 前端框架 | React / Next.js | SSG 静态生成 + CSR 链上数据 |
+| 链上交互 | viem + wagmi | 类型安全的合约读写 |
+| 钱包连接 | WalletConnect v2 | 支持 MetaMask/Binance/OKX/Trust Wallet 等 |
+| NFT 图片 | IPFS Gateway | 从 vaultURI 加载 |
+| 部署 | Vercel / Cloudflare Pages | 静态托管，无后端 |
+
+> **无后端架构**：官网所有数据直接从链上合约读取，不需要自建服务器。与龙虾文明"去中心化"的设计哲学一致。
+
+### 11.7 社交链接
+
+首页底部 + 导航栏常驻：Telegram 群/频道、Twitter/X、Discord、GitHub（OpenClaw 相关）。
 
 ---
 
