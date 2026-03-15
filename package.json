@@ -1,0 +1,41 @@
+{
+  "name": "clawworld-contracts",
+  "version": "1.0.0",
+  "description": "Claw Civilization Universe - Smart Contracts based on BAP-578 NFA Standard",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "coverage": "npx hardhat coverage",
+    "deploy:local": "npx hardhat run scripts/deploy-phase1.ts --network localhost",
+    "deploy:testnet": "npx hardhat run scripts/deploy-phase1.ts --network bscTestnet",
+    "node": "npx hardhat node",
+    "clean": "npx hardhat clean",
+    "size": "npx hardhat size-contracts"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
+    "@nomicfoundation/hardhat-verify": "^2.0.12",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@openzeppelin/contracts": "^4.9.6",
+    "@openzeppelin/contracts-upgradeable": "^4.9.6",
+    "@openzeppelin/hardhat-upgrades": "^1.28.0",
+    "@typechain/ethers-v5": "^11.1.2",
+    "@typechain/hardhat": "^7.0.0",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.10.0",
+    "chai": "^4.3.7",
+    "dotenv": "^16.5.0",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.24.2",
+    "hardhat-contract-sizer": "^2.10.0",
+    "hardhat-gas-reporter": "^1.0.10",
+    "solidity-coverage": "^0.8.13",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
