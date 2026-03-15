@@ -1,5 +1,5 @@
 /**
- * Phase 1 Deployment: ClawNFA + ClawRouter + MockCLW
+ * Phase 1 Deployment: ClawNFA + ClawRouter + MockCLW (+ mocks for local)
  *
  * Usage:
  *   npx hardhat run scripts/deploy-phase1.ts --network bscTestnet
@@ -14,8 +14,11 @@ async function main() {
 
   const treasury = process.env.TREASURY_ADDRESS || deployer.address;
   const clwTokenAddress = process.env.CLW_TOKEN_ADDRESS;
+  const flapPortalAddress = process.env.FLAP_PORTAL_ADDRESS;
+  const pancakeRouterAddress = process.env.PANCAKE_ROUTER_ADDRESS;
+  const isLocal = !clwTokenAddress;
 
-  // 1. Deploy MockCLW (only if no CLW token provided)
+  // 1. Deploy or use existing CLW token
   let clwAddress: string;
   if (clwTokenAddress) {
     clwAddress = clwTokenAddress;
@@ -48,12 +51,55 @@ async function main() {
   await router.deployed();
   console.log("ClawRouter deployed to:", router.address);
 
+  // 4. Set default logic address on NFA (so publicMint points to router)
+  await nfa.setDefaultLogicAddress(router.address);
+  console.log("Set default logic address on NFA to router");
+
+  // 5. Deploy mocks for local/testnet (PancakeSwap + Flap)
+  if (isLocal) {
+    // Deploy MockPancakeRouter (1000 CLW per BNB)
+    const MockWBNB = await ethers.getContractFactory("MockCLW");
+    const wbnb = await MockWBNB.deploy();
+    await wbnb.deployed();
+
+    const MockPancakeRouter = await ethers.getContractFactory("MockPancakeRouter");
+    const mockPR = await MockPancakeRouter.deploy(
+      wbnb.address, clwAddress, ethers.utils.parseEther("1000")
+    );
+    await mockPR.deployed();
+    console.log("MockPancakeRouter deployed to:", mockPR.address);
+
+    // Deploy MockFlapPortal (2000 CLW per BNB)
+    const MockFlapPortal = await ethers.getContractFactory("MockFlapPortal");
+    const mockFlap = await MockFlapPortal.deploy(
+      clwAddress, ethers.utils.parseEther("2000")
+    );
+    await mockFlap.deployed();
+    console.log("MockFlapPortal deployed to:", mockFlap.address);
+
+    // Configure router with mocks
+    await router.setFlapPortal(mockFlap.address);
+    await router.setPancakeRouter(mockPR.address);
+    console.log("Configured router with mock PancakeRouter and FlapPortal");
+  } else {
+    // Use real addresses if provided
+    if (flapPortalAddress) {
+      await router.setFlapPortal(flapPortalAddress);
+      console.log("Set Flap portal:", flapPortalAddress);
+    }
+    if (pancakeRouterAddress) {
+      await router.setPancakeRouter(pancakeRouterAddress);
+      console.log("Set PancakeRouter:", pancakeRouterAddress);
+    }
+  }
+
   console.log("\n--- Phase 1 Deployment Complete ---");
   console.log("Treasury:", treasury);
   console.log("CLW Token:", clwAddress);
   console.log("ClawNFA:", nfa.address);
   console.log("ClawRouter:", router.address);
-  console.log("\nNext: Run deploy-phase2.ts to deploy GenesisVault");
+  console.log("\nNext: Run deploy-phase2.ts with:");
+  console.log(`  NFA_ADDRESS=${nfa.address} ROUTER_ADDRESS=${router.address} CLW_TOKEN_ADDRESS=${clwAddress}`);
 }
 
 main().catch((error) => {

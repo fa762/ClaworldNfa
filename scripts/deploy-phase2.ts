@@ -2,10 +2,11 @@
  * Phase 2 Deployment: GenesisVault + WorldState + ClawOracle
  *
  * Requires Phase 1 addresses in env:
- *   NFA_ADDRESS, ROUTER_ADDRESS
+ *   NFA_ADDRESS, ROUTER_ADDRESS, CLW_TOKEN_ADDRESS
  *
  * Usage:
- *   NFA_ADDRESS=0x... ROUTER_ADDRESS=0x... npx hardhat run scripts/deploy-phase2.ts --network bscTestnet
+ *   NFA_ADDRESS=0x... ROUTER_ADDRESS=0x... CLW_TOKEN_ADDRESS=0x... \
+ *   npx hardhat run scripts/deploy-phase2.ts --network bscTestnet
  */
 import { ethers, upgrades } from "hardhat";
 
@@ -15,6 +16,8 @@ async function main() {
 
   const nfaAddress = process.env.NFA_ADDRESS!;
   const routerAddress = process.env.ROUTER_ADDRESS!;
+  const clwTokenAddress = process.env.CLW_TOKEN_ADDRESS;
+  const pancakePairAddress = process.env.PANCAKE_PAIR_ADDRESS;
 
   if (!nfaAddress || !routerAddress) {
     throw new Error("Set NFA_ADDRESS and ROUTER_ADDRESS environment variables");
@@ -36,13 +39,26 @@ async function main() {
   await worldState.deployed();
   console.log("WorldState deployed to:", worldState.address);
 
-  // 3. Deploy ClawOracle
+  // 3. Configure WorldState
+  if (clwTokenAddress) {
+    await worldState.setCLWToken(clwTokenAddress);
+    console.log("WorldState: set CLW token");
+  }
+  if (pancakePairAddress) {
+    await worldState.setPancakePair(pancakePairAddress);
+    console.log("WorldState: set PancakeSwap pair");
+  }
+  // Authorize deployer as keeper for autoUpdate
+  await worldState.setKeeper(deployer.address, true);
+  console.log("WorldState: authorized deployer as keeper");
+
+  // 4. Deploy ClawOracle
   const ClawOracle = await ethers.getContractFactory("ClawOracle");
   const oracle = await upgrades.deployProxy(ClawOracle, [], { kind: "uups" });
   await oracle.deployed();
   console.log("ClawOracle deployed to:", oracle.address);
 
-  // 4. Configure roles
+  // 5. Configure roles
   const nfa = await ethers.getContractAt("ClawNFA", nfaAddress);
   const router = await ethers.getContractAt("ClawRouter", routerAddress);
 
@@ -57,11 +73,16 @@ async function main() {
   await router.authorizeSkill(vault.address, true);
   console.log("Authorized GenesisVault as skill");
 
+  // Set WorldState on Router (for dailyCostMultiplier)
+  await router.setWorldState(worldState.address);
+  console.log("Set WorldState on Router");
+
   console.log("\n--- Phase 2 Deployment Complete ---");
   console.log("GenesisVault:", vault.address);
   console.log("WorldState:", worldState.address);
   console.log("ClawOracle:", oracle.address);
-  console.log("\nNext: Run deploy-phase3.ts to deploy Skills");
+  console.log("\nNext: Run deploy-phase3.ts with:");
+  console.log(`  NFA_ADDRESS=${nfaAddress} ROUTER_ADDRESS=${routerAddress} WORLD_STATE_ADDRESS=${worldState.address}`);
 }
 
 main().catch((error) => {

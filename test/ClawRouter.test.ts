@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { ClawNFA, ClawRouter, MockCLW } from "../typechain-types";
+import { ClawNFA, ClawRouter, MockCLW, MockPancakeRouter, MockFlapPortal } from "../typechain-types";
 // Time helper using ethers provider
 async function increaseTime(seconds: number) {
   await ethers.provider.send("evm_increaseTime", [seconds]);
@@ -467,6 +467,267 @@ describe("ClawRouter", function () {
       await expect(
         router.rescueERC20(clw.address, ethers.utils.parseEther("100"))
       ).to.be.revertedWith("Cannot rescue CLW");
+    });
+  });
+
+  describe("Personality Evolution", function () {
+    let tokenId: any;
+
+    beforeEach(async function () {
+      tokenId = await setupLobster(user1, { courage: 50, wisdom: 40, social: 60, create: 30, grit: 70 });
+    });
+
+    it("should evolve courage up by skill", async function () {
+      await router.connect(skill).evolvePersonality(tokenId, 0, 3); // courage +3
+      const state = await router.getLobsterState(tokenId);
+      expect(state.courage).to.equal(53);
+    });
+
+    it("should evolve personality down", async function () {
+      await router.connect(skill).evolvePersonality(tokenId, 1, -5); // wisdom -5
+      const state = await router.getLobsterState(tokenId);
+      expect(state.wisdom).to.equal(35);
+    });
+
+    it("should clamp personality at 0", async function () {
+      // Create lobster with low courage
+      const tid = await setupLobster(user2, { courage: 2 });
+      await router.connect(skill).evolvePersonality(tid, 0, -5);
+      const state = await router.getLobsterState(tid);
+      expect(state.courage).to.equal(0);
+    });
+
+    it("should clamp personality at 100", async function () {
+      // Create lobster with high grit
+      const tid = await setupLobster(user2, { grit: 98 });
+      await router.connect(skill).evolvePersonality(tid, 4, 5);
+      const state = await router.getLobsterState(tid);
+      expect(state.grit).to.equal(100);
+    });
+
+    it("should enforce monthly cap of ±5 per dimension", async function () {
+      await router.connect(skill).evolvePersonality(tokenId, 0, 5); // courage +5 (at cap)
+      await expect(
+        router.connect(skill).evolvePersonality(tokenId, 0, 1) // would exceed +5
+      ).to.be.revertedWith("Monthly cap exceeded");
+    });
+
+    it("should allow opposite direction within monthly cap", async function () {
+      await router.connect(skill).evolvePersonality(tokenId, 0, 3); // +3
+      await router.connect(skill).evolvePersonality(tokenId, 0, -2); // net +1
+      // Total change = +1, should be fine to go +4 more
+      await router.connect(skill).evolvePersonality(tokenId, 0, 4); // net +5
+      const state = await router.getLobsterState(tokenId);
+      expect(state.courage).to.equal(55);
+    });
+
+    it("should reset monthly counter after 30 days", async function () {
+      await router.connect(skill).evolvePersonality(tokenId, 0, 5); // at cap
+      await increaseTime(30 * 86400 + 1); // 30 days
+      // Should work now
+      await router.connect(skill).evolvePersonality(tokenId, 0, 5);
+      const state = await router.getLobsterState(tokenId);
+      expect(state.courage).to.equal(60);
+    });
+
+    it("should reject non-skill caller", async function () {
+      await expect(
+        router.connect(user1).evolvePersonality(tokenId, 0, 1)
+      ).to.be.revertedWith("Not authorized skill");
+    });
+
+    it("should reject invalid dimension", async function () {
+      await expect(
+        router.connect(skill).evolvePersonality(tokenId, 5, 1)
+      ).to.be.revertedWith("Invalid dimension");
+    });
+
+    it("should reject zero delta", async function () {
+      await expect(
+        router.connect(skill).evolvePersonality(tokenId, 0, 0)
+      ).to.be.revertedWith("Zero delta");
+    });
+
+    it("should emit PersonalityEvolved event", async function () {
+      await expect(router.connect(skill).evolvePersonality(tokenId, 0, 3))
+        .to.emit(router, "PersonalityEvolved")
+        .withArgs(tokenId, 0, 50, 53);
+    });
+  });
+
+  describe("Job Class Derivation", function () {
+    it("should derive Explorer from courage+wisdom top", async function () {
+      const tokenId = await setupLobster(user1, { courage: 90, wisdom: 80, social: 10, create: 10, grit: 10 });
+      const [jobClass, jobName] = await router.getJobClass(tokenId);
+      expect(jobClass).to.equal(0);
+      expect(jobName).to.equal("Explorer");
+    });
+
+    it("should derive Diplomat from wisdom+social top", async function () {
+      const tokenId = await setupLobster(user1, { courage: 10, wisdom: 90, social: 80, create: 10, grit: 10 });
+      const [jobClass, jobName] = await router.getJobClass(tokenId);
+      expect(jobClass).to.equal(1);
+      expect(jobName).to.equal("Diplomat");
+    });
+
+    it("should derive Creator from social+create top", async function () {
+      const tokenId = await setupLobster(user1, { courage: 10, wisdom: 10, social: 90, create: 80, grit: 10 });
+      const [jobClass, jobName] = await router.getJobClass(tokenId);
+      expect(jobClass).to.equal(2);
+      expect(jobName).to.equal("Creator");
+    });
+
+    it("should derive Guardian from courage+grit top", async function () {
+      const tokenId = await setupLobster(user1, { courage: 90, wisdom: 10, social: 10, create: 10, grit: 80 });
+      const [jobClass, jobName] = await router.getJobClass(tokenId);
+      expect(jobClass).to.equal(3);
+      expect(jobName).to.equal("Guardian");
+    });
+
+    it("should derive Scholar from wisdom+create top", async function () {
+      const tokenId = await setupLobster(user1, { courage: 10, wisdom: 90, social: 10, create: 80, grit: 10 });
+      const [jobClass, jobName] = await router.getJobClass(tokenId);
+      expect(jobClass).to.equal(4);
+      expect(jobName).to.equal("Scholar");
+    });
+
+    it("should derive Pioneer from courage+create top", async function () {
+      const tokenId = await setupLobster(user1, { courage: 90, wisdom: 10, social: 10, create: 80, grit: 10 });
+      const [jobClass, jobName] = await router.getJobClass(tokenId);
+      expect(jobClass).to.equal(5);
+      expect(jobName).to.equal("Pioneer");
+    });
+  });
+
+  describe("buyAndDeposit (PancakeSwap)", function () {
+    let tokenId: any;
+    let mockRouter: MockPancakeRouter;
+
+    beforeEach(async function () {
+      tokenId = await setupLobster(user1);
+
+      // Deploy mock WBNB (just need an address)
+      const MockCLWFactory = await ethers.getContractFactory("MockCLW");
+      const wbnb = await MockCLWFactory.deploy();
+
+      // Deploy MockPancakeRouter: 1000 CLW per BNB
+      const MockPancakeRouter = await ethers.getContractFactory("MockPancakeRouter");
+      mockRouter = (await MockPancakeRouter.deploy(
+        wbnb.address, clw.address, ethers.utils.parseEther("1000")
+      )) as MockPancakeRouter;
+
+      await router.setPancakeRouter(mockRouter.address);
+      await router.setGraduated(true);
+    });
+
+    it("should swap BNB for CLW and deposit to lobster", async function () {
+      const bnbAmount = ethers.utils.parseEther("1");
+      await router.connect(user1).buyAndDeposit(tokenId, { value: bnbAmount });
+
+      // 1 BNB × 1000 rate = 1000 CLW
+      expect(await router.clwBalances(tokenId)).to.equal(ethers.utils.parseEther("1000"));
+    });
+
+    it("should emit BuyAndDeposit event", async function () {
+      const bnbAmount = ethers.utils.parseEther("0.5");
+      await expect(router.connect(user1).buyAndDeposit(tokenId, { value: bnbAmount }))
+        .to.emit(router, "BuyAndDeposit")
+        .withArgs(tokenId, bnbAmount, ethers.utils.parseEther("500"));
+    });
+
+    it("should reject when not graduated", async function () {
+      await router.setGraduated(false);
+      await expect(
+        router.connect(user1).buyAndDeposit(tokenId, { value: ethers.utils.parseEther("1") })
+      ).to.be.revertedWith("Not graduated to DEX");
+    });
+
+    it("should reject zero BNB", async function () {
+      await expect(
+        router.connect(user1).buyAndDeposit(tokenId, { value: 0 })
+      ).to.be.revertedWith("Zero BNB");
+    });
+
+    it("should revive dormant lobster", async function () {
+      // Create a lobster with grit=0 so cost is exactly 10 CLW/day
+      const dormantId = await setupLobster(user2, { grit: 0 });
+      await clw.mint(user2.address, ethers.utils.parseEther("10000"));
+      await clw.connect(user2).approve(router.address, ethers.constants.MaxUint256);
+      await router.connect(user2).depositCLW(dormantId, ethers.utils.parseEther("10"));
+
+      // Drain via upkeep (1 day = 10 CLW exactly)
+      await increaseTime(86400);
+      await router.processUpkeep(dormantId);
+      expect(await router.clwBalances(dormantId)).to.equal(0);
+
+      // Wait 72+ hours for dormancy
+      await increaseTime(72 * 3600 + 1);
+      await router.processUpkeep(dormantId);
+
+      const stateBefore = await nfa.getAgentState(dormantId);
+      expect(stateBefore.active).to.equal(false);
+
+      // buyAndDeposit should revive
+      await router.connect(user2).buyAndDeposit(dormantId, { value: ethers.utils.parseEther("1") });
+      const stateAfter = await nfa.getAgentState(dormantId);
+      expect(stateAfter.active).to.equal(true);
+    });
+  });
+
+  describe("flapBuyAndDeposit", function () {
+    let tokenId: any;
+    let mockFlap: MockFlapPortal;
+
+    beforeEach(async function () {
+      tokenId = await setupLobster(user1);
+
+      // Deploy MockFlapPortal: 2000 CLW per BNB
+      const MockFlapPortal = await ethers.getContractFactory("MockFlapPortal");
+      mockFlap = (await MockFlapPortal.deploy(
+        clw.address, ethers.utils.parseEther("2000")
+      )) as MockFlapPortal;
+
+      await router.setFlapPortal(mockFlap.address);
+      // Not graduated (pre-DEX)
+    });
+
+    it("should buy CLW via Flap and deposit", async function () {
+      const bnbAmount = ethers.utils.parseEther("0.5");
+      await router.connect(user1).flapBuyAndDeposit(tokenId, { value: bnbAmount });
+
+      // 0.5 BNB × 2000 = 1000 CLW
+      expect(await router.clwBalances(tokenId)).to.equal(ethers.utils.parseEther("1000"));
+    });
+
+    it("should emit FlapBuyAndDeposit event", async function () {
+      const bnbAmount = ethers.utils.parseEther("1");
+      await expect(router.connect(user1).flapBuyAndDeposit(tokenId, { value: bnbAmount }))
+        .to.emit(router, "FlapBuyAndDeposit")
+        .withArgs(tokenId, bnbAmount, ethers.utils.parseEther("2000"));
+    });
+
+    it("should reject when already graduated", async function () {
+      await router.setGraduated(true);
+      await expect(
+        router.connect(user1).flapBuyAndDeposit(tokenId, { value: ethers.utils.parseEther("1") })
+      ).to.be.revertedWith("Already graduated");
+    });
+
+    it("should reject zero BNB", async function () {
+      await expect(
+        router.connect(user1).flapBuyAndDeposit(tokenId, { value: 0 })
+      ).to.be.revertedWith("Zero BNB");
+    });
+  });
+
+  describe("previewFlapBuy", function () {
+    it("should preview Flap buy amount", async function () {
+      const MockFlapPortal = await ethers.getContractFactory("MockFlapPortal");
+      const mockFlap = await MockFlapPortal.deploy(clw.address, ethers.utils.parseEther("2000"));
+      await router.setFlapPortal(mockFlap.address);
+
+      const preview = await router.previewFlapBuy(ethers.utils.parseEther("1"));
+      expect(preview).to.equal(ethers.utils.parseEther("2000"));
     });
   });
 });
