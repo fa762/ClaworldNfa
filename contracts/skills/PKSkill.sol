@@ -25,6 +25,11 @@ interface IPKClawNFA {
     function ownerOf(uint256 tokenId) external view returns (address);
 }
 
+interface IPKWorldState {
+    function mutationBonus() external view returns (uint256);
+    function pkStakeLimit() external view returns (uint256);
+}
+
 /**
  * @title PKSkill
  * @dev PvP combat system using Commit-Reveal for strategy selection.
@@ -39,6 +44,7 @@ contract PKSkill is
 {
     IPKRouter public router;
     IPKClawNFA public nfa;
+    IPKWorldState public worldState;
 
     uint256 public constant COMMIT_TIMEOUT = 1 hours;
     uint256 public constant REVEAL_TIMEOUT = 30 minutes;
@@ -87,6 +93,10 @@ contract PKSkill is
         nfa = IPKClawNFA(_nfa);
     }
 
+    function setWorldState(address _worldState) external onlyOwner {
+        worldState = IPKWorldState(_worldState);
+    }
+
     // ============================================
     // PK FLOW
     // ============================================
@@ -95,6 +105,9 @@ contract PKSkill is
         require(nfa.ownerOf(nfaId) == msg.sender, "Not NFA owner");
         require(stake > 0, "Zero stake");
         require(router.clwBalances(nfaId) >= stake, "Insufficient CLW");
+        if (address(worldState) != address(0)) {
+            require(stake <= worldState.pkStakeLimit(), "Exceeds stake limit");
+        }
 
         // Lock stake
         router.spendCLW(nfaId, stake);
@@ -336,9 +349,13 @@ contract PKSkill is
         (,,,,,,,,,,,,,uint16 loserLevel,,) = router.lobsters(loser);
 
         if (loserLevel >= winnerLevel + 5) {
-            // 10% chance of mutation
+            // Base 10% chance, modified by worldState.mutationBonus (basis points, 10000 = 1.0x)
+            uint256 mutChance = 10;
+            if (address(worldState) != address(0)) {
+                mutChance = mutChance * worldState.mutationBonus() / 10000;
+            }
             uint256 rand = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, matchId))) % 100;
-            if (rand < 10) {
+            if (rand < mutChance) {
                 uint8 gene = uint8(rand % 4);
                 // Boost by 5
                 (,,,,,,,uint8 str, uint8 def, uint8 spd, uint8 vit,,,,, ) = router.lobsters(winner);

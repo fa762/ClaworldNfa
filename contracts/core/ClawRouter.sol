@@ -7,6 +7,28 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+interface IPancakeRouterV2 {
+    function swapExactETHForTokens(
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable returns (uint256[] memory amounts);
+    function WETH() external pure returns (address);
+}
+
+interface IFlapPortalV2 {
+    function buy(
+        address token,
+        address recipient,
+        uint256 minAmount
+    ) external payable returns (uint256 amount);
+    function previewBuy(
+        address token,
+        uint256 eth
+    ) external view returns (uint256 amount);
+}
+
 interface IClawNFA {
     function exists(uint256 tokenId) external view returns (bool);
     function ownerOf(uint256 tokenId) external view returns (address);
@@ -98,6 +120,15 @@ contract ClawRouter is
     // Track when lobster CLW hit zero (for dormancy timing)
     mapping(uint256 => uint64) public zeroBalanceTimestamp;
 
+    // Personality evolution tracking (monthly cap ±5 per dimension)
+    mapping(uint256 => mapping(uint8 => int8)) public personalityChangesThisMonth;
+    mapping(uint256 => uint64) public personalityMonthStart;
+
+    // PancakeSwap / Flap integration
+    address public pancakeRouter;
+    address public flapPortal;
+    bool public graduated;  // true after CLW graduates from Flap to PancakeSwap
+
     // ============================================
     // EVENTS
     // ============================================
@@ -114,6 +145,9 @@ contract ClawRouter is
     event DnaMutated(uint256 indexed nfaId, uint8 gene, uint8 oldValue, uint8 newValue, bytes32 mutationData);
     event SkillAuthorized(address skill, bool authorized);
     event LobsterInitialized(uint256 indexed nfaId, uint8 rarity, uint8 shelter);
+    event PersonalityEvolved(uint256 indexed nfaId, uint8 dimension, uint8 oldValue, uint8 newValue);
+    event BuyAndDeposit(uint256 indexed nfaId, uint256 bnbSpent, uint256 clwReceived);
+    event FlapBuyAndDeposit(uint256 indexed nfaId, uint256 bnbSpent, uint256 clwReceived);
 
     // ============================================
     // MODIFIERS
@@ -400,6 +434,186 @@ contract ClawRouter is
     }
 
     // ============================================
+    // PERSONALITY EVOLUTION (callable by skills)
+    // ============================================
+
+    /**
+     * @dev Evolve a personality dimension by delta (-5 to +5 per month cap).
+     *      Callable by authorized skill contracts.
+     * @param nfaId The lobster NFA ID
+     * @param dimension 0=courage, 1=wisdom, 2=social, 3=create, 4=grit
+     * @param delta Signed change amount (positive or negative)
+     */
+    function evolvePersonality(
+        uint256 nfaId,
+        uint8 dimension,
+        int8 delta
+    ) external onlySkill lobsterExists(nfaId) {
+        require(dimension <= 4, "Invalid dimension");
+        require(delta != 0, "Zero delta");
+
+        // Reset monthly counter if new month
+        _resetMonthlyCounterIfNeeded(nfaId);
+
+        // Check monthly cap (±5 per dimension per month)
+        int8 currentChange = personalityChangesThisMonth[nfaId][dimension];
+        int8 newChange = currentChange + delta;
+        require(newChange >= -5 && newChange <= 5, "Monthly cap exceeded");
+        personalityChangesThisMonth[nfaId][dimension] = newChange;
+
+        LobsterState storage lob = lobsters[nfaId];
+        uint8 oldValue;
+        uint8 newValue;
+
+        if (dimension == 0) {
+            oldValue = lob.courage;
+            newValue = _clampPersonality(lob.courage, delta);
+            lob.courage = newValue;
+        } else if (dimension == 1) {
+            oldValue = lob.wisdom;
+            newValue = _clampPersonality(lob.wisdom, delta);
+            lob.wisdom = newValue;
+        } else if (dimension == 2) {
+            oldValue = lob.social;
+            newValue = _clampPersonality(lob.social, delta);
+            lob.social = newValue;
+        } else if (dimension == 3) {
+            oldValue = lob.create;
+            newValue = _clampPersonality(lob.create, delta);
+            lob.create = newValue;
+        } else {
+            oldValue = lob.grit;
+            newValue = _clampPersonality(lob.grit, delta);
+            lob.grit = newValue;
+        }
+
+        emit PersonalityEvolved(nfaId, dimension, oldValue, newValue);
+    }
+
+    function _clampPersonality(uint8 current, int8 delta) internal pure returns (uint8) {
+        int16 result = int16(int8(int256(uint256(current)))) + int16(delta);
+        if (result < 0) return 0;
+        if (result > 100) return 100;
+        return uint8(uint16(result));
+    }
+
+    function _resetMonthlyCounterIfNeeded(uint256 nfaId) internal {
+        uint64 monthStart = personalityMonthStart[nfaId];
+        if (monthStart == 0 || block.timestamp >= monthStart + 30 days) {
+            personalityMonthStart[nfaId] = uint64(block.timestamp);
+            for (uint8 i = 0; i < 5; i++) {
+                personalityChangesThisMonth[nfaId][i] = 0;
+            }
+        }
+    }
+
+    // ============================================
+    // JOB CLASS DERIVATION
+    // ============================================
+
+    /**
+     * @dev Derive job class from top 2 personality dimensions.
+     *      0=Explorer (courage+wisdom), 1=Diplomat (social+wisdom),
+     *      2=Creator (create+social), 3=Guardian (grit+courage),
+     *      4=Scholar (wisdom+create), 5=Pioneer (courage+create)
+     */
+    function getJobClass(uint256 nfaId) external view returns (uint8 jobClass, string memory jobName) {
+        LobsterState memory lob = lobsters[nfaId];
+
+        // Find top 2 dimensions
+        uint8[5] memory dims = [lob.courage, lob.wisdom, lob.social, lob.create, lob.grit];
+        uint8 top1Idx = 0;
+        uint8 top2Idx = 1;
+
+        if (dims[top2Idx] > dims[top1Idx]) {
+            (top1Idx, top2Idx) = (top2Idx, top1Idx);
+        }
+
+        for (uint8 i = 2; i < 5; i++) {
+            if (dims[i] > dims[top1Idx]) {
+                top2Idx = top1Idx;
+                top1Idx = i;
+            } else if (dims[i] > dims[top2Idx]) {
+                top2Idx = i;
+            }
+        }
+
+        // Sort pair for consistent mapping
+        uint8 lo = top1Idx < top2Idx ? top1Idx : top2Idx;
+        uint8 hi = top1Idx < top2Idx ? top2Idx : top1Idx;
+
+        // Map dimension pairs to job classes
+        // (0,1)=courage+wisdom=Explorer, (1,2)=wisdom+social=Diplomat,
+        // (2,3)=social+create=Creator, (0,4)=courage+grit=Guardian,
+        // (1,3)=wisdom+create=Scholar, (0,3)=courage+create=Pioneer
+        if (lo == 0 && hi == 1) return (0, "Explorer");
+        if (lo == 1 && hi == 2) return (1, "Diplomat");
+        if (lo == 2 && hi == 3) return (2, "Creator");
+        if (lo == 0 && hi == 4) return (3, "Guardian");
+        if (lo == 1 && hi == 3) return (4, "Scholar");
+        if (lo == 0 && hi == 3) return (5, "Pioneer");
+        // Remaining combinations: default based on top dimension
+        if (top1Idx == 0) return (0, "Explorer");
+        if (top1Idx == 1) return (4, "Scholar");
+        if (top1Idx == 2) return (1, "Diplomat");
+        if (top1Idx == 3) return (2, "Creator");
+        return (3, "Guardian");
+    }
+
+    // ============================================
+    // BUY AND DEPOSIT (BNB → CLW → lobster balance)
+    // ============================================
+
+    /**
+     * @dev Post-graduation: Buy CLW via PancakeSwap and deposit to lobster.
+     */
+    function buyAndDeposit(uint256 nfaId) external payable lobsterExists(nfaId) nonReentrant {
+        require(graduated, "Not graduated to DEX");
+        require(msg.value > 0, "Zero BNB");
+        require(pancakeRouter != address(0), "PancakeRouter not set");
+
+        address[] memory path = new address[](2);
+        path[0] = IPancakeRouterV2(pancakeRouter).WETH();
+        path[1] = address(clwToken);
+
+        uint256[] memory amounts = IPancakeRouterV2(pancakeRouter).swapExactETHForTokens{value: msg.value}(
+            0, path, address(this), block.timestamp + 300
+        );
+
+        uint256 clwReceived = amounts[amounts.length - 1];
+        clwBalances[nfaId] += clwReceived;
+
+        _checkRevival(nfaId);
+        emit BuyAndDeposit(nfaId, msg.value, clwReceived);
+    }
+
+    /**
+     * @dev Pre-graduation: Buy CLW via Flap portal and deposit to lobster.
+     */
+    function flapBuyAndDeposit(uint256 nfaId) external payable lobsterExists(nfaId) nonReentrant {
+        require(!graduated, "Already graduated");
+        require(msg.value > 0, "Zero BNB");
+        require(flapPortal != address(0), "FlapPortal not set");
+
+        uint256 clwReceived = IFlapPortalV2(flapPortal).buy{value: msg.value}(
+            address(clwToken), address(this), 0
+        );
+
+        clwBalances[nfaId] += clwReceived;
+
+        _checkRevival(nfaId);
+        emit FlapBuyAndDeposit(nfaId, msg.value, clwReceived);
+    }
+
+    /**
+     * @dev Preview how much CLW you'd get for a given BNB amount via Flap.
+     */
+    function previewFlapBuy(uint256 bnbAmount) external view returns (uint256) {
+        require(flapPortal != address(0), "FlapPortal not set");
+        return IFlapPortalV2(flapPortal).previewBuy(address(clwToken), bnbAmount);
+    }
+
+    // ============================================
     // ADMIN
     // ============================================
 
@@ -414,6 +628,18 @@ contract ClawRouter is
 
     function setTreasury(address _treasury) external onlyOwner {
         treasury = _treasury;
+    }
+
+    function setPancakeRouter(address _router) external onlyOwner {
+        pancakeRouter = _router;
+    }
+
+    function setFlapPortal(address _portal) external onlyOwner {
+        flapPortal = _portal;
+    }
+
+    function setGraduated(bool _graduated) external onlyOwner {
+        graduated = _graduated;
     }
 
     /**

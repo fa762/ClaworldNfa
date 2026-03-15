@@ -317,4 +317,63 @@ describe("ClawNFA", function () {
       ).to.be.revertedWith("Use fundAgent() instead");
     });
   });
+
+  describe("Learning Tree", function () {
+    beforeEach(async function () {
+      // Mint with logic address set to user2 (simulates router)
+      await nfa.connect(minter).mintTo(user1.address, user2.address, "ipfs://meta", defaultMetadata);
+    });
+
+    it("should allow logic address to update learning tree", async function () {
+      const root = ethers.utils.formatBytes32String("merkle_root_v1");
+      await nfa.connect(user2).updateLearningTree(1, root);
+
+      const [r, v, _] = await nfa.getLearningTree(1);
+      expect(r).to.equal(root);
+      expect(v).to.equal(1);
+    });
+
+    it("should increment version on each update", async function () {
+      const root1 = ethers.utils.formatBytes32String("root1");
+      const root2 = ethers.utils.formatBytes32String("root2");
+
+      await nfa.connect(user2).updateLearningTree(1, root1);
+      await nfa.connect(user2).updateLearningTree(1, root2);
+
+      const [r, v, _] = await nfa.getLearningTree(1);
+      expect(r).to.equal(root2);
+      expect(v).to.equal(2);
+    });
+
+    it("should reject non-logic address update", async function () {
+      const root = ethers.utils.formatBytes32String("root");
+      await expect(
+        nfa.connect(user1).updateLearningTree(1, root)
+      ).to.be.revertedWith("Not logic address");
+    });
+
+    it("should allow owner to update learning tree", async function () {
+      const root = ethers.utils.formatBytes32String("owner_root");
+      await nfa.connect(user1).updateLearningTreeByOwner(1, root);
+
+      const [r, v, _] = await nfa.getLearningTree(1);
+      expect(r).to.equal(root);
+      expect(v).to.equal(1);
+    });
+
+    it("should emit LearningTreeUpdated event", async function () {
+      const root = ethers.utils.formatBytes32String("root");
+      await expect(nfa.connect(user2).updateLearningTree(1, root))
+        .to.emit(nfa, "LearningTreeUpdated")
+        .withArgs(1, root, 1);
+    });
+
+    it("should track lastLearningUpdate timestamp", async function () {
+      const root = ethers.utils.formatBytes32String("root");
+      await nfa.connect(user2).updateLearningTree(1, root);
+
+      const [, , lastUpdate] = await nfa.getLearningTree(1);
+      expect(lastUpdate).to.be.gt(0);
+    });
+  });
 });

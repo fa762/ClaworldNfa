@@ -61,6 +61,11 @@ contract ClawNFA is
     uint256 public constant POST_GENESIS_PRICE = 0.08 ether;
     bool public postGenesisMintEnabled;
 
+    // Learning tree: Merkle root tracks personality/DNA evolution history
+    mapping(uint256 => bytes32) public learningTreeRoot;
+    mapping(uint256 => uint256) public learningVersion;
+    mapping(uint256 => uint256) public lastLearningUpdate;
+
     // ============================================
     // EVENTS
     // ============================================
@@ -72,6 +77,7 @@ contract ClawNFA is
     event LogicAddressUpdated(uint256 indexed tokenId, address newLogicAddress);
     event MetadataUpdated(uint256 indexed tokenId);
     event MinterUpdated(address newMinter);
+    event LearningTreeUpdated(uint256 indexed tokenId, bytes32 newRoot, uint256 version);
 
     // ============================================
     // MODIFIERS
@@ -242,6 +248,51 @@ contract ClawNFA is
         _setTokenURI(tokenId, newMetadataURI);
         agentMetadata[tokenId] = newExtendedMetadata;
         emit MetadataUpdated(tokenId);
+    }
+
+    // ============================================
+    // LEARNING TREE (evolution history)
+    // ============================================
+
+    /**
+     * @dev Update learning tree root. Callable by logic address (ClawRouter)
+     *      to record personality/DNA evolution history.
+     */
+    function updateLearningTree(
+        uint256 tokenId,
+        bytes32 newRoot
+    ) external {
+        require(_exists(tokenId), "Token does not exist");
+        require(
+            msg.sender == agentStates[tokenId].logicAddress,
+            "Not logic address"
+        );
+
+        learningVersion[tokenId]++;
+        learningTreeRoot[tokenId] = newRoot;
+        lastLearningUpdate[tokenId] = block.timestamp;
+
+        emit LearningTreeUpdated(tokenId, newRoot, learningVersion[tokenId]);
+    }
+
+    /**
+     * @dev Owner can also update learning tree for their own NFA.
+     */
+    function updateLearningTreeByOwner(
+        uint256 tokenId,
+        bytes32 newRoot
+    ) external onlyTokenOwner(tokenId) {
+        learningVersion[tokenId]++;
+        learningTreeRoot[tokenId] = newRoot;
+        lastLearningUpdate[tokenId] = block.timestamp;
+
+        emit LearningTreeUpdated(tokenId, newRoot, learningVersion[tokenId]);
+    }
+
+    function getLearningTree(uint256 tokenId)
+        external view returns (bytes32 root, uint256 version, uint256 lastUpdate)
+    {
+        return (learningTreeRoot[tokenId], learningVersion[tokenId], lastLearningUpdate[tokenId]);
     }
 
     // ============================================
