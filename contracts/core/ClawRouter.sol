@@ -36,6 +36,12 @@ interface IClawNFA {
     function getAgentState(uint256 tokenId) external view returns (
         uint256 balance, bool active, address logicAddress, uint256 createdAt, address tokenOwner
     );
+    function updateLearningTree(uint256 tokenId, bytes32 newRoot) external;
+    function learningTreeRoot(uint256 tokenId) external view returns (bytes32);
+}
+
+interface IWorldStateReader {
+    function dailyCostMultiplier() external view returns (uint256);
 }
 
 /**
@@ -128,6 +134,9 @@ contract ClawRouter is
     address public pancakeRouter;
     address public flapPortal;
     bool public graduated;  // true after CLW graduates from Flap to PancakeSwap
+
+    // WorldState reference for daily cost multiplier
+    address public worldState;
 
     // ============================================
     // EVENTS
@@ -326,7 +335,13 @@ contract ClawRouter is
         if (bracket > 9) bracket = 9;
         uint256 baseCost = DAILY_COSTS[bracket];
         // Grit reduces cost: actual = base × (200 - grit) / 200
-        return baseCost * (200 - uint256(grit)) / 200;
+        uint256 cost = baseCost * (200 - uint256(grit)) / 200;
+        // Apply WorldState daily cost multiplier if set
+        if (worldState != address(0)) {
+            uint256 mul = IWorldStateReader(worldState).dailyCostMultiplier();
+            cost = cost * mul / 10000;
+        }
+        return cost;
     }
 
     function _checkDormancy(uint256 nfaId) internal {
@@ -431,6 +446,9 @@ contract ClawRouter is
         }
 
         emit DnaMutated(nfaId, gene, oldValue, newValue, mutationData);
+
+        // Update learning tree to record DNA mutation
+        _updateLearningTree(nfaId, keccak256(abi.encodePacked("dna", gene, oldValue, newValue, mutationData)));
     }
 
     // ============================================
@@ -488,6 +506,9 @@ contract ClawRouter is
         }
 
         emit PersonalityEvolved(nfaId, dimension, oldValue, newValue);
+
+        // Update learning tree to record personality evolution
+        _updateLearningTree(nfaId, keccak256(abi.encodePacked("personality", dimension, oldValue, newValue)));
     }
 
     function _clampPersonality(uint8 current, int8 delta) internal pure returns (uint8) {
@@ -642,6 +663,10 @@ contract ClawRouter is
         graduated = _graduated;
     }
 
+    function setWorldState(address _worldState) external onlyOwner {
+        worldState = _worldState;
+    }
+
     /**
      * @dev Rescue ERC20 tokens accidentally sent to this contract.
      *      Cannot rescue CLW (those belong to lobsters).
@@ -675,6 +700,16 @@ contract ClawRouter is
 
     function _min100(uint8 val) internal pure returns (uint8) {
         return val > 100 ? 100 : val;
+    }
+
+    /**
+     * @dev Update the NFA learning tree with a new leaf hash.
+     *      Computes new root = keccak256(oldRoot, leafHash) for incremental Merkle.
+     */
+    function _updateLearningTree(uint256 nfaId, bytes32 leafHash) internal {
+        bytes32 oldRoot = nfa.learningTreeRoot(nfaId);
+        bytes32 newRoot = keccak256(abi.encodePacked(oldRoot, leafHash, block.timestamp));
+        nfa.updateLearningTree(nfaId, newRoot);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}

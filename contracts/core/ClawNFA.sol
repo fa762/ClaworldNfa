@@ -61,6 +61,9 @@ contract ClawNFA is
     uint256 public constant POST_GENESIS_PRICE = 0.08 ether;
     bool public postGenesisMintEnabled;
 
+    // Default logic address (router) for post-genesis mints
+    address public defaultLogicAddress;
+
     // Learning tree: Merkle root tracks personality/DNA evolution history
     mapping(uint256 => bytes32) public learningTreeRoot;
     mapping(uint256 => uint256) public learningVersion;
@@ -153,7 +156,7 @@ contract ClawNFA is
         (bool success, ) = payable(treasuryAddress).call{value: msg.value}("");
         require(success, "Treasury transfer failed");
 
-        return _mintAgent(msg.sender, address(0), metadataURI, extendedMetadata);
+        return _mintAgent(msg.sender, defaultLogicAddress, metadataURI, extendedMetadata);
     }
 
     function _mintAgent(
@@ -315,6 +318,10 @@ contract ClawNFA is
 
     function setPostGenesisMintEnabled(bool enabled) external onlyOwner {
         postGenesisMintEnabled = enabled;
+    }
+
+    function setDefaultLogicAddress(address _logic) external onlyOwner {
+        defaultLogicAddress = _logic;
     }
 
     // ============================================

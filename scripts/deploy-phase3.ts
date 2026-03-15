@@ -60,6 +60,14 @@ async function main() {
   await router.authorizeSkill(pkSkill.address, true);
   console.log("Authorized PKSkill");
 
+  // 5. Set WorldState on PKSkill (for dynamic mutation rate + stake limit)
+  await pkSkill.setWorldState(worldStateAddress);
+  console.log("Set WorldState on PKSkill");
+
+  // 6. Set deployer as TaskSkill operator
+  await taskSkill.setOperator(deployer.address, true);
+  console.log("Set deployer as TaskSkill operator");
+
   console.log("\n--- Phase 3 Deployment Complete ---");
   console.log("TaskSkill:", taskSkill.address);
   console.log("PKSkill:", pkSkill.address);
