@@ -26,18 +26,12 @@ export function LobsterCard({ data }: { data: LobsterCardData }) {
       }`}>
         {/* Image */}
         <div className="aspect-square bg-navy/50 relative overflow-hidden">
-          {data.vaultURI ? (
-            <img
-              src={imageUrl}
-              alt={`Lobster #${data.tokenId}`}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-4xl text-gray-700">
-              🦞
-            </div>
-          )}
+          <img
+            src={imageUrl}
+            alt={`Lobster #${data.tokenId}`}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
           {data.isOwned && (
             <div className="absolute top-2 right-2 text-xs bg-abyss-orange text-white px-2 py-0.5 rounded-full">
               我的

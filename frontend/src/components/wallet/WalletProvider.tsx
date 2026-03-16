@@ -19,11 +19,13 @@ const config = chainId === 56
       chains: [bsc],
       connectors,
       transports: { [bsc.id]: http(rpcUrl) },
+      ssr: true,
     })
   : createConfig({
       chains: [bscTestnet],
       connectors,
       transports: { [bscTestnet.id]: http(rpcUrl) },
+      ssr: true,
     });
 
 export { config };

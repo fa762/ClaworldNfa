@@ -144,7 +144,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
         <div className="space-y-6">
           {/* Image */}
           <div className="aspect-square bg-card-dark rounded-xl border border-white/10 overflow-hidden">
-            <div className="w-full h-full flex items-center justify-center text-8xl text-gray-700">🦞</div>
+            <img src="/placeholder-nft.svg" alt={`Lobster #${tokenId}`} className="w-full h-full object-cover" />
           </div>
 
           {/* Basic Info */}
