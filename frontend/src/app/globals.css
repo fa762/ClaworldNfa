@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-navy: #0D1F35;
+  --color-abyss-orange: #E8734A;
+  --color-tech-blue: #0078D4;
+  --color-legend-gold: #B8860B;
+  --color-card-dark: #060D1A;
+  --color-mythic-white: #F0F8FF;
+  --color-background: #0D1F35;
+  --color-foreground: #E2E8F0;
+  --font-sans: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-heading: 'Cinzel', serif;
+}
+
+@layer base {
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-heading);
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-card-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+/* Glow effects */
+.glow-orange {
+  box-shadow: 0 0 20px rgba(232, 115, 74, 0.3);
+}
+.glow-mythic {
+  box-shadow: 0 0 30px rgba(240, 248, 255, 0.4);
+}
+.glow-gold {
+  box-shadow: 0 0 20px rgba(184, 134, 11, 0.3);
+}
