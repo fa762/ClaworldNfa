@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { truncateAddress } from '@/lib/format';
 import { getBscScanAddressUrl } from '@/contracts/addresses';
+import { Wallet, LogOut, ExternalLink } from 'lucide-react';
 
 export function ConnectButton() {
   const { address, isConnected } = useAccount();
@@ -13,13 +14,13 @@ export function ConnectButton() {
 
   useEffect(() => setMounted(true), []);
 
-  // Prevent hydration mismatch: render placeholder on server
   if (!mounted) {
     return (
       <button
-        className="px-4 py-1.5 text-sm rounded-lg bg-abyss-orange text-white font-medium hover:bg-abyss-orange/80 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-abyss-orange/15 text-abyss-orange border border-abyss-orange/20 font-medium"
         disabled
       >
+        <Wallet size={14} />
         连接钱包
       </button>
     );
@@ -32,15 +33,17 @@ export function ConnectButton() {
           href={getBscScanAddressUrl(address)}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-mono text-tech-blue hover:underline"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface/60 border border-white/[0.06] text-sm font-mono text-tech-blue hover:border-tech-blue/30 transition-colors"
         >
+          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse-dot" />
           {truncateAddress(address)}
         </a>
         <button
           onClick={() => disconnect()}
-          className="px-3 py-1.5 text-sm rounded-lg bg-card-dark border border-gray-700 hover:border-abyss-orange transition-colors"
+          className="p-2 rounded-xl bg-surface/60 border border-white/[0.06] text-gray-500 hover:text-red-400 hover:border-red-400/20 transition-colors"
+          title="断开连接"
         >
-          断开
+          <LogOut size={14} />
         </button>
       </div>
     );
@@ -52,8 +55,9 @@ export function ConnectButton() {
         <button
           key={connector.uid}
           onClick={() => connect({ connector })}
-          className="px-4 py-1.5 text-sm rounded-lg bg-abyss-orange text-white font-medium hover:bg-abyss-orange/80 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-gradient-to-r from-abyss-orange to-abyss-orange-light text-white font-semibold hover:opacity-90 transition-all active:scale-[0.97] shadow-lg shadow-abyss-orange/20"
         >
+          <Wallet size={14} />
           {connector.name === 'Injected' ? '连接钱包' : connector.name}
         </button>
       ))}

@@ -1,3 +1,5 @@
+import { Lock, Unlock, Dna } from 'lucide-react';
+
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
 
 interface MutationSlotsProps {
@@ -7,8 +9,8 @@ interface MutationSlotsProps {
 
 export function MutationSlots({ mutation1, mutation2 }: MutationSlotsProps) {
   const slots = [
-    { label: '变异槽 1', active: mutation1 !== ZERO_BYTES32 },
-    { label: '变异槽 2', active: mutation2 !== ZERO_BYTES32 },
+    { label: '变异槽 I', active: mutation1 !== ZERO_BYTES32 },
+    { label: '变异槽 II', active: mutation2 !== ZERO_BYTES32 },
   ];
 
   return (
@@ -16,14 +18,23 @@ export function MutationSlots({ mutation1, mutation2 }: MutationSlotsProps) {
       {slots.map((slot) => (
         <div
           key={slot.label}
-          className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border ${
+          className={`flex-1 flex items-center gap-2.5 text-xs px-4 py-3 rounded-xl border transition-all ${
             slot.active
-              ? 'border-abyss-orange/50 bg-abyss-orange/10 text-abyss-orange glow-orange'
-              : 'border-white/10 bg-card-dark text-gray-600'
+              ? 'border-abyss-orange/30 bg-abyss-orange/[0.06] text-abyss-orange animate-glow-pulse'
+              : 'border-white/[0.06] bg-white/[0.02] text-gray-600'
           }`}
         >
-          <div className={`w-2 h-2 rounded-full ${slot.active ? 'bg-abyss-orange' : 'bg-gray-700'}`} />
-          {slot.label}: {slot.active ? '已解锁' : '未解锁'}
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+            slot.active ? 'bg-abyss-orange/15' : 'bg-white/[0.04]'
+          }`}>
+            {slot.active ? <Dna size={14} /> : <Lock size={12} />}
+          </div>
+          <div>
+            <div className="font-medium">{slot.label}</div>
+            <div className={`text-[10px] ${slot.active ? 'text-abyss-orange/70' : 'text-gray-700'}`}>
+              {slot.active ? '已激活' : '未解锁'}
+            </div>
+          </div>
         </div>
       ))}
     </div>

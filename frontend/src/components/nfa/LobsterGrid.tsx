@@ -161,8 +161,9 @@ export function LobsterGrid() {
   return (
     <div>
       {useMock && (
-        <div className="mb-4 px-4 py-2 bg-purple-900/30 border border-purple-700/50 rounded-lg text-sm text-purple-300">
-          演示模式 — 显示模拟数据。切换到测试网或主网环境可连接真实链上数据。
+        <div className="mb-5 px-4 py-2.5 bg-purple-500/[0.06] border border-purple-500/15 rounded-xl text-sm text-purple-400 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse-dot" />
+          演示模式 — 显示模拟数据
         </div>
       )}
       <FilterBar filters={filters} onChange={setFilters} walletConnected={isConnected} />
@@ -170,17 +171,16 @@ export function LobsterGrid() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="bg-card-dark rounded-xl border border-white/5 animate-pulse">
-              <div className="aspect-square bg-gray-800/50 rounded-t-xl" />
-              <div className="p-3 space-y-2">
+            <div key={i} className="bg-card-dark rounded-xl border border-white/[0.04] animate-pulse">
+              <div className="aspect-square bg-surface/50 rounded-t-xl" />
+              <div className="p-3.5 space-y-2.5">
                 <div className="flex justify-between">
-                  <div className="h-4 w-12 bg-gray-800/50 rounded" />
-                  <div className="h-4 w-10 bg-gray-800/50 rounded" />
+                  <div className="h-4 w-12 bg-surface/50 rounded" />
+                  <div className="h-4 w-10 bg-surface/50 rounded" />
                 </div>
                 <div className="flex gap-1.5">
-                  <div className="h-5 w-14 bg-gray-800/50 rounded" />
-                  <div className="h-5 w-16 bg-gray-800/50 rounded" />
-                  <div className="h-5 w-10 bg-gray-800/50 rounded" />
+                  <div className="h-5 w-14 bg-surface/50 rounded-full" />
+                  <div className="h-5 w-16 bg-surface/50 rounded-full" />
                 </div>
               </div>
             </div>
@@ -188,8 +188,10 @@ export function LobsterGrid() {
         </div>
       ) : filtered.length > 0 ? (
         <>
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-gray-500">{filtered.length} 只龙虾</p>
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-sm text-gray-500">
+              共 <span className="font-mono text-white">{filtered.length}</span> 只龙虾
+            </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filtered.map((l) => (
@@ -198,12 +200,15 @@ export function LobsterGrid() {
           </div>
         </>
       ) : (
-        <div className="text-center py-24">
-          <p className="text-gray-500 text-lg mb-2">
+        <div className="text-center py-28">
+          <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-5">
+            <span className="text-2xl">🦞</span>
+          </div>
+          <p className="text-gray-400 text-base mb-2 font-medium">
             {lobsters.length === 0 ? '暂无已铸造的龙虾' : '没有匹配的龙虾'}
           </p>
           <p className="text-gray-600 text-sm">
-            {lobsters.length === 0 ? '龙虾铸造后将在此展示' : '尝试调整筛选条件'}
+            {lobsters.length === 0 ? '龙虾铸造后将在此展示' : '尝试调整筛选条件查看更多'}
           </p>
         </div>
       )}
