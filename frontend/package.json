@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node -e \"try{require('fs').unlinkSync('.next/dev/lock')}catch(e){}\" && npx --yes kill-port 3000 || true",
-    "dev": "next dev",
+    "dev": "node -e \"try{require('fs').unlinkSync('.next/dev/lock')}catch(e){}\" && next dev",
     "build": "next build",
     "start": "next start"
   },
