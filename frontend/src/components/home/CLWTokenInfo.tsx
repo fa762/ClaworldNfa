@@ -3,11 +3,12 @@
 import { useCLWPrice } from '@/contracts/hooks/useWorldState';
 import { useGraduated } from '@/contracts/hooks/useClawRouter';
 import { addresses, getBscScanAddressUrl } from '@/contracts/addresses';
+import { zeroAddress } from 'viem';
 import { formatBNB, truncateAddress } from '@/lib/format';
 import { Copy, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 
-const isContractDeployed = addresses.clwToken !== '0x0000000000000000000000000000000000000000' as any;
+const isContractDeployed = !!addresses.clwToken && addresses.clwToken !== zeroAddress;
 
 export function CLWTokenInfo() {
   const { data: price, isLoading: priceLoading } = useCLWPrice();

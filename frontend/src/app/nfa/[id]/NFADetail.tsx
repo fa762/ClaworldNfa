@@ -12,12 +12,13 @@ import { MutationSlots } from '@/components/nfa/MutationSlots';
 import { DepositPanel } from '@/components/nfa/DepositPanel';
 import { formatCLW, truncateAddress } from '@/lib/format';
 import { addresses, getBscScanAddressUrl } from '@/contracts/addresses';
+import { zeroAddress } from 'viem';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 const JOB_CLASSES = ['探索者', '外交官', '创造者', '守护者', '学者', '先驱者'];
 
-const isContractDeployed = addresses.clawNFA !== '0x0000000000000000000000000000000000000000' as any;
+const isContractDeployed = !!addresses.clawNFA && addresses.clawNFA !== zeroAddress;
 
 // Mock data for preview
 function getMockData(id: number) {

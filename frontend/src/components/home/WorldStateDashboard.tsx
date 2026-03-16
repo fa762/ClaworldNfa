@@ -10,8 +10,9 @@ import {
 import { parseActiveEvents, getEventInfo } from '@/lib/events';
 import { formatBasisPoints, formatCLW } from '@/lib/format';
 import { addresses } from '@/contracts/addresses';
+import { zeroAddress } from 'viem';
 
-const isContractDeployed = addresses.worldState !== '0x0000000000000000000000000000000000000000' as any;
+const isContractDeployed = !!addresses.worldState && addresses.worldState !== zeroAddress;
 
 // Mock values for preview
 const MOCK = {

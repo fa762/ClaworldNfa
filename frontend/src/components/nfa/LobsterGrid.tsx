@@ -6,6 +6,7 @@ import { usePublicClient } from 'wagmi';
 import { ClawNFAABI } from '@/contracts/abis/ClawNFA';
 import { ClawRouterABI } from '@/contracts/abis/ClawRouter';
 import { addresses } from '@/contracts/addresses';
+import { zeroAddress } from 'viem';
 import { LobsterCard, type LobsterCardData } from './LobsterCard';
 import { FilterBar, type Filters } from './FilterBar';
 import { useTokensOfOwner, useTotalSupply } from '@/contracts/hooks/useClawNFA';
@@ -46,7 +47,7 @@ function generateMockLobsters(): LobsterCardData[] {
   return mocks;
 }
 
-const isContractDeployed = addresses.clawNFA !== '0x0000000000000000000000000000000000000000' as any;
+const isContractDeployed = !!addresses.clawNFA && addresses.clawNFA !== zeroAddress;
 
 export function LobsterGrid() {
   const { address, isConnected } = useAccount();
