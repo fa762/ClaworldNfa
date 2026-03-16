@@ -19,6 +19,35 @@ const defaultFilters: Filters = {
   myOnly: false,
 };
 
+// Mock data for preview when no contracts are deployed
+function generateMockLobsters(): LobsterCardData[] {
+  const names = ['问号', '奇点', '课本', '计时', '锈钉', '回声', '静电', '脉冲'];
+  const mocks: LobsterCardData[] = [];
+
+  // Mythic (1)
+  mocks.push({ tokenId: 1, rarity: 4, shelter: 7, level: 50, active: true, vaultURI: '', isOwned: false });
+  // Legendary (4)
+  for (let i = 2; i <= 5; i++) {
+    mocks.push({ tokenId: i, rarity: 3, shelter: i % 8, level: 30 + i * 3, active: true, vaultURI: '', isOwned: i === 2 });
+  }
+  // Epic (6)
+  for (let i = 6; i <= 11; i++) {
+    mocks.push({ tokenId: i, rarity: 2, shelter: i % 8, level: 15 + i * 2, active: i % 3 !== 0, vaultURI: '', isOwned: false });
+  }
+  // Rare (17)
+  for (let i = 12; i <= 28; i++) {
+    mocks.push({ tokenId: i, rarity: 1, shelter: i % 8, level: 5 + (i % 20), active: i % 4 !== 0, vaultURI: '', isOwned: i === 15 || i === 22 });
+  }
+  // Common (fill to 48 for preview)
+  for (let i = 29; i <= 48; i++) {
+    mocks.push({ tokenId: i, rarity: 0, shelter: i % 8, level: 1 + (i % 10), active: i % 5 !== 0, vaultURI: '', isOwned: false });
+  }
+
+  return mocks;
+}
+
+const isContractDeployed = addresses.clawNFA !== '0x0000000000000000000000000000000000000000' as any;
+
 export function LobsterGrid() {
   const { address, isConnected } = useAccount();
   const { data: totalSupply } = useTotalSupply();
@@ -28,14 +57,22 @@ export function LobsterGrid() {
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [lobsters, setLobsters] = useState<LobsterCardData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [useMock, setUseMock] = useState(false);
 
   const myTokenSet = useMemo(() => {
     if (!myTokens) return new Set<number>();
     return new Set((myTokens as bigint[]).map(Number));
   }, [myTokens]);
 
-  // Fetch all lobster data
+  // Fetch all lobster data (or use mock)
   useEffect(() => {
+    if (!isContractDeployed) {
+      setLobsters(generateMockLobsters());
+      setUseMock(true);
+      setLoading(false);
+      return;
+    }
+
     if (!publicClient || !totalSupply) return;
 
     const count = Number(totalSupply);
@@ -147,6 +184,11 @@ export function LobsterGrid() {
 
   return (
     <div>
+      {useMock && (
+        <div className="mb-4 px-4 py-2 bg-yellow-900/30 border border-yellow-700/50 rounded-lg text-sm text-yellow-400">
+          预览模式 — 显示模拟数据。部署合约并配置 .env.local 后将显示真实链上数据。
+        </div>
+      )}
       <FilterBar filters={filters} onChange={setFilters} walletConnected={isConnected} />
 
       {loading ? (

@@ -9,6 +9,18 @@ import {
 } from '@/contracts/hooks/useWorldState';
 import { parseActiveEvents, getEventInfo } from '@/lib/events';
 import { formatBasisPoints, formatCLW } from '@/lib/format';
+import { addresses } from '@/contracts/addresses';
+
+const isContractDeployed = addresses.worldState !== '0x0000000000000000000000000000000000000000' as any;
+
+// Mock values for preview
+const MOCK = {
+  rewardMul: '1.00x',
+  pkLimit: '5K CLW',
+  mutBonus: '1.00x',
+  costMul: '1.00x',
+  events: ['GOLDEN_AGE'],
+};
 
 function StatCard({ label, value, loading }: { label: string; value: string; loading: boolean }) {
   return (
@@ -30,32 +42,41 @@ export function WorldStateDashboard() {
   const { data: costMul, isLoading: l4 } = useDailyCostMultiplier();
   const { data: events, isLoading: l5 } = useActiveEvents();
 
-  const activeEventKeys = events ? parseActiveEvents(BigInt(events.toString())) : [];
-  const loading = l1 || l2 || l3 || l4 || l5;
+  const useMock = !isContractDeployed;
+
+  const activeEventKeys = useMock
+    ? MOCK.events
+    : (events ? parseActiveEvents(BigInt(events.toString())) : []);
+  const loading = !useMock && (l1 || l2 || l3 || l4 || l5);
 
   return (
     <div className="bg-navy/50 rounded-xl border border-white/10 p-6">
-      <h2 className="font-heading text-lg text-mythic-white mb-4">世界状态</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-heading text-lg text-mythic-white">世界状态</h2>
+        {useMock && (
+          <span className="text-xs text-yellow-500 bg-yellow-900/30 px-2 py-0.5 rounded">预览</span>
+        )}
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <StatCard
           label="奖励系数"
-          value={rewardMul ? formatBasisPoints(rewardMul) : '--'}
-          loading={l1}
+          value={useMock ? MOCK.rewardMul : (rewardMul ? formatBasisPoints(rewardMul) : '--')}
+          loading={loading && !useMock}
         />
         <StatCard
           label="PK 质押上限"
-          value={pkLimit ? formatCLW(pkLimit) + ' CLW' : '--'}
-          loading={l2}
+          value={useMock ? MOCK.pkLimit : (pkLimit ? formatCLW(pkLimit) + ' CLW' : '--')}
+          loading={loading && !useMock}
         />
         <StatCard
           label="变异概率加成"
-          value={mutBonus ? formatBasisPoints(mutBonus) : '--'}
-          loading={l3}
+          value={useMock ? MOCK.mutBonus : (mutBonus ? formatBasisPoints(mutBonus) : '--')}
+          loading={loading && !useMock}
         />
         <StatCard
           label="日消耗系数"
-          value={costMul ? formatBasisPoints(costMul) : '--'}
-          loading={l4}
+          value={useMock ? MOCK.costMul : (costMul ? formatBasisPoints(costMul) : '--')}
+          loading={loading && !useMock}
         />
       </div>
 
