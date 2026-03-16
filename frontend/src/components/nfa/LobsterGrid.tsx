@@ -170,18 +170,27 @@ export function LobsterGrid() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="bg-card-dark rounded-xl border border-white/10 animate-pulse">
-              <div className="aspect-square bg-gray-800 rounded-t-xl" />
+            <div key={i} className="bg-card-dark rounded-xl border border-white/5 animate-pulse">
+              <div className="aspect-square bg-gray-800/50 rounded-t-xl" />
               <div className="p-3 space-y-2">
-                <div className="h-4 w-16 bg-gray-800 rounded" />
-                <div className="h-4 w-32 bg-gray-800 rounded" />
+                <div className="flex justify-between">
+                  <div className="h-4 w-12 bg-gray-800/50 rounded" />
+                  <div className="h-4 w-10 bg-gray-800/50 rounded" />
+                </div>
+                <div className="flex gap-1.5">
+                  <div className="h-5 w-14 bg-gray-800/50 rounded" />
+                  <div className="h-5 w-16 bg-gray-800/50 rounded" />
+                  <div className="h-5 w-10 bg-gray-800/50 rounded" />
+                </div>
               </div>
             </div>
           ))}
         </div>
       ) : filtered.length > 0 ? (
         <>
-          <p className="text-sm text-gray-500 mb-4">{filtered.length} 只龙虾</p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-gray-500">{filtered.length} 只龙虾</p>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filtered.map((l) => (
               <LobsterCard key={l.tokenId} data={l} />
@@ -189,8 +198,13 @@ export function LobsterGrid() {
           </div>
         </>
       ) : (
-        <div className="text-center py-20 text-gray-500">
-          {lobsters.length === 0 ? '暂无已铸造的龙虾' : '没有匹配的龙虾'}
+        <div className="text-center py-24">
+          <p className="text-gray-500 text-lg mb-2">
+            {lobsters.length === 0 ? '暂无已铸造的龙虾' : '没有匹配的龙虾'}
+          </p>
+          <p className="text-gray-600 text-sm">
+            {lobsters.length === 0 ? '龙虾铸造后将在此展示' : '尝试调整筛选条件'}
+          </p>
         </div>
       )}
     </div>

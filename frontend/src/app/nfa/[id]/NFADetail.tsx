@@ -13,7 +13,7 @@ import { DepositPanel } from '@/components/nfa/DepositPanel';
 import { formatCLW, truncateAddress } from '@/lib/format';
 import { addresses, getBscScanAddressUrl } from '@/contracts/addresses';
 import { isDemoMode } from '@/lib/env';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
 const JOB_CLASSES = ['探索者', '外交官', '创造者', '守护者', '学者', '先驱者'];
@@ -21,7 +21,6 @@ const JOB_CLASSES = ['探索者', '外交官', '创造者', '守护者', '学者
 // Mock data for preview
 function getMockData(id: number) {
   const seed = id * 7;
-  const rarities = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 3, 4];
   const rarity = id <= 1 ? 4 : id <= 5 ? 3 : id <= 11 ? 2 : id <= 28 ? 1 : 0;
   return {
     rarity,
@@ -47,6 +46,25 @@ function getMockData(id: number) {
   };
 }
 
+function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <div className="w-0.5 h-4 rounded-full bg-abyss-orange" />
+      <h3 className="text-sm font-medium text-mythic-white">{title}</h3>
+      {subtitle && <span className="text-xs text-gray-600">{subtitle}</span>}
+    </div>
+  );
+}
+
+function StatItem({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div className="bg-navy/50 rounded-lg px-3 py-2.5">
+      <span className="text-xs text-gray-500 block mb-0.5">{label}</span>
+      <p className={`font-mono text-sm ${color || 'text-white'}`}>{value}</p>
+    </div>
+  );
+}
+
 export function NFADetail({ tokenId }: { tokenId: string }) {
   const id = BigInt(tokenId);
   const numId = Number(tokenId);
@@ -70,12 +88,15 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 w-32 bg-gray-800 rounded" />
+          <div className="h-5 w-20 bg-gray-800 rounded" />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="aspect-square bg-gray-800 rounded-xl" />
             <div className="space-y-4">
-              <div className="h-6 w-48 bg-gray-800 rounded" />
-              <div className="h-40 bg-gray-800 rounded-xl" />
+              <div className="aspect-square bg-gray-800/50 rounded-xl" />
+              <div className="h-48 bg-gray-800/50 rounded-xl" />
+            </div>
+            <div className="space-y-4">
+              <div className="h-64 bg-gray-800/50 rounded-xl" />
+              <div className="h-48 bg-gray-800/50 rounded-xl" />
             </div>
           </div>
         </div>
@@ -88,10 +109,10 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
 
   if (!lob && !useMock) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8 text-center text-gray-500">
-        <p>龙虾 #{tokenId} 不存在或尚未铸造</p>
-        <Link href="/nfa" className="text-abyss-orange hover:underline mt-4 inline-block">
-          ← 返回合集
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+        <p className="text-gray-500 mb-4">龙虾 #{tokenId} 不存在或尚未铸造</p>
+        <Link href="/nfa" className="text-abyss-orange hover:underline inline-flex items-center gap-1">
+          <ArrowLeft size={14} /> 返回合集
         </Link>
       </div>
     );
@@ -135,60 +156,57 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
       )}
 
       {/* Back link */}
-      <Link href="/nfa" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-white mb-6 transition-colors">
-        <ArrowLeft size={16} /> 返回合集
+      <Link href="/nfa" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-white mb-6 transition-colors group">
+        <ArrowLeft size={15} className="transition-transform group-hover:-translate-x-0.5" /> 返回合集
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left: Image + Basic Info */}
         <div className="space-y-6">
           {/* Image */}
-          <div className="aspect-square bg-card-dark rounded-xl border border-white/10 overflow-hidden">
+          <div className="aspect-square glass rounded-xl overflow-hidden">
             <img src="/placeholder-nft.svg" alt={`Lobster #${tokenId}`} className="w-full h-full object-cover" />
           </div>
 
-          {/* Basic Info */}
-          <div className="bg-card-dark rounded-xl border border-white/10 p-4 space-y-3">
+          {/* Basic Info Card */}
+          <div className="glass rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h1 className="font-heading text-2xl text-mythic-white">龙虾 #{tokenId}</h1>
               <StatusBadge active={Boolean(active)} />
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-2 flex-wrap">
               <RarityBadge rarity={rarity} />
               <ShelterTag shelter={shelter} />
-              <span className="text-sm text-tech-blue font-mono">Lv.{level}</span>
+              <span className="text-sm text-tech-blue font-mono bg-tech-blue/10 px-2 py-0.5 rounded">
+                Lv.{level}
+              </span>
             </div>
+
             <XPProgressBar level={level} xp={xp} />
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <span className="text-gray-500">职业</span>
-                <p className="text-white">{jobName}</p>
-              </div>
-              <div>
-                <span className="text-gray-500">CLW 余额</span>
-                <p className="text-tech-blue font-mono">{formatCLW(balance)}</p>
-              </div>
-              <div>
-                <span className="text-gray-500">日消耗</span>
-                <p className="text-gray-300 font-mono">{formatCLW(cost)} /天</p>
-              </div>
-              <div>
-                <span className="text-gray-500">可维持</span>
-                <p className={`font-mono ${daysRemaining <= 3 ? 'text-red-400' : 'text-gray-300'}`}>
-                  {daysRemaining === Infinity ? '∞' : `${daysRemaining} 天`}
-                </p>
-              </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <StatItem label="职业" value={jobName} />
+              <StatItem label="CLW 余额" value={formatCLW(balance)} color="text-tech-blue" />
+              <StatItem label="日消耗" value={`${formatCLW(cost)} /天`} />
+              <StatItem
+                label="可维持"
+                value={daysRemaining === Infinity ? '∞' : `${daysRemaining} 天`}
+                color={daysRemaining <= 3 ? 'text-red-400' : undefined}
+              />
             </div>
+
             {ownerAddress && (
-              <div className="text-sm">
-                <span className="text-gray-500">Owner: </span>
+              <div className="flex items-center justify-between pt-3 border-t border-white/5 text-sm">
+                <span className="text-gray-500">Owner</span>
                 <a
                   href={getBscScanAddressUrl(ownerAddress)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-tech-blue hover:underline"
+                  className="inline-flex items-center gap-1 font-mono text-tech-blue hover:underline"
                 >
                   {truncateAddress(ownerAddress)}
+                  <ExternalLink size={12} />
                 </a>
               </div>
             )}
@@ -198,23 +216,24 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
         {/* Right: Charts + Deposit */}
         <div className="space-y-6">
           {/* Personality Radar */}
-          <div className="bg-card-dark rounded-xl border border-white/10 p-4">
-            <h3 className="text-sm font-medium text-mythic-white mb-2">性格 Personality</h3>
+          <div className="glass rounded-xl p-5">
+            <SectionHeader title="性格" subtitle="Personality" />
             <PersonalityRadar courage={courage} wisdom={wisdom} social={social} create={create} grit={grit} />
-            <div className="grid grid-cols-5 gap-2 text-center text-xs mt-2">
-              <div><span className="text-gray-500">勇气</span><p className="font-mono text-white">{courage}</p></div>
-              <div><span className="text-gray-500">智慧</span><p className="font-mono text-white">{wisdom}</p></div>
-              <div><span className="text-gray-500">社交</span><p className="font-mono text-white">{social}</p></div>
-              <div><span className="text-gray-500">创造</span><p className="font-mono text-white">{create}</p></div>
-              <div><span className="text-gray-500">韧性</span><p className="font-mono text-white">{grit}</p></div>
+            <div className="grid grid-cols-5 gap-2 text-center text-xs mt-3">
+              <div><span className="text-gray-500">勇气</span><p className="font-mono text-white mt-0.5">{courage}</p></div>
+              <div><span className="text-gray-500">智慧</span><p className="font-mono text-white mt-0.5">{wisdom}</p></div>
+              <div><span className="text-gray-500">社交</span><p className="font-mono text-white mt-0.5">{social}</p></div>
+              <div><span className="text-gray-500">创造</span><p className="font-mono text-white mt-0.5">{create}</p></div>
+              <div><span className="text-gray-500">韧性</span><p className="font-mono text-white mt-0.5">{grit}</p></div>
             </div>
           </div>
 
           {/* DNA Bar Chart */}
-          <div className="bg-card-dark rounded-xl border border-white/10 p-4">
-            <h3 className="text-sm font-medium text-mythic-white mb-2">基因 DNA</h3>
+          <div className="glass rounded-xl p-5">
+            <SectionHeader title="基因" subtitle="DNA" />
             <DNABarChart str={str} def={def} spd={spd} vit={vit} />
-            <div className="mt-3">
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <SectionHeader title="变异槽位" subtitle="Mutations" />
               <MutationSlots mutation1={mutation1} mutation2={mutation2} />
             </div>
           </div>
