@@ -8,8 +8,13 @@ export const metadata = {
 export default function NFACollectionPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="font-heading text-3xl text-mythic-white mb-2">NFA 合集</h1>
-      <p className="text-gray-500 mb-8">浏览所有已铸造的龙虾</p>
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-1 h-6 rounded-full bg-abyss-orange" />
+          <h1 className="font-heading text-3xl text-mythic-white">NFA 合集</h1>
+        </div>
+        <p className="text-gray-500 ml-3">浏览所有已铸造的龙虾</p>
+      </div>
       <LobsterGrid />
     </div>
   );
