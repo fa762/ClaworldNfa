@@ -3,21 +3,18 @@
 import { useCLWPrice } from '@/contracts/hooks/useWorldState';
 import { useGraduated } from '@/contracts/hooks/useClawRouter';
 import { addresses, getBscScanAddressUrl } from '@/contracts/addresses';
-import { zeroAddress } from 'viem';
 import { formatBNB, truncateAddress } from '@/lib/format';
 import { Copy, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
-
-const isContractDeployed = !!addresses.clwToken && addresses.clwToken !== zeroAddress;
+import { isDemoMode } from '@/lib/env';
+import { mockTokenInfo } from '@/lib/mockData';
 
 export function CLWTokenInfo() {
   const { data: price, isLoading: priceLoading } = useCLWPrice();
   const { data: graduated } = useGraduated();
   const [copied, setCopied] = useState(false);
 
-  const useMock = !isContractDeployed;
-  const mockPrice = '0.0025 BNB';
-  const mockGraduated = false;
+  const useMock = isDemoMode;
 
   const copyAddress = () => {
     navigator.clipboard.writeText(addresses.clwToken);
@@ -25,7 +22,7 @@ export function CLWTokenInfo() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const isGraduated = useMock ? mockGraduated : graduated;
+  const isGraduated = useMock ? mockTokenInfo.graduated : graduated;
   const purchaseLink = isGraduated
     ? `https://pancakeswap.finance/swap?outputCurrency=${addresses.clwToken}`
     : '#';
@@ -35,7 +32,7 @@ export function CLWTokenInfo() {
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-heading text-lg text-mythic-white">CLW 代币</h2>
         {useMock && (
-          <span className="text-xs text-yellow-500 bg-yellow-900/30 px-2 py-0.5 rounded">预览</span>
+          <span className="text-xs text-purple-400 bg-purple-900/30 px-2 py-0.5 rounded">演示</span>
         )}
       </div>
 
@@ -47,7 +44,7 @@ export function CLWTokenInfo() {
             <div className="h-6 w-24 bg-gray-800 animate-pulse rounded" />
           ) : (
             <p className="text-lg font-mono text-tech-blue">
-              {useMock ? mockPrice : (price ? `${formatBNB(price)} BNB` : '待部署')}
+              {useMock ? mockTokenInfo.price : (price ? `${formatBNB(price)} BNB` : '待部署')}
             </p>
           )}
         </div>

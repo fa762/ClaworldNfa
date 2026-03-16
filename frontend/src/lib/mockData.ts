@@ -1,0 +1,146 @@
+import type { LobsterCardData } from '@/components/nfa/LobsterCard';
+
+/**
+ * Mock world state data for demo mode
+ */
+export const mockWorldState = {
+  rewardMultiplier: '1.20x',
+  pkStakeLimit: '5,000 CLW',
+  mutationBonus: '1.15x',
+  dailyCostMultiplier: '0.90x',
+  activeEvents: ['GOLDEN_AGE'],
+};
+
+/**
+ * Mock CLW token data for demo mode
+ */
+export const mockTokenInfo = {
+  price: '0.0025 BNB',
+  graduated: false,
+  totalSupply: '100,000,000 CLW',
+  holders: 1_284,
+  marketCap: '250,000 BNB',
+};
+
+/**
+ * Lobster name generator
+ */
+const LOBSTER_NAMES = [
+  '问号', '奇点', '课本', '计时', '锈钉', '回声', '静电', '脉冲',
+  '铁骨', '夜行', '裂缝', '星尘', '潜流', '碎片', '电弧', '雾影',
+  '锋刃', '涡旋', '残响', '冰晶', '焰尾', '暗潮', '棱镜', '断弦',
+  '浪涌', '砂砾', '幻音', '钛壳', '虹光', '磁场', '流沙', '铜锈',
+  '雷鸣', '深渊', '旋风', '冻土', '熔岩', '微光', '暴雨', '迷雾',
+  '荆棘', '烈阳', '霜降', '赤潮', '极光', '黑洞', '白噪', '灰烬',
+];
+
+/**
+ * Generate rich mock lobster data for demo mode
+ */
+export function generateMockLobsters(): LobsterCardData[] {
+  const mocks: LobsterCardData[] = [];
+
+  // Mythic (1) — rarity 4
+  mocks.push({
+    tokenId: 1,
+    rarity: 4,
+    shelter: 7,
+    level: 50,
+    active: true,
+    vaultURI: '',
+    isOwned: false,
+  });
+
+  // Legendary (4) — rarity 3
+  for (let i = 2; i <= 5; i++) {
+    mocks.push({
+      tokenId: i,
+      rarity: 3,
+      shelter: i % 8,
+      level: 30 + i * 3,
+      active: true,
+      vaultURI: '',
+      isOwned: i === 3,
+    });
+  }
+
+  // Epic (8) — rarity 2
+  for (let i = 6; i <= 13; i++) {
+    mocks.push({
+      tokenId: i,
+      rarity: 2,
+      shelter: i % 8,
+      level: 15 + i * 2,
+      active: i % 3 !== 0,
+      vaultURI: '',
+      isOwned: i === 8,
+    });
+  }
+
+  // Rare (15) — rarity 1
+  for (let i = 14; i <= 28; i++) {
+    mocks.push({
+      tokenId: i,
+      rarity: 1,
+      shelter: i % 8,
+      level: 5 + (i % 20),
+      active: i % 4 !== 0,
+      vaultURI: '',
+      isOwned: i === 15 || i === 22,
+    });
+  }
+
+  // Common (20) — rarity 0
+  for (let i = 29; i <= 48; i++) {
+    mocks.push({
+      tokenId: i,
+      rarity: 0,
+      shelter: i % 8,
+      level: 1 + (i % 10),
+      active: i % 5 !== 0,
+      vaultURI: '',
+      isOwned: false,
+    });
+  }
+
+  return mocks;
+}
+
+/**
+ * Get a mock lobster name by token ID
+ */
+export function getMockLobsterName(tokenId: number): string {
+  return LOBSTER_NAMES[(tokenId - 1) % LOBSTER_NAMES.length] ?? `龙虾#${tokenId}`;
+}
+
+/**
+ * Mock DNA attributes for lobster detail page
+ */
+export function getMockDNA(tokenId: number) {
+  // Deterministic "random" based on tokenId
+  const seed = tokenId * 7919;
+  const attr = (offset: number) => ((seed + offset * 1301) % 100);
+  return {
+    STR: attr(0),
+    DEX: attr(1),
+    INT: attr(2),
+    CON: attr(3),
+    WIS: attr(4),
+    CHA: attr(5),
+  };
+}
+
+/**
+ * Mock personality traits
+ */
+export function getMockPersonality(tokenId: number) {
+  const seed = tokenId * 3571;
+  const v = (offset: number) => ((seed + offset * 997) % 100);
+  return {
+    aggressive: v(0),
+    curious: v(1),
+    social: v(2),
+    cautious: v(3),
+    creative: v(4),
+  };
+}

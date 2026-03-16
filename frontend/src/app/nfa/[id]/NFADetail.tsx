@@ -12,13 +12,11 @@ import { MutationSlots } from '@/components/nfa/MutationSlots';
 import { DepositPanel } from '@/components/nfa/DepositPanel';
 import { formatCLW, truncateAddress } from '@/lib/format';
 import { addresses, getBscScanAddressUrl } from '@/contracts/addresses';
-import { zeroAddress } from 'viem';
+import { isDemoMode } from '@/lib/env';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 const JOB_CLASSES = ['探索者', '外交官', '创造者', '守护者', '学者', '先驱者'];
-
-const isContractDeployed = !!addresses.clawNFA && addresses.clawNFA !== zeroAddress;
 
 // Mock data for preview
 function getMockData(id: number) {
@@ -62,8 +60,8 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   const { data: isActive } = useIsActive(id);
   const { data: owner } = useNFAOwner(id);
 
-  // Use mock data when contracts not deployed
-  const useMock = !isContractDeployed;
+  // Use mock data in demo mode
+  const useMock = isDemoMode;
   const mock = useMock ? getMockData(numId) : null;
 
   const loading = !useMock && (l1 || l2 || l3);
@@ -131,8 +129,8 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Mock banner */}
       {useMock && (
-        <div className="mb-4 px-4 py-2 bg-yellow-900/30 border border-yellow-700/50 rounded-lg text-sm text-yellow-400">
-          预览模式 — 显示模拟数据。部署合约并配置 .env.local 后将显示真实链上数据。
+        <div className="mb-4 px-4 py-2 bg-purple-900/30 border border-purple-700/50 rounded-lg text-sm text-purple-300">
+          演示模式 — 显示模拟数据。切换到测试网或主网环境可连接真实链上数据。
         </div>
       )}
 

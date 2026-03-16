@@ -30,9 +30,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
-.env*
+# env files (keep .env.example, .env.testnet, .env.mainnet in repo)
+.env.local
 !.env.example
+!.env.testnet
+!.env.mainnet
 
 # vercel
 .vercel
