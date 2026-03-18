@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://clawnfaterminal.xyz'),
   title: "CLAW WORLD TERMINAL",
   description: "Claw Civilization Universe — BSC 链上去中心化 AI 龙虾养成终端",
+  icons: {
+    icon: '/icon.png',
+    apple: '/apple-icon.png',
+  },
   openGraph: {
     title: "CLAW WORLD TERMINAL",
     description: "BSC 链上去中心化 AI 龙虾养成终端",

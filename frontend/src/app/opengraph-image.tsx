@@ -1,11 +1,15 @@
 import { ImageResponse } from 'next/og';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
-export const runtime = 'edge';
 export const alt = 'CLAW WORLD TERMINAL';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
 export default async function Image() {
+  const logoData = await readFile(join(process.cwd(), 'public', 'brand-logo.png'));
+  const logoBase64 = `data:image/png;base64,${logoData.toString('base64')}`;
+
   return new ImageResponse(
     (
       <div
@@ -33,6 +37,13 @@ export default async function Image() {
 
         {/* Content */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
+          {/* Brand Logo */}
+          <img
+            src={logoBase64}
+            width={160}
+            height={160}
+            style={{ marginBottom: 20 }}
+          />
           <div
             style={{
               fontSize: 72,
