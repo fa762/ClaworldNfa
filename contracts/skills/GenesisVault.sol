@@ -176,16 +176,32 @@ contract GenesisVault is
     }
 
     /**
-     * @dev Phase 2: Reveal rarity + salt. Verifies hash, price, and mints.
+     * @dev Phase 2: Reveal rarity + salt. Mints to msg.sender.
      */
     function reveal(uint8 rarity, bytes32 salt) external nonReentrant {
+        _reveal(rarity, salt, msg.sender);
+    }
+
+    /**
+     * @dev Phase 2 (variant): Reveal and mint to a specified recipient address.
+     *      Allows minting directly to a game wallet / chat wallet.
+     */
+    function revealTo(uint8 rarity, bytes32 salt, address recipient) external nonReentrant {
+        require(recipient != address(0), "Invalid recipient");
+        _reveal(rarity, salt, recipient);
+    }
+
+    /**
+     * @dev Internal reveal logic shared by reveal() and revealTo().
+     */
+    function _reveal(uint8 rarity, bytes32 salt, address recipient) internal {
         Commitment storage c = commitments[msg.sender];
         require(c.hash != bytes32(0), "No commitment");
         require(!c.revealed, "Already revealed");
         require(block.timestamp >= c.timestamp + REVEAL_DELAY, "Too early");
         require(block.timestamp <= c.timestamp + REVEAL_WINDOW, "Reveal expired");
 
-        // Verify hash
+        // Verify hash (always based on msg.sender who committed)
         bytes32 expectedHash = keccak256(abi.encodePacked(rarity, salt, msg.sender));
         require(c.hash == expectedHash, "Invalid reveal");
 
@@ -211,7 +227,7 @@ contract GenesisVault is
 
         (uint8 shelter, uint8[5] memory personality, uint8[4] memory dna) = _generateAttributes(seed, rarity);
 
-        // Mint NFA
+        // Mint NFA to recipient (can be msg.sender or a game wallet)
         IGenesisNFA.AgentMetadata memory meta = IGenesisNFA.AgentMetadata({
             persona: "",
             experience: "",
@@ -221,7 +237,7 @@ contract GenesisVault is
             vaultHash: bytes32(0)
         });
 
-        uint256 nfaId = nfa.mintTo(msg.sender, address(router), "", meta);
+        uint256 nfaId = nfa.mintTo(recipient, address(router), "", meta);
 
         // Initialize lobster in router
         IGenesisRouter.LobsterState memory lobState = IGenesisRouter.LobsterState({
@@ -253,7 +269,7 @@ contract GenesisVault is
 
         emit GenesisRevealed(msg.sender, nfaId, rarity, shelter);
 
-        // Refund excess BNB
+        // Refund excess BNB to the original committer (msg.sender)
         if (excess > 0) {
             (bool ok, ) = payable(msg.sender).call{value: excess}("");
             require(ok, "Refund failed");
