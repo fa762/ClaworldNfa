@@ -8,6 +8,7 @@ import { appEnv, isDemoMode, isMainnet } from '@/lib/env';
 
 const navLinks = [
   { href: '/', label: '首页', key: 'HOME' },
+  { href: '/mint', label: '铸造', key: 'MINT' },
   { href: '/guide', label: '指南', key: 'GUIDE' },
   { href: '/lore', label: '世界观', key: 'LORE' },
   { href: '/nfa', label: 'NFA', key: 'NFA' },
