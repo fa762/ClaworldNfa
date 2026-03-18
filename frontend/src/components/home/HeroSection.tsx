@@ -44,6 +44,9 @@ export function HeroSection() {
 
       {/* CTA */}
       <div className="flex flex-wrap gap-3">
+        <Link href="/mint" className="term-btn term-btn-primary text-sm">
+          [创世铸造]
+        </Link>
         <Link href="/nfa" className="term-btn term-btn-primary text-sm">
           [探索 NFA 合集]
         </Link>
