@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAccount } from 'wagmi';
+import { simulateContract } from '@wagmi/core';
 import { parseEther, zeroHash, type Address } from 'viem';
 import Link from 'next/link';
 import { TerminalBox } from '@/components/terminal/TerminalBox';
+import { config } from '@/components/wallet/WalletProvider';
 import { getBscScanTxUrl } from '@/contracts/addresses';
 import { getRarityName, getRarityClass, getRarityStars } from '@/lib/rarity';
 import { getShelterName } from '@/lib/shelter';
@@ -17,6 +19,7 @@ import {
   useCommitMint,
   useRevealMint,
   useRefund,
+  vaultContract,
   RARITY_PRICES,
   RARITY_CAPS,
   RARITY_AIRDROPS,
@@ -99,10 +102,34 @@ export function MintPanel() {
   }
 
   // Handle reveal
-  function handleReveal() {
+  const [debugError, setDebugError] = useState<string | null>(null);
+
+  async function handleReveal() {
     if (!address) return;
     const saved = loadSalt(address);
-    if (!saved) return;
+    if (!saved) {
+      console.error('[Reveal] No saved salt in localStorage');
+      setDebugError('未找到本地 salt 数据');
+      return;
+    }
+    console.log('[Reveal] rarity:', saved.rarity, 'salt:', saved.salt, 'address:', address);
+    setDebugError(null);
+
+    // Pre-simulate to catch revert reason
+    try {
+      await simulateContract(config, {
+        ...vaultContract,
+        functionName: 'reveal',
+        args: [saved.rarity, saved.salt],
+        account: address,
+      });
+      console.log('[Reveal] Simulation OK');
+    } catch (err: any) {
+      const msg = err?.shortMessage || err?.message || String(err);
+      console.error('[Reveal] Simulation FAILED:', msg);
+      setDebugError(msg);
+    }
+
     revealMint.revealMint(saved.rarity, saved.salt);
   }
 
@@ -311,6 +338,12 @@ export function MintPanel() {
                 {revealMint.error && (
                   <div className="term-danger text-xs">
                     [!] {(revealMint.error as any)?.shortMessage || revealMint.error.message}
+                  </div>
+                )}
+
+                {debugError && (
+                  <div className="term-danger text-xs">
+                    [DEBUG] {debugError}
                   </div>
                 )}
               </div>

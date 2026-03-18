@@ -5,7 +5,7 @@ import { type Address, zeroAddress, keccak256, encodePacked, toHex } from 'viem'
 import { GenesisVaultABI } from '../abis/GenesisVault';
 import { addresses } from '../addresses';
 
-const vaultContract = {
+export const vaultContract = {
   address: addresses.genesisVault,
   abi: GenesisVaultABI,
 } as const;
