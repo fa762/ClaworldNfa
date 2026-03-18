@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://clawworld.vercel.app'),
+  metadataBase: new URL('https://clawnfaterminal.xyz'),
   title: "CLAW WORLD TERMINAL",
   description: "Claw Civilization Universe — BSC 链上去中心化 AI 龙虾养成终端",
   openGraph: {
