@@ -14,6 +14,13 @@ const connectors = [
   ...(projectId ? [walletConnect({ projectId })] : []),
 ];
 
+// Force legacy (type 0) transactions on BSC Testnet to avoid
+// "Unknown transaction type" errors in MetaMask
+const bscTestnetLegacy = {
+  ...bscTestnet,
+  fees: undefined,
+} as const;
+
 const config = chainId === 56
   ? createConfig({
       chains: [bsc],
@@ -22,7 +29,7 @@ const config = chainId === 56
       ssr: true,
     })
   : createConfig({
-      chains: [bscTestnet],
+      chains: [bscTestnetLegacy],
       connectors,
       transports: { [bscTestnet.id]: http(rpcUrl) },
       ssr: true,
