@@ -6,6 +6,7 @@ import { useFundBNB, useDepositCLW, useBuyAndDeposit, useCLWAllowance } from '@/
 import { parseEther } from 'viem';
 import { getBscScanTxUrl } from '@/contracts/addresses';
 import { TerminalBox } from '@/components/terminal/TerminalBox';
+import { nativeSymbol } from '@/lib/format';
 
 type Tab = 'bnb' | 'clw' | 'quick';
 
@@ -33,9 +34,9 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
   }
 
   const tabs: { key: Tab; label: string; disabled?: boolean }[] = [
-    { key: 'bnb', label: 'BNB' },
+    { key: 'bnb', label: nativeSymbol },
     { key: 'clw', label: 'CLW' },
-    { key: 'quick', label: 'BNB→CLW', disabled: !buyAndDeposit.graduated },
+    { key: 'quick', label: `${nativeSymbol}→CLW`, disabled: !buyAndDeposit.graduated },
   ];
 
   const isPending = fundBNB.isPending || depositCLW.isPending || buyAndDeposit.isPending;
@@ -104,7 +105,7 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder={tab === 'clw' ? 'CLW 数量' : 'BNB 数量'}
+            placeholder={tab === 'clw' ? 'CLW 数量' : `${nativeSymbol} 数量`}
             className="term-input flex-1 text-sm"
             min="0"
             step="0.01"
