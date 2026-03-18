@@ -9,6 +9,8 @@
  *   GENESIS_VAULT_ADDRESS=0x... \
  *   npx hardhat run scripts/upgrade-genesis-vault.ts --network bscTestnet
  */
+const globalAgent = require('global-agent');
+globalAgent.bootstrap();
 import { ethers, upgrades } from "hardhat";
 
 async function main() {

@@ -1,4 +1,4 @@
-import { HardhatUserConfig, extendEnvironment } from "hardhat/config";
+import { HardhatUserConfig } from "hardhat/config";
 import "@nomiclabs/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@openzeppelin/hardhat-upgrades";
@@ -9,9 +9,6 @@ import "solidity-coverage";
 import * as dotenv from "dotenv";
 
 dotenv.config();
-
-// Use BSC testnet RPC URL from env or default
-const bscTestnetUrl = process.env.BSC_TESTNET_RPC || "https://bsc-testnet-rpc.publicnode.com";
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -29,7 +26,7 @@ const config: HardhatUserConfig = {
       chainId: 31337,
     },
     bscTestnet: {
-      url: bscTestnetUrl,
+      url: "https://bsc-testnet-rpc.publicnode.com",
       chainId: 97,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
@@ -48,5 +45,22 @@ const config: HardhatUserConfig = {
     runOnCompile: false,
   },
 };
+import { subtask } from "hardhat/config";
+import { TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD } from "hardhat/builtin-tasks/task-names";
+import path from "path";
+
+subtask(TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD, async (args: any) => {
+  const compilerPath = path.join(
+    process.env.USERPROFILE || "",
+    ".cache", "hardhat-nodejs", "compilers-v2", "wasm",
+    "soljson-v0.8.26+commit.8a97fa7a.js"
+  );
+  return {
+    version: args.solcVersion,
+    longVersion: "0.8.26+commit.8a97fa7a",
+    compilerPath,
+    isSolcJs: true,
+  };
+});
 
 export default config;
