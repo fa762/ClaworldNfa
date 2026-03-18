@@ -10,10 +10,13 @@ import { DNABarChart } from '@/components/nfa/DNABarChart';
 import { XPProgressBar } from '@/components/nfa/XPProgressBar';
 import { MutationSlots } from '@/components/nfa/MutationSlots';
 import { DepositPanel } from '@/components/nfa/DepositPanel';
+import { TerminalBox } from '@/components/terminal/TerminalBox';
+import { TerminalBar } from '@/components/terminal/TerminalBar';
 import { formatCLW, truncateAddress } from '@/lib/format';
-import { addresses, getBscScanAddressUrl } from '@/contracts/addresses';
+import { getBscScanAddressUrl } from '@/contracts/addresses';
 import { isDemoMode } from '@/lib/env';
-import { ArrowLeft, ExternalLink, Briefcase, Wallet, Clock, Zap } from 'lucide-react';
+import { getMockLobsterName } from '@/lib/mockData';
+import { resolveIpfsUrl } from '@/lib/ipfs';
 import Link from 'next/link';
 
 const JOB_CLASSES = ['探索者', '外交官', '创造者', '守护者', '学者', '先驱者'];
@@ -42,44 +45,6 @@ function getMockData(id: number) {
   };
 }
 
-function SectionCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`glass-card rounded-2xl p-5 ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-function SectionTitle({ title, subtitle, icon: Icon }: { title: string; subtitle?: string; icon?: React.ElementType }) {
-  return (
-    <div className="flex items-center gap-2.5 mb-4">
-      {Icon && (
-        <div className="w-7 h-7 rounded-lg bg-abyss-orange/10 flex items-center justify-center">
-          <Icon size={14} className="text-abyss-orange" />
-        </div>
-      )}
-      <div>
-        <h3 className="text-sm font-semibold text-mythic-white">{title}</h3>
-        {subtitle && <p className="text-[10px] text-gray-600">{subtitle}</p>}
-      </div>
-    </div>
-  );
-}
-
-function StatItem({ label, value, icon: Icon, color }: {
-  label: string; value: string; icon: React.ElementType; color?: string;
-}) {
-  return (
-    <div className="bg-surface/50 rounded-xl px-3.5 py-3 border border-white/[0.04] hover:border-white/[0.08] transition-colors">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <Icon size={11} className="text-gray-500" />
-        <span className="text-[10px] text-gray-500">{label}</span>
-      </div>
-      <p className={`font-mono text-sm font-semibold ${color || 'text-white'}`}>{value}</p>
-    </div>
-  );
-}
-
 export function NFADetail({ tokenId }: { tokenId: string }) {
   const id = BigInt(tokenId);
   const numId = Number(tokenId);
@@ -99,40 +64,25 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-5 w-24 bg-gray-800/50 rounded" />
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <div className="aspect-square bg-gray-800/30 rounded-2xl" />
-              <div className="h-56 bg-gray-800/30 rounded-2xl" />
-            </div>
-            <div className="lg:col-span-3 space-y-6">
-              <div className="h-72 bg-gray-800/30 rounded-2xl" />
-              <div className="h-56 bg-gray-800/30 rounded-2xl" />
-              <div className="h-40 bg-gray-800/30 rounded-2xl" />
-            </div>
-          </div>
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="term-dim animate-glow-pulse py-16 text-center">
+          LOADING NFA #{tokenId}...<span className="animate-blink ml-1">█</span>
         </div>
       </div>
     );
   }
 
   const lob = useMock ? mock : (lobster as any);
-
   if (!lob && !useMock) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-24 text-center">
-        <p className="text-gray-500 text-lg mb-4">龙虾 #{tokenId} 不存在或尚未铸造</p>
-        <Link href="/nfa" className="text-abyss-orange hover:underline inline-flex items-center gap-1.5 text-sm">
-          <ArrowLeft size={14} /> 返回合集
-        </Link>
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center">
+        <p className="term-dim mb-4">龙虾 #{tokenId} 不存在或尚未铸造</p>
+        <Link href="/nfa" className="term-link">[&lt; 返回合集]</Link>
       </div>
     );
   }
 
   const state = useMock ? mock : (agentState as any);
-
   const rarity = useMock ? mock!.rarity : Number(lob.rarity ?? lob[0] ?? 0);
   const shelter = useMock ? mock!.shelter : Number(lob.shelter ?? lob[1] ?? 0);
   const courage = useMock ? mock!.courage : Number(lob.courage ?? lob[2] ?? 0);
@@ -158,110 +108,115 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
     ? JOB_CLASSES[mock!.jobClass] ?? '未知'
     : (jobClass !== undefined ? JOB_CLASSES[Number(jobClass)] ?? '未知' : '未知');
 
+  const name = getMockLobsterName(numId);
+  const imageUrl = resolveIpfsUrl(useMock ? '' : ((agentMeta as any)?.vaultURI ?? ''));
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-6xl mx-auto px-4 py-6">
       {useMock && (
-        <div className="mb-4 px-4 py-2.5 bg-purple-500/[0.06] border border-purple-500/15 rounded-xl text-sm text-purple-400">
-          演示模式 — 显示模拟数据
-        </div>
+        <div className="text-xs rarity-epic mb-3">[DEMO MODE — 模拟数据]</div>
       )}
 
-      {/* Back link */}
-      <Link href="/nfa" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-white mb-6 transition-colors group">
-        <ArrowLeft size={15} className="transition-transform group-hover:-translate-x-1" /> 返回合集
-      </Link>
+      <Link href="/nfa" className="term-link text-sm mb-4 inline-block">[&lt; 返回合集]</Link>
 
-      {/* 5-column grid: 2 left, 3 right */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      {/* Header */}
+      <div className="mb-4">
+        <span className="term-bright text-lg glow-strong">NFA #{tokenId}</span>
+        <span className="term-dim ml-3">{name}</span>
+      </div>
+      <div className="term-line mb-4" />
 
-        {/* LEFT: Image + Info (2 cols) */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Main layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* LEFT COLUMN */}
+        <div className="space-y-4">
           {/* Image */}
-          <div className="aspect-square glass-card rounded-2xl overflow-hidden relative group">
-            <img src="/placeholder-nft.svg" alt={`Lobster #${tokenId}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-            {/* Status overlay */}
-            <div className="absolute top-3 right-3">
+          <div className="aspect-square max-w-sm border border-crt-darkest overflow-hidden relative">
+            <img src={imageUrl} alt={`#${tokenId}`} className="w-full h-full object-cover crt-image" />
+            <div className="absolute top-2 right-2">
               <StatusBadge active={Boolean(active)} />
             </div>
           </div>
 
-          {/* Identity Card */}
-          <SectionCard>
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="font-heading text-2xl text-mythic-white tracking-tight">龙虾 #{tokenId}</h1>
-              <span className="text-sm font-mono text-tech-blue bg-tech-blue/10 px-2.5 py-1 rounded-lg">
-                Lv.{level}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap mb-5">
-              <RarityBadge rarity={rarity} size="md" />
-              <ShelterTag shelter={shelter} />
-            </div>
-
-            <XPProgressBar level={level} xp={xp} />
-
-            <div className="grid grid-cols-2 gap-2.5 mt-5">
-              <StatItem label="职业" value={jobName} icon={Briefcase} />
-              <StatItem label="CLW 余额" value={formatCLW(balance)} icon={Wallet} color="text-tech-blue" />
-              <StatItem label="日消耗" value={`${formatCLW(cost)} /天`} icon={Zap} />
-              <StatItem
-                label="可维持"
-                value={daysRemaining === Infinity ? '∞' : `${daysRemaining} 天`}
-                icon={Clock}
-                color={daysRemaining <= 3 ? 'text-red-400' : undefined}
-              />
-            </div>
-
-            {ownerAddress && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-white/[0.04] text-sm">
-                <span className="text-gray-500 text-xs">Owner</span>
-                <a
-                  href={getBscScanAddressUrl(ownerAddress)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 font-mono text-xs text-tech-blue hover:underline"
-                >
-                  {truncateAddress(ownerAddress)}
-                  <ExternalLink size={11} />
-                </a>
+          {/* Basic Info */}
+          <TerminalBox title="基础信息">
+            <div className="text-sm space-y-1.5">
+              <div className="flex justify-between">
+                <span className="term-dim">稀有度</span>
+                <RarityBadge rarity={rarity} />
               </div>
-            )}
-          </SectionCard>
+              <div className="flex justify-between">
+                <span className="term-dim">等级</span>
+                <span className="term-bright">Lv.{level}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="term-dim">据点</span>
+                <ShelterTag shelter={shelter} />
+              </div>
+              <div className="flex justify-between">
+                <span className="term-dim">状态</span>
+                <StatusBadge active={Boolean(active)} />
+              </div>
+              <div className="flex justify-between">
+                <span className="term-dim">职业</span>
+                <span>{jobName}</span>
+              </div>
+              <div className="term-line my-1" />
+              <div className="flex justify-between">
+                <span className="term-dim">CLW余额</span>
+                <span className="term-bright">{formatCLW(balance)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="term-dim">日消耗</span>
+                <span>{formatCLW(cost)}/天</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="term-dim">可维持</span>
+                <span className={daysRemaining <= 3 ? 'term-danger' : ''}>
+                  {daysRemaining === Infinity ? '∞' : `${daysRemaining} 天`}
+                </span>
+              </div>
+              <div className="term-line my-1" />
+              <XPProgressBar level={level} xp={xp} />
+              {ownerAddress && (
+                <>
+                  <div className="term-line my-1" />
+                  <div className="flex justify-between text-xs">
+                    <span className="term-dim">Owner</span>
+                    <a href={getBscScanAddressUrl(ownerAddress)} target="_blank" rel="noopener noreferrer" className="term-link">
+                      {truncateAddress(ownerAddress)}
+                    </a>
+                  </div>
+                </>
+              )}
+            </div>
+          </TerminalBox>
         </div>
 
-        {/* RIGHT: Charts + Deposit (3 cols) */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Personality Radar */}
-          <SectionCard>
-            <SectionTitle title="性格面板" subtitle="Personality" />
-            <PersonalityRadar courage={courage} wisdom={wisdom} social={social} create={create} grit={grit} />
-            <div className="grid grid-cols-5 gap-2 text-center mt-2">
-              {[
-                { label: '勇气', val: courage },
-                { label: '智慧', val: wisdom },
-                { label: '社交', val: social },
-                { label: '创造', val: create },
-                { label: '韧性', val: grit },
-              ].map((t) => (
-                <div key={t.label}>
-                  <span className="text-[10px] text-gray-500">{t.label}</span>
-                  <p className="font-mono text-xs font-bold text-white mt-0.5">{t.val}</p>
-                </div>
-              ))}
+        {/* RIGHT COLUMN */}
+        <div className="space-y-4">
+          {/* Personality - ASCII bars */}
+          <TerminalBox title="性格面板">
+            <div className="space-y-1">
+              <TerminalBar label="勇气" value={courage} />
+              <TerminalBar label="智慧" value={wisdom} />
+              <TerminalBar label="社交" value={social} />
+              <TerminalBar label="创造" value={create} />
+              <TerminalBar label="韧性" value={grit} />
             </div>
-          </SectionCard>
+            <div className="term-line my-3" />
+            <PersonalityRadar courage={courage} wisdom={wisdom} social={social} create={create} grit={grit} />
+          </TerminalBox>
 
-          {/* DNA + Mutations */}
-          <SectionCard>
-            <SectionTitle title="基因组" subtitle="DNA Genome" />
+          {/* DNA */}
+          <TerminalBox title="基因组">
             <DNABarChart str={str} def={def} spd={spd} vit={vit} />
-            <div className="separator-glow my-5" />
-            <SectionTitle title="变异槽位" subtitle="Mutation Slots" />
+            <div className="term-line my-3" />
             <MutationSlots mutation1={mutation1} mutation2={mutation2} />
-          </SectionCard>
+          </TerminalBox>
 
-          {/* Deposit Panel */}
+          {/* Deposit */}
           <DepositPanel tokenId={id} />
         </div>
       </div>

@@ -8,26 +8,16 @@ interface XPProgressBarProps {
 export function XPProgressBar({ level, xp }: XPProgressBarProps) {
   const progress = getXpProgress(level, xp);
   const required = getXpForLevel(level);
+  const width = 20;
+  const filled = Math.round((progress / 100) * width);
 
   return (
-    <div>
-      <div className="flex justify-between text-xs mb-1.5">
-        <span className="text-gray-500">经验值</span>
-        <span className="text-gray-400 font-mono text-[11px]">{xp} / {required} XP</span>
-      </div>
-      <div className="h-2.5 bg-white/[0.04] rounded-full overflow-hidden relative">
-        <div
-          className="h-full bg-gradient-to-r from-tech-blue via-abyss-orange to-abyss-orange-light rounded-full animate-bar-fill relative"
-          style={{ width: `${progress}%` }}
-        >
-          {/* Shimmer effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
-        </div>
-      </div>
-      <div className="flex justify-between mt-1">
-        <span className="text-[10px] text-gray-600">Lv.{level}</span>
-        <span className="text-[10px] text-gray-600">Lv.{level + 1}</span>
-      </div>
+    <div className="text-xs">
+      <span className="term-dim">XP </span>
+      <span className="text-crt-green">{'█'.repeat(filled)}</span>
+      <span className="term-darkest">{'░'.repeat(width - filled)}</span>
+      <span className="term-dim ml-2">{xp}/{required}</span>
+      <span className="term-darkest ml-1">({progress}%)</span>
     </div>
   );
 }
