@@ -8,6 +8,7 @@ import { TerminalBox } from '@/components/terminal/TerminalBox';
 import { getBscScanTxUrl } from '@/contracts/addresses';
 import { getRarityName, getRarityClass, getRarityStars } from '@/lib/rarity';
 import { getShelterName } from '@/lib/shelter';
+import { nativeSymbol } from '@/lib/format';
 import {
   useMintingActive,
   useMintedCount,
@@ -187,7 +188,7 @@ export function MintPanel() {
                     {getRarityName(r, true)}
                   </span>
                   <span className="term-dim">{minted}/{cap}</span>
-                  <span className="term-dim">({RARITY_PRICES[r]} BNB)</span>
+                  <span className="term-dim">({RARITY_PRICES[r]} {nativeSymbol})</span>
                   {soldOut && <span className="term-danger">[SOLD OUT]</span>}
                 </div>
               );
@@ -230,7 +231,7 @@ export function MintPanel() {
                             : 'term-dim hover:text-crt-green text-xs'
                         }
                       >
-                        [{isSelected ? '> ' : ''}{getRarityName(r, true)} {RARITY_PRICES[r]} BNB{getRarityStars(r) ? ` ${getRarityStars(r)}` : ''}]
+                        [{isSelected ? '> ' : ''}{getRarityName(r, true)} {RARITY_PRICES[r]} {nativeSymbol}{getRarityStars(r) ? ` ${getRarityStars(r)}` : ''}]
                       </button>
                     );
                   })}
@@ -239,7 +240,7 @@ export function MintPanel() {
                 {/* Selected rarity info */}
                 <div className="text-xs space-y-1">
                   <div className="term-dim">
-                    &gt; 价格: <span className="term-bright">{RARITY_PRICES[selectedRarity]} BNB</span>
+                    &gt; 价格: <span className="term-bright">{RARITY_PRICES[selectedRarity]} {nativeSymbol}</span>
                   </div>
                   <div className="term-dim">
                     &gt; CLW 空投: <span className="term-bright">{RARITY_AIRDROPS[selectedRarity]} CLW</span>
@@ -251,7 +252,7 @@ export function MintPanel() {
                   disabled={commitMint.isPending || commitMint.isConfirming}
                   className="term-btn term-btn-primary text-sm w-full"
                 >
-                  [{commitMint.isPending ? '签名...' : commitMint.isConfirming ? '确认中...' : `确认铸造 — ${RARITY_PRICES[selectedRarity]} BNB`}]
+                  [{commitMint.isPending ? '签名...' : commitMint.isConfirming ? '确认中...' : `确认铸造 — ${RARITY_PRICES[selectedRarity]} ${nativeSymbol}`}]
                 </button>
 
                 {commitMint.hash && (
@@ -320,7 +321,7 @@ export function MintPanel() {
               <div className="space-y-3">
                 <div className="term-danger text-sm">[!] 揭示窗口已过期</div>
                 <div className="term-dim text-xs">
-                  超过 24 小时未揭示。你可以申请退回已支付的 BNB。
+                  超过 24 小时未揭示。你可以申请退回已支付的 {nativeSymbol}。
                 </div>
 
                 <button
@@ -377,7 +378,7 @@ export function MintPanel() {
       <TerminalBox title="铸造说明">
         <div className="space-y-1 text-xs term-dim">
           <div>&gt; 铸造采用 commit-reveal 两步机制，防止抢跑</div>
-          <div>&gt; 第一步: 选择稀有度并提交 (commit)，支付 BNB</div>
+          <div>&gt; 第一步: 选择稀有度并提交 (commit)，支付 {nativeSymbol}</div>
           <div>&gt; 第二步: 等待 1 分钟后揭示 (reveal)，获得随机属性的龙虾</div>
           <div>&gt; 如果 24 小时内未揭示，可以申请全额退款</div>
           <div className="term-warn">&gt; [!] 请勿在 commit 后清除浏览器数据，否则无法揭示</div>
