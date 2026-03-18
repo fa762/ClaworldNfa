@@ -102,9 +102,9 @@ export function useRefund() {
 
 // --- Utility functions ---
 
-export const RARITY_PRICES = ['0.18', '0.88', '1.88', '3.88', '8.88'] as const;
+export const RARITY_PRICES = ['0.08', '0.38', '0.88', '1.88', '3.88'] as const;
 export const RARITY_CAPS = [860, 17, 6, 4, 1] as const;
-export const RARITY_AIRDROPS = [100, 300, 600, 1200, 3000] as const;
+export const RARITY_AIRDROPS = [1000, 3000, 6000, 12000, 30000] as const;
 
 export function generateSalt(): `0x${string}` {
   const bytes = new Uint8Array(32);

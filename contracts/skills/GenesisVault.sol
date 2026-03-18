@@ -67,11 +67,11 @@ contract GenesisVault is
     uint256 public constant REVEAL_WINDOW = 24 hours;
 
     // Rarity pricing (BNB)
-    uint256 public constant PRICE_COMMON    = 0.18 ether;
-    uint256 public constant PRICE_RARE      = 0.88 ether;
-    uint256 public constant PRICE_EPIC      = 1.88 ether;
-    uint256 public constant PRICE_LEGENDARY = 3.88 ether;
-    uint256 public constant PRICE_MYTHIC    = 8.88 ether;
+    uint256 public constant PRICE_COMMON    = 0.08 ether;
+    uint256 public constant PRICE_RARE      = 0.38 ether;
+    uint256 public constant PRICE_EPIC      = 0.88 ether;
+    uint256 public constant PRICE_LEGENDARY = 1.88 ether;
+    uint256 public constant PRICE_MYTHIC    = 3.88 ether;
 
     // Rarity caps (max count per rarity)
     uint16 public constant CAP_MYTHIC    = 1;
@@ -81,11 +81,11 @@ contract GenesisVault is
     uint16 public constant CAP_COMMON    = 860;
 
     // CLW airdrop amounts per rarity
-    uint256 public constant AIRDROP_COMMON    = 100 ether;
-    uint256 public constant AIRDROP_RARE      = 300 ether;
-    uint256 public constant AIRDROP_EPIC      = 600 ether;
-    uint256 public constant AIRDROP_LEGENDARY = 1200 ether;
-    uint256 public constant AIRDROP_MYTHIC    = 3000 ether;
+    uint256 public constant AIRDROP_COMMON    = 1000 ether;
+    uint256 public constant AIRDROP_RARE      = 3000 ether;
+    uint256 public constant AIRDROP_EPIC      = 6000 ether;
+    uint256 public constant AIRDROP_LEGENDARY = 12000 ether;
+    uint256 public constant AIRDROP_MYTHIC    = 30000 ether;
 
     // DNA total sum ranges by rarity [min, max]
     uint16[2][5] public DNA_RANGES; // Initialized in initialize()
