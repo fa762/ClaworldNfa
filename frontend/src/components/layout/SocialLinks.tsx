@@ -1,24 +1,21 @@
-import { MessageCircle, Twitter, Github } from 'lucide-react';
-
 const socials = [
-  { icon: MessageCircle, label: 'Telegram', href: '#' },
-  { icon: Twitter, label: 'Twitter', href: '#' },
-  { icon: Github, label: 'GitHub', href: '#' },
+  { label: 'TG', href: '#' },
+  { label: 'X', href: '#' },
+  { label: 'GH', href: '#' },
 ];
 
 export function SocialLinks() {
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-1 text-xs">
       {socials.map((s) => (
         <a
           key={s.label}
           href={s.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-500 hover:text-abyss-orange transition-colors"
-          aria-label={s.label}
+          className="term-link px-1.5 py-0.5 hover:text-crt-bright"
         >
-          <s.icon size={20} />
+          [{s.label}]
         </a>
       ))}
     </div>

@@ -1,12 +1,13 @@
-import { getRarityName, getRarityColor } from '@/lib/rarity';
+import { getRarityName, getRarityClass, getRarityStars } from '@/lib/rarity';
 
-export function RarityBadge({ rarity }: { rarity: number }) {
-  const colors = getRarityColor(rarity);
+export function RarityBadge({ rarity }: { rarity: number; size?: string }) {
+  const stars = getRarityStars(rarity);
   const name = getRarityName(rarity, true);
+  const cls = getRarityClass(rarity);
 
   return (
-    <span className={`inline-block text-xs px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>
-      {name}
+    <span className={cls}>
+      {stars ? `${stars}${name}` : name}
     </span>
   );
 }

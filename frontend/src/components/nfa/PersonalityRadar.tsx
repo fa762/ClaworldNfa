@@ -28,33 +28,39 @@ export function PersonalityRadar({ courage, wisdom, social, create, grit }: Pers
   ];
 
   return (
-    <div className="w-full h-64">
+    <div className="w-full h-56">
       <ResponsiveContainer width="100%" height="100%">
-        <RadarChart data={data} cx="50%" cy="50%" outerRadius="75%">
-          <PolarGrid stroke="#1e293b" />
+        <RadarChart data={data} cx="50%" cy="50%" outerRadius="72%">
+          <PolarGrid stroke="rgba(51,255,102,0.1)" />
           <PolarAngleAxis
             dataKey="subject"
-            tick={{ fill: '#94a3b8', fontSize: 12 }}
+            tick={{ fill: '#1a6b2d', fontSize: 11, fontFamily: 'JetBrains Mono' }}
           />
           <PolarRadiusAxis
             angle={90}
             domain={[0, 100]}
-            tick={{ fill: '#475569', fontSize: 10 }}
+            tick={{ fill: '#0f3d1a', fontSize: 9 }}
+            axisLine={false}
           />
           <Radar
             name="性格"
             dataKey="value"
-            stroke="#E8734A"
-            fill="#E8734A"
-            fillOpacity={0.3}
+            stroke="#33FF66"
+            strokeWidth={2}
+            fill="#33FF66"
+            fillOpacity={0.15}
+            dot={{ r: 3, fill: '#33FF66', stroke: '#33FF66', strokeWidth: 1 }}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#060D1A',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '8px',
-              color: '#e2e8f0',
+              backgroundColor: '#0a0a0a',
+              border: '1px solid #1a6b2d',
+              borderRadius: 0,
+              color: '#33FF66',
               fontSize: '12px',
+              fontFamily: 'JetBrains Mono',
+              padding: '6px 10px',
+              textShadow: '0 0 6px rgba(51,255,102,0.6)',
             }}
           />
         </RadarChart>

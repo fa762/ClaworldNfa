@@ -13,48 +13,37 @@ export function ConnectButton() {
 
   useEffect(() => setMounted(true), []);
 
-  // Prevent hydration mismatch: render placeholder on server
   if (!mounted) {
-    return (
-      <button
-        className="px-4 py-1.5 text-sm rounded-lg bg-abyss-orange text-white font-medium hover:bg-abyss-orange/80 transition-colors"
-        disabled
-      >
-        连接钱包
-      </button>
-    );
+    return <span className="term-dim text-xs">[连接钱包]</span>;
   }
 
   if (isConnected && address) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 text-xs">
         <a
           href={getBscScanAddressUrl(address)}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-mono text-tech-blue hover:underline"
+          className="term-link"
         >
-          {truncateAddress(address)}
+          <span className="term-dim">●</span> {truncateAddress(address)}
         </a>
-        <button
-          onClick={() => disconnect()}
-          className="px-3 py-1.5 text-sm rounded-lg bg-card-dark border border-gray-700 hover:border-abyss-orange transition-colors"
-        >
-          断开
+        <button onClick={() => disconnect()} className="term-dim hover:term-danger transition-colors">
+          [断开]
         </button>
       </div>
     );
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-1">
       {connectors.map((connector) => (
         <button
           key={connector.uid}
           onClick={() => connect({ connector })}
-          className="px-4 py-1.5 text-sm rounded-lg bg-abyss-orange text-white font-medium hover:bg-abyss-orange/80 transition-colors"
+          className="term-btn term-btn-primary text-xs"
         >
-          {connector.name === 'Injected' ? '连接钱包' : connector.name}
+          [{connector.name === 'Injected' ? '连接钱包' : connector.name}]
         </button>
       ))}
     </div>

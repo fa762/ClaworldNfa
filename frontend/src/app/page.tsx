@@ -1,46 +1,50 @@
 import { HeroSection } from '@/components/home/HeroSection';
 import { WorldStateDashboard } from '@/components/home/WorldStateDashboard';
 import { CLWTokenInfo } from '@/components/home/CLWTokenInfo';
-import { Swords, Brain, Dna, Coins } from 'lucide-react';
+import { TerminalBox } from '@/components/terminal/TerminalBox';
+import Link from 'next/link';
 
 const features = [
-  { icon: Brain, label: 'AI 对话养成', desc: '通过 OpenClaw 与龙虾交流' },
-  { icon: Dna, label: 'DNA 基因系统', desc: '独特属性与变异进化' },
-  { icon: Swords, label: 'PK 对战', desc: '质押 CLW 进行竞技对决' },
-  { icon: Coins, label: 'CLW 经济', desc: '链上代币驱动的游戏经济' },
+  { key: '1', label: 'AI 对话养成', desc: '通过 OpenClaw 与你的龙虾实时对话，塑造性格与技能' },
+  { key: '2', label: 'DNA 基因系统', desc: '每只龙虾拥有独特基因组，变异进化创造无限可能' },
+  { key: '3', label: 'PK 竞技对战', desc: '质押 CLW 代币进行对决，智慧与策略决定胜负' },
+  { key: '4', label: 'CLW 代币经济', desc: '链上代币驱动的游戏经济，参与生态获取收益' },
 ];
 
 export default function Home() {
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-16">
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
       <HeroSection />
 
-      {/* Feature Highlights */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {features.map((f, i) => (
-          <div
-            key={f.label}
-            className="group glass-light rounded-xl p-4 text-center card-hover cursor-default"
-          >
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-abyss-orange/10 mb-3 group-hover:bg-abyss-orange/20 transition-colors">
-              <f.icon size={20} className="text-abyss-orange" />
-            </div>
-            <p className="text-sm font-medium text-mythic-white mb-1">{f.label}</p>
-            <p className="text-xs text-gray-500">{f.desc}</p>
-          </div>
-        ))}
+      {/* Dashboard Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <WorldStateDashboard />
+        <CLWTokenInfo />
       </div>
 
-      {/* Separator */}
-      <div className="separator-glow" />
-
-      {/* Dashboard Grid */}
-      <div>
-        <h2 className="font-heading text-xl text-mythic-white mb-6">实时数据</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <WorldStateDashboard />
-          <CLWTokenInfo />
+      {/* Core Systems */}
+      <TerminalBox title="核心系统">
+        <div className="space-y-2">
+          {features.map((f) => (
+            <div key={f.key} className="flex gap-3 text-sm">
+              <span className="term-bright shrink-0">[{f.key}]</span>
+              <div>
+                <span className="text-crt-green">{f.label}</span>
+                <span className="term-dim ml-2">— {f.desc}</span>
+              </div>
+            </div>
+          ))}
         </div>
+      </TerminalBox>
+
+      {/* Quick nav */}
+      <div className="text-sm term-dim">
+        <span>&gt; 输入指令: </span>
+        <Link href="/nfa" className="term-link">[NFA 合集]</Link>
+        <span className="mx-1">│</span>
+        <Link href="/guide" className="term-link">[游戏指南]</Link>
+        <span className="mx-1">│</span>
+        <Link href="/lore" className="term-link">[世界观]</Link>
       </div>
     </div>
   );

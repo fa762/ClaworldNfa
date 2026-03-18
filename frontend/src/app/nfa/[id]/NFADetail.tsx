@@ -10,25 +10,24 @@ import { DNABarChart } from '@/components/nfa/DNABarChart';
 import { XPProgressBar } from '@/components/nfa/XPProgressBar';
 import { MutationSlots } from '@/components/nfa/MutationSlots';
 import { DepositPanel } from '@/components/nfa/DepositPanel';
+import { TerminalBox } from '@/components/terminal/TerminalBox';
+import { TerminalBar } from '@/components/terminal/TerminalBar';
 import { formatCLW, truncateAddress } from '@/lib/format';
-import { addresses, getBscScanAddressUrl } from '@/contracts/addresses';
+import { getBscScanAddressUrl } from '@/contracts/addresses';
 import { isDemoMode } from '@/lib/env';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { getMockLobsterName } from '@/lib/mockData';
+import { resolveIpfsUrl } from '@/lib/ipfs';
 import Link from 'next/link';
 
 const JOB_CLASSES = ['探索者', '外交官', '创造者', '守护者', '学者', '先驱者'];
 
-// Mock data for preview
 function getMockData(id: number) {
   const seed = id * 7;
   const rarity = id <= 1 ? 4 : id <= 5 ? 3 : id <= 11 ? 2 : id <= 28 ? 1 : 0;
   return {
-    rarity,
-    shelter: id % 8,
-    courage: 20 + ((seed * 3) % 60),
-    wisdom: 25 + ((seed * 5) % 55),
-    social: 30 + ((seed * 7) % 50),
-    create: 15 + ((seed * 11) % 65),
+    rarity, shelter: id % 8,
+    courage: 20 + ((seed * 3) % 60), wisdom: 25 + ((seed * 5) % 55),
+    social: 30 + ((seed * 7) % 50), create: 15 + ((seed * 11) % 65),
     grit: 20 + ((seed * 13) % 60),
     str: rarity === 4 ? 85 : rarity === 3 ? 70 : 20 + ((seed * 17) % 60),
     def: rarity === 4 ? 80 : rarity === 3 ? 65 : 15 + ((seed * 19) % 60),
@@ -46,25 +45,6 @@ function getMockData(id: number) {
   };
 }
 
-function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <div className="w-0.5 h-4 rounded-full bg-abyss-orange" />
-      <h3 className="text-sm font-medium text-mythic-white">{title}</h3>
-      {subtitle && <span className="text-xs text-gray-600">{subtitle}</span>}
-    </div>
-  );
-}
-
-function StatItem({ label, value, color }: { label: string; value: string; color?: string }) {
-  return (
-    <div className="bg-navy/50 rounded-lg px-3 py-2.5">
-      <span className="text-xs text-gray-500 block mb-0.5">{label}</span>
-      <p className={`font-mono text-sm ${color || 'text-white'}`}>{value}</p>
-    </div>
-  );
-}
-
 export function NFADetail({ tokenId }: { tokenId: string }) {
   const id = BigInt(tokenId);
   const numId = Number(tokenId);
@@ -78,49 +58,31 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   const { data: isActive } = useIsActive(id);
   const { data: owner } = useNFAOwner(id);
 
-  // Use mock data in demo mode
   const useMock = isDemoMode;
   const mock = useMock ? getMockData(numId) : null;
-
   const loading = !useMock && (l1 || l2 || l3);
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-5 w-20 bg-gray-800 rounded" />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <div className="aspect-square bg-gray-800/50 rounded-xl" />
-              <div className="h-48 bg-gray-800/50 rounded-xl" />
-            </div>
-            <div className="space-y-4">
-              <div className="h-64 bg-gray-800/50 rounded-xl" />
-              <div className="h-48 bg-gray-800/50 rounded-xl" />
-            </div>
-          </div>
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="term-dim animate-glow-pulse py-16 text-center">
+          LOADING NFA #{tokenId}...<span className="animate-blink ml-1">█</span>
         </div>
       </div>
     );
   }
 
-  // Extract data from contract or mock
   const lob = useMock ? mock : (lobster as any);
-
   if (!lob && !useMock) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <p className="text-gray-500 mb-4">龙虾 #{tokenId} 不存在或尚未铸造</p>
-        <Link href="/nfa" className="text-abyss-orange hover:underline inline-flex items-center gap-1">
-          <ArrowLeft size={14} /> 返回合集
-        </Link>
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center">
+        <p className="term-dim mb-4">龙虾 #{tokenId} 不存在或尚未铸造</p>
+        <Link href="/nfa" className="term-link">[&lt; 返回合集]</Link>
       </div>
     );
   }
 
   const state = useMock ? mock : (agentState as any);
-  const meta = useMock ? null : (agentMeta as any);
-
   const rarity = useMock ? mock!.rarity : Number(lob.rarity ?? lob[0] ?? 0);
   const shelter = useMock ? mock!.shelter : Number(lob.shelter ?? lob[1] ?? 0);
   const courage = useMock ? mock!.courage : Number(lob.courage ?? lob[2] ?? 0);
@@ -146,99 +108,115 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
     ? JOB_CLASSES[mock!.jobClass] ?? '未知'
     : (jobClass !== undefined ? JOB_CLASSES[Number(jobClass)] ?? '未知' : '未知');
 
+  const name = getMockLobsterName(numId);
+  const imageUrl = resolveIpfsUrl(useMock ? '' : ((agentMeta as any)?.vaultURI ?? ''));
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Mock banner */}
+    <div className="max-w-6xl mx-auto px-4 py-6">
       {useMock && (
-        <div className="mb-4 px-4 py-2 bg-purple-900/30 border border-purple-700/50 rounded-lg text-sm text-purple-300">
-          演示模式 — 显示模拟数据。切换到测试网或主网环境可连接真实链上数据。
-        </div>
+        <div className="text-xs rarity-epic mb-3">[DEMO MODE — 模拟数据]</div>
       )}
 
-      {/* Back link */}
-      <Link href="/nfa" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-white mb-6 transition-colors group">
-        <ArrowLeft size={15} className="transition-transform group-hover:-translate-x-0.5" /> 返回合集
-      </Link>
+      <Link href="/nfa" className="term-link text-sm mb-4 inline-block">[&lt; 返回合集]</Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left: Image + Basic Info */}
-        <div className="space-y-6">
+      {/* Header */}
+      <div className="mb-4">
+        <span className="term-bright text-lg glow-strong">NFA #{tokenId}</span>
+        <span className="term-dim ml-3">{name}</span>
+      </div>
+      <div className="term-line mb-4" />
+
+      {/* Main layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* LEFT COLUMN */}
+        <div className="space-y-4">
           {/* Image */}
-          <div className="aspect-square glass rounded-xl overflow-hidden">
-            <img src="/placeholder-nft.svg" alt={`Lobster #${tokenId}`} className="w-full h-full object-cover" />
-          </div>
-
-          {/* Basic Info Card */}
-          <div className="glass rounded-xl p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h1 className="font-heading text-2xl text-mythic-white">龙虾 #{tokenId}</h1>
+          <div className="aspect-square max-w-sm border border-crt-darkest overflow-hidden relative">
+            <img src={imageUrl} alt={`#${tokenId}`} className="w-full h-full object-cover crt-image" />
+            <div className="absolute top-2 right-2">
               <StatusBadge active={Boolean(active)} />
             </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <RarityBadge rarity={rarity} />
-              <ShelterTag shelter={shelter} />
-              <span className="text-sm text-tech-blue font-mono bg-tech-blue/10 px-2 py-0.5 rounded">
-                Lv.{level}
-              </span>
-            </div>
-
-            <XPProgressBar level={level} xp={xp} />
-
-            <div className="grid grid-cols-2 gap-2">
-              <StatItem label="职业" value={jobName} />
-              <StatItem label="CLW 余额" value={formatCLW(balance)} color="text-tech-blue" />
-              <StatItem label="日消耗" value={`${formatCLW(cost)} /天`} />
-              <StatItem
-                label="可维持"
-                value={daysRemaining === Infinity ? '∞' : `${daysRemaining} 天`}
-                color={daysRemaining <= 3 ? 'text-red-400' : undefined}
-              />
-            </div>
-
-            {ownerAddress && (
-              <div className="flex items-center justify-between pt-3 border-t border-white/5 text-sm">
-                <span className="text-gray-500">Owner</span>
-                <a
-                  href={getBscScanAddressUrl(ownerAddress)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-mono text-tech-blue hover:underline"
-                >
-                  {truncateAddress(ownerAddress)}
-                  <ExternalLink size={12} />
-                </a>
-              </div>
-            )}
           </div>
+
+          {/* Basic Info */}
+          <TerminalBox title="基础信息">
+            <div className="text-sm space-y-1.5">
+              <div className="flex justify-between">
+                <span className="term-dim">稀有度</span>
+                <RarityBadge rarity={rarity} />
+              </div>
+              <div className="flex justify-between">
+                <span className="term-dim">等级</span>
+                <span className="term-bright">Lv.{level}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="term-dim">据点</span>
+                <ShelterTag shelter={shelter} />
+              </div>
+              <div className="flex justify-between">
+                <span className="term-dim">状态</span>
+                <StatusBadge active={Boolean(active)} />
+              </div>
+              <div className="flex justify-between">
+                <span className="term-dim">职业</span>
+                <span>{jobName}</span>
+              </div>
+              <div className="term-line my-1" />
+              <div className="flex justify-between">
+                <span className="term-dim">CLW余额</span>
+                <span className="term-bright">{formatCLW(balance)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="term-dim">日消耗</span>
+                <span>{formatCLW(cost)}/天</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="term-dim">可维持</span>
+                <span className={daysRemaining <= 3 ? 'term-danger' : ''}>
+                  {daysRemaining === Infinity ? '∞' : `${daysRemaining} 天`}
+                </span>
+              </div>
+              <div className="term-line my-1" />
+              <XPProgressBar level={level} xp={xp} />
+              {ownerAddress && (
+                <>
+                  <div className="term-line my-1" />
+                  <div className="flex justify-between text-xs">
+                    <span className="term-dim">Owner</span>
+                    <a href={getBscScanAddressUrl(ownerAddress)} target="_blank" rel="noopener noreferrer" className="term-link">
+                      {truncateAddress(ownerAddress)}
+                    </a>
+                  </div>
+                </>
+              )}
+            </div>
+          </TerminalBox>
         </div>
 
-        {/* Right: Charts + Deposit */}
-        <div className="space-y-6">
-          {/* Personality Radar */}
-          <div className="glass rounded-xl p-5">
-            <SectionHeader title="性格" subtitle="Personality" />
+        {/* RIGHT COLUMN */}
+        <div className="space-y-4">
+          {/* Personality - ASCII bars */}
+          <TerminalBox title="性格面板">
+            <div className="space-y-1">
+              <TerminalBar label="勇气" value={courage} />
+              <TerminalBar label="智慧" value={wisdom} />
+              <TerminalBar label="社交" value={social} />
+              <TerminalBar label="创造" value={create} />
+              <TerminalBar label="韧性" value={grit} />
+            </div>
+            <div className="term-line my-3" />
             <PersonalityRadar courage={courage} wisdom={wisdom} social={social} create={create} grit={grit} />
-            <div className="grid grid-cols-5 gap-2 text-center text-xs mt-3">
-              <div><span className="text-gray-500">勇气</span><p className="font-mono text-white mt-0.5">{courage}</p></div>
-              <div><span className="text-gray-500">智慧</span><p className="font-mono text-white mt-0.5">{wisdom}</p></div>
-              <div><span className="text-gray-500">社交</span><p className="font-mono text-white mt-0.5">{social}</p></div>
-              <div><span className="text-gray-500">创造</span><p className="font-mono text-white mt-0.5">{create}</p></div>
-              <div><span className="text-gray-500">韧性</span><p className="font-mono text-white mt-0.5">{grit}</p></div>
-            </div>
-          </div>
+          </TerminalBox>
 
-          {/* DNA Bar Chart */}
-          <div className="glass rounded-xl p-5">
-            <SectionHeader title="基因" subtitle="DNA" />
+          {/* DNA */}
+          <TerminalBox title="基因组">
             <DNABarChart str={str} def={def} spd={spd} vit={vit} />
-            <div className="mt-4 pt-4 border-t border-white/5">
-              <SectionHeader title="变异槽位" subtitle="Mutations" />
-              <MutationSlots mutation1={mutation1} mutation2={mutation2} />
-            </div>
-          </div>
+            <div className="term-line my-3" />
+            <MutationSlots mutation1={mutation1} mutation2={mutation2} />
+          </TerminalBox>
 
-          {/* Deposit Panel */}
+          {/* Deposit */}
           <DepositPanel tokenId={id} />
         </div>
       </div>

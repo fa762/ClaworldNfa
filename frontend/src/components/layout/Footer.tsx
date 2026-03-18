@@ -1,52 +1,30 @@
+'use client';
+
 import { SocialLinks } from './SocialLinks';
-import { addresses, getBscScanAddressUrl, isTestnet } from '@/contracts/addresses';
+import { appEnv } from '@/lib/env';
+import { useAccount } from 'wagmi';
 import { truncateAddress } from '@/lib/format';
 
 export function Footer() {
+  const { address, isConnected } = useAccount();
+  const chainLabel = appEnv === 'mainnet' ? 'BSC-56' : appEnv === 'testnet' ? 'BSC-97' : 'LOCAL';
+
   return (
-    <footer className="border-t border-white/5 bg-card-dark/80">
-      <div className="max-w-7xl mx-auto px-4 py-10">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="text-center md:text-left">
-            <h3 className="font-heading text-gradient-orange text-lg">CLAW WORLD</h3>
-            <p className="text-sm text-gray-500 mt-1">龙虾文明宇宙 · Claw Civilization Universe</p>
-            {isTestnet && (
-              <p className="text-xs text-yellow-500 mt-2">BSC Testnet</p>
-            )}
-          </div>
-
-          <div className="text-center">
-            <p className="text-xs text-gray-600 mb-2">合约地址</p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              {addresses.clawNFA !== '0x0000000000000000000000000000000000000000' && (
-                <a
-                  href={getBscScanAddressUrl(addresses.clawNFA)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-mono text-tech-blue hover:text-tech-blue/80 transition-colors"
-                >
-                  NFA: {truncateAddress(addresses.clawNFA)}
-                </a>
-              )}
-              {addresses.clwToken !== '0x0000000000000000000000000000000000000000' && (
-                <a
-                  href={getBscScanAddressUrl(addresses.clwToken)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-mono text-tech-blue hover:text-tech-blue/80 transition-colors"
-                >
-                  CLW: {truncateAddress(addresses.clwToken)}
-                </a>
-              )}
-            </div>
-          </div>
-
-          <SocialLinks />
+    <footer className="border-t border-crt-dim">
+      <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between text-xs">
+        <div className="flex items-center gap-4 term-dim">
+          <span>NET:<span className="text-crt-green">{chainLabel}</span></span>
+          <span className="hidden sm:inline">│</span>
+          <span className="hidden sm:inline">
+            WALLET:{isConnected && address
+              ? <span className="text-crt-green">{truncateAddress(address)}</span>
+              : <span className="term-darkest">未连接</span>
+            }
+          </span>
+          <span className="hidden sm:inline">│</span>
+          <span className="hidden sm:inline">v2.0</span>
         </div>
-        <div className="separator-glow mt-8 mb-4" />
-        <div className="text-center text-xs text-gray-600">
-          © 2026 Claw Civilization Universe. All rights reserved.
-        </div>
+        <SocialLinks />
       </div>
     </footer>
   );

@@ -15,33 +15,38 @@ export function LoreContent({ acts }: { acts: LoreAct[] }) {
   return (
     <div>
       {/* Tab switcher */}
-      <div className="flex gap-2 mb-8 border-b border-white/10">
+      <div className="flex gap-3 text-sm mb-6">
         {acts.map((act, i) => (
           <button
             key={act.id}
             onClick={() => setActiveAct(i)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              activeAct === i
-                ? 'border-abyss-orange text-abyss-orange'
-                : 'border-transparent text-gray-500 hover:text-white'
+            className={`transition-all ${
+              activeAct === i ? 'term-active' : 'term-dim hover:text-crt-green'
             }`}
           >
-            {act.title}
+            {activeAct === i ? '> ' : '  '}{act.title}
           </button>
         ))}
       </div>
 
+      <div className="term-line mb-6" />
+
       {/* Content */}
-      <div className="prose prose-invert prose-base max-w-none
-        prose-headings:font-heading prose-headings:text-mythic-white
-        prose-p:text-gray-300 prose-p:leading-loose
-        prose-strong:text-white
-        prose-em:text-gray-400
-        prose-hr:border-white/10
-        prose-blockquote:border-abyss-orange prose-blockquote:text-gray-400
-      ">
-        <ReactMarkdown>{acts[activeAct]?.content || ''}</ReactMarkdown>
-      </div>
+      <article key={activeAct} className="animate-fade-in">
+        <div className="prose prose-invert prose-base max-w-none
+          [&_h1]:text-crt-bright [&_h1]:glow-strong [&_h1]:text-xl [&_h1]:mt-8 [&_h1]:mb-4
+          [&_h2]:text-crt-bright [&_h2]:glow [&_h2]:text-lg [&_h2]:mt-8 [&_h2]:mb-3
+          [&_h3]:text-crt-bright [&_h3]:text-base [&_h3]:mt-6 [&_h3]:mb-2
+          [&_p]:text-crt-green [&_p]:leading-loose [&_p]:text-sm [&_p]:mb-3
+          [&_strong]:text-crt-bright [&_strong]:font-bold
+          [&_em]:text-crt-dim [&_em]:italic
+          [&_hr]:border-crt-darkest [&_hr]:my-8
+          [&_blockquote]:border-l-2 [&_blockquote]:border-crt-dim [&_blockquote]:pl-4 [&_blockquote]:text-crt-dim [&_blockquote]:italic
+          [&_a]:text-crt-bright [&_a]:underline
+        ">
+          <ReactMarkdown>{acts[activeAct]?.content || ''}</ReactMarkdown>
+        </div>
+      </article>
     </div>
   );
 }

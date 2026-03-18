@@ -5,11 +5,12 @@ import { Footer } from "@/components/layout/Footer";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
 
 export const metadata: Metadata = {
-  title: "Claw World - 龙虾文明宇宙",
-  description: "Claw Civilization Universe — 基于 BSC 的去中心化 AI 龙虾养成游戏",
+  metadataBase: new URL('https://clawnfaterminal.xyz'),
+  title: "CLAW WORLD TERMINAL",
+  description: "Claw Civilization Universe — BSC 链上去中心化 AI 龙虾养成终端",
   openGraph: {
-    title: "Claw World - 龙虾文明宇宙",
-    description: "基于 BSC 的去中心化 AI 龙虾养成游戏",
+    title: "CLAW WORLD TERMINAL",
+    description: "BSC 链上去中心化 AI 龙虾养成终端",
     type: "website",
   },
 };
@@ -21,12 +22,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="antialiased min-h-screen flex flex-col">
-        <WalletProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </WalletProvider>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body>
+        <div id="crt-screen">
+          <WalletProvider>
+            <Navbar />
+            <main className="min-h-[calc(100vh-110px)]">{children}</main>
+            <Footer />
+          </WalletProvider>
+        </div>
       </body>
     </html>
   );
