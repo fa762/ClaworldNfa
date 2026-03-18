@@ -72,14 +72,14 @@ async function main() {
   await implContract.deployed();
   console.log("New implementation deployed at:", implContract.address);
 
-  // Call upgradeToAndCall on the proxy
+  // Call upgradeTo on the proxy (not upgradeToAndCall, which force-calls fallback)
   console.log("Upgrading proxy to new implementation...");
   const proxy = new ethers.Contract(
     PROXY_ADDRESS,
-    ["function upgradeToAndCall(address newImplementation, bytes memory data) external"],
+    ["function upgradeTo(address newImplementation) external"],
     wallet
   );
-  const tx = await proxy.upgradeToAndCall(implContract.address, "0x");
+  const tx = await proxy.upgradeTo(implContract.address);
   console.log("Upgrade tx:", tx.hash);
   await tx.wait();
 
