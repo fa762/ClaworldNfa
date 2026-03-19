@@ -25,7 +25,7 @@
   --color-background: #0a0a0a;
   --color-foreground: #33FF66;
 
-  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  --font-mono: var(--font-jetbrains), 'JetBrains Mono', 'Courier New', monospace;
 }
 
 /* ═══════════════════════════════════════════
