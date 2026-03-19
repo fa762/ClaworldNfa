@@ -1,5 +1,6 @@
 /**
  * Check and fix GenesisVault permissions on NFA and Router contracts.
+ * Uses inline ABI fragments so no Solidity compilation is needed.
  *
  * Usage:
  *   npx hardhat run scripts/fix-permissions.ts --network bscTestnet
@@ -10,12 +11,23 @@ const NFA_ADDRESS = "0x1c69be3401a78CFeDC2B2543E62877874f10B135";
 const ROUTER_ADDRESS = "0xA7Ee12C5E9435686978F4b87996B4Eb461c34603";
 const VAULT_ADDRESS = "0x6d176022759339da787fD3E2f1314019C3fb7867";
 
+const MINTER_ABI = [
+  "function minter() view returns (address)",
+  "function setMinter(address) external",
+];
+
+const ROUTER_ABI = [
+  ...MINTER_ABI,
+  "function authorizedSkills(address) view returns (bool)",
+  "function authorizeSkill(address skill, bool authorized) external",
+];
+
 async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("Using account:", deployer.address);
 
-  const nfa = await ethers.getContractAt("ClawNFA", NFA_ADDRESS);
-  const router = await ethers.getContractAt("ClawRouter", ROUTER_ADDRESS);
+  const nfa = new ethers.Contract(NFA_ADDRESS, MINTER_ABI, deployer);
+  const router = new ethers.Contract(ROUTER_ADDRESS, ROUTER_ABI, deployer);
 
   // --- Check current state ---
   const nfaMinter = await nfa.minter();
