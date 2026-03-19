@@ -7,13 +7,32 @@
  */
 import { ethers } from "ethers";
 
-const RPC_URL = "https://bsc-testnet-rpc.publicnode.com";
+// 多个 RPC 备选，按顺序尝试
+const RPC_URLS = [
+  "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
+  "https://data-seed-prebsc-2-s1.bnbchain.org:8545",
+  "https://bsc-testnet-rpc.publicnode.com",
+];
 const NFA_ADDRESS = "0x1c69be3401a78CFeDC2B2543E62877874f10B135";
 const ROUTER_ADDRESS = "0xA7Ee12C5E9435686978F4b87996B4Eb461c34603";
 const VAULT_ADDRESS = "0x6d176022759339da787fD3E2f1314019C3fb7867";
 
+async function tryConnect(): Promise<ethers.providers.JsonRpcProvider> {
+  for (const url of RPC_URLS) {
+    try {
+      const p = new ethers.providers.JsonRpcProvider(url);
+      await p.getBlockNumber(); // 测试连接
+      console.log("RPC 连接成功:", url);
+      return p;
+    } catch {
+      console.log("RPC 连接失败:", url);
+    }
+  }
+  throw new Error("所有 RPC 节点都无法连接");
+}
+
 async function main() {
-  const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+  const provider = await tryConnect();
 
   console.log("=== 检查 GenesisVault 权限 ===\n");
   console.log("GenesisVault:", VAULT_ADDRESS);
