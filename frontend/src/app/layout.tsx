@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { PipBoyNav } from "@/components/layout/PipBoyNav";
+import { PipBoyStatusBar } from "@/components/layout/PipBoyStatusBar";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
 
 export const metadata: Metadata = {
@@ -37,9 +37,17 @@ export default function RootLayout({
       <body>
         <div id="crt-screen">
           <WalletProvider>
-            <Navbar />
-            <main className="min-h-[calc(100vh-110px)]">{children}</main>
-            <Footer />
+            <div className="pipboy-shell">
+              <div className="pipboy-screen">
+                <PipBoyNav />
+                <main className="flex-1 overflow-y-auto">{children}</main>
+                <PipBoyStatusBar />
+              </div>
+              <div className="pipboy-hardware">
+                <span className="pipboy-screw" />
+                <span className="pipboy-screw" />
+              </div>
+            </div>
           </WalletProvider>
         </div>
       </body>
