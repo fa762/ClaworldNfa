@@ -1,4 +1,4 @@
-import { HardhatUserConfig } from "hardhat/config";
+import { HardhatUserConfig, extendEnvironment } from "hardhat/config";
 import "@nomiclabs/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@openzeppelin/hardhat-upgrades";
@@ -9,6 +9,9 @@ import "solidity-coverage";
 import * as dotenv from "dotenv";
 
 dotenv.config();
+
+// Use BSC testnet RPC URL from env or default
+const bscTestnetUrl = process.env.BSC_TESTNET_RPC || "https://bsc-testnet-rpc.publicnode.com";
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -26,7 +29,7 @@ const config: HardhatUserConfig = {
       chainId: 31337,
     },
     bscTestnet: {
-      url: "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
+      url: bscTestnetUrl,
       chainId: 97,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
