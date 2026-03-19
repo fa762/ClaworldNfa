@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAccount } from 'wagmi';
 import { simulateContract } from '@wagmi/core';
-import { parseEther, zeroHash } from 'viem';
+import { parseEther, zeroHash, type Address } from 'viem';
 import Link from 'next/link';
 import { config } from '@/components/wallet/WalletProvider';
 import { getBscScanTxUrl } from '@/contracts/addresses';
@@ -17,6 +17,8 @@ import {
   useCommitMint,
   useRevealMint,
   useRefund,
+  useVaultOwner,
+  useOwnerMint,
   vaultContract,
   RARITY_PRICES,
   RARITY_CAPS,
@@ -50,6 +52,12 @@ export function MintPanel() {
   const commitMint = useCommitMint();
   const revealMint = useRevealMint();
   const refundHook = useRefund();
+  const { data: vaultOwner } = useVaultOwner();
+  const ownerMintHook = useOwnerMint();
+
+  const isOwner = isConnected && address && vaultOwner && address.toLowerCase() === (vaultOwner as string).toLowerCase();
+  const [ownerRarity, setOwnerRarity] = useState(0);
+  const [ownerRecipient, setOwnerRecipient] = useState('');
 
   const commitHash = commitment?.[0] as `0x${string}` | undefined;
   const commitTimestamp = commitment?.[2] ? Number(commitment[2]) : 0;
@@ -382,6 +390,57 @@ export function MintPanel() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Owner free mint */}
+        {isOwner && (
+          <>
+            <div className="term-line my-3" />
+            <div className="space-y-2">
+              <div className="term-warn text-xs glow">[ADMIN] 免费铸造</div>
+              <div className="flex gap-2 items-center flex-wrap">
+                {[0, 1, 2, 3, 4].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setOwnerRarity(r)}
+                    className={`text-xs ${ownerRarity === r ? `${getRarityClass(r)} glow` : 'term-dim hover:text-crt-green'}`}
+                  >
+                    [{ownerRarity === r ? '>' : ' '}{getRarityName(r, true)}]
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                placeholder="接收地址 (留空 = 自己)"
+                value={ownerRecipient}
+                onChange={(e) => setOwnerRecipient(e.target.value)}
+                className="w-full bg-transparent border border-crt-green/30 text-crt-green text-xs px-2 py-1 placeholder:text-crt-green/20 focus:outline-none focus:border-crt-green/60"
+              />
+              <button
+                onClick={() => {
+                  const recipient = (ownerRecipient.trim() || address) as Address;
+                  ownerMintHook.ownerMint(ownerRarity, recipient);
+                }}
+                disabled={ownerMintHook.isPending || ownerMintHook.isConfirming}
+                className="term-btn term-btn-primary text-xs w-full"
+              >
+                [{ownerMintHook.isPending ? '签名...' : ownerMintHook.isConfirming ? '确认中...' : `免费铸造 ${getRarityName(ownerRarity, true)}`}]
+              </button>
+              {ownerMintHook.hash && (
+                <a href={getBscScanTxUrl(ownerMintHook.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
+                  [查看交易 →]
+                </a>
+              )}
+              {ownerMintHook.isSuccess && (
+                <div className="term-bright text-xs glow">铸造成功!</div>
+              )}
+              {ownerMintHook.error && (
+                <div className="term-danger text-xs">
+                  [!] {(ownerMintHook.error as any)?.shortMessage || ownerMintHook.error.message}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
