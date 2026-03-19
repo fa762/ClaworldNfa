@@ -1,41 +1,47 @@
 /**
  * Check if GenesisVault is properly registered as minter and skill.
+ * Uses raw ethers.js calls — no Hardhat compilation needed.
  *
  * Usage:
- *   npx hardhat run scripts/check-permissions.ts --network bscTestnet
+ *   npx ts-node scripts/check-permissions.ts
  */
-import { ethers } from "hardhat";
+import { ethers } from "ethers";
 
+const RPC_URL = "https://bsc-testnet-rpc.publicnode.com";
 const NFA_ADDRESS = "0x1c69be3401a78CFeDC2B2543E62877874f10B135";
 const ROUTER_ADDRESS = "0xA7Ee12C5E9435686978F4b87996B4Eb461c34603";
 const VAULT_ADDRESS = "0x6d176022759339da787fD3E2f1314019C3fb7867";
 
 async function main() {
+  const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+
   console.log("=== 检查 GenesisVault 权限 ===\n");
   console.log("GenesisVault:", VAULT_ADDRESS);
   console.log("ClawNFA:     ", NFA_ADDRESS);
   console.log("ClawRouter:  ", ROUTER_ADDRESS);
   console.log("");
 
-  // ClawNFA.minter()
-  const nfa = await ethers.getContractAt(
+  // ClawNFA.minter() and paused()
+  const nfa = new ethers.Contract(
+    NFA_ADDRESS,
     ["function minter() view returns (address)", "function paused() view returns (bool)"],
-    NFA_ADDRESS
+    provider
   );
-  const nfaMinter = await nfa.minter();
-  const isPaused = await nfa.paused();
+  const nfaMinter: string = await nfa.minter();
+  const isPaused: boolean = await nfa.paused();
   console.log(`ClawNFA.minter()          = ${nfaMinter}`);
   console.log(`  匹配 Vault? ${nfaMinter.toLowerCase() === VAULT_ADDRESS.toLowerCase() ? "✅ 是" : "❌ 否 ← 问题在这里!"}`);
   console.log(`ClawNFA.paused()          = ${isPaused}${isPaused ? " ← 合约已暂停!" : ""}`);
   console.log("");
 
-  // ClawRouter.minter()
-  const router = await ethers.getContractAt(
+  // ClawRouter.minter() and authorizedSkills()
+  const router = new ethers.Contract(
+    ROUTER_ADDRESS,
     ["function minter() view returns (address)", "function authorizedSkills(address) view returns (bool)"],
-    ROUTER_ADDRESS
+    provider
   );
-  const routerMinter = await router.minter();
-  const isSkill = await router.authorizedSkills(VAULT_ADDRESS);
+  const routerMinter: string = await router.minter();
+  const isSkill: boolean = await router.authorizedSkills(VAULT_ADDRESS);
   console.log(`ClawRouter.minter()       = ${routerMinter}`);
   console.log(`  匹配 Vault? ${routerMinter.toLowerCase() === VAULT_ADDRESS.toLowerCase() ? "✅ 是" : "❌ 否 ← 问题在这里!"}`);
   console.log(`ClawRouter.authorizedSkills(vault) = ${isSkill}${!isSkill ? " ← 问题在这里!" : ""}`);
