@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "node -e \"try{require('fs').unlinkSync('.next/dev/lock')}catch(e){}\" && next dev",
-    "dev:testnet": "cp .env.testnet .env.local && node -e \"try{require('fs').unlinkSync('.next/dev/lock')}catch(e){}\" && next dev",
-    "dev:mainnet": "cp .env.mainnet .env.local && node -e \"try{require('fs').unlinkSync('.next/dev/lock')}catch(e){}\" && next dev",
+    "dev:testnet": "node -e \"require('fs').copyFileSync('.env.testnet','.env.local')\" && node -e \"try{require('fs').unlinkSync('.next/dev/lock')}catch(e){}\" && next dev",
+    "dev:mainnet": "node -e \"require('fs').copyFileSync('.env.mainnet','.env.local')\" && node -e \"try{require('fs').unlinkSync('.next/dev/lock')}catch(e){}\" && next dev",
     "build": "next build",
-    "build:testnet": "cp .env.testnet .env.local && next build",
-    "build:mainnet": "cp .env.mainnet .env.local && next build",
+    "build:testnet": "node -e \"require('fs').copyFileSync('.env.testnet','.env.local')\" && next build",
+    "build:mainnet": "node -e \"require('fs').copyFileSync('.env.mainnet','.env.local')\" && next build",
     "start": "next start"
   },
   "dependencies": {
