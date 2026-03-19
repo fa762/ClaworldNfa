@@ -503,6 +503,163 @@
   text-shadow: 0 0 8px var(--color-crt-glow);
 }
 
+/* ═══════════════════════════════════════════
+   CRT PHOSPHOR GLOW (Pip-Boy screen effect)
+   ═══════════════════════════════════════════ */
+
+.pipboy-screen {
+  /* Green phosphor glow from screen edges */
+  box-shadow:
+    inset 0 0 100px rgba(0,0,0,0.5),
+    0 0 8px rgba(51, 255, 102, 0.08),
+    0 0 30px rgba(51, 255, 102, 0.04);
+}
+
+/* Ambient green glow on text within screen */
+.pipboy-screen main {
+  text-shadow: 0 0 8px var(--color-crt-glow);
+}
+
+/* Stronger glow on headings */
+.pipboy-screen h1,
+.pipboy-screen h2,
+.pipboy-screen h3 {
+  text-shadow: 0 0 12px var(--color-crt-glow), 0 0 24px rgba(51,255,102,0.3);
+}
+
+/* ═══════════════════════════════════════════
+   MARKDOWN CONTENT STYLES (replaces prose)
+   ═══════════════════════════════════════════ */
+
+.md-content {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-crt-green);
+}
+
+.md-content h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-crt-bright);
+  margin: 20px 0 10px;
+  text-shadow: 0 0 12px var(--color-crt-glow), 0 0 24px rgba(51,255,102,0.3);
+}
+
+.md-content h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-crt-bright);
+  margin: 18px 0 8px;
+  text-shadow: 0 0 10px var(--color-crt-glow);
+}
+
+.md-content h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-crt-bright);
+  margin: 14px 0 6px;
+}
+
+.md-content p {
+  margin: 8px 0;
+  color: var(--color-crt-green);
+}
+
+.md-content strong {
+  color: var(--color-crt-bright);
+  font-weight: 700;
+  text-shadow: 0 0 6px var(--color-crt-glow);
+}
+
+.md-content em {
+  color: var(--color-crt-dim);
+  font-style: italic;
+  text-shadow: none;
+}
+
+.md-content a {
+  color: var(--color-crt-bright);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.md-content hr {
+  border: none;
+  height: 1px;
+  background: var(--color-crt-darkest);
+  margin: 16px 0;
+}
+
+.md-content blockquote {
+  border-left: 2px solid var(--color-crt-dim);
+  padding-left: 14px;
+  margin: 12px 0;
+  color: var(--color-crt-dim);
+  font-style: italic;
+  text-shadow: none;
+}
+
+.md-content ul,
+.md-content ol {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.md-content li {
+  margin: 3px 0;
+  color: var(--color-crt-green);
+}
+
+.md-content ul li { list-style-type: '> '; }
+.md-content ul li::marker { color: var(--color-crt-dim); }
+.md-content ol li::marker { color: var(--color-crt-dim); }
+
+.md-content code {
+  color: var(--color-crt-bright);
+  background: rgba(51, 255, 102, 0.06);
+  padding: 1px 5px;
+  font-size: 12px;
+  border: 1px solid var(--color-crt-darkest);
+}
+
+.md-content pre {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-crt-darkest);
+  padding: 10px;
+  margin: 10px 0;
+  overflow-x: auto;
+  font-size: 12px;
+}
+.md-content pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* Tables */
+.md-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 12px;
+}
+.md-content th {
+  text-align: left;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--color-crt-dim);
+  color: var(--color-crt-bright);
+  font-weight: 600;
+  text-shadow: 0 0 6px var(--color-crt-glow);
+}
+.md-content td {
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--color-crt-darkest);
+  color: var(--color-crt-green);
+}
+.md-content tr:hover td {
+  background: rgba(51, 255, 102, 0.04);
+}
+
 /* Mobile: shell simplification */
 @media (max-width: 640px) {
   .pipboy-shell {

@@ -15,16 +15,7 @@ interface LoreAct {
   sections: LoreSection[];
 }
 
-const MD_STYLES = `prose prose-invert prose-sm max-w-none
-  [&_h1]:text-crt-bright [&_h1]:glow-strong [&_h1]:text-lg [&_h1]:mt-4 [&_h1]:mb-3
-  [&_h2]:text-crt-bright [&_h2]:glow [&_h2]:text-base [&_h2]:mt-4 [&_h2]:mb-2
-  [&_h3]:text-crt-bright [&_h3]:text-sm [&_h3]:mt-3 [&_h3]:mb-1
-  [&_p]:text-crt-green [&_p]:leading-loose [&_p]:text-sm [&_p]:mb-2
-  [&_strong]:text-crt-bright [&_strong]:font-bold
-  [&_em]:text-crt-dim [&_em]:italic
-  [&_hr]:border-crt-darkest [&_hr]:my-4
-  [&_blockquote]:border-l-2 [&_blockquote]:border-crt-dim [&_blockquote]:pl-4 [&_blockquote]:text-crt-dim [&_blockquote]:italic
-  [&_a]:text-crt-bright [&_a]:underline`;
+/* removed - using .md-content from globals.css */
 
 export function LoreContent({ acts }: { acts: LoreAct[] }) {
   const [actIdx, setActIdx] = useState(0);
@@ -72,7 +63,7 @@ export function LoreContent({ acts }: { acts: LoreAct[] }) {
           {currentSection && (
             <>
               <div className="term-bright text-sm glow mb-3">{currentSection.title}</div>
-              <div className={MD_STYLES}>
+              <div className="md-content">
                 <ReactMarkdown>{currentSection.content}</ReactMarkdown>
               </div>
             </>
