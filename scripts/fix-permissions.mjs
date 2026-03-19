@@ -4,7 +4,8 @@
  * Usage:
  *   node scripts/fix-permissions.mjs
  */
-import { ethers } from "ethers";
+import pkg from "ethers";
+const { providers, Wallet, Contract } = pkg;
 
 const RPC_URL = "https://bsc-testnet-rpc.publicnode.com";
 const PRIVATE_KEY = "0xfe1d20174ddd8f0c5ae97725742dad6086f513c108c9669f8be80c960d7d8c78";
@@ -25,12 +26,12 @@ const ROUTER_ABI = [
 ];
 
 async function main() {
-  const provider = new ethers.JsonRpcProvider(RPC_URL);
-  const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+  const provider = new providers.JsonRpcProvider(RPC_URL);
+  const wallet = new Wallet(PRIVATE_KEY, provider);
   console.log("Using account:", wallet.address);
 
-  const nfa = new ethers.Contract(NFA_ADDRESS, MINTER_ABI, wallet);
-  const router = new ethers.Contract(ROUTER_ADDRESS, ROUTER_ABI, wallet);
+  const nfa = new Contract(NFA_ADDRESS, MINTER_ABI, wallet);
+  const router = new Contract(ROUTER_ADDRESS, ROUTER_ABI, wallet);
 
   // --- Check ---
   const nfaMinter = await nfa.minter();
