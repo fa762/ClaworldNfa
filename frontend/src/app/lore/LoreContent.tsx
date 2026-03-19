@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface LoreSection {
   id: string;
@@ -64,7 +65,7 @@ export function LoreContent({ acts }: { acts: LoreAct[] }) {
             <>
               <div className="term-bright text-sm glow mb-3">{currentSection.title}</div>
               <div className="md-content">
-                <ReactMarkdown>{currentSection.content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentSection.content}</ReactMarkdown>
               </div>
             </>
           )}
