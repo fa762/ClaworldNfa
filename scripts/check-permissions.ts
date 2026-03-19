@@ -53,7 +53,7 @@ async function main() {
       "function router() view returns (address)",
       "function owner() view returns (address)",
       "function mintedCount() view returns (uint256)",
-      "function rarityMinted(uint8) view returns (uint256)",
+      "function rarityMinted(uint256) view returns (uint16)",
       "function TOTAL_GENESIS() view returns (uint256)",
       "function DNA_RANGES(uint256,uint256) view returns (uint16)",
       "function SHELTER_WEIGHTS(uint256) view returns (uint8)",
@@ -115,7 +115,7 @@ async function main() {
   for (let r = 0; r < 5; r++) {
     const minted = await vault.rarityMinted(r);
     const cap = RARITY_CAPS[r];
-    const full = minted.gte(cap);
+    const full = minted >= cap;
     console.log(`  ${RARITY_NAMES[r].padEnd(10)} : ${minted} / ${cap} ${full ? "❌ 已满!" : "✅"}`);
   }
 
