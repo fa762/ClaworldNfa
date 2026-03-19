@@ -1,16 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { useAgentState, useAgentMetadata, useNFAOwner } from '@/contracts/hooks/useClawNFA';
 import { useLobsterState, useClwBalance, useDailyCost, useJobClass, useIsActive } from '@/contracts/hooks/useClawRouter';
 import { RarityBadge } from '@/components/nfa/RarityBadge';
 import { ShelterTag } from '@/components/nfa/ShelterTag';
 import { StatusBadge } from '@/components/nfa/StatusBadge';
-import { PersonalityRadar } from '@/components/nfa/PersonalityRadar';
-import { DNABarChart } from '@/components/nfa/DNABarChart';
+import { PipBoyStatList } from '@/components/nfa/PipBoyStatList';
 import { XPProgressBar } from '@/components/nfa/XPProgressBar';
 import { MutationSlots } from '@/components/nfa/MutationSlots';
 import { DepositPanel } from '@/components/nfa/DepositPanel';
-import { TerminalBox } from '@/components/terminal/TerminalBox';
 import { TerminalBar } from '@/components/terminal/TerminalBar';
 import { formatCLW, truncateAddress } from '@/lib/format';
 import { getBscScanAddressUrl } from '@/contracts/addresses';
@@ -20,6 +19,14 @@ import { resolveIpfsUrl } from '@/lib/ipfs';
 import Link from 'next/link';
 
 const JOB_CLASSES = ['探索者', '外交官', '创造者', '守护者', '学者', '先驱者'];
+
+const TABS = [
+  { key: 'status', label: '状态' },
+  { key: 'special', label: 'SPECIAL' },
+  { key: 'gene', label: '基因' },
+  { key: 'maintain', label: '维护' },
+] as const;
+type TabKey = typeof TABS[number]['key'];
 
 function getMockData(id: number) {
   const seed = id * 7;
@@ -48,6 +55,7 @@ function getMockData(id: number) {
 export function NFADetail({ tokenId }: { tokenId: string }) {
   const id = BigInt(tokenId);
   const numId = Number(tokenId);
+  const [tab, setTab] = useState<TabKey>('special');
 
   const { data: agentState, isLoading: l1 } = useAgentState(id);
   const { data: agentMeta, isLoading: l2 } = useAgentMetadata(id);
@@ -64,7 +72,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="p-6">
         <div className="term-dim animate-glow-pulse py-16 text-center">
           LOADING NFA #{tokenId}...<span className="animate-blink ml-1">█</span>
         </div>
@@ -75,7 +83,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   const lob = useMock ? mock : (lobster as any);
   if (!lob && !useMock) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-16 text-center">
+      <div className="p-6 text-center">
         <p className="term-dim mb-4">龙虾 #{tokenId} 不存在或尚未铸造</p>
         <Link href="/nfa" className="term-link">[&lt; 返回合集]</Link>
       </div>
@@ -111,115 +119,133 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   const name = getMockLobsterName(numId);
   const imageUrl = resolveIpfsUrl(useMock ? '' : ((agentMeta as any)?.vaultURI ?? ''));
 
+  // SPECIAL stats for PipBoyStatList
+  const specialStats = [
+    { key: 'STR', label: '力量', enLabel: 'Strength', value: str },
+    { key: 'DEF', label: '防御', enLabel: 'Defense', value: def },
+    { key: 'SPD', label: '速度', enLabel: 'Speed', value: spd },
+    { key: 'VIT', label: '生命', enLabel: 'Vitality', value: vit },
+    { key: 'courage', label: '勇气', enLabel: 'Courage', value: courage },
+    { key: 'wisdom', label: '智慧', enLabel: 'Wisdom', value: wisdom },
+    { key: 'social', label: '社交', enLabel: 'Social', value: social },
+    { key: 'create', label: '创造', enLabel: 'Create', value: create },
+    { key: 'grit', label: '韧性', enLabel: 'Grit', value: grit },
+  ];
+
+  const lobsterImage = (
+    <div className="aspect-square w-full border border-crt-darkest overflow-hidden relative">
+      <img src={imageUrl} alt={`#${tokenId}`} className="w-full h-full object-cover crt-image" />
+      <div className="absolute top-1 right-1">
+        <StatusBadge active={Boolean(active)} />
+      </div>
+    </div>
+  );
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="px-4 py-3 max-w-5xl mx-auto">
       {useMock && (
-        <div className="text-xs rarity-epic mb-3">[DEMO MODE — 模拟数据]</div>
+        <div className="text-[10px] rarity-epic mb-2">[DEMO]</div>
       )}
 
-      <Link href="/nfa" className="term-link text-sm mb-4 inline-block">[&lt; 返回合集]</Link>
-
-      {/* Header */}
-      <div className="mb-4">
-        <span className="term-bright text-lg glow-strong">NFA #{tokenId}</span>
-        <span className="term-dim ml-3">{name}</span>
+      {/* Header: back + name */}
+      <div className="flex items-center gap-3 mb-2">
+        <Link href="/nfa" className="term-link text-xs">[&lt;]</Link>
+        <span className="term-bright text-sm glow-strong">NFA #{tokenId}</span>
+        <span className="term-dim text-xs">{name}</span>
       </div>
-      <div className="term-line mb-4" />
 
-      {/* Main layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Pip-Boy sub-tabs */}
+      <div className="flex gap-1 mb-3 border-b border-crt-darkest pb-1">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`pipboy-tab text-xs ${tab === t.key ? 'pipboy-tab-active' : ''}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-        {/* LEFT COLUMN */}
-        <div className="space-y-4">
-          {/* Image */}
-          <div className="aspect-square max-w-sm border border-crt-darkest overflow-hidden relative">
-            <img src={imageUrl} alt={`#${tokenId}`} className="w-full h-full object-cover crt-image" />
-            <div className="absolute top-2 right-2">
-              <StatusBadge active={Boolean(active)} />
-            </div>
-          </div>
-
-          {/* Basic Info */}
-          <TerminalBox title="基础信息">
-            <div className="text-sm space-y-1.5">
-              <div className="flex justify-between">
-                <span className="term-dim">稀有度</span>
-                <RarityBadge rarity={rarity} />
-              </div>
-              <div className="flex justify-between">
-                <span className="term-dim">等级</span>
-                <span className="term-bright">Lv.{level}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="term-dim">据点</span>
-                <ShelterTag shelter={shelter} />
-              </div>
-              <div className="flex justify-between">
-                <span className="term-dim">状态</span>
-                <StatusBadge active={Boolean(active)} />
-              </div>
-              <div className="flex justify-between">
-                <span className="term-dim">职业</span>
-                <span>{jobName}</span>
-              </div>
-              <div className="term-line my-1" />
-              <div className="flex justify-between">
-                <span className="term-dim">CLW余额</span>
-                <span className="term-bright">{formatCLW(balance)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="term-dim">日消耗</span>
-                <span>{formatCLW(cost)}/天</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="term-dim">可维持</span>
+      {/* Tab content */}
+      <div className="animate-fade-in">
+        {tab === 'status' && (
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Left: info list */}
+            <div className="flex-1 space-y-1 text-sm">
+              <Row label="稀有度"><RarityBadge rarity={rarity} /></Row>
+              <Row label="等级"><span className="term-bright">Lv.{level}</span></Row>
+              <Row label="据点"><ShelterTag shelter={shelter} /></Row>
+              <Row label="状态"><StatusBadge active={Boolean(active)} /></Row>
+              <Row label="职业"><span>{jobName}</span></Row>
+              <div className="term-line my-1.5" />
+              <Row label="CLW余额"><span className="term-bright">{formatCLW(balance)}</span></Row>
+              <Row label="日消耗"><span>{formatCLW(cost)}/天</span></Row>
+              <Row label="可维持">
                 <span className={daysRemaining <= 3 ? 'term-danger' : ''}>
                   {daysRemaining === Infinity ? '∞' : `${daysRemaining} 天`}
                 </span>
-              </div>
-              <div className="term-line my-1" />
+              </Row>
+              <div className="term-line my-1.5" />
               <XPProgressBar level={level} xp={xp} />
               {ownerAddress && (
-                <>
-                  <div className="term-line my-1" />
-                  <div className="flex justify-between text-xs">
-                    <span className="term-dim">Owner</span>
-                    <a href={getBscScanAddressUrl(ownerAddress)} target="_blank" rel="noopener noreferrer" className="term-link">
-                      {truncateAddress(ownerAddress)}
-                    </a>
-                  </div>
-                </>
+                <Row label="Owner">
+                  <a href={getBscScanAddressUrl(ownerAddress)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
+                    {truncateAddress(ownerAddress)}
+                  </a>
+                </Row>
               )}
             </div>
-          </TerminalBox>
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div className="space-y-4">
-          {/* Personality - ASCII bars */}
-          <TerminalBox title="性格面板">
-            <div className="space-y-1">
-              <TerminalBar label="勇气" value={courage} />
-              <TerminalBar label="智慧" value={wisdom} />
-              <TerminalBar label="社交" value={social} />
-              <TerminalBar label="创造" value={create} />
-              <TerminalBar label="韧性" value={grit} />
+            {/* Right: image */}
+            <div className="w-full sm:w-48 shrink-0">
+              {lobsterImage}
             </div>
-            <div className="term-line my-3" />
-            <PersonalityRadar courage={courage} wisdom={wisdom} social={social} create={create} grit={grit} />
-          </TerminalBox>
+          </div>
+        )}
 
-          {/* DNA */}
-          <TerminalBox title="基因组">
-            <DNABarChart str={str} def={def} spd={spd} vit={vit} />
-            <div className="term-line my-3" />
+        {tab === 'special' && (
+          <PipBoyStatList stats={specialStats} sideContent={lobsterImage} />
+        )}
+
+        {tab === 'gene' && (
+          <div className="space-y-3 p-2">
+            <div className="text-xs term-dim mb-2">基因组 / DNA</div>
+            <div className="space-y-1">
+              <TerminalBar label="力量" value={str} color="term-danger" />
+              <TerminalBar label="防御" value={def} color="rarity-rare" />
+              <TerminalBar label="速度" value={spd} color="text-crt-green" />
+              <TerminalBar label="生命" value={vit} color="term-warn" />
+            </div>
+            <div className="term-line my-2" />
             <MutationSlots mutation1={mutation1} mutation2={mutation2} />
-          </TerminalBox>
+          </div>
+        )}
 
-          {/* Deposit */}
+        {tab === 'maintain' && (
           <DepositPanel tokenId={id} />
-        </div>
+        )}
       </div>
+
+      {/* Bottom mini status bar (Pip-Boy style) */}
+      <div className="flex items-center justify-between mt-4 pt-2 border-t border-crt-darkest text-xs">
+        <span className="term-dim">CLW <span className="term-bright">{formatCLW(balance)}</span></span>
+        <span className="term-dim">
+          Lv.<span className="term-bright">{level}</span>
+          <span className="ml-2 text-crt-green">{'█'.repeat(Math.round(xp / 10))}</span>
+          <span className="term-darkest">{'░'.repeat(10 - Math.round(xp / 10))}</span>
+        </span>
+        <StatusBadge active={Boolean(active)} />
+      </div>
+    </div>
+  );
+}
+
+/** 简单的键值行 */
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex justify-between items-center pipboy-stat-row">
+      <span className="term-dim text-xs">{label}</span>
+      {children}
     </div>
   );
 }

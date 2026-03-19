@@ -330,3 +330,134 @@
   border-bottom-color: var(--color-crt-green);
   text-shadow: 0 0 10px var(--color-crt-glow);
 }
+
+/* ═══════════════════════════════════════════
+   PIP-BOY SHELL
+   ═══════════════════════════════════════════ */
+
+.pipboy-shell {
+  max-width: 1200px;
+  margin: 16px auto;
+  padding: 14px;
+  background: linear-gradient(145deg, #1a1a1a 0%, #0d0d0d 50%, #181818 100%);
+  border-radius: 20px;
+  border: 3px solid #2a2a2a;
+  box-shadow:
+    inset 0 2px 4px rgba(255,255,255,0.03),
+    inset 0 0 30px rgba(0,0,0,0.5),
+    0 0 40px rgba(0,0,0,0.8),
+    0 4px 8px rgba(0,0,0,0.6);
+  position: relative;
+}
+
+.pipboy-screen {
+  border: 2px solid var(--color-crt-dim);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-crt-black);
+  min-height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: inset 0 0 80px rgba(0,0,0,0.5);
+}
+
+.pipboy-hardware {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 32px 0;
+}
+
+.pipboy-screw {
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle at 35% 35%, #555, #222);
+  border-radius: 50%;
+  border: 1px solid #444;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Pip-Boy Nav */
+.pipboy-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--color-crt-darkest);
+}
+
+.pipboy-nav-tabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pipboy-tab {
+  padding: 5px 14px;
+  cursor: pointer;
+  color: var(--color-crt-dim);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 2px;
+  transition: all 0.15s;
+  font-size: 13px;
+  white-space: nowrap;
+  text-shadow: none;
+}
+.pipboy-tab:hover {
+  color: var(--color-crt-green);
+  text-shadow: 0 0 6px var(--color-crt-glow);
+}
+.pipboy-tab-active {
+  color: var(--color-crt-bright);
+  text-decoration-color: var(--color-crt-green);
+  text-shadow: 0 0 10px var(--color-crt-glow);
+}
+
+/* Pip-Boy Status Bar */
+.pipboy-statusbar {
+  border-top: 1px solid var(--color-crt-dim);
+  padding: 5px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+/* Pip-Boy Stat Row (NFA detail) */
+.pipboy-stat-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background 0.1s;
+  font-size: 13px;
+}
+.pipboy-stat-row:hover,
+.pipboy-stat-active {
+  background: rgba(51, 255, 102, 0.12);
+  color: var(--color-crt-bright);
+  text-shadow: 0 0 8px var(--color-crt-glow);
+}
+
+/* Mobile: shell simplification */
+@media (max-width: 640px) {
+  .pipboy-shell {
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    padding: 0;
+    background: var(--color-crt-black);
+    box-shadow: none;
+  }
+  .pipboy-screen {
+    border-radius: 0;
+    border: none;
+    min-height: 100vh;
+  }
+  .pipboy-hardware { display: none; }
+  .pipboy-tab { padding: 5px 10px; font-size: 12px; }
+}
