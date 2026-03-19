@@ -40,7 +40,7 @@ export default function RootLayout({
             <div className="pipboy-shell">
               <div className="pipboy-screen">
                 <PipBoyNav />
-                <main className="flex-1 overflow-y-auto">{children}</main>
+                <main className="flex-1 overflow-y-auto min-h-0">{children}</main>
                 <PipBoyStatusBar />
               </div>
               <div className="pipboy-hardware">

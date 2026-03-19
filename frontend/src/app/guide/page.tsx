@@ -10,13 +10,11 @@ export default function GuidePage() {
   const chapters = getGuideChapters();
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      <div className="mb-4">
-        <span className="term-dim text-sm">&gt; </span>
-        <span className="term-bright text-sm">文档: 游戏指南</span>
-        <span className="term-dim text-xs ml-2">— 玩家手册</span>
+    <div className="flex flex-col h-full">
+      <div className="px-4 pt-3 pb-1 shrink-0">
+        <span className="term-dim text-xs">&gt; </span>
+        <span className="term-bright text-xs">文档: 游戏指南</span>
       </div>
-      <div className="term-line mb-4" />
       <GuideContent chapters={chapters} />
     </div>
   );
