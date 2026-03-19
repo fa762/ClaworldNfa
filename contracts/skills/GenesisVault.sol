@@ -401,6 +401,64 @@ contract GenesisVault is
     // ADMIN
     // ============================================
 
+    /**
+     * @dev Owner-only free mint, skips commit-reveal and payment.
+     */
+    function ownerMint(uint8 rarity, address recipient) external onlyOwner nonReentrant {
+        require(rarity <= 4, "Invalid rarity");
+        require(recipient != address(0), "Invalid recipient");
+        require(_checkRarityCap(rarity), "Rarity sold out");
+        require(mintedCount < TOTAL_GENESIS, "Genesis sold out");
+
+        mintedCount++;
+        rarityMinted[rarity]++;
+
+        bytes32 seed = keccak256(abi.encodePacked(
+            blockhash(block.number - 1), msg.sender, recipient, mintedCount
+        ));
+
+        (uint8 shelter, uint8[5] memory personality, uint8[4] memory dna) = _generateAttributes(seed, rarity);
+
+        IGenesisNFA.AgentMetadata memory meta = IGenesisNFA.AgentMetadata({
+            persona: "",
+            experience: "",
+            voiceHash: "",
+            animationURI: "",
+            vaultURI: "",
+            vaultHash: bytes32(0)
+        });
+
+        uint256 nfaId = nfa.mintTo(recipient, address(router), "", meta);
+
+        IGenesisRouter.LobsterState memory lobState = IGenesisRouter.LobsterState({
+            rarity: rarity,
+            shelter: shelter,
+            courage: personality[0],
+            wisdom: personality[1],
+            social: personality[2],
+            create: personality[3],
+            grit: personality[4],
+            str: dna[0],
+            def: dna[1],
+            spd: dna[2],
+            vit: dna[3],
+            mutation1: bytes32(0),
+            mutation2: bytes32(0),
+            level: 1,
+            xp: 0,
+            lastUpkeepTime: 0
+        });
+
+        router.initializeLobster(nfaId, lobState);
+
+        uint256 airdrop = _getAirdrop(rarity);
+        if (airdrop > 0) {
+            router.addCLW(nfaId, airdrop);
+        }
+
+        emit GenesisRevealed(msg.sender, nfaId, rarity, shelter);
+    }
+
     function setMintingActive(bool active) external onlyOwner {
         mintingActive = active;
     }
