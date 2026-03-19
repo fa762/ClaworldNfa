@@ -430,12 +430,10 @@ export function MintPanel() {
                       account: address,
                     });
                   } catch (err: any) {
+                    console.error('[ownerMint simulate]', err);
+                    console.error('[ownerMint] account:', address, 'recipient:', recipient, 'rarity:', ownerRarity);
                     const raw = err?.shortMessage || err?.message || String(err);
-                    // A bare 0x revert means an external call failed (nfa.mintTo / router.initializeLobster / router.addCLW)
-                    const msg = raw.includes('0x') && !raw.includes('0x0') && raw.length < 80
-                      ? `${raw} — 外部合约调用失败，请检查: 1) NFA/Router 合约已部署 2) GenesisVault 有 mintTo/initializeLobster/addCLW 调用权限`
-                      : raw;
-                    setOwnerSimError(msg);
+                    setOwnerSimError(raw);
                     return;
                   }
                   ownerMintHook.ownerMint(ownerRarity, recipient);
