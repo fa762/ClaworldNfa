@@ -103,6 +103,31 @@ export function useRefund() {
   return { refund, isPending, isConfirming, isSuccess, hash, error, reset };
 }
 
+export function useVaultOwner() {
+  return useReadContract({
+    ...vaultContract,
+    functionName: 'owner',
+    query: { enabled: isDeployed },
+  });
+}
+
+export function useOwnerMint() {
+  const { writeContract, data: hash, isPending, error, reset } = useWriteContract();
+
+  function ownerMint(rarity: number, recipient: Address) {
+    writeContract({
+      ...vaultContract,
+      functionName: 'ownerMint',
+      args: [rarity, recipient],
+      type: 'legacy',
+    });
+  }
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  return { ownerMint, isPending, isConfirming, isSuccess, hash, error, reset };
+}
+
 // --- Utility functions ---
 
 export const RARITY_PRICES = ['0.08', '0.38', '0.88', '1.88', '3.88'] as const;

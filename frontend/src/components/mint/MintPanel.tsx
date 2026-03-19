@@ -5,11 +5,9 @@ import { useAccount } from 'wagmi';
 import { simulateContract } from '@wagmi/core';
 import { parseEther, zeroHash, type Address } from 'viem';
 import Link from 'next/link';
-import { TerminalBox } from '@/components/terminal/TerminalBox';
 import { config } from '@/components/wallet/WalletProvider';
 import { getBscScanTxUrl } from '@/contracts/addresses';
 import { getRarityName, getRarityClass, getRarityStars } from '@/lib/rarity';
-import { getShelterName } from '@/lib/shelter';
 import { nativeSymbol } from '@/lib/format';
 import {
   useMintingActive,
@@ -19,6 +17,8 @@ import {
   useCommitMint,
   useRevealMint,
   useRefund,
+  useVaultOwner,
+  useOwnerMint,
   vaultContract,
   RARITY_PRICES,
   RARITY_CAPS,
@@ -31,8 +31,8 @@ import {
 } from '@/contracts/hooks/useGenesisVault';
 
 const TOTAL_GENESIS = 888;
-const REVEAL_DELAY = 60; // seconds
-const REVEAL_WINDOW = 86400; // 24 hours
+const REVEAL_DELAY = 60;
+const REVEAL_WINDOW = 86400;
 
 type Phase = 'select' | 'waiting' | 'ready' | 'expired' | 'success';
 
@@ -44,24 +44,27 @@ export function MintPanel() {
   const [revealedRarity, setRevealedRarity] = useState<number | null>(null);
   const [revealedShelter, setRevealedShelter] = useState<number | null>(null);
 
-  // Read hooks
   const { data: mintingActive } = useMintingActive();
   const { data: mintedCount } = useMintedCount();
   const { data: rarityMinted } = useRarityMinted();
   const { data: commitment } = useCommitment(address);
 
-  // Write hooks
   const commitMint = useCommitMint();
   const revealMint = useRevealMint();
   const refundHook = useRefund();
+  const { data: vaultOwner } = useVaultOwner();
+  const ownerMintHook = useOwnerMint();
 
-  // Parse commitment data: [hash, value, timestamp, revealed]
+  const isOwner = isConnected && address && vaultOwner && address.toLowerCase() === (vaultOwner as string).toLowerCase();
+  const [ownerRarity, setOwnerRarity] = useState(0);
+  const [ownerRecipient, setOwnerRecipient] = useState('');
+  const [ownerSimError, setOwnerSimError] = useState<string | null>(null);
+
   const commitHash = commitment?.[0] as `0x${string}` | undefined;
   const commitTimestamp = commitment?.[2] ? Number(commitment[2]) : 0;
   const commitRevealed = commitment?.[3] as boolean | undefined;
   const hasActiveCommit = commitHash && commitHash !== zeroHash && !commitRevealed;
 
-  // Determine current phase
   const phase = useMemo<Phase>(() => {
     if (revealedNfaId) return 'success';
     if (!hasActiveCommit) return 'select';
@@ -70,28 +73,22 @@ export function MintPanel() {
     if (elapsed < REVEAL_DELAY) return 'waiting';
     if (elapsed < REVEAL_WINDOW) return 'ready';
     return 'expired';
-  }, [hasActiveCommit, commitTimestamp, revealedNfaId, countdown]); // countdown drives re-eval
+  }, [hasActiveCommit, commitTimestamp, revealedNfaId, countdown]);
 
-  // Timer for countdown
   useEffect(() => {
     if (!hasActiveCommit) return;
     const tick = () => {
       const now = Math.floor(Date.now() / 1000);
       const elapsed = now - commitTimestamp;
-      if (elapsed < REVEAL_DELAY) {
-        setCountdown(REVEAL_DELAY - elapsed);
-      } else if (elapsed < REVEAL_WINDOW) {
-        setCountdown(REVEAL_WINDOW - elapsed);
-      } else {
-        setCountdown(0);
-      }
+      if (elapsed < REVEAL_DELAY) setCountdown(REVEAL_DELAY - elapsed);
+      else if (elapsed < REVEAL_WINDOW) setCountdown(REVEAL_WINDOW - elapsed);
+      else setCountdown(0);
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [hasActiveCommit, commitTimestamp]);
 
-  // Handle commit
   function handleCommit() {
     if (!address) return;
     const salt = generateSalt();
@@ -101,21 +98,16 @@ export function MintPanel() {
     commitMint.commitMint(hash, price);
   }
 
-  // Handle reveal
   const [debugError, setDebugError] = useState<string | null>(null);
 
   async function handleReveal() {
     if (!address) return;
     const saved = loadSalt(address);
     if (!saved) {
-      console.error('[Reveal] No saved salt in localStorage');
       setDebugError('未找到本地 salt 数据');
       return;
     }
-    console.log('[Reveal] rarity:', saved.rarity, 'salt:', saved.salt, 'address:', address);
     setDebugError(null);
-
-    // Pre-simulate to catch revert reason
     try {
       await simulateContract(config, {
         ...vaultContract,
@@ -123,41 +115,32 @@ export function MintPanel() {
         args: [saved.rarity, saved.salt],
         account: address,
       });
-      console.log('[Reveal] Simulation OK');
     } catch (err: any) {
       const msg = err?.shortMessage || err?.message || String(err);
-      console.error('[Reveal] Simulation FAILED:', msg);
       setDebugError(msg);
     }
-
     revealMint.revealMint(saved.rarity, saved.salt);
   }
 
-  // Handle refund
   function handleRefund() {
     refundHook.refund();
   }
 
-  // Watch for successful reveal
   useEffect(() => {
     if (revealMint.isSuccess && address) {
       clearSalt(address);
-      // We can't easily parse events from wagmi v2 receipt,
-      // so show a generic success and link to NFA collection
       setRevealedNfaId('new');
       const saved = loadSalt(address);
       if (saved) setRevealedRarity(saved.rarity);
     }
   }, [revealMint.isSuccess, address]);
 
-  // Watch for successful refund
   useEffect(() => {
     if (refundHook.isSuccess && address) {
       clearSalt(address);
     }
   }, [refundHook.isSuccess, address]);
 
-  // Reset to mint another
   function handleReset() {
     setRevealedNfaId(null);
     setRevealedRarity(null);
@@ -178,69 +161,82 @@ export function MintPanel() {
     return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   }
 
+  /* ─── Progress bar helper ─── */
+  function ProgressBar({ value, max, width = 20 }: { value: number; max: number; width?: number }) {
+    const filled = Math.round((value / max) * width);
+    return (
+      <span className="text-xs">
+        <span className="text-crt-green">{'█'.repeat(filled)}</span>
+        <span className="term-darkest">{'░'.repeat(width - filled)}</span>
+      </span>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      {/* Progress */}
-      <TerminalBox title="铸造进度">
-        <div className="space-y-2">
-          {/* Overall progress */}
-          <div className="flex items-center gap-2 text-sm">
-            <span className="term-dim">总进度:</span>
+    <div className="pipboy-split">
+      {/* ═══ LEFT: Stats & Info ═══ */}
+      <div className="pipboy-split-sidebar" style={{ width: 220 }}>
+        {/* Progress */}
+        <div className="px-3 py-2">
+          <div className="term-bright text-xs glow mb-2">铸造进度</div>
+          <div className="flex items-center gap-2 text-xs mb-1">
+            <span className="term-dim">总量</span>
             <span className="term-bright">{totalMinted}</span>
             <span className="term-dim">/ {TOTAL_GENESIS}</span>
           </div>
-          <div className="text-xs">
-            {(() => {
-              const w = 30;
-              const filled = Math.round((totalMinted / TOTAL_GENESIS) * w);
-              return (
-                <span>
-                  <span className="text-crt-green">{'█'.repeat(filled)}</span>
-                  <span className="term-darkest">{'░'.repeat(w - filled)}</span>
-                </span>
-              );
-            })()}
-          </div>
+          <ProgressBar value={totalMinted} max={TOTAL_GENESIS} />
 
-          {/* Per-rarity */}
           <div className="term-line my-2" />
-          <div className="space-y-1 text-xs">
-            {[0, 1, 2, 3, 4].map((r) => {
-              const minted = rarityMinted ? Number(rarityMinted[r]) : 0;
-              const cap = RARITY_CAPS[r];
-              const soldOut = minted >= cap;
-              return (
-                <div key={r} className="flex items-center gap-2">
-                  <span className={`w-12 text-right ${getRarityClass(r)}`}>
-                    {getRarityName(r, true)}
-                  </span>
-                  <span className="term-dim">{minted}/{cap}</span>
-                  <span className="term-dim">({RARITY_PRICES[r]} {nativeSymbol})</span>
-                  {soldOut && <span className="term-danger">[SOLD OUT]</span>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </TerminalBox>
 
-      {/* Mint action */}
-      <TerminalBox title="创世铸造">
+          {[0, 1, 2, 3, 4].map((r) => {
+            const minted = rarityMinted ? Number(rarityMinted[r]) : 0;
+            const cap = RARITY_CAPS[r];
+            const soldOut = minted >= cap;
+            return (
+              <div key={r} className="flex items-center gap-1 text-xs leading-5">
+                <span className={`w-10 text-right ${getRarityClass(r)}`}>
+                  {getRarityName(r, true)}
+                </span>
+                <span className="term-dim flex-1">{minted}/{cap}</span>
+                <span className="term-dim">{RARITY_PRICES[r]}</span>
+                {soldOut && <span className="term-danger">!</span>}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="term-line" />
+
+        {/* Instructions */}
+        <div className="px-3 py-2 space-y-1 text-xs term-dim">
+          <div className="term-bright text-xs glow mb-1">铸造说明</div>
+          <div>&gt; commit-reveal 两步机制</div>
+          <div>&gt; 1. 选择稀有度 → 提交</div>
+          <div>&gt; 2. 等 1 分钟 → 揭示</div>
+          <div>&gt; 24h 未揭示可退款</div>
+          <div className="term-warn">&gt; [!] 勿清浏览器数据</div>
+        </div>
+      </div>
+
+      {/* ═══ RIGHT: Mint Action ═══ */}
+      <div className="pipboy-split-content flex flex-col">
+        <div className="term-bright text-sm glow mb-3">创世铸造 — Genesis Mint</div>
+
         {!isConnected ? (
-          <div className="term-dim text-sm py-4 text-center">
+          <div className="term-dim text-sm py-8 text-center">
             连接钱包以进行铸造
           </div>
         ) : mintingActive === false ? (
-          <div className="term-warn text-sm py-4 text-center">
+          <div className="term-warn text-sm py-8 text-center">
             [!] 铸造尚未开始
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 flex-1">
             {/* Phase: SELECT */}
             {phase === 'select' && (
               <>
                 <div className="text-xs term-dim">&gt; 选择稀有度:</div>
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-1">
                   {[0, 1, 2, 3, 4].map((r) => {
                     const minted = rarityMinted ? Number(rarityMinted[r]) : 0;
                     const soldOut = minted >= RARITY_CAPS[r];
@@ -250,27 +246,35 @@ export function MintPanel() {
                         key={r}
                         onClick={() => !soldOut && setSelectedRarity(r)}
                         disabled={soldOut}
-                        className={
+                        className={`block w-full text-left text-xs py-1 px-2 transition-colors ${
                           soldOut
-                            ? 'term-darkest cursor-not-allowed text-xs'
+                            ? 'term-darkest cursor-not-allowed line-through'
                             : isSelected
-                            ? `${getRarityClass(r)} glow text-xs`
-                            : 'term-dim hover:text-crt-green text-xs'
-                        }
+                            ? `${getRarityClass(r)} glow`
+                            : 'term-dim hover:text-crt-green'
+                        }`}
+                        style={isSelected ? { background: 'rgba(51,255,102,0.08)' } : undefined}
                       >
-                        [{isSelected ? '> ' : ''}{getRarityName(r, true)} {RARITY_PRICES[r]} {nativeSymbol}{getRarityStars(r) ? ` ${getRarityStars(r)}` : ''}]
+                        {isSelected ? '> ' : '  '}
+                        {getRarityName(r, true)}
+                        {' '}{RARITY_PRICES[r]} {nativeSymbol}
+                        {' '}· 空投 {RARITY_AIRDROPS[r]} CLW
+                        {getRarityStars(r) ? ` ${getRarityStars(r)}` : ''}
+                        {soldOut ? ' [SOLD OUT]' : ''}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Selected rarity info */}
+                <div className="term-line my-2" />
+
                 <div className="text-xs space-y-1">
                   <div className="term-dim">
-                    &gt; 价格: <span className="term-bright">{RARITY_PRICES[selectedRarity]} {nativeSymbol}</span>
+                    &gt; 已选: <span className={getRarityClass(selectedRarity)}>{getRarityName(selectedRarity, true)}</span>
                   </div>
                   <div className="term-dim">
-                    &gt; CLW 空投: <span className="term-bright">{RARITY_AIRDROPS[selectedRarity]} CLW</span>
+                    &gt; 费用: <span className="term-bright">{RARITY_PRICES[selectedRarity]} {nativeSymbol}</span>
+                    {' '}· 空投: <span className="term-bright">{RARITY_AIRDROPS[selectedRarity]} CLW</span>
                   </div>
                 </div>
 
@@ -287,7 +291,6 @@ export function MintPanel() {
                     [查看交易 →]
                   </a>
                 )}
-
                 {commitMint.error && (
                   <div className="term-danger text-xs">
                     [!] {(commitMint.error as any)?.shortMessage || commitMint.error.message}
@@ -298,12 +301,10 @@ export function MintPanel() {
 
             {/* Phase: WAITING */}
             {phase === 'waiting' && (
-              <div className="text-center space-y-3 py-4">
+              <div className="text-center space-y-3 py-6">
                 <div className="term-warn text-sm">等待揭示窗口...</div>
                 <div className="term-bright text-2xl glow-strong">{formatTime(countdown)}</div>
-                <div className="term-dim text-xs">
-                  提交已记录，揭示窗口将在倒计时结束后开放
-                </div>
+                <div className="term-dim text-xs">提交已记录，揭示窗口将在倒计时结束后开放</div>
               </div>
             )}
 
@@ -314,13 +315,11 @@ export function MintPanel() {
                 <div className="term-dim text-xs">
                   剩余揭示时间: <span className="term-warn">{formatTime(countdown)}</span>
                 </div>
-
                 {!savedSalt && (
                   <div className="term-danger text-xs">
                     [!] 未找到本地 salt 数据。如果您清除了浏览器数据，需要等待 24 小时后申请退款。
                   </div>
                 )}
-
                 <button
                   onClick={handleReveal}
                   disabled={revealMint.isPending || revealMint.isConfirming || !savedSalt}
@@ -328,23 +327,18 @@ export function MintPanel() {
                 >
                   [{revealMint.isPending ? '签名...' : revealMint.isConfirming ? '确认中...' : '揭示你的龙虾 NFA'}]
                 </button>
-
                 {revealMint.hash && (
                   <a href={getBscScanTxUrl(revealMint.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
                     [查看交易 →]
                   </a>
                 )}
-
                 {revealMint.error && (
                   <div className="term-danger text-xs">
                     [!] {(revealMint.error as any)?.shortMessage || revealMint.error.message}
                   </div>
                 )}
-
                 {debugError && (
-                  <div className="term-danger text-xs">
-                    [DEBUG] {debugError}
-                  </div>
+                  <div className="term-danger text-xs">[DEBUG] {debugError}</div>
                 )}
               </div>
             )}
@@ -356,7 +350,6 @@ export function MintPanel() {
                 <div className="term-dim text-xs">
                   超过 24 小时未揭示。你可以申请退回已支付的 {nativeSymbol}。
                 </div>
-
                 <button
                   onClick={handleRefund}
                   disabled={refundHook.isPending || refundHook.isConfirming}
@@ -364,13 +357,11 @@ export function MintPanel() {
                 >
                   [{refundHook.isPending ? '签名...' : refundHook.isConfirming ? '确认中...' : '申请退款'}]
                 </button>
-
                 {refundHook.hash && (
                   <a href={getBscScanTxUrl(refundHook.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
                     [查看交易 →]
                   </a>
                 )}
-
                 {refundHook.error && (
                   <div className="term-danger text-xs">
                     [!] {(refundHook.error as any)?.shortMessage || refundHook.error.message}
@@ -381,18 +372,14 @@ export function MintPanel() {
 
             {/* Phase: SUCCESS */}
             {phase === 'success' && (
-              <div className="text-center space-y-3 py-4">
+              <div className="text-center space-y-3 py-6">
                 <div className="term-bright text-lg glow-strong">铸造成功!</div>
-                <div className="term-dim text-sm">
-                  你的创世龙虾 NFA 已铸造
-                </div>
-
+                <div className="term-dim text-sm">你的创世龙虾 NFA 已铸造</div>
                 {revealMint.hash && (
                   <a href={getBscScanTxUrl(revealMint.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
                     [查看铸造交易 →]
                   </a>
                 )}
-
                 <div className="flex justify-center gap-3 pt-2">
                   <Link href="/nfa" className="term-btn term-btn-primary text-sm">
                     [查看 NFA 合集]
@@ -405,18 +392,82 @@ export function MintPanel() {
             )}
           </div>
         )}
-      </TerminalBox>
 
-      {/* Info box */}
-      <TerminalBox title="铸造说明">
-        <div className="space-y-1 text-xs term-dim">
-          <div>&gt; 铸造采用 commit-reveal 两步机制，防止抢跑</div>
-          <div>&gt; 第一步: 选择稀有度并提交 (commit)，支付 {nativeSymbol}</div>
-          <div>&gt; 第二步: 等待 1 分钟后揭示 (reveal)，获得随机属性的龙虾</div>
-          <div>&gt; 如果 24 小时内未揭示，可以申请全额退款</div>
-          <div className="term-warn">&gt; [!] 请勿在 commit 后清除浏览器数据，否则无法揭示</div>
-        </div>
-      </TerminalBox>
+        {/* Owner free mint */}
+        {isOwner && (
+          <>
+            <div className="term-line my-3" />
+            <div className="space-y-2">
+              <div className="term-warn text-xs glow">[ADMIN] 免费铸造</div>
+              <div className="flex gap-2 items-center flex-wrap">
+                {[0, 1, 2, 3, 4].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setOwnerRarity(r)}
+                    className={`text-xs ${ownerRarity === r ? `${getRarityClass(r)} glow` : 'term-dim hover:text-crt-green'}`}
+                  >
+                    [{ownerRarity === r ? '>' : ' '}{getRarityName(r, true)}]
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                placeholder="接收地址 (留空 = 自己)"
+                value={ownerRecipient}
+                onChange={(e) => setOwnerRecipient(e.target.value)}
+                className="w-full bg-transparent border border-crt-green/30 text-crt-green text-xs px-2 py-1 placeholder:text-crt-green/20 focus:outline-none focus:border-crt-green/60"
+              />
+              <button
+                onClick={async () => {
+                  setOwnerSimError(null);
+                  ownerMintHook.reset();
+                  const recipient = (ownerRecipient.trim() || address) as Address;
+                  try {
+                    await simulateContract(config, {
+                      ...vaultContract,
+                      functionName: 'ownerMint',
+                      args: [ownerRarity, recipient],
+                      account: address,
+                    });
+                  } catch (err: any) {
+                    const msg = err?.shortMessage || err?.message || String(err);
+                    setOwnerSimError(msg);
+                    return;
+                  }
+                  ownerMintHook.ownerMint(ownerRarity, recipient);
+                }}
+                disabled={ownerMintHook.isPending || ownerMintHook.isConfirming}
+                className="term-btn term-btn-primary text-xs w-full"
+              >
+                [{ownerMintHook.isPending ? '签名...' : ownerMintHook.isConfirming ? '确认中...' : `免费铸造 ${getRarityName(ownerRarity, true)}`}]
+              </button>
+              {ownerMintHook.hash && (
+                <a href={getBscScanTxUrl(ownerMintHook.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
+                  [查看交易 →]
+                </a>
+              )}
+              {ownerMintHook.isSuccess && (
+                <>
+                  <div className="term-bright text-xs glow">铸造成功!</div>
+                  <button onClick={() => ownerMintHook.reset()} className="term-btn text-xs">
+                    [继续铸造]
+                  </button>
+                </>
+              )}
+              {ownerMintHook.error && (
+                <div className="term-danger text-xs">
+                  [!] {(ownerMintHook.error as any)?.shortMessage || ownerMintHook.error.message}
+                </div>
+              )}
+              {ownerSimError && (
+                <div className="term-danger text-xs">
+                  [模拟失败] {ownerSimError}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
