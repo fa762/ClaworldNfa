@@ -58,6 +58,7 @@ export function MintPanel() {
   const isOwner = isConnected && address && vaultOwner && address.toLowerCase() === (vaultOwner as string).toLowerCase();
   const [ownerRarity, setOwnerRarity] = useState(0);
   const [ownerRecipient, setOwnerRecipient] = useState('');
+  const [ownerSimError, setOwnerSimError] = useState<string | null>(null);
 
   const commitHash = commitment?.[0] as `0x${string}` | undefined;
   const commitTimestamp = commitment?.[2] ? Number(commitment[2]) : 0;
@@ -417,8 +418,22 @@ export function MintPanel() {
                 className="w-full bg-transparent border border-crt-green/30 text-crt-green text-xs px-2 py-1 placeholder:text-crt-green/20 focus:outline-none focus:border-crt-green/60"
               />
               <button
-                onClick={() => {
+                onClick={async () => {
+                  setOwnerSimError(null);
+                  ownerMintHook.reset();
                   const recipient = (ownerRecipient.trim() || address) as Address;
+                  try {
+                    await simulateContract(config, {
+                      ...vaultContract,
+                      functionName: 'ownerMint',
+                      args: [ownerRarity, recipient],
+                      account: address,
+                    });
+                  } catch (err: any) {
+                    const msg = err?.shortMessage || err?.message || String(err);
+                    setOwnerSimError(msg);
+                    return;
+                  }
                   ownerMintHook.ownerMint(ownerRarity, recipient);
                 }}
                 disabled={ownerMintHook.isPending || ownerMintHook.isConfirming}
@@ -432,11 +447,21 @@ export function MintPanel() {
                 </a>
               )}
               {ownerMintHook.isSuccess && (
-                <div className="term-bright text-xs glow">铸造成功!</div>
+                <>
+                  <div className="term-bright text-xs glow">铸造成功!</div>
+                  <button onClick={() => ownerMintHook.reset()} className="term-btn text-xs">
+                    [继续铸造]
+                  </button>
+                </>
               )}
               {ownerMintHook.error && (
                 <div className="term-danger text-xs">
                   [!] {(ownerMintHook.error as any)?.shortMessage || ownerMintHook.error.message}
+                </div>
+              )}
+              {ownerSimError && (
+                <div className="term-danger text-xs">
+                  [模拟失败] {ownerSimError}
                 </div>
               )}
             </div>
