@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Chapter {
   id: string;
@@ -36,7 +37,7 @@ export function GuideContent({ chapters }: { chapters: Chapter[] }) {
           <span className="term-bright text-sm glow">{chapters[activeIdx]?.title}</span>
         </div>
         <div className="md-content">
-          <ReactMarkdown>{chapters[activeIdx]?.content || ''}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{chapters[activeIdx]?.content || ''}</ReactMarkdown>
         </div>
       </div>
     </div>
