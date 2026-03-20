@@ -354,7 +354,11 @@ contract PKSkill is
             if (address(worldState) != address(0)) {
                 mutChance = mutChance * worldState.mutationBonus() / 10000;
             }
-            uint256 rand = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, matchId))) % 100;
+            // NOTE: Uses block data — acceptable on BSC where validators have limited control.
+            // For mainnet deployment, consider integrating Chainlink VRF for high-value mutations.
+            uint256 rand = uint256(keccak256(abi.encodePacked(
+                block.timestamp, block.prevrandao, matchId, winner, loser, gasleft()
+            ))) % 100;
             if (rand < mutChance) {
                 uint8 gene = uint8(rand % 4);
                 // Boost by 5
@@ -392,4 +396,9 @@ contract PKSkill is
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    /**
+     * @dev Reserved storage gap for future upgrades.
+     */
+    uint256[40] private __gap;
 }

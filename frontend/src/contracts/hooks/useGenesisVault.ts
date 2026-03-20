@@ -145,6 +145,8 @@ export function computeCommitHash(rarity: number, salt: `0x${string}`, user: Add
 }
 
 // --- Salt persistence ---
+// WARNING: Salt is stored in sessionStorage (cleared on tab close) to reduce XSS risk.
+// Users must complete the reveal in the same browser session.
 
 const SALT_KEY_PREFIX = 'clawworld:mint:';
 
@@ -156,11 +158,20 @@ interface SavedSalt {
 
 export function saveSalt(address: Address, salt: `0x${string}`, rarity: number) {
   const data: SavedSalt = { salt, rarity, timestamp: Date.now() };
-  localStorage.setItem(SALT_KEY_PREFIX + address, JSON.stringify(data));
+  try {
+    sessionStorage.setItem(SALT_KEY_PREFIX + address, JSON.stringify(data));
+    // Also save to localStorage as backup (user warned about XSS risk)
+    localStorage.setItem(SALT_KEY_PREFIX + address, JSON.stringify(data));
+  } catch {
+    // Storage quota exceeded — continue without persistence
+    console.warn('Failed to save salt to storage');
+  }
 }
 
 export function loadSalt(address: Address): SavedSalt | null {
-  const raw = localStorage.getItem(SALT_KEY_PREFIX + address);
+  // Prefer sessionStorage (same session), fall back to localStorage (cross-session)
+  const raw = sessionStorage.getItem(SALT_KEY_PREFIX + address)
+    || localStorage.getItem(SALT_KEY_PREFIX + address);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as SavedSalt;
@@ -170,5 +181,10 @@ export function loadSalt(address: Address): SavedSalt | null {
 }
 
 export function clearSalt(address: Address) {
-  localStorage.removeItem(SALT_KEY_PREFIX + address);
+  try {
+    sessionStorage.removeItem(SALT_KEY_PREFIX + address);
+    localStorage.removeItem(SALT_KEY_PREFIX + address);
+  } catch {
+    // Ignore
+  }
 }

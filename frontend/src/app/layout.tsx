@@ -3,6 +3,7 @@ import "./globals.css";
 import { PipBoyNav } from "@/components/layout/PipBoyNav";
 import { PipBoyStatusBar } from "@/components/layout/PipBoyStatusBar";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://clawnfaterminal.xyz'),
@@ -40,7 +41,9 @@ export default function RootLayout({
             <div className="pipboy-shell">
               <div className="pipboy-screen">
                 <PipBoyNav />
-                <main className="flex-1 overflow-y-auto min-h-0">{children}</main>
+                <main className="flex-1 overflow-y-auto min-h-0">
+                  <ErrorBoundary>{children}</ErrorBoundary>
+                </main>
                 <PipBoyStatusBar />
               </div>
               <div className="pipboy-hardware">

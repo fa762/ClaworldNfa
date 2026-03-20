@@ -45,12 +45,17 @@ contract MarketSkill is
     // Track active listing per NFA to prevent double-listing
     mapping(uint256 => uint256) public activeListingOf;
 
+    // Pull-over-push: pending refunds for failed BNB transfers
+    mapping(address => uint256) public pendingWithdrawals;
+
     event Listed(uint256 indexed listingId, uint256 indexed nfaId, ListingType listingType, uint256 price);
     event Purchased(uint256 indexed listingId, address indexed buyer, uint256 price, uint256 fee);
     event BidPlaced(uint256 indexed listingId, address indexed bidder, uint256 amount);
     event AuctionSettled(uint256 indexed listingId, address indexed winner, uint256 price, uint256 fee);
     event SwapAccepted(uint256 indexed listingId, uint256 indexed offeredNfaId, uint256 indexed targetNfaId);
     event ListingCancelled(uint256 indexed listingId);
+    event RefundPending(address indexed recipient, uint256 amount);
+    event RefundClaimed(address indexed recipient, uint256 amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -156,28 +161,41 @@ contract MarketSkill is
         require(l.listingType == ListingType.FixedPrice, "Not fixed price");
         require(msg.value >= l.price, "Insufficient BNB");
 
+        // --- Effects first (CEI pattern) ---
         l.status = ListingStatus.Sold;
         activeListingOf[l.nfaId] = 0;
 
         uint256 fee = l.price * FEE_BPS / 10000;
         uint256 sellerAmount = l.price - fee;
+        uint256 excess = msg.value - l.price;
+        uint256 nfaId = l.nfaId;
+        address seller = l.seller;
 
+        // --- Interactions ---
         // Transfer NFA to buyer
-        nfa.transferFrom(address(this), msg.sender, l.nfaId);
+        nfa.transferFrom(address(this), msg.sender, nfaId);
 
-        // Pay seller
-        (bool ok1, ) = payable(l.seller).call{value: sellerAmount}("");
-        require(ok1, "Seller payment failed");
+        // Pay seller (pull-over-push fallback)
+        (bool ok1, ) = payable(seller).call{value: sellerAmount}("");
+        if (!ok1) {
+            pendingWithdrawals[seller] += sellerAmount;
+            emit RefundPending(seller, sellerAmount);
+        }
 
         // Pay treasury
         (bool ok2, ) = payable(treasury).call{value: fee}("");
-        require(ok2, "Fee payment failed");
+        if (!ok2) {
+            pendingWithdrawals[treasury] += fee;
+            emit RefundPending(treasury, fee);
+        }
 
-        // Refund excess
-        uint256 excess = msg.value - l.price;
+        // Refund excess to buyer
         if (excess > 0) {
             (bool ok3, ) = payable(msg.sender).call{value: excess}("");
-            require(ok3, "Refund failed");
+            if (!ok3) {
+                pendingWithdrawals[msg.sender] += excess;
+                emit RefundPending(msg.sender, excess);
+            }
         }
 
         emit Purchased(listingId, msg.sender, l.price, fee);
@@ -197,14 +215,20 @@ contract MarketSkill is
         }
         require(msg.value >= minBid, "Bid too low");
 
-        // Refund previous bidder
-        if (l.highestBidder != address(0)) {
-            (bool ok, ) = payable(l.highestBidder).call{value: l.highestBid}("");
-            require(ok, "Refund failed");
-        }
+        // Refund previous bidder (pull-over-push fallback)
+        address prevBidder = l.highestBidder;
+        uint256 prevBid = l.highestBid;
 
         l.highestBid = msg.value;
         l.highestBidder = msg.sender;
+
+        if (prevBidder != address(0)) {
+            (bool ok, ) = payable(prevBidder).call{value: prevBid}("");
+            if (!ok) {
+                pendingWithdrawals[prevBidder] += prevBid;
+                emit RefundPending(prevBidder, prevBid);
+            }
+        }
 
         emit BidPlaced(listingId, msg.sender, msg.value);
     }
@@ -227,16 +251,25 @@ contract MarketSkill is
 
         uint256 fee = l.highestBid * FEE_BPS / 10000;
         uint256 sellerAmount = l.highestBid - fee;
+        address winner = l.highestBidder;
+        address seller = l.seller;
+        uint256 nfaId = l.nfaId;
 
-        nfa.transferFrom(address(this), l.highestBidder, l.nfaId);
+        nfa.transferFrom(address(this), winner, nfaId);
 
-        (bool ok1, ) = payable(l.seller).call{value: sellerAmount}("");
-        require(ok1, "Seller payment failed");
+        (bool ok1, ) = payable(seller).call{value: sellerAmount}("");
+        if (!ok1) {
+            pendingWithdrawals[seller] += sellerAmount;
+            emit RefundPending(seller, sellerAmount);
+        }
 
         (bool ok2, ) = payable(treasury).call{value: fee}("");
-        require(ok2, "Fee payment failed");
+        if (!ok2) {
+            pendingWithdrawals[treasury] += fee;
+            emit RefundPending(treasury, fee);
+        }
 
-        emit AuctionSettled(listingId, l.highestBidder, l.highestBid, fee);
+        emit AuctionSettled(listingId, winner, l.highestBid, fee);
     }
 
     function acceptSwap(uint256 listingId) external nonReentrant {
@@ -283,9 +316,34 @@ contract MarketSkill is
     // VIEW
     // ============================================
 
+    // ============================================
+    // PULL-OVER-PUSH REFUND
+    // ============================================
+
+    /**
+     * @dev Claim any pending BNB refunds (from failed transfers).
+     */
+    function claimRefund() external nonReentrant {
+        uint256 amount = pendingWithdrawals[msg.sender];
+        require(amount > 0, "No pending refund");
+        pendingWithdrawals[msg.sender] = 0;
+        (bool ok, ) = payable(msg.sender).call{value: amount}("");
+        require(ok, "Refund transfer failed");
+        emit RefundClaimed(msg.sender, amount);
+    }
+
+    // ============================================
+    // VIEW
+    // ============================================
+
     function getListing(uint256 listingId) external view returns (Listing memory) {
         return listings[listingId];
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    /**
+     * @dev Reserved storage gap for future upgrades.
+     */
+    uint256[40] private __gap;
 }

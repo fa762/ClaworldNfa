@@ -45,7 +45,8 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
   const quickAmounts = tab === 'clw' ? QUICK_CLW : QUICK_BNB;
 
   function handleSubmit() {
-    if (!amount || Number(amount) <= 0) return;
+    const num = Number(amount);
+    if (!amount || isNaN(num) || num <= 0) return;
     switch (tab) {
       case 'bnb': fundBNB.fundAgent(tokenId, amount); break;
       case 'clw':

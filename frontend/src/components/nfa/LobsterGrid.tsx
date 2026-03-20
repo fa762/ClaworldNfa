@@ -20,6 +20,8 @@ const defaultFilters: Filters = {
   sortBy: 'id', sortDir: 'asc', myOnly: false,
 };
 
+const PAGE_SIZE = 50;
+
 export function LobsterGrid() {
   const { address, isConnected } = useAccount();
   const { data: totalSupply } = useTotalSupply();
@@ -31,6 +33,7 @@ export function LobsterGrid() {
   const [loading, setLoading] = useState(true);
   const [useMock, setUseMock] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [page, setPage] = useState(1);
 
   const myTokenSet = useMemo(() => {
     if (!myTokens) return new Set<number>();
@@ -111,6 +114,16 @@ export function LobsterGrid() {
     return result;
   }, [lobsters, filters, myTokenSet, useMock]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
+
+  // Reset to page 1 when filters change
+  const filtersKey = JSON.stringify(filters);
+  useMemo(() => setPage(1), [filtersKey]);
+
   return (
     <div>
       {useMock && (
@@ -125,8 +138,15 @@ export function LobsterGrid() {
         onViewChange={setViewMode}
       />
 
-      <div className="text-xs term-dim mb-3">
-        &gt; 共 <span className="term-bright">{filtered.length}</span> 条记录
+      <div className="text-xs term-dim mb-3 flex items-center gap-4">
+        <span>&gt; 共 <span className="term-bright">{filtered.length}</span> 条记录</span>
+        {totalPages > 1 && (
+          <span className="flex items-center gap-1">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="term-link disabled:term-darkest">[&lt;]</button>
+            <span className="term-bright">{page}</span>/<span>{totalPages}</span>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="term-link disabled:term-darkest">[&gt;]</button>
+          </span>
+        )}
       </div>
 
       {loading ? (
@@ -134,7 +154,7 @@ export function LobsterGrid() {
           LOADING DATABASE...
           <span className="animate-blink ml-1">█</span>
         </div>
-      ) : filtered.length > 0 ? (
+      ) : paged.length > 0 ? (
         viewMode === 'list' ? (
           /* TABLE VIEW */
           <TerminalBox title="NFA 数据库">
@@ -152,7 +172,7 @@ export function LobsterGrid() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((l) => (
+                  {paged.map((l) => (
                     <tr key={l.tokenId} className="group">
                       <td>
                         <Link href={`/nfa/${l.tokenId}`} className="term-link">
@@ -189,7 +209,7 @@ export function LobsterGrid() {
         ) : (
           /* GRID VIEW */
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {filtered.map((l) => (
+            {paged.map((l) => (
               <LobsterCard key={l.tokenId} data={l} />
             ))}
           </div>
