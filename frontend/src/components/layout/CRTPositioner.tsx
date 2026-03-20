@@ -13,31 +13,35 @@ import { useEffect } from 'react';
 
 const IMG_W = 2773;
 const IMG_H = 1512;
+const IMG_ASPECT = IMG_W / IMG_H;
 
-// Screen cutout percentages within the source image (hand-measured)
-const SCREEN_LEFT   = 0.168;
-const SCREEN_TOP    = 0.068;
-const SCREEN_WIDTH  = 0.458;
-const SCREEN_HEIGHT = 0.835;
+// Screen cutout percentages within the source image (measured from terminal-bg.png)
+const SCREEN_LEFT   = 0.177;
+const SCREEN_TOP    = 0.087;
+const SCREEN_WIDTH  = 0.438;
+const SCREEN_HEIGHT = 0.820;
 
 function update() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const imgAspect = IMG_W / IMG_H;
-  const vpAspect  = vw / vh;
+
+  // Skip on mobile (image hidden, CSS handles fullscreen)
+  if (vw <= 768) return;
+
+  const vpAspect = vw / vh;
 
   let rw: number, rh: number, ox: number, oy: number;
 
-  if (vpAspect > imgAspect) {
-    // Viewport wider than image — scale by width, crop top/bottom
+  if (vpAspect > IMG_ASPECT) {
+    // Viewport wider than image → scale by width, crop top/bottom
     rw = vw;
-    rh = vw / imgAspect;
+    rh = vw / IMG_ASPECT;
     ox = 0;
     oy = (vh - rh) / 2;
   } else {
-    // Viewport taller than image — scale by height, crop left/right
+    // Viewport taller than image → scale by height, crop left/right
     rh = vh;
-    rw = vh * imgAspect;
+    rw = vh * IMG_ASPECT;
     ox = (vw - rw) / 2;
     oy = 0;
   }

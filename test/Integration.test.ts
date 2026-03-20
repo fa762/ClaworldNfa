@@ -361,9 +361,11 @@ describe("Integration Tests", function () {
     });
 
     it("should go dormant after 72h with zero CLW", async function () {
-      // Drain CLW via a skill (deployer is authorized as vault skill)
+      // Temporarily authorize deployer as skill to drain CLW for testing
+      await router.authorizeSkill(deployer.address, true);
       const balance = await router.clwBalances(nfaId);
       await router.connect(deployer).spendCLW(nfaId, balance);
+      await router.authorizeSkill(deployer.address, false);
 
       // Advance time past dormancy threshold (72h)
       await ethers.provider.send("evm_increaseTime", [72 * 3600 + 1]);
@@ -377,9 +379,11 @@ describe("Integration Tests", function () {
     });
 
     it("should revive after depositing CLW when dormant", async function () {
-      // Drain and trigger dormancy
+      // Temporarily authorize deployer as skill to drain CLW for testing
+      await router.authorizeSkill(deployer.address, true);
       const balance = await router.clwBalances(nfaId);
       await router.connect(deployer).spendCLW(nfaId, balance);
+      await router.authorizeSkill(deployer.address, false);
       await ethers.provider.send("evm_increaseTime", [72 * 3600 + 1]);
       await ethers.provider.send("evm_mine", []);
       await router.processUpkeep(nfaId);

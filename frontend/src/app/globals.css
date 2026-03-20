@@ -122,12 +122,34 @@
  * image aspect ratio (2773:1512 ≈ 1.834:1) and centering it.
  */
 
-/* CRT viewport — positioned by CRTPositioner.tsx via JS for accuracy.
-   JS computes the exact rendered image rect (object-fit: cover math)
-   and places this div over the screen cutout. */
+/* CRT viewport — positioned by CRTPositioner.tsx via JS for pixel-perfect
+   accuracy. CSS below provides a fallback for pre-hydration (prevents jump).
+
+   Screen cutout in terminal-bg.png (2773×1512):
+   left: 17.7%   top: 8.7%   width: 43.8%   height: 82% */
 .crt-viewport {
   position: absolute;
   z-index: 1; /* Behind the image frame (z-index: 2) so bezels cover edges */
+}
+
+/* CSS fallback: wide viewport (image scales by width, crops top/bottom) */
+@media (min-aspect-ratio: 2773/1512) {
+  .crt-viewport {
+    left: calc(100vw * 0.177);
+    top: calc((100vh - 100vw / (2773 / 1512)) / 2 + 100vw / (2773 / 1512) * 0.087);
+    width: calc(100vw * 0.438);
+    height: calc(100vw / (2773 / 1512) * 0.820);
+  }
+}
+
+/* CSS fallback: tall viewport (image scales by height, crops left/right) */
+@media (max-aspect-ratio: 2773/1512) {
+  .crt-viewport {
+    left: calc((100vw - 100vh * (2773 / 1512)) / 2 + 100vh * (2773 / 1512) * 0.177);
+    top: calc(100vh * 0.087);
+    width: calc(100vh * (2773 / 1512) * 0.438);
+    height: calc(100vh * 0.820);
+  }
 }
 
 /* ═══════════════════════════════════════════
