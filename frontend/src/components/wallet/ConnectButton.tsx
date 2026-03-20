@@ -36,16 +36,16 @@ export function ConnectButton() {
   }
 
   return (
-    <div className="flex gap-1">
-      {connectors.map((connector) => (
-        <button
-          key={connector.uid}
-          onClick={() => connect({ connector })}
-          className="term-btn term-btn-primary text-xs"
-        >
-          [{connector.name === 'Injected' ? '连接钱包' : connector.name}]
-        </button>
-      ))}
-    </div>
+    <button
+      onClick={() => {
+        // Prefer WalletConnect, fall back to first available connector
+        const wc = connectors.find((c) => c.name === 'WalletConnect');
+        const connector = wc || connectors[0];
+        if (connector) connect({ connector });
+      }}
+      className="term-btn term-btn-primary text-xs"
+    >
+      [连接钱包]
+    </button>
   );
 }
