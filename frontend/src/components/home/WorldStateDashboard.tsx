@@ -11,8 +11,10 @@ import { parseActiveEvents, getEventInfo } from '@/lib/events';
 import { formatBasisPoints, formatCLW } from '@/lib/format';
 import { isDemoMode } from '@/lib/env';
 import { mockWorldState } from '@/lib/mockData';
+import { useI18n } from '@/lib/i18n';
 
 export function WorldStateDashboard() {
+  const { t } = useI18n();
   const { data: rewardMul, isLoading: l1 } = useRewardMultiplier();
   const { data: pkLimit, isLoading: l2 } = usePkStakeLimit();
   const { data: mutBonus, isLoading: l3 } = useMutationBonus();
@@ -27,16 +29,16 @@ export function WorldStateDashboard() {
     : (events ? parseActiveEvents(BigInt(events.toString())) : []);
 
   const rows = [
-    { label: 'REWARD MULTIPLIER', value: useMock ? mockWorldState.rewardMultiplier : (rewardMul ? formatBasisPoints(rewardMul) : '--') },
-    { label: 'PK STAKE CAP', value: useMock ? mockWorldState.pkStakeLimit : (pkLimit ? formatCLW(pkLimit) + ' CLW' : '--') },
-    { label: 'MUTATION BONUS', value: useMock ? mockWorldState.mutationBonus : (mutBonus ? formatBasisPoints(mutBonus) : '--') },
-    { label: 'DAILY COST', value: useMock ? mockWorldState.dailyCostMultiplier : (costMul ? formatBasisPoints(costMul) : '--') },
+    { label: t('world.rewardMul'), value: useMock ? mockWorldState.rewardMultiplier : (rewardMul ? formatBasisPoints(rewardMul) : '--') },
+    { label: t('world.pkCap'), value: useMock ? mockWorldState.pkStakeLimit : (pkLimit ? formatCLW(pkLimit) + ' CLW' : '--') },
+    { label: t('world.mutBonus'), value: useMock ? mockWorldState.mutationBonus : (mutBonus ? formatBasisPoints(mutBonus) : '--') },
+    { label: t('world.dailyCost'), value: useMock ? mockWorldState.dailyCostMultiplier : (costMul ? formatBasisPoints(costMul) : '--') },
   ];
 
   return (
-    <div className="term-box" data-title="WORLD STATUS">
+    <div className="term-box" data-title={t('world.title')}>
       {loading ? (
-        <div className="term-dim animate-glow-pulse text-xs">LOADING...</div>
+        <div className="term-dim animate-glow-pulse text-xs">{t('loading')}</div>
       ) : (
         <div className="space-y-2 text-[11px] font-bold">
           {rows.map((r) => (
@@ -48,7 +50,7 @@ export function WorldStateDashboard() {
 
           {activeEventKeys.length > 0 && (
             <div className="flex justify-between pt-1">
-              <span className="opacity-60">EVENTS</span>
+              <span className="opacity-60">{t('world.events')}</span>
               <span>
                 {activeEventKeys.map((key) => {
                   const info = getEventInfo(key);
@@ -63,7 +65,7 @@ export function WorldStateDashboard() {
           )}
 
           <div className="mt-3 text-[9px] opacity-40 animate-pulse">
-            &gt; RUNNING WORLD_STATE_SYNC.EXE...
+            {t('world.sync')}
           </div>
         </div>
       )}

@@ -4,9 +4,11 @@ import { useAccount } from 'wagmi';
 import { truncateAddress } from '@/lib/format';
 import { appEnv } from '@/lib/env';
 import { SocialLinks } from './SocialLinks';
+import { useI18n } from '@/lib/i18n';
 
 export function PipBoyStatusBar() {
   const { address, isConnected } = useAccount();
+  const { t } = useI18n();
   const chainLabel = appEnv === 'mainnet' ? 'BSC-56' : appEnv === 'testnet' ? 'BSC-97' : 'LOCAL';
 
   return (
@@ -17,7 +19,7 @@ export function PipBoyStatusBar() {
         <span className="hidden sm:inline">
           {isConnected && address
             ? <span className="text-crt-green">{truncateAddress(address)}</span>
-            : <span className="opacity-40">NOT CONNECTED</span>
+            : <span className="opacity-40">{t('status.notConnected')}</span>
           }
         </span>
       </div>

@@ -4,17 +4,19 @@ import { useState, useEffect } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { truncateAddress } from '@/lib/format';
 import { getBscScanAddressUrl } from '@/contracts/addresses';
+import { useI18n } from '@/lib/i18n';
 
 export function ConnectButton() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
+  const { t } = useI18n();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
   if (!mounted) {
-    return <span className="term-dim text-xs">[连接钱包]</span>;
+    return <span className="term-dim text-xs">[{t('wallet.connect')}]</span>;
   }
 
   if (isConnected && address) {
@@ -29,7 +31,7 @@ export function ConnectButton() {
           <span className="term-dim">●</span> {truncateAddress(address)}
         </a>
         <button onClick={() => disconnect()} className="term-dim hover:term-danger transition-colors">
-          [断开]
+          [{t('wallet.disconnect')}]
         </button>
       </div>
     );
@@ -38,14 +40,13 @@ export function ConnectButton() {
   return (
     <button
       onClick={() => {
-        // Prefer WalletConnect, fall back to first available connector
         const wc = connectors.find((c) => c.name === 'WalletConnect');
         const connector = wc || connectors[0];
         if (connector) connect({ connector });
       }}
       className="term-btn term-btn-primary text-xs"
     >
-      [连接钱包]
+      [{t('wallet.connect')}]
     </button>
   );
 }
