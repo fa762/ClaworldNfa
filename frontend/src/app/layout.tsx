@@ -4,6 +4,7 @@ import { PipBoyNav } from "@/components/layout/PipBoyNav";
 import { PipBoyStatusBar } from "@/components/layout/PipBoyStatusBar";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { KeyboardNav } from "@/components/layout/KeyboardNav";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://clawnfaterminal.xyz'),
@@ -37,48 +38,39 @@ export default function RootLayout({
       </head>
       <body>
         <WalletProvider>
-          <div className="pipboy-frame">
-            {/* Frame branding */}
-            <div className="pipboy-frame-brand">CLAW WORLD TERMINAL v2.0</div>
+          {/* Terminal background image */}
+          <div className="terminal-backdrop">
+            <img
+              src="/terminal-bg.png"
+              alt=""
+              className="terminal-bg-img"
+              draggable={false}
+            />
 
-            {/* Side labels */}
-            <div className="hw-side-labels hidden lg:flex">
-              <span>STAT</span>
-              <span style={{ color: '#26ff26' }}>INV</span>
-              <span>DATA</span>
-              <span>MAP</span>
-            </div>
+            {/* CRT screen area — positioned over the screen in the image */}
+            <div className="crt-viewport">
+              {/* CRT convex distortion wrapper */}
+              <div className="crt-barrel">
+                {/* CRT Effects layers */}
+                <div className="crt-glow-overlay" />
+                <div className="crt-scanlines" />
+                <div className="crt-glass" />
 
-            {/* Side knobs */}
-            <div className="hw-knob-side hidden lg:block" style={{ top: '140px' }} />
-            <div className="hw-knob-side hidden lg:block" style={{ bottom: '100px' }} />
-
-            {/* CRT Screen housing */}
-            <div className="crt-container">
-              {/* CRT Effects layers */}
-              <div className="crt-glow-overlay" />
-              <div className="crt-scanlines" />
-              <div className="crt-glass" />
-
-              {/* Screen surface */}
-              <div className="crt-screen">
-                <div className="crt-content">
-                  <PipBoyNav />
-                  <main className="flex-1 overflow-y-auto min-h-0">
-                    <ErrorBoundary>{children}</ErrorBoundary>
-                  </main>
-                  <PipBoyStatusBar />
+                {/* Screen surface */}
+                <div className="crt-screen">
+                  <div className="crt-content">
+                    <PipBoyNav />
+                    <main className="flex-1 overflow-y-auto min-h-0">
+                      <ErrorBoundary>{children}</ErrorBoundary>
+                    </main>
+                    <PipBoyStatusBar />
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* Bottom hardware screws */}
-            <div className="pipboy-hw-bottom hidden lg:flex justify-between items-center px-10 pt-3" style={{ flexShrink: 0 }}>
-              <div className="hw-screw hw-screw-rust" />
-              <div className="hw-screw" />
-              <div className="hw-screw hw-screw-rust" />
-            </div>
           </div>
+
+          <KeyboardNav />
         </WalletProvider>
       </body>
     </html>

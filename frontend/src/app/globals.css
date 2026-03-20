@@ -45,8 +45,7 @@
 
 @layer base {
   body {
-    background: var(--color-crt-bg);
-    background-image: radial-gradient(circle at center, #1a1a15 0%, #000 100%);
+    background: #0a0a05;
     color: var(--color-crt-green);
     font-family: var(--font-mono);
     font-size: 14px;
@@ -55,9 +54,6 @@
     overflow: hidden;
     height: 100vh;
     margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   ::selection {
@@ -80,87 +76,155 @@
 ::-webkit-scrollbar-thumb:hover { background: var(--color-crt-dim); }
 
 /* ═══════════════════════════════════════════
-   PIP-BOY HARDWARE FRAME
+   TERMINAL IMAGE BACKDROP
+   The terminal hardware is a real image.
+   We position the CRT content over the
+   transparent screen area in the image.
    ═══════════════════════════════════════════ */
 
-.pipboy-frame {
+.terminal-backdrop {
   position: relative;
-  width: 1200px;
-  max-width: 98vw;
-  height: calc(100vh - 40px);
-  max-height: 860px;
-  background: var(--color-hw-olive);
-  border-radius: 60px 60px 50px 50px;
-  padding: 40px 55px 50px 55px;
-  box-shadow:
-    inset 0 0 120px rgba(0, 0, 0, 0.9),
-    0 30px 60px rgba(0, 0, 0, 0.8),
-    inset 0 10px 20px rgba(255, 255, 255, 0.08);
-  border: 4px solid var(--color-hw-screw);
+  width: 100vw;
+  height: 100vh;
   display: flex;
-  flex-direction: column;
-  overflow: visible;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #0a0a05;
 }
 
-/* Weathering / rust effect */
-.pipboy-frame::before {
-  content: "";
+/* The terminal hardware image — fills the viewport, maintaining aspect ratio */
+.terminal-bg-img {
   position: absolute;
   inset: 0;
-  background-image:
-    radial-gradient(circle at 10% 10%, rgba(61, 43, 31, 0.4) 0%, transparent 20%),
-    radial-gradient(circle at 90% 85%, rgba(61, 43, 31, 0.5) 0%, transparent 25%);
-  border-radius: 60px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  z-index: 2;
   pointer-events: none;
-  opacity: 0.8;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-/* Frame branding */
-.pipboy-frame-brand {
+/*
+ * CRT viewport — positioned exactly over the screen cutout.
+ *
+ * Image is 2773 x 1512. Screen cutout approximate bounds:
+ *   left: ~16.5%   right: ~62.5%   →  width ~46%
+ *   top:  ~7%      bottom: ~90%    →  height ~83%
+ *
+ * Because the image uses object-fit: contain, the actual rendered
+ * size depends on viewport aspect ratio. We use the same contain
+ * logic with percentage-based positioning relative to the image.
+ *
+ * We achieve this by wrapping in a container that matches the
+ * image aspect ratio (2773:1512 ≈ 1.834:1) and centering it.
+ */
+
+.crt-viewport {
   position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: var(--color-hw-bezel);
-  font-weight: 700;
-  letter-spacing: 0.4em;
-  font-size: 11px;
-  text-transform: uppercase;
-  pointer-events: none;
-  text-shadow: none;
-  white-space: nowrap;
+  z-index: 1; /* Behind the image frame (z-index: 2) so bezels cover edges */
+
+  /* Match the image's contain behavior:
+     We calculate the rendered image rect and position the viewport
+     over the screen cutout using percentages of the image */
+  --img-aspect: calc(2773 / 1512);
+
+  /* Rendered image dimensions based on viewport */
+  --vh-based-w: calc(100vh * var(--img-aspect));
+  --vw-based-h: calc(100vw / var(--img-aspect));
+
+  /* Screen cutout percentages within the image */
+  --screen-left: 16.2%;
+  --screen-top: 6.5%;
+  --screen-width: 46.8%;
+  --screen-height: 84%;
+}
+
+/* Use a helper to compute: when letterboxed vs pillarboxed */
+@media (min-aspect-ratio: 2773/1512) {
+  /* Viewport is wider than image → image is height-limited (pillarboxed) */
+  .crt-viewport {
+    --rendered-h: 100vh;
+    --rendered-w: calc(100vh * 2773 / 1512);
+    --offset-x: calc((100vw - var(--rendered-w)) / 2);
+    --offset-y: 0px;
+
+    left: calc(var(--offset-x) + var(--rendered-w) * 0.162);
+    top: calc(var(--rendered-h) * 0.065);
+    width: calc(var(--rendered-w) * 0.468);
+    height: calc(var(--rendered-h) * 0.84);
+  }
+}
+
+@media (max-aspect-ratio: 2773/1512) {
+  /* Viewport is taller than image → image is width-limited (letterboxed) */
+  .crt-viewport {
+    --rendered-w: 100vw;
+    --rendered-h: calc(100vw * 1512 / 2773);
+    --offset-x: 0px;
+    --offset-y: calc((100vh - var(--rendered-h)) / 2);
+
+    left: calc(var(--rendered-w) * 0.162);
+    top: calc(var(--offset-y) + var(--rendered-h) * 0.065);
+    width: calc(var(--rendered-w) * 0.468);
+    height: calc(var(--rendered-h) * 0.84);
+  }
 }
 
 /* ═══════════════════════════════════════════
-   CRT SCREEN HOUSING
+   CRT BARREL (CONVEX) DISTORTION
+   Creates the illusion of a curved CRT glass.
    ═══════════════════════════════════════════ */
 
-.crt-container {
+.crt-barrel {
   position: relative;
-  flex: 1;
-  background: #000;
-  border-radius: 60px;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  border: 20px solid var(--color-hw-bezel);
+  border-radius: 12px;
+
+  /* Convex screen effect: slight barrel distortion via perspective */
+  transform: perspective(900px) rotateX(0.5deg);
+  transform-style: preserve-3d;
+
+  /* Vignette: darker edges = convex glass illusion */
   box-shadow:
-    inset 0 0 80px rgba(0, 0, 0, 1),
-    0 0 0 3px var(--color-hw-dark);
-  transform: perspective(1200px) rotateX(1.5deg);
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+    inset 0 0 80px 30px rgba(0, 0, 0, 0.85),
+    inset 0 0 20px 5px rgba(0, 0, 0, 0.5);
 }
+
+/* Convex highlight — brighter center, darker edges */
+.crt-barrel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 70% 60% at 48% 45%,
+    transparent 0%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.3) 75%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  z-index: 25;
+  pointer-events: none;
+  border-radius: 12px;
+}
+
+/* ═══════════════════════════════════════════
+   CRT SCREEN & EFFECTS
+   ═══════════════════════════════════════════ */
 
 /* CRT screen inner surface */
 .crt-screen {
   position: relative;
-  flex: 1;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background: var(--color-crt-black);
-  box-shadow: inset 0 0 100px rgba(0, 0, 0, 1);
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
 /* Phosphor center glow */
@@ -182,7 +246,7 @@
     linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 30%, rgba(255, 255, 255, 0.008) 50%, transparent 100%);
   z-index: 20;
   pointer-events: none;
-  border-radius: 40px;
+  border-radius: 12px;
 }
 
 /* Scanlines */
@@ -235,57 +299,6 @@
   overflow-y: auto;
   min-height: 0;
   padding: 24px 32px;
-}
-
-/* ═══════════════════════════════════════════
-   HARDWARE ELEMENTS
-   ═══════════════════════════════════════════ */
-
-/* Side knobs */
-.hw-knob-side {
-  position: absolute;
-  right: -22px;
-  width: 70px;
-  height: 100px;
-  background: #222;
-  border-radius: 8px;
-  box-shadow: 10px 0 20px rgba(0, 0, 0, 0.5);
-  border: 2px solid #111;
-}
-
-/* Side labels */
-.hw-side-labels {
-  position: absolute;
-  right: 35px;
-  top: 100px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  font-size: 12px;
-  color: #d1c18d;
-  font-weight: 800;
-  text-align: right;
-  opacity: 0.7;
-  text-shadow: none;
-  z-index: 1;
-}
-
-/* Bottom screws */
-.hw-screw {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #666, #2a2a2a);
-  border: 1.5px solid #555;
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.6),
-    0 1px 2px rgba(255, 255, 255, 0.05);
-}
-
-.hw-screw-rust {
-  background: rgba(61, 43, 31, 0.4);
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.4);
 }
 
 /* ═══════════════════════════════════════════
@@ -390,6 +403,19 @@
 .term-link:hover {
   color: var(--color-crt-bright);
   text-shadow: 0 0 12px rgba(127,255,127,0.8);
+}
+
+/* Keyboard-focused navigable items */
+.kbd-focusable {
+  outline: none;
+  transition: background 50ms, color 50ms;
+}
+.kbd-focusable.kbd-focused {
+  background: rgba(38, 255, 38, 0.15);
+  color: var(--color-crt-bright);
+  text-shadow: 0 0 10px var(--color-crt-glow);
+  outline: 1px solid rgba(38, 255, 38, 0.4);
+  outline-offset: 1px;
 }
 
 /* Soft-key buttons (Stitch style) */
@@ -828,40 +854,41 @@
    ═══════════════════════════════════════════ */
 
 @media (max-width: 768px) {
-  body {
-    align-items: stretch;
-    justify-content: stretch;
+  /* On mobile, hide the terminal image and go fullscreen CRT */
+  .terminal-bg-img {
+    display: none;
   }
-  .pipboy-frame {
-    width: 100%;
-    max-width: 100%;
-    height: 100vh;
-    max-height: none;
-    border-radius: 0;
-    border: none;
-    padding: 0;
+
+  .terminal-backdrop {
     background: #000;
-    box-shadow: none;
   }
-  .pipboy-frame::before { display: none; }
-  .pipboy-frame-brand { display: none; }
-  .hw-knob-side,
-  .hw-side-labels,
-  .hw-screw,
-  .hw-screw-rust,
-  .pipboy-hw-bottom { display: none; }
-  .crt-container {
-    border-radius: 0;
-    border: none;
+
+  .crt-viewport {
+    position: relative !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+  }
+
+  .crt-barrel {
     transform: none;
+    border-radius: 0;
     box-shadow: none;
   }
+
+  .crt-barrel::before {
+    display: none;
+  }
+
   .crt-content {
     filter: none;
   }
+
   .crt-content > main {
     padding: 12px 16px;
   }
+
   .pipboy-nav { padding: 6px 12px; }
   .pipboy-tab { padding: 3px 10px; font-size: 11px; }
   .pipboy-statusbar { padding: 4px 12px; }
