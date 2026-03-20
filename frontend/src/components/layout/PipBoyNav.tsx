@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
@@ -17,9 +18,13 @@ const tabs = [
 export function PipBoyNav() {
   const pathname = usePathname();
   const { lang, setLang, t } = useI18n();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close menu on route change
+  useEffect(() => setMobileOpen(false), [pathname]);
 
   return (
-    <div>
+    <div className="pipboy-nav-wrapper">
       {/* Env banner */}
       {!isMainnet && (
         <div className={`text-center text-[10px] py-0.5 font-bold ${isDemoMode ? 'text-rarity-epic' : 'term-warn'}`}>
@@ -27,7 +32,8 @@ export function PipBoyNav() {
         </div>
       )}
 
-      <div className="pipboy-nav">
+      {/* ── Desktop nav (>=768px) ── */}
+      <div className="pipboy-nav pipboy-nav-desktop">
         <div className="text-sm font-extrabold tracking-tight uppercase opacity-80">
           {t('nav.title')}
         </div>
@@ -55,6 +61,51 @@ export function PipBoyNav() {
             {lang === 'zh' ? 'EN' : '中'}
           </button>
         </div>
+      </div>
+
+      {/* ── Mobile nav (<768px) ── */}
+      <div className="pipboy-nav-mobile">
+        {/* Top bar: title + lang + hamburger */}
+        <div className="pipboy-nav pipboy-nav-mobile-bar">
+          <div className="text-sm font-extrabold tracking-tight uppercase opacity-80">
+            {t('nav.title')}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+              className="term-btn text-[10px] px-2 py-0.5"
+            >
+              {lang === 'zh' ? 'EN' : '中'}
+            </button>
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="term-btn text-xs px-2 py-0.5"
+            >
+              [{mobileOpen ? '✕' : '☰'}]
+            </button>
+          </div>
+        </div>
+
+        {/* Dropdown panel */}
+        {mobileOpen && (
+          <div className="pipboy-mobile-dropdown">
+            {tabs.map((tab) => {
+              const isActive = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href);
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={`pipboy-mobile-link ${isActive ? 'pipboy-mobile-link-active' : ''}`}
+                >
+                  {isActive ? '> ' : '  '}{t(tab.labelKey)}
+                </Link>
+              );
+            })}
+            <div className="pipboy-mobile-wallet">
+              <ConnectButton />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
