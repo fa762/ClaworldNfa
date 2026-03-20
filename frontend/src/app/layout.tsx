@@ -6,6 +6,7 @@ import { WalletProvider } from "@/components/wallet/WalletProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { KeyboardNav } from "@/components/layout/KeyboardNav";
 import { CRTPositioner } from "@/components/layout/CRTPositioner";
+import { I18nProvider } from "@/lib/i18n";
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -46,6 +47,7 @@ export default function RootLayout({
       </head>
       <body>
         <WalletProvider>
+        <I18nProvider>
           {/* Terminal background image */}
           <div className="terminal-backdrop">
             <img
@@ -80,6 +82,7 @@ export default function RootLayout({
 
           <KeyboardNav />
           <CRTPositioner />
+        </I18nProvider>
         </WalletProvider>
       </body>
     </html>

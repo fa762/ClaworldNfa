@@ -7,8 +7,10 @@ import { formatBNB, truncateAddress, nativeSymbol } from '@/lib/format';
 import { useState } from 'react';
 import { isDemoMode } from '@/lib/env';
 import { mockTokenInfo } from '@/lib/mockData';
+import { useI18n } from '@/lib/i18n';
 
 export function CLWTokenInfo() {
+  const { t } = useI18n();
   const { data: price, isLoading: priceLoading } = useCLWPrice();
   const { data: graduated } = useGraduated();
   const [copied, setCopied] = useState(false);
@@ -27,13 +29,13 @@ export function CLWTokenInfo() {
     : '#';
 
   return (
-    <div className="term-box" data-title="CLW_TOKEN">
+    <div className="term-box" data-title={t('token.title')}>
       <div className="flex flex-col justify-between h-full">
         <div>
-          {/* Price display — large, Stitch style */}
+          {/* Price display */}
           <div className="text-3xl sm:text-4xl font-extrabold tracking-tighter mb-1 glow-strong">
             {!useMock && priceLoading ? (
-              <span className="term-dim animate-glow-pulse text-lg">LOADING...</span>
+              <span className="term-dim animate-glow-pulse text-lg">{t('loading')}</span>
             ) : (
               useMock ? mockTokenInfo.price : (price ? `${formatBNB(price)} ${nativeSymbol}` : '—')
             )}
@@ -44,9 +46,9 @@ export function CLWTokenInfo() {
 
           {/* Status */}
           <div className="mt-3 text-[11px] font-bold flex justify-between">
-            <span className="opacity-60">STATUS</span>
+            <span className="opacity-60">{t('token.status')}</span>
             <span className={isGraduated ? 'text-crt-green' : 'term-warn'}>
-              {isGraduated ? 'GRADUATED · PANCAKESWAP' : 'BONDING CURVE · FLAP'}
+              {isGraduated ? t('token.graduated') : t('token.bonding')}
             </span>
           </div>
         </div>
@@ -59,11 +61,11 @@ export function CLWTokenInfo() {
             rel="noopener noreferrer"
             className="soft-key flex-1 text-center text-[10px]"
           >
-            OPEN TRADE
+            {t('token.trade')}
           </a>
           {!useMock && (
             <button onClick={copyAddress} className="soft-key text-[10px] px-3">
-              {copied ? 'COPIED' : 'COPY'}
+              {copied ? t('token.copied') : t('token.copy')}
             </button>
           )}
         </div>
