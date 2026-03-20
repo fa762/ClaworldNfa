@@ -122,57 +122,12 @@
  * image aspect ratio (2773:1512 ≈ 1.834:1) and centering it.
  */
 
+/* CRT viewport — positioned by CRTPositioner.tsx via JS for accuracy.
+   JS computes the exact rendered image rect (object-fit: cover math)
+   and places this div over the screen cutout. */
 .crt-viewport {
   position: absolute;
   z-index: 1; /* Behind the image frame (z-index: 2) so bezels cover edges */
-
-  /* Match the image's contain behavior:
-     We calculate the rendered image rect and position the viewport
-     over the screen cutout using percentages of the image */
-  --img-aspect: calc(2773 / 1512);
-
-  /* Rendered image dimensions based on viewport */
-  --vh-based-w: calc(100vh * var(--img-aspect));
-  --vw-based-h: calc(100vw / var(--img-aspect));
-
-  /* Screen cutout percentages within the image */
-  --screen-left: 16.2%;
-  --screen-top: 6.5%;
-  --screen-width: 46.8%;
-  --screen-height: 84%;
-}
-
-/* With object-fit: cover, the image always fills the viewport.
-   When wider → image scales by width (height overflows, cropped top/bottom).
-   When taller → image scales by height (width overflows, cropped left/right). */
-@media (min-aspect-ratio: 2773/1512) {
-  /* Viewport is wider → image scales to fill width, overflows vertically */
-  .crt-viewport {
-    --rendered-w: 100vw;
-    --rendered-h: calc(100vw * 1512 / 2773);
-    --offset-x: 0px;
-    --offset-y: calc((100vh - var(--rendered-h)) / 2);
-
-    left: calc(var(--rendered-w) * 0.162);
-    top: calc(var(--offset-y) + var(--rendered-h) * 0.065);
-    width: calc(var(--rendered-w) * 0.468);
-    height: calc(var(--rendered-h) * 0.84);
-  }
-}
-
-@media (max-aspect-ratio: 2773/1512) {
-  /* Viewport is taller → image scales to fill height, overflows horizontally */
-  .crt-viewport {
-    --rendered-h: 100vh;
-    --rendered-w: calc(100vh * 2773 / 1512);
-    --offset-x: calc((100vw - var(--rendered-w)) / 2);
-    --offset-y: 0px;
-
-    left: calc(var(--offset-x) + var(--rendered-w) * 0.162);
-    top: calc(var(--rendered-h) * 0.065);
-    width: calc(var(--rendered-w) * 0.468);
-    height: calc(var(--rendered-h) * 0.84);
-  }
 }
 
 /* ═══════════════════════════════════════════

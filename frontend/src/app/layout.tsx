@@ -1,10 +1,18 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PipBoyNav } from "@/components/layout/PipBoyNav";
 import { PipBoyStatusBar } from "@/components/layout/PipBoyStatusBar";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { KeyboardNav } from "@/components/layout/KeyboardNav";
+import { CRTPositioner } from "@/components/layout/CRTPositioner";
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://clawnfaterminal.xyz'),
@@ -71,6 +79,7 @@ export default function RootLayout({
           </div>
 
           <KeyboardNav />
+          <CRTPositioner />
         </WalletProvider>
       </body>
     </html>
