@@ -1,17 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { isDemoMode, isMainnet } from '@/lib/env';
 
 const tabs = [
-  { href: '/', label: '首页', key: 'HOME' },
-  { href: '/mint', label: '铸造', key: 'MINT' },
-  { href: '/nfa', label: 'NFA', key: 'NFA' },
-  { href: '/guide', label: '指南', key: 'GUIDE' },
-  { href: '/lore', label: '世界观', key: 'LORE' },
+  { href: '/', label: 'WORLD', key: 'HOME' },
+  { href: '/mint', label: 'MINT', key: 'MINT' },
+  { href: '/nfa', label: 'VAULT', key: 'NFA' },
+  { href: '/guide', label: 'DATA', key: 'GUIDE' },
+  { href: '/lore', label: 'LORE', key: 'LORE' },
 ];
 
 export function PipBoyNav() {
@@ -21,12 +20,15 @@ export function PipBoyNav() {
     <div>
       {/* Env banner */}
       {!isMainnet && (
-        <div className={`text-center text-[10px] py-0.5 ${isDemoMode ? 'text-rarity-epic' : 'term-warn'}`}>
-          {isDemoMode ? '[ DEMO MODE ]' : '[ TESTNET ]'}
+        <div className={`text-center text-[10px] py-0.5 font-bold ${isDemoMode ? 'text-rarity-epic' : 'term-warn'}`}>
+          {isDemoMode ? '[ DEMO MODE — LOCAL ]' : '[ BSC TESTNET ]'}
         </div>
       )}
 
       <div className="pipboy-nav">
+        <div className="text-sm font-extrabold tracking-tight uppercase opacity-80">
+          CLAW WORLD v2.0
+        </div>
         <div className="pipboy-nav-tabs">
           {tabs.map((tab) => {
             const isActive = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href);

@@ -11,19 +11,20 @@ export function PipBoyStatusBar() {
 
   return (
     <div className="pipboy-statusbar">
-      <div className="flex items-center gap-3 term-dim">
+      <div className="flex items-center gap-3">
         <span>NET:<span className="text-crt-green ml-0.5">{chainLabel}</span></span>
-        <span className="hidden sm:inline term-darkest">│</span>
+        <span className="hidden sm:inline opacity-40">|</span>
         <span className="hidden sm:inline">
           {isConnected && address
             ? <span className="text-crt-green">{truncateAddress(address)}</span>
-            : <span className="term-darkest">未连接</span>
+            : <span className="opacity-40">NOT CONNECTED</span>
           }
         </span>
-        <span className="hidden sm:inline term-darkest">│</span>
-        <span className="hidden sm:inline term-darkest">v2.0</span>
       </div>
-      <SocialLinks />
+      <div className="flex items-center gap-3">
+        <SocialLinks />
+        <span className="w-1.5 h-3 bg-crt-green animate-pulse" />
+      </div>
     </div>
   );
 }
