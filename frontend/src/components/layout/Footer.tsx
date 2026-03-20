@@ -4,9 +4,11 @@ import { SocialLinks } from './SocialLinks';
 import { appEnv } from '@/lib/env';
 import { useAccount } from 'wagmi';
 import { truncateAddress } from '@/lib/format';
+import { useI18n } from '@/lib/i18n';
 
 export function Footer() {
   const { address, isConnected } = useAccount();
+  const { t } = useI18n();
   const chainLabel = appEnv === 'mainnet' ? 'BSC-56' : appEnv === 'testnet' ? 'BSC-97' : 'LOCAL';
 
   return (
@@ -16,9 +18,9 @@ export function Footer() {
           <span>NET:<span className="text-crt-green">{chainLabel}</span></span>
           <span className="hidden sm:inline">│</span>
           <span className="hidden sm:inline">
-            WALLET:{isConnected && address
+            {t('footer.wallet')}:{isConnected && address
               ? <span className="text-crt-green">{truncateAddress(address)}</span>
-              : <span className="term-darkest">未连接</span>
+              : <span className="term-darkest">{t('status.notConnected')}</span>
             }
           </span>
           <span className="hidden sm:inline">│</span>

@@ -1,6 +1,7 @@
 'use client';
 
 import { Component, type ReactNode } from 'react';
+import { useI18n } from '@/lib/i18n';
 
 interface Props {
   children: ReactNode;
@@ -10,6 +11,24 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+}
+
+function ErrorFallback({ error, onRetry }: { error: Error | null; onRetry: () => void }) {
+  const { t } = useI18n();
+  return (
+    <div className="p-6 text-center">
+      <div className="term-danger text-sm mb-2">{t('error.system')}</div>
+      <div className="term-dim text-xs mb-4">
+        {error?.message || t('error.unexpected')}
+      </div>
+      <button
+        onClick={onRetry}
+        className="term-btn term-btn-primary text-xs"
+      >
+        {t('error.retry')}
+      </button>
+    </div>
+  );
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -30,18 +49,10 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
       return (
-        <div className="p-6 text-center">
-          <div className="term-danger text-sm mb-2">[SYSTEM ERROR]</div>
-          <div className="term-dim text-xs mb-4">
-            {this.state.error?.message || 'An unexpected error occurred'}
-          </div>
-          <button
-            onClick={() => this.setState({ hasError: false, error: null })}
-            className="term-btn term-btn-primary text-xs"
-          >
-            [RETRY]
-          </button>
-        </div>
+        <ErrorFallback
+          error={this.state.error}
+          onRetry={() => this.setState({ hasError: false, error: null })}
+        />
       );
     }
     return this.props.children;

@@ -1,5 +1,6 @@
 import { getGuideChapters } from '@/content/guide';
 import { GuideContent } from './GuideContent';
+import { PageTitle } from '@/components/layout/PageTitle';
 
 export const metadata = {
   title: '游戏指南 — CLAW WORLD TERMINAL',
@@ -11,10 +12,7 @@ export default function GuidePage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 pt-3 pb-1 shrink-0">
-        <span className="term-dim text-xs">&gt; </span>
-        <span className="term-bright text-xs">文档: 游戏指南</span>
-      </div>
+      <PageTitle textKey="guide.title" />
       <GuideContent chapters={chapters} />
     </div>
   );
