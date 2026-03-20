@@ -43,7 +43,7 @@ export function ConnectButton() {
         // Prefer injected (MetaMask etc.) if available, fallback to WalletConnect
         const inj = connectors.find((c) => c.type === 'injected');
         const wc = connectors.find((c) => c.name === 'WalletConnect');
-        const connector = (inj && window.ethereum) ? inj : wc || connectors[0];
+        const connector = (inj && (window as any).ethereum) ? inj : wc || connectors[0];
         if (connector) connect({ connector });
       }}
       className="term-btn term-btn-primary text-xs"
