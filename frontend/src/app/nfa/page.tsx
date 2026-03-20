@@ -1,4 +1,5 @@
 import { LobsterGrid } from '@/components/nfa/LobsterGrid';
+import { NFAPageTitle } from '@/components/layout/PageTitle';
 
 export const metadata = {
   title: 'NFA 数据库 — CLAW WORLD TERMINAL',
@@ -8,11 +9,7 @@ export const metadata = {
 export default function NFACollectionPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-      <div className="mb-4">
-        <span className="term-dim text-sm">&gt; </span>
-        <span className="term-bright text-sm">NFA 数据库</span>
-        <span className="term-dim text-xs ml-2">— 已铸造龙虾合集</span>
-      </div>
+      <NFAPageTitle />
       <div className="term-line mb-4" />
       <LobsterGrid />
     </div>

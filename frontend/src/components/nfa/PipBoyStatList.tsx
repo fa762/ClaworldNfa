@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { STAT_DESC } from '@/lib/statDescriptions';
+import { useI18n } from '@/lib/i18n';
 
 interface StatItem {
   key: string;
@@ -26,6 +26,7 @@ function getIndicator(value: number): string {
 export function PipBoyStatList({ stats, sideContent }: PipBoyStatListProps) {
   const [selected, setSelected] = useState(0);
   const current = stats[selected];
+  const { t } = useI18n();
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 p-2">
@@ -48,9 +49,9 @@ export function PipBoyStatList({ stats, sideContent }: PipBoyStatListProps) {
       {/* Right: image + description */}
       <div className="w-full sm:w-48 shrink-0 flex flex-col gap-3">
         {sideContent}
-        {current && STAT_DESC[current.key] && (
+        {current && (
           <p className="text-xs term-dim leading-relaxed">
-            {STAT_DESC[current.key]}
+            {t(`stat.${current.key}`)}
           </p>
         )}
       </div>

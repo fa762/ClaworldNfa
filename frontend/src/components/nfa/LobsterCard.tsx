@@ -1,8 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import { RarityBadge } from './RarityBadge';
 import { ShelterTag } from './ShelterTag';
 import { resolveIpfsUrl } from '@/lib/ipfs';
 import { getMockLobsterName } from '@/lib/mockData';
+import { useI18n } from '@/lib/i18n';
 
 export interface LobsterCardData {
   tokenId: number;
@@ -17,6 +20,7 @@ export interface LobsterCardData {
 export function LobsterCard({ data }: { data: LobsterCardData }) {
   const imageUrl = resolveIpfsUrl(data.vaultURI);
   const name = getMockLobsterName(data.tokenId);
+  const { t } = useI18n();
 
   return (
     <Link href={`/nfa/${data.tokenId}`}>
@@ -32,7 +36,7 @@ export function LobsterCard({ data }: { data: LobsterCardData }) {
             loading="lazy"
           />
           {data.isOwned && (
-            <span className="absolute top-1 right-1 text-[10px] text-crt-bright glow-strong">[我的]</span>
+            <span className="absolute top-1 right-1 text-[10px] text-crt-bright glow-strong">[{t('nfa.myTag')}]</span>
           )}
         </div>
 
@@ -47,7 +51,7 @@ export function LobsterCard({ data }: { data: LobsterCardData }) {
             <ShelterTag shelter={data.shelter} />
           </div>
           <div className={data.active ? 'status-alive' : 'status-dormant'}>
-            {data.active ? '● ALIVE' : '○ DORMANT'}
+            {data.active ? t('status.alive') : t('status.dormant')}
           </div>
         </div>
       </div>

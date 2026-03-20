@@ -1,5 +1,6 @@
 import { getLoreActs } from '@/content/lore';
 import { LoreContent } from './LoreContent';
+import { PageTitle } from '@/components/layout/PageTitle';
 
 export const metadata = {
   title: '世界观 — CLAW WORLD TERMINAL',
@@ -11,10 +12,7 @@ export default function LorePage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 pt-3 pb-1 shrink-0">
-        <span className="term-dim text-xs">&gt; </span>
-        <span className="term-bright text-xs">数据库: 龙虾世界</span>
-      </div>
+      <PageTitle textKey="lore.title" />
       <LoreContent acts={acts} />
     </div>
   );

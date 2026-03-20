@@ -14,6 +14,7 @@ import { getRarityName, getRarityClass, getRarityStars } from '@/lib/rarity';
 import { getShelterName } from '@/lib/shelter';
 import { TerminalBox } from '@/components/terminal/TerminalBox';
 import Link from 'next/link';
+import { useI18n } from '@/lib/i18n';
 
 const defaultFilters: Filters = {
   rarity: null, shelter: null, status: 'all',
@@ -27,6 +28,7 @@ export function LobsterGrid() {
   const { data: totalSupply } = useTotalSupply();
   const { data: myTokens } = useTokensOfOwner(address);
   const publicClient = usePublicClient();
+  const { lang, t } = useI18n();
 
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [lobsters, setLobsters] = useState<LobsterCardData[]>([]);
@@ -124,10 +126,12 @@ export function LobsterGrid() {
   const filtersKey = JSON.stringify(filters);
   useMemo(() => setPage(1), [filtersKey]);
 
+  const isCN = lang === 'zh';
+
   return (
     <div>
       {useMock && (
-        <div className="text-xs rarity-epic mb-3">[DEMO MODE — 模拟数据]</div>
+        <div className="text-xs rarity-epic mb-3">{t('env.demo')}</div>
       )}
 
       <FilterBar
@@ -139,7 +143,7 @@ export function LobsterGrid() {
       />
 
       <div className="text-xs term-dim mb-3 flex items-center gap-4">
-        <span>&gt; 共 <span className="term-bright">{filtered.length}</span> 条记录</span>
+        <span>&gt; {t('nfa.total')} <span className="term-bright">{filtered.length}</span> {t('nfa.records')}</span>
         {totalPages > 1 && (
           <span className="flex items-center gap-1">
             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="term-link disabled:term-darkest">[&lt;]</button>
@@ -151,23 +155,23 @@ export function LobsterGrid() {
 
       {loading ? (
         <div className="term-dim animate-glow-pulse py-8 text-center">
-          LOADING DATABASE...
+          {t('loading.db')}
           <span className="animate-blink ml-1">█</span>
         </div>
       ) : paged.length > 0 ? (
         viewMode === 'list' ? (
           /* TABLE VIEW */
-          <TerminalBox title="NFA 数据库">
+          <TerminalBox title={t('nfa.database')}>
             <div className="overflow-x-auto">
               <table className="term-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>名称</th>
-                    <th>等级</th>
-                    <th>稀有度</th>
-                    <th className="hidden sm:table-cell">据点</th>
-                    <th>状态</th>
+                    <th>{t('th.id')}</th>
+                    <th>{t('th.name')}</th>
+                    <th>{t('th.level')}</th>
+                    <th>{t('th.rarity')}</th>
+                    <th className="hidden sm:table-cell">{t('th.shelter')}</th>
+                    <th>{t('th.status')}</th>
                     <th className="hidden sm:table-cell"></th>
                   </tr>
                 </thead>
@@ -181,12 +185,12 @@ export function LobsterGrid() {
                       </td>
                       <td>
                         <span className="term-bright">{getMockLobsterName(l.tokenId)}</span>
-                        {l.isOwned && <span className="ml-1 text-crt-bright glow-strong text-[10px]">[我]</span>}
+                        {l.isOwned && <span className="ml-1 text-crt-bright glow-strong text-[10px]">[{t('nfa.mine')}]</span>}
                       </td>
                       <td className="term-dim">Lv.{l.level}</td>
                       <td>
                         <span className={getRarityClass(l.rarity)}>
-                          {getRarityStars(l.rarity)}{getRarityName(l.rarity, true)}
+                          {getRarityStars(l.rarity)}{getRarityName(l.rarity, isCN)}
                         </span>
                       </td>
                       <td className="term-dim hidden sm:table-cell">{getShelterName(l.shelter)}</td>
@@ -197,7 +201,7 @@ export function LobsterGrid() {
                       </td>
                       <td className="hidden sm:table-cell">
                         <Link href={`/nfa/${l.tokenId}`} className="term-link text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                          [查看]
+                          [{t('nfa.view')}]
                         </Link>
                       </td>
                     </tr>
@@ -216,8 +220,8 @@ export function LobsterGrid() {
         )
       ) : (
         <div className="text-center py-16 term-dim">
-          <div className="mb-2">{lobsters.length === 0 ? '暂无已铸造的龙虾' : '没有匹配的龙虾'}</div>
-          <div className="term-darkest text-xs">{lobsters.length === 0 ? '龙虾铸造后将在此展示' : '尝试调整筛选条件'}</div>
+          <div className="mb-2">{lobsters.length === 0 ? t('nfa.empty') : t('nfa.noMatch')}</div>
+          <div className="term-darkest text-xs">{lobsters.length === 0 ? t('nfa.emptyHint') : t('nfa.noMatchHint')}</div>
         </div>
       )}
     </div>

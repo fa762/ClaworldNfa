@@ -5,18 +5,20 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { appEnv, isDemoMode, isMainnet } from '@/lib/env';
+import { useI18n } from '@/lib/i18n';
 
-const navLinks = [
-  { href: '/', label: '首页', key: 'HOME' },
-  { href: '/mint', label: '铸造', key: 'MINT' },
-  { href: '/guide', label: '指南', key: 'GUIDE' },
-  { href: '/lore', label: '世界观', key: 'LORE' },
-  { href: '/nfa', label: 'NFA', key: 'NFA' },
-];
+const navLinkKeys = [
+  { href: '/', labelKey: 'nav.home', key: 'HOME' },
+  { href: '/mint', labelKey: 'nav.mint', key: 'MINT' },
+  { href: '/guide', labelKey: 'nav.guide', key: 'GUIDE' },
+  { href: '/lore', labelKey: 'nav.lore', key: 'LORE' },
+  { href: '/nfa', labelKey: 'nav.nfa', key: 'NFA' },
+] as const;
 
 export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useI18n();
 
   useEffect(() => setMobileOpen(false), [pathname]);
 
@@ -29,7 +31,7 @@ export function Navbar() {
         <div className={`text-center text-xs py-0.5 ${
           isDemoMode ? 'text-rarity-epic' : 'term-warn'
         }`}>
-          {isDemoMode ? '[ DEMO MODE — 模拟数据 ]' : '[ TESTNET — 测试网络 ]'}
+          {isDemoMode ? t('env.demo') : t('env.testnet')}
         </div>
       )}
 
@@ -37,7 +39,7 @@ export function Navbar() {
         <div className="max-w-6xl mx-auto px-4">
           {/* Title bar */}
           <div className="flex items-center justify-between py-2 text-xs term-dim border-b border-crt-darkest">
-            <span>CLAW WORLD TERMINAL v2.0</span>
+            <span>{t('nav.title')}</span>
             <span className="term-bright">{chainLabel}</span>
           </div>
 
@@ -46,7 +48,7 @@ export function Navbar() {
             <div className="flex items-center gap-1">
               {/* Desktop */}
               <div className="hidden sm:flex items-center gap-0.5">
-                {navLinks.map((link) => {
+                {navLinkKeys.map((link) => {
                   const isActive = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
                   return (
                     <Link
@@ -58,7 +60,7 @@ export function Navbar() {
                           : 'term-dim hover:text-crt-green'
                       }`}
                     >
-                      {isActive && '> '}{link.label}
+                      {isActive && '> '}{t(link.labelKey)}
                     </Link>
                   );
                 })}
@@ -69,7 +71,7 @@ export function Navbar() {
                 className="sm:hidden term-btn text-xs"
                 onClick={() => setMobileOpen(!mobileOpen)}
               >
-                [{mobileOpen ? 'CLOSE' : 'MENU'}]
+                [{mobileOpen ? t('nav.close') : t('nav.menu')}]
               </button>
             </div>
 
@@ -80,7 +82,7 @@ export function Navbar() {
         {/* Mobile dropdown */}
         {mobileOpen && (
           <div className="sm:hidden border-t border-crt-darkest px-4 py-2 animate-fade-in">
-            {navLinks.map((link) => {
+            {navLinkKeys.map((link) => {
               const isActive = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
               return (
                 <Link
@@ -90,7 +92,7 @@ export function Navbar() {
                     isActive ? 'term-active' : 'term-dim hover:text-crt-green'
                   }`}
                 >
-                  {isActive ? '> ' : '  '}{link.label}
+                  {isActive ? '> ' : '  '}{t(link.labelKey)}
                 </Link>
               );
             })}

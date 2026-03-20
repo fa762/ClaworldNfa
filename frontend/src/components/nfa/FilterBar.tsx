@@ -1,7 +1,8 @@
 'use client';
 
-import { RARITY_NAMES_CN } from '@/lib/rarity';
+import { RARITY_NAMES_CN, RARITY_NAMES } from '@/lib/rarity';
 import { SHELTER_NAMES } from '@/lib/shelter';
+import { useI18n } from '@/lib/i18n';
 
 export interface Filters {
   rarity: number | null;
@@ -22,18 +23,20 @@ interface FilterBarProps {
 
 export function FilterBar({ filters, onChange, walletConnected, viewMode, onViewChange }: FilterBarProps) {
   const update = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
+  const { lang, t } = useI18n();
+  const rarityNames = lang === 'zh' ? RARITY_NAMES_CN : RARITY_NAMES;
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs mb-4">
-      <span className="term-dim">筛选:</span>
+      <span className="term-dim">{t('filter.label')}</span>
 
       <select
         value={filters.rarity ?? ''}
         onChange={(e) => update({ rarity: e.target.value === '' ? null : Number(e.target.value) })}
         className="term-select"
       >
-        <option value="">全部稀有度</option>
-        {RARITY_NAMES_CN.map((name, i) => (
+        <option value="">{t('filter.allRarity')}</option>
+        {rarityNames.map((name, i) => (
           <option key={i} value={i}>{name}</option>
         ))}
       </select>
@@ -43,7 +46,7 @@ export function FilterBar({ filters, onChange, walletConnected, viewMode, onView
         onChange={(e) => update({ shelter: e.target.value === '' ? null : Number(e.target.value) })}
         className="term-select"
       >
-        <option value="">全部据点</option>
+        <option value="">{t('filter.allShelter')}</option>
         {SHELTER_NAMES.map((name, i) => (
           <option key={i} value={i}>{name}</option>
         ))}
@@ -54,9 +57,9 @@ export function FilterBar({ filters, onChange, walletConnected, viewMode, onView
         onChange={(e) => update({ status: e.target.value as Filters['status'] })}
         className="term-select"
       >
-        <option value="all">全部状态</option>
-        <option value="alive">活跃</option>
-        <option value="dormant">休眠</option>
+        <option value="all">{t('filter.allStatus')}</option>
+        <option value="alive">{t('filter.alive')}</option>
+        <option value="dormant">{t('filter.dormant')}</option>
       </select>
 
       <select
@@ -67,12 +70,12 @@ export function FilterBar({ filters, onChange, walletConnected, viewMode, onView
         }}
         className="term-select"
       >
-        <option value="id-asc">ID ▲</option>
-        <option value="id-desc">ID ▼</option>
-        <option value="level-desc">等级 ▼</option>
-        <option value="level-asc">等级 ▲</option>
-        <option value="rarity-desc">稀有度 ▼</option>
-        <option value="rarity-asc">稀有度 ▲</option>
+        <option value="id-asc">{t('filter.idAsc')}</option>
+        <option value="id-desc">{t('filter.idDesc')}</option>
+        <option value="level-desc">{t('filter.levelDesc')}</option>
+        <option value="level-asc">{t('filter.levelAsc')}</option>
+        <option value="rarity-desc">{t('filter.rarityDesc')}</option>
+        <option value="rarity-asc">{t('filter.rarityAsc')}</option>
       </select>
 
       {walletConnected && (
@@ -80,7 +83,7 @@ export function FilterBar({ filters, onChange, walletConnected, viewMode, onView
           onClick={() => update({ myOnly: !filters.myOnly })}
           className={`term-btn text-xs ${filters.myOnly ? 'term-btn-primary' : ''}`}
         >
-          [{filters.myOnly ? '> 我的龙虾' : '我的龙虾'}]
+          [{filters.myOnly ? '> ' : ''}{t('filter.myLobster')}]
         </button>
       )}
 
@@ -91,13 +94,13 @@ export function FilterBar({ filters, onChange, walletConnected, viewMode, onView
           onClick={() => onViewChange('list')}
           className={`text-xs px-2 py-0.5 ${viewMode === 'list' ? 'term-bright glow' : 'term-dim'}`}
         >
-          [列表]
+          [{t('filter.list')}]
         </button>
         <button
           onClick={() => onViewChange('grid')}
           className={`text-xs px-2 py-0.5 ${viewMode === 'grid' ? 'term-bright glow' : 'term-dim'}`}
         >
-          [网格]
+          [{t('filter.grid')}]
         </button>
       </div>
     </div>
