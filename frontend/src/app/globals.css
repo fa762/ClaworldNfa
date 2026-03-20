@@ -108,25 +108,17 @@
 }
 
 /*
- * CRT viewport — positioned exactly over the screen cutout.
+ * CRT viewport — positioned exactly over the transparent screen cutout.
  *
- * Image is 2773 x 1512. Screen cutout approximate bounds:
- *   left: ~16.5%   right: ~62.5%   →  width ~46%
- *   top:  ~7%      bottom: ~90%    →  height ~83%
+ * Transparent region detected from terminal-bg.png alpha channel:
+ *   Image:  2773 × 1512
+ *   Screen: x 670..2026, y 214..1281  (1357 × 1068 px)
+ *   left: 24.16%   top: 14.15%   width: 48.94%   height: 70.63%
  *
- * Because the image uses object-fit: contain, the actual rendered
- * size depends on viewport aspect ratio. We use the same contain
- * logic with percentage-based positioning relative to the image.
- *
- * We achieve this by wrapping in a container that matches the
- * image aspect ratio (2773:1512 ≈ 1.834:1) and centering it.
+ * JS (CRTPositioner.tsx) sets pixel-perfect position on mount/resize.
+ * CSS below provides a pre-hydration fallback to prevent layout jump.
  */
 
-/* CRT viewport — positioned by CRTPositioner.tsx via JS for pixel-perfect
-   accuracy. CSS below provides a fallback for pre-hydration (prevents jump).
-
-   Screen cutout in terminal-bg.png (2773×1512):
-   left: 17.7%   top: 8.7%   width: 43.8%   height: 82% */
 .crt-viewport {
   position: absolute;
   z-index: 1; /* Behind the image frame (z-index: 2) so bezels cover edges */
@@ -135,20 +127,20 @@
 /* CSS fallback: wide viewport (image scales by width, crops top/bottom) */
 @media (min-aspect-ratio: 2773/1512) {
   .crt-viewport {
-    left: calc(100vw * 0.177);
-    top: calc((100vh - 100vw / (2773 / 1512)) / 2 + 100vw / (2773 / 1512) * 0.087);
-    width: calc(100vw * 0.438);
-    height: calc(100vw / (2773 / 1512) * 0.820);
+    left: calc(100vw * 0.2416);
+    top: calc((100vh - 100vw / (2773 / 1512)) / 2 + 100vw / (2773 / 1512) * 0.1415);
+    width: calc(100vw * 0.4894);
+    height: calc(100vw / (2773 / 1512) * 0.7063);
   }
 }
 
 /* CSS fallback: tall viewport (image scales by height, crops left/right) */
 @media (max-aspect-ratio: 2773/1512) {
   .crt-viewport {
-    left: calc((100vw - 100vh * (2773 / 1512)) / 2 + 100vh * (2773 / 1512) * 0.177);
-    top: calc(100vh * 0.087);
-    width: calc(100vh * (2773 / 1512) * 0.438);
-    height: calc(100vh * 0.820);
+    left: calc((100vw - 100vh * (2773 / 1512)) / 2 + 100vh * (2773 / 1512) * 0.2416);
+    top: calc(100vh * 0.1415);
+    width: calc(100vh * (2773 / 1512) * 0.4894);
+    height: calc(100vh * 0.7063);
   }
 }
 

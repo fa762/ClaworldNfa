@@ -3,23 +3,26 @@
 import { useEffect } from 'react';
 
 /**
- * Computes the CRT viewport position over the terminal background image.
+ * Positions the CRT content viewport exactly over the transparent screen
+ * cutout in terminal-bg.png.
  *
- * With object-fit: cover the browser scales the image to fill the viewport
- * entirely, cropping the overflow. We replicate that math in JS and set
- * inline styles on .crt-viewport so the content area aligns with the
- * screen cutout in the image — regardless of viewport aspect ratio.
+ * The transparent region was detected by scanning the PNG alpha channel:
+ *   Image:  2773 × 1512
+ *   Screen: x 670..2026, y 214..1281  (1357 × 1068 px)
+ *
+ * With object-fit: cover the browser scales the image to fill the viewport.
+ * We replicate that math to convert image-space coordinates to viewport-space.
  */
 
 const IMG_W = 2773;
 const IMG_H = 1512;
 const IMG_ASPECT = IMG_W / IMG_H;
 
-// Screen cutout percentages within the source image (measured from terminal-bg.png)
-const SCREEN_LEFT   = 0.177;
-const SCREEN_TOP    = 0.087;
-const SCREEN_WIDTH  = 0.438;
-const SCREEN_HEIGHT = 0.820;
+// Exact transparent-region bounds (from PNG alpha scan)
+const SCREEN_LEFT   = 670  / IMG_W;  // 0.241616
+const SCREEN_TOP    = 214  / IMG_H;  // 0.141534
+const SCREEN_WIDTH  = 1357 / IMG_W;  // 0.489362
+const SCREEN_HEIGHT = 1068 / IMG_H;  // 0.706349
 
 function update() {
   const vw = window.innerWidth;
