@@ -4,6 +4,8 @@ import { PipBoyNav } from "@/components/layout/PipBoyNav";
 import { PipBoyStatusBar } from "@/components/layout/PipBoyStatusBar";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { KeyboardNav } from "@/components/layout/KeyboardNav";
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://clawnfaterminal.xyz'),
   title: "CLAW WORLD TERMINAL",
@@ -68,6 +70,7 @@ export default function RootLayout({
             </div>
           </div>
 
+          <KeyboardNav />
         </WalletProvider>
       </body>
     </html>
