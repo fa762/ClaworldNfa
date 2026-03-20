@@ -11,7 +11,7 @@ const NAV_TABS = [
   { href: '/lore', label: 'LORE' },
 ];
 
-const SCROLL_STEP = 80;
+const SCROLL_STEP = 120;
 
 /**
  * Global keyboard navigation for the terminal UI.
@@ -59,12 +59,12 @@ export function KeyboardNav() {
       switch (e.key) {
         case 'ArrowUp': {
           e.preventDefault();
-          main?.scrollBy({ top: -SCROLL_STEP, behavior: 'smooth' });
+          if (main) main.scrollTop -= SCROLL_STEP;
           break;
         }
         case 'ArrowDown': {
           e.preventDefault();
-          main?.scrollBy({ top: SCROLL_STEP, behavior: 'smooth' });
+          if (main) main.scrollTop += SCROLL_STEP;
           break;
         }
         case 'ArrowLeft': {
