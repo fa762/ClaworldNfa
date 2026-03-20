@@ -191,4 +191,9 @@ contract WorldState is OwnableUpgradeable, UUPSUpgradeable {
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    /**
+     * @dev Reserved storage gap for future upgrades.
+     */
+    uint256[40] private __gap;
 }

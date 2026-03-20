@@ -52,8 +52,16 @@ async function main() {
   console.log("ClawRouter deployed to:", router.address);
 
   // 4. Set default logic address on NFA (so publicMint points to router)
-  await nfa.setDefaultLogicAddress(router.address);
+  const tx1 = await nfa.setDefaultLogicAddress(router.address);
+  await tx1.wait();
   console.log("Set default logic address on NFA to router");
+
+  // Verify
+  const logicAddr = await nfa.defaultLogicAddress();
+  if (logicAddr !== router.address) {
+    throw new Error(`Verification failed: defaultLogicAddress expected ${router.address}, got ${logicAddr}`);
+  }
+  console.log("Verified: defaultLogicAddress set correctly");
 
   // 5. Deploy mocks for local/testnet (PancakeSwap + Flap)
   if (isLocal) {

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAccount } from 'wagmi';
 import { simulateContract } from '@wagmi/core';
-import { parseEther, zeroHash, type Address } from 'viem';
+import { parseEther, zeroHash, isAddress, type Address } from 'viem';
 import Link from 'next/link';
 import { config } from '@/components/wallet/WalletProvider';
 import { getBscScanTxUrl } from '@/contracts/addresses';
@@ -421,7 +421,12 @@ export function MintPanel() {
                 onClick={async () => {
                   setOwnerSimError(null);
                   ownerMintHook.reset();
-                  const recipient = (ownerRecipient.trim() || address) as Address;
+                  const rawRecipient = ownerRecipient.trim();
+                  if (rawRecipient && !isAddress(rawRecipient)) {
+                    setOwnerSimError('无效的以太坊地址');
+                    return;
+                  }
+                  const recipient = (rawRecipient || address) as Address;
                   try {
                     await simulateContract(config, {
                       ...vaultContract,

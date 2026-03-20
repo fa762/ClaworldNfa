@@ -138,6 +138,10 @@ contract ClawRouter is
     // WorldState reference for daily cost multiplier
     address public worldState;
 
+    // Per-skill per-call CLW/XP caps (0 = unlimited for backwards compat)
+    uint256 public maxCLWPerCall;
+    uint32 public maxXPPerCall;
+
     // ============================================
     // EVENTS
     // ============================================
@@ -157,6 +161,12 @@ contract ClawRouter is
     event PersonalityEvolved(uint256 indexed nfaId, uint8 dimension, uint8 oldValue, uint8 newValue);
     event BuyAndDeposit(uint256 indexed nfaId, uint256 bnbSpent, uint256 clwReceived);
     event FlapBuyAndDeposit(uint256 indexed nfaId, uint256 bnbSpent, uint256 clwReceived);
+    event MinterChanged(address oldMinter, address newMinter);
+    event TreasuryChanged(address oldTreasury, address newTreasury);
+    event PancakeRouterChanged(address oldRouter, address newRouter);
+    event FlapPortalChanged(address oldPortal, address newPortal);
+    event GraduatedChanged(bool graduated);
+    event WorldStateChanged(address oldWorldState, address newWorldState);
 
     // ============================================
     // MODIFIERS
@@ -296,7 +306,7 @@ contract ClawRouter is
      * @dev Process daily CLW consumption. Anyone can call.
      *      Calculates days elapsed since last upkeep and deducts CLW.
      */
-    function processUpkeep(uint256 nfaId) external lobsterExists(nfaId) {
+    function processUpkeep(uint256 nfaId) external lobsterExists(nfaId) nonReentrant {
         LobsterState storage lob = lobsters[nfaId];
         uint256 elapsed = block.timestamp - lob.lastUpkeepTime;
 
@@ -376,6 +386,7 @@ contract ClawRouter is
     // ============================================
 
     function addCLW(uint256 nfaId, uint256 amount) external onlySkill lobsterExists(nfaId) {
+        require(maxCLWPerCall == 0 || amount <= maxCLWPerCall, "Exceeds CLW cap per call");
         clwBalances[nfaId] += amount;
         _checkRevival(nfaId);
         emit CLWRewarded(nfaId, amount, msg.sender);
@@ -393,6 +404,7 @@ contract ClawRouter is
     }
 
     function addXP(uint256 nfaId, uint32 amount) external onlySkill lobsterExists(nfaId) {
+        require(maxXPPerCall == 0 || amount <= maxXPPerCall, "Exceeds XP cap per call");
         LobsterState storage lob = lobsters[nfaId];
         lob.xp += amount;
 
@@ -409,8 +421,10 @@ contract ClawRouter is
     }
 
     function _levelUpGeneBoost(uint256 nfaId, LobsterState storage lob) internal {
-        // Pseudo-random gene selection based on block data
-        uint256 rand = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, nfaId))) % 4;
+        // Pseudo-random gene selection.
+        // NOTE: Uses block data — acceptable for low-value gene +2 boosts.
+        // For high-value operations, consider integrating Chainlink VRF.
+        uint256 rand = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, nfaId, lob.xp))) % 4;
         uint8 oldVal;
         if (rand == 0) { oldVal = lob.str; lob.str = _min100(lob.str + 2); }
         else if (rand == 1) { oldVal = lob.def; lob.def = _min100(lob.def + 2); }
@@ -639,6 +653,7 @@ contract ClawRouter is
     // ============================================
 
     function setMinter(address _minter) external onlyOwner {
+        emit MinterChanged(minter, _minter);
         minter = _minter;
     }
 
@@ -648,23 +663,37 @@ contract ClawRouter is
     }
 
     function setTreasury(address _treasury) external onlyOwner {
+        require(_treasury != address(0), "Zero address");
+        emit TreasuryChanged(treasury, _treasury);
         treasury = _treasury;
     }
 
     function setPancakeRouter(address _router) external onlyOwner {
+        emit PancakeRouterChanged(pancakeRouter, _router);
         pancakeRouter = _router;
     }
 
     function setFlapPortal(address _portal) external onlyOwner {
+        emit FlapPortalChanged(flapPortal, _portal);
         flapPortal = _portal;
     }
 
     function setGraduated(bool _graduated) external onlyOwner {
         graduated = _graduated;
+        emit GraduatedChanged(_graduated);
     }
 
     function setWorldState(address _worldState) external onlyOwner {
+        emit WorldStateChanged(worldState, _worldState);
         worldState = _worldState;
+    }
+
+    function setMaxCLWPerCall(uint256 _max) external onlyOwner {
+        maxCLWPerCall = _max;
+    }
+
+    function setMaxXPPerCall(uint32 _max) external onlyOwner {
+        maxXPPerCall = _max;
     }
 
     /**
@@ -703,8 +732,9 @@ contract ClawRouter is
     }
 
     /**
-     * @dev Update the NFA learning tree with a new leaf hash.
-     *      Computes new root = keccak256(oldRoot, leafHash) for incremental Merkle.
+     * @dev Update the NFA evolution history hash chain.
+     *      Computes new root = keccak256(oldRoot, leafHash, timestamp) for incremental tracking.
+     *      Note: This is a hash chain (not a Merkle tree). It records sequential evolution events.
      */
     function _updateLearningTree(uint256 nfaId, bytes32 leafHash) internal {
         bytes32 oldRoot = nfa.learningTreeRoot(nfaId);
@@ -713,4 +743,9 @@ contract ClawRouter is
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    /**
+     * @dev Reserved storage gap for future upgrades.
+     */
+    uint256[40] private __gap;
 }

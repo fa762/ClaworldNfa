@@ -55,18 +55,28 @@ async function main() {
 
   // 4. Authorize skills in Router
   const router = await ethers.getContractAt("ClawRouter", routerAddress);
-  await router.authorizeSkill(taskSkill.address, true);
+  await (await router.authorizeSkill(taskSkill.address, true)).wait();
   console.log("Authorized TaskSkill");
-  await router.authorizeSkill(pkSkill.address, true);
+  await (await router.authorizeSkill(pkSkill.address, true)).wait();
   console.log("Authorized PKSkill");
 
   // 5. Set WorldState on PKSkill (for dynamic mutation rate + stake limit)
-  await pkSkill.setWorldState(worldStateAddress);
+  await (await pkSkill.setWorldState(worldStateAddress)).wait();
   console.log("Set WorldState on PKSkill");
 
   // 6. Set deployer as TaskSkill operator
-  await taskSkill.setOperator(deployer.address, true);
+  await (await taskSkill.setOperator(deployer.address, true)).wait();
   console.log("Set deployer as TaskSkill operator");
+
+  // --- Post-deployment verification ---
+  console.log("\nVerifying roles...");
+  const isTask = await router.authorizedSkills(taskSkill.address);
+  if (!isTask) throw new Error("TaskSkill not authorized");
+  const isPK = await router.authorizedSkills(pkSkill.address);
+  if (!isPK) throw new Error("PKSkill not authorized");
+  const isOp = await taskSkill.operators(deployer.address);
+  if (!isOp) throw new Error("Deployer not set as TaskSkill operator");
+  console.log("All role verifications passed!");
 
   console.log("\n--- Phase 3 Deployment Complete ---");
   console.log("TaskSkill:", taskSkill.address);
