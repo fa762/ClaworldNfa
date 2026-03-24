@@ -16,17 +16,8 @@ import { getBscScanAddressUrl } from '@/contracts/addresses';
 import { isDemoMode } from '@/lib/env';
 import { getMockLobsterName } from '@/lib/mockData';
 import { resolveIpfsUrl } from '@/lib/ipfs';
+import { useI18n } from '@/lib/i18n';
 import Link from 'next/link';
-
-const JOB_CLASSES = ['探索者', '外交官', '创造者', '守护者', '学者', '先驱者'];
-
-const TABS = [
-  { key: 'status', label: '状态' },
-  { key: 'special', label: 'SPECIAL' },
-  { key: 'gene', label: '基因' },
-  { key: 'maintain', label: '维护' },
-] as const;
-type TabKey = typeof TABS[number]['key'];
 
 function getMockData(id: number) {
   const seed = id * 7;
@@ -55,6 +46,16 @@ function getMockData(id: number) {
 export function NFADetail({ tokenId }: { tokenId: string }) {
   const id = BigInt(tokenId);
   const numId = Number(tokenId);
+  const { t } = useI18n();
+
+  const TABS = [
+    { key: 'status' as const, label: t('tab.status') },
+    { key: 'special' as const, label: t('tab.special') },
+    { key: 'gene' as const, label: t('tab.gene') },
+    { key: 'maintain' as const, label: t('tab.maintain') },
+  ];
+  type TabKey = 'status' | 'special' | 'gene' | 'maintain';
+
   const [tab, setTab] = useState<TabKey>('special');
 
   const { data: agentState, isLoading: l1 } = useAgentState(id);
@@ -74,7 +75,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
     return (
       <div className="p-6">
         <div className="term-dim animate-glow-pulse py-16 text-center">
-          LOADING NFA #{tokenId}...<span className="animate-blink ml-1">█</span>
+          {t('loading')} NFA #{tokenId}...<span className="animate-blink ml-1">█</span>
         </div>
       </div>
     );
@@ -84,8 +85,8 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   if (!lob && !useMock) {
     return (
       <div className="p-6 text-center">
-        <p className="term-dim mb-4">龙虾 #{tokenId} 不存在或尚未铸造</p>
-        <Link href="/nfa" className="term-link">[&lt; 返回合集]</Link>
+        <p className="term-dim mb-4">NFA #{tokenId} {t('nfa.notExist')}</p>
+        <Link href="/nfa" className="term-link">[&lt; {t('nfa.backToList')}]</Link>
       </div>
     );
   }
@@ -112,24 +113,26 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   const balance = useMock ? mock!.balance : (clwBalance ? BigInt(clwBalance.toString()) : 0n);
   const cost = useMock ? mock!.cost : (dailyCost ? BigInt(dailyCost.toString()) : 0n);
   const daysRemaining = cost > 0n ? Number(balance / cost) : Infinity;
+
+  const getJobName = (idx: number) => t(`job.${idx}`) || t('detail.unknown');
   const jobName = useMock
-    ? JOB_CLASSES[mock!.jobClass] ?? '未知'
-    : (jobClass !== undefined ? JOB_CLASSES[Number(jobClass)] ?? '未知' : '未知');
+    ? getJobName(mock!.jobClass)
+    : (jobClass !== undefined ? getJobName(Number(jobClass)) : t('detail.unknown'));
 
   const name = getMockLobsterName(numId);
   const imageUrl = resolveIpfsUrl(useMock ? '' : ((agentMeta as any)?.vaultURI ?? ''));
 
   // SPECIAL stats for PipBoyStatList
   const specialStats = [
-    { key: 'STR', label: '力量', enLabel: 'Strength', value: str },
-    { key: 'DEF', label: '防御', enLabel: 'Defense', value: def },
-    { key: 'SPD', label: '速度', enLabel: 'Speed', value: spd },
-    { key: 'VIT', label: '生命', enLabel: 'Vitality', value: vit },
-    { key: 'courage', label: '勇气', enLabel: 'Courage', value: courage },
-    { key: 'wisdom', label: '智慧', enLabel: 'Wisdom', value: wisdom },
-    { key: 'social', label: '社交', enLabel: 'Social', value: social },
-    { key: 'create', label: '创造', enLabel: 'Create', value: create },
-    { key: 'grit', label: '韧性', enLabel: 'Grit', value: grit },
+    { key: 'STR', label: t('statLabel.STR'), enLabel: t('statEn.STR'), value: str },
+    { key: 'DEF', label: t('statLabel.DEF'), enLabel: t('statEn.DEF'), value: def },
+    { key: 'SPD', label: t('statLabel.SPD'), enLabel: t('statEn.SPD'), value: spd },
+    { key: 'VIT', label: t('statLabel.VIT'), enLabel: t('statEn.VIT'), value: vit },
+    { key: 'courage', label: t('statLabel.courage'), enLabel: t('statEn.courage'), value: courage },
+    { key: 'wisdom', label: t('statLabel.wisdom'), enLabel: t('statEn.wisdom'), value: wisdom },
+    { key: 'social', label: t('statLabel.social'), enLabel: t('statEn.social'), value: social },
+    { key: 'create', label: t('statLabel.create'), enLabel: t('statEn.create'), value: create },
+    { key: 'grit', label: t('statLabel.grit'), enLabel: t('statEn.grit'), value: grit },
   ];
 
   const lobsterImage = (
@@ -156,13 +159,13 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
 
       {/* Pip-Boy sub-tabs */}
       <div className="flex gap-1 mb-3 border-b border-crt-darkest pb-1">
-        {TABS.map((t) => (
+        {TABS.map((tabItem) => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`pipboy-tab text-xs ${tab === t.key ? 'pipboy-tab-active' : ''}`}
+            key={tabItem.key}
+            onClick={() => setTab(tabItem.key)}
+            className={`pipboy-tab text-xs ${tab === tabItem.key ? 'pipboy-tab-active' : ''}`}
           >
-            {t.label}
+            {tabItem.label}
           </button>
         ))}
       </div>
@@ -173,23 +176,23 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Left: info list */}
             <div className="flex-1 space-y-1 text-sm">
-              <Row label="稀有度"><RarityBadge rarity={rarity} /></Row>
-              <Row label="等级"><span className="term-bright">Lv.{level}</span></Row>
-              <Row label="据点"><ShelterTag shelter={shelter} /></Row>
-              <Row label="状态"><StatusBadge active={Boolean(active)} /></Row>
-              <Row label="职业"><span>{jobName}</span></Row>
+              <Row label={t('detail.rarity')}><RarityBadge rarity={rarity} /></Row>
+              <Row label={t('detail.level')}><span className="term-bright">Lv.{level}</span></Row>
+              <Row label={t('detail.shelter')}><ShelterTag shelter={shelter} /></Row>
+              <Row label={t('detail.status')}><StatusBadge active={Boolean(active)} /></Row>
+              <Row label={t('detail.job')}><span>{jobName}</span></Row>
               <div className="term-line my-1.5" />
-              <Row label="CLW余额"><span className="term-bright">{formatCLW(balance)}</span></Row>
-              <Row label="日消耗"><span>{formatCLW(cost)}/天</span></Row>
-              <Row label="可维持">
+              <Row label={t('detail.balance')}><span className="term-bright">{formatCLW(balance)}</span></Row>
+              <Row label={t('detail.dailyCost')}><span>{formatCLW(cost)}{t('detail.perDay')}</span></Row>
+              <Row label={t('detail.sustain')}>
                 <span className={daysRemaining <= 3 ? 'term-danger' : ''}>
-                  {daysRemaining === Infinity ? '∞' : `${daysRemaining} 天`}
+                  {daysRemaining === Infinity ? '∞' : `${daysRemaining} ${t('detail.days')}`}
                 </span>
               </Row>
               <div className="term-line my-1.5" />
               <XPProgressBar level={level} xp={xp} />
               {ownerAddress && (
-                <Row label="Owner">
+                <Row label={t('detail.owner')}>
                   <a href={getBscScanAddressUrl(ownerAddress)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
                     {truncateAddress(ownerAddress)}
                   </a>
@@ -209,12 +212,12 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
 
         {tab === 'gene' && (
           <div className="space-y-3 p-2">
-            <div className="text-xs term-dim mb-2">基因组 / DNA</div>
+            <div className="text-xs term-dim mb-2">{t('gene.title')}</div>
             <div className="space-y-1">
-              <TerminalBar label="力量" value={str} color="term-danger" />
-              <TerminalBar label="防御" value={def} color="rarity-rare" />
-              <TerminalBar label="速度" value={spd} color="text-crt-green" />
-              <TerminalBar label="生命" value={vit} color="term-warn" />
+              <TerminalBar label={t('gene.str')} value={str} color="term-danger" />
+              <TerminalBar label={t('gene.def')} value={def} color="rarity-rare" />
+              <TerminalBar label={t('gene.spd')} value={spd} color="text-crt-green" />
+              <TerminalBar label={t('gene.vit')} value={vit} color="term-warn" />
             </div>
             <div className="term-line my-2" />
             <MutationSlots mutation1={mutation1} mutation2={mutation2} />

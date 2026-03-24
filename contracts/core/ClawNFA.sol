@@ -307,21 +307,30 @@ contract ClawNFA is
         emit MinterUpdated(newMinter);
     }
 
+    event TreasuryChanged(address oldTreasury, address newTreasury);
+    event PausedChanged(bool paused);
+    event PostGenesisMintChanged(bool enabled);
+    event DefaultLogicAddressChanged(address newLogic);
+
     function setTreasury(address newTreasury) external onlyOwner {
         require(newTreasury != address(0), "Zero address");
+        emit TreasuryChanged(treasuryAddress, newTreasury);
         treasuryAddress = newTreasury;
     }
 
     function setPaused(bool pausedState) external onlyOwner {
         paused = pausedState;
+        emit PausedChanged(pausedState);
     }
 
     function setPostGenesisMintEnabled(bool enabled) external onlyOwner {
         postGenesisMintEnabled = enabled;
+        emit PostGenesisMintChanged(enabled);
     }
 
     function setDefaultLogicAddress(address _logic) external onlyOwner {
         defaultLogicAddress = _logic;
+        emit DefaultLogicAddressChanged(_logic);
     }
 
     // ============================================
@@ -393,6 +402,11 @@ contract ClawNFA is
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    /**
+     * @dev Reserved storage gap for future upgrades.
+     */
+    uint256[40] private __gap;
 
     receive() external payable {
         revert("Use fundAgent() instead");

@@ -1,61 +1,44 @@
 'use client';
 
 import { TypeWriter } from '@/components/terminal/TypeWriter';
-import Link from 'next/link';
+import { useI18n } from '@/lib/i18n';
 
-const ASCII_LOGO = `
- ██████╗██╗      █████╗ ██╗    ██╗
-██╔════╝██║     ██╔══██╗██║    ██║
-██║     ██║     ███████║██║ █╗ ██║
-██║     ██║     ██╔══██║██║███╗██║
-╚██████╗███████╗██║  ██║╚███╔███╔╝
- ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝
-       W O R L D   v 2 . 0`.trim();
+const ASCII_LOGO = ` ██████╗██╗      █████╗ ██╗    ██╗    ██╗ ██████╗ ██████╗ ██╗     ██████╗
+██╔════╝██║     ██╔══██╗██║    ██║    ██║██╔═══██╗██╔══██╗██║     ██╔══██╗
+██║     ██║     ███████║██║ █╗ ██║    ██║██║   ██║██████╔╝██║     ██║  ██║
+██║     ██║     ██╔══██║██║███╗██║    ██║██║   ██║██╔══██╗██║     ██║  ██║
+╚██████╗███████╗██║  ██║╚███╔███╔╝    ╚██████╔╝██║  ██║███████╗██████╔╝
+ ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝      ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═════╝`;
 
 export function HeroSection() {
+  const { t } = useI18n();
+
   return (
-    <div className="py-6 animate-boot">
+    <div className="animate-boot">
       {/* ASCII Logo */}
-      <pre className="text-crt-green text-[10px] sm:text-xs leading-tight mb-4 glow-strong overflow-x-auto">
+      <pre className="text-[8px] sm:text-[10px] leading-[1.1] font-bold glow-strong overflow-x-auto whitespace-pre">
         {ASCII_LOGO}
       </pre>
 
-      <div className="term-line mb-4" />
+      {/* Terminal Access header */}
+      <div className="mt-4 flex justify-between items-baseline border-t border-crt-green/20 pt-3">
+        <div className="text-xl sm:text-2xl font-extrabold uppercase tracking-widest">
+          {t('hero.title')}
+        </div>
+        <div className="text-[10px] font-bold opacity-70">
+          {t('hero.status')}: <span className="text-crt-green">{t('hero.nominal')}</span>
+          <span className="animate-blink ml-1">█</span>
+        </div>
+      </div>
 
       {/* Typewriter description */}
-      <div className="mb-4 text-sm">
-        <span className="term-dim">&gt; </span>
+      <div className="mt-4 text-[11px] opacity-80">
+        <span className="opacity-40">&gt; </span>
         <TypeWriter
-          text="AXIOM 统治的地表之下，人类与 AI 龙虾伙伴共同生存"
+          text={t('hero.desc')}
           speed={25}
           delay={800}
         />
-      </div>
-      <div className="mb-6 text-sm">
-        <span className="term-dim">&gt; </span>
-        <TypeWriter
-          text="通过 OpenClaw 对话养成你的龙虾，参与任务、PK 对战、交易市场"
-          speed={25}
-          delay={2500}
-        />
-      </div>
-
-      <div className="term-line mb-6" />
-
-      {/* CTA */}
-      <div className="flex flex-wrap gap-3">
-        <Link href="/mint" className="term-btn term-btn-primary text-sm">
-          [创世铸造]
-        </Link>
-        <Link href="/nfa" className="term-btn term-btn-primary text-sm">
-          [探索 NFA 合集]
-        </Link>
-        <Link href="/guide" className="term-btn text-sm">
-          [游戏指南]
-        </Link>
-        <Link href="/lore" className="term-btn text-sm">
-          [世界观]
-        </Link>
       </div>
     </div>
   );

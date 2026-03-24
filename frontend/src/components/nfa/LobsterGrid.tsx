@@ -14,23 +14,28 @@ import { getRarityName, getRarityClass, getRarityStars } from '@/lib/rarity';
 import { getShelterName } from '@/lib/shelter';
 import { TerminalBox } from '@/components/terminal/TerminalBox';
 import Link from 'next/link';
+import { useI18n } from '@/lib/i18n';
 
 const defaultFilters: Filters = {
   rarity: null, shelter: null, status: 'all',
   sortBy: 'id', sortDir: 'asc', myOnly: false,
 };
 
+const PAGE_SIZE = 50;
+
 export function LobsterGrid() {
   const { address, isConnected } = useAccount();
   const { data: totalSupply } = useTotalSupply();
   const { data: myTokens } = useTokensOfOwner(address);
   const publicClient = usePublicClient();
+  const { lang, t } = useI18n();
 
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [lobsters, setLobsters] = useState<LobsterCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [useMock, setUseMock] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [page, setPage] = useState(1);
 
   const myTokenSet = useMemo(() => {
     if (!myTokens) return new Set<number>();
@@ -111,10 +116,22 @@ export function LobsterGrid() {
     return result;
   }, [lobsters, filters, myTokenSet, useMock]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
+
+  // Reset to page 1 when filters change
+  const filtersKey = JSON.stringify(filters);
+  useMemo(() => setPage(1), [filtersKey]);
+
+  const isCN = lang === 'zh';
+
   return (
     <div>
       {useMock && (
-        <div className="text-xs rarity-epic mb-3">[DEMO MODE — 模拟数据]</div>
+        <div className="text-xs rarity-epic mb-3">{t('env.demo')}</div>
       )}
 
       <FilterBar
@@ -125,34 +142,41 @@ export function LobsterGrid() {
         onViewChange={setViewMode}
       />
 
-      <div className="text-xs term-dim mb-3">
-        &gt; 共 <span className="term-bright">{filtered.length}</span> 条记录
+      <div className="text-xs term-dim mb-3 flex items-center gap-4">
+        <span>&gt; {t('nfa.total')} <span className="term-bright">{filtered.length}</span> {t('nfa.records')}</span>
+        {totalPages > 1 && (
+          <span className="flex items-center gap-1">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="term-link disabled:term-darkest">[&lt;]</button>
+            <span className="term-bright">{page}</span>/<span>{totalPages}</span>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="term-link disabled:term-darkest">[&gt;]</button>
+          </span>
+        )}
       </div>
 
       {loading ? (
         <div className="term-dim animate-glow-pulse py-8 text-center">
-          LOADING DATABASE...
+          {t('loading.db')}
           <span className="animate-blink ml-1">█</span>
         </div>
-      ) : filtered.length > 0 ? (
+      ) : paged.length > 0 ? (
         viewMode === 'list' ? (
           /* TABLE VIEW */
-          <TerminalBox title="NFA 数据库">
+          <TerminalBox title={t('nfa.database')}>
             <div className="overflow-x-auto">
               <table className="term-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>名称</th>
-                    <th>等级</th>
-                    <th>稀有度</th>
-                    <th className="hidden sm:table-cell">据点</th>
-                    <th>状态</th>
+                    <th>{t('th.id')}</th>
+                    <th>{t('th.name')}</th>
+                    <th>{t('th.level')}</th>
+                    <th>{t('th.rarity')}</th>
+                    <th className="hidden sm:table-cell">{t('th.shelter')}</th>
+                    <th>{t('th.status')}</th>
                     <th className="hidden sm:table-cell"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((l) => (
+                  {paged.map((l) => (
                     <tr key={l.tokenId} className="group">
                       <td>
                         <Link href={`/nfa/${l.tokenId}`} className="term-link">
@@ -161,12 +185,12 @@ export function LobsterGrid() {
                       </td>
                       <td>
                         <span className="term-bright">{getMockLobsterName(l.tokenId)}</span>
-                        {l.isOwned && <span className="ml-1 text-crt-bright glow-strong text-[10px]">[我]</span>}
+                        {l.isOwned && <span className="ml-1 text-crt-bright glow-strong text-[10px]">[{t('nfa.mine')}]</span>}
                       </td>
                       <td className="term-dim">Lv.{l.level}</td>
                       <td>
                         <span className={getRarityClass(l.rarity)}>
-                          {getRarityStars(l.rarity)}{getRarityName(l.rarity, true)}
+                          {getRarityStars(l.rarity)}{getRarityName(l.rarity, isCN)}
                         </span>
                       </td>
                       <td className="term-dim hidden sm:table-cell">{getShelterName(l.shelter)}</td>
@@ -177,7 +201,7 @@ export function LobsterGrid() {
                       </td>
                       <td className="hidden sm:table-cell">
                         <Link href={`/nfa/${l.tokenId}`} className="term-link text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                          [查看]
+                          [{t('nfa.view')}]
                         </Link>
                       </td>
                     </tr>
@@ -189,15 +213,15 @@ export function LobsterGrid() {
         ) : (
           /* GRID VIEW */
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {filtered.map((l) => (
+            {paged.map((l) => (
               <LobsterCard key={l.tokenId} data={l} />
             ))}
           </div>
         )
       ) : (
         <div className="text-center py-16 term-dim">
-          <div className="mb-2">{lobsters.length === 0 ? '暂无已铸造的龙虾' : '没有匹配的龙虾'}</div>
-          <div className="term-darkest text-xs">{lobsters.length === 0 ? '龙虾铸造后将在此展示' : '尝试调整筛选条件'}</div>
+          <div className="mb-2">{lobsters.length === 0 ? t('nfa.empty') : t('nfa.noMatch')}</div>
+          <div className="term-darkest text-xs">{lobsters.length === 0 ? t('nfa.emptyHint') : t('nfa.noMatchHint')}</div>
         </div>
       )}
     </div>

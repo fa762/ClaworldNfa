@@ -4,17 +4,19 @@ import { useState, useEffect } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { truncateAddress } from '@/lib/format';
 import { getBscScanAddressUrl } from '@/contracts/addresses';
+import { useI18n } from '@/lib/i18n';
 
 export function ConnectButton() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
+  const { t } = useI18n();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
   if (!mounted) {
-    return <span className="term-dim text-xs">[连接钱包]</span>;
+    return <span className="term-dim text-xs">[{t('wallet.connect')}]</span>;
   }
 
   if (isConnected && address) {
@@ -29,23 +31,24 @@ export function ConnectButton() {
           <span className="term-dim">●</span> {truncateAddress(address)}
         </a>
         <button onClick={() => disconnect()} className="term-dim hover:term-danger transition-colors">
-          [断开]
+          [{t('wallet.disconnect')}]
         </button>
       </div>
     );
   }
 
   return (
-    <div className="flex gap-1">
-      {connectors.map((connector) => (
-        <button
-          key={connector.uid}
-          onClick={() => connect({ connector })}
-          className="term-btn term-btn-primary text-xs"
-        >
-          [{connector.name === 'Injected' ? '连接钱包' : connector.name}]
-        </button>
-      ))}
-    </div>
+    <button
+      onClick={() => {
+        // Prefer injected (MetaMask etc.) if available, fallback to WalletConnect
+        const inj = connectors.find((c) => c.type === 'injected');
+        const wc = connectors.find((c) => c.name === 'WalletConnect');
+        const connector = (inj && (window as any).ethereum) ? inj : wc || connectors[0];
+        if (connector) connect({ connector });
+      }}
+      className="term-btn term-btn-primary text-xs"
+    >
+      [{t('wallet.connect')}]
+    </button>
   );
 }

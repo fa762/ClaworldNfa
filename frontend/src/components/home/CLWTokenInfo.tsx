@@ -7,9 +7,10 @@ import { formatBNB, truncateAddress, nativeSymbol } from '@/lib/format';
 import { useState } from 'react';
 import { isDemoMode } from '@/lib/env';
 import { mockTokenInfo } from '@/lib/mockData';
-import { TerminalBox } from '@/components/terminal/TerminalBox';
+import { useI18n } from '@/lib/i18n';
 
 export function CLWTokenInfo() {
+  const { t } = useI18n();
   const { data: price, isLoading: priceLoading } = useCLWPrice();
   const { data: graduated } = useGraduated();
   const [copied, setCopied] = useState(false);
@@ -28,60 +29,47 @@ export function CLWTokenInfo() {
     : '#';
 
   return (
-    <TerminalBox title="CLW 代币">
-      <div className="space-y-1.5 text-sm">
-        <div className="flex justify-between">
-          <span className="term-dim">价格</span>
-          {!useMock && priceLoading ? (
-            <span className="term-dim animate-glow-pulse">LOADING...</span>
-          ) : (
-            <span className="term-bright glow-strong">
-              {useMock ? mockTokenInfo.price : (price ? `${formatBNB(price)} ${nativeSymbol}` : '待部署')}
+    <div className="term-box" data-title={t('token.title')}>
+      <div className="flex flex-col justify-between h-full">
+        <div>
+          {/* Price display */}
+          <div className="text-3xl sm:text-4xl font-extrabold tracking-tighter mb-1 glow-strong">
+            {!useMock && priceLoading ? (
+              <span className="term-dim animate-glow-pulse text-lg">{t('loading')}</span>
+            ) : (
+              useMock ? mockTokenInfo.price : (price ? `${formatBNB(price)} ${nativeSymbol}` : '—')
+            )}
+          </div>
+          <div className="text-[8px] opacity-30 break-all">
+            {useMock ? '0xCLAW...F97A' : truncateAddress(addresses.clwToken)}
+          </div>
+
+          {/* Status */}
+          <div className="mt-3 text-[11px] font-bold flex justify-between">
+            <span className="opacity-60">{t('token.status')}</span>
+            <span className={isGraduated ? 'text-crt-green' : 'term-warn'}>
+              {isGraduated ? t('token.graduated') : t('token.bonding')}
             </span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-4 flex gap-2">
+          <a
+            href={purchaseLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="soft-key flex-1 text-center text-[10px]"
+          >
+            {t('token.trade')}
+          </a>
+          {!useMock && (
+            <button onClick={copyAddress} className="soft-key text-[10px] px-3">
+              {copied ? t('token.copied') : t('token.copy')}
+            </button>
           )}
         </div>
-
-        <div className="flex justify-between">
-          <span className="term-dim">状态</span>
-          <span className={isGraduated ? 'text-crt-green' : 'term-warn'}>
-            {isGraduated ? '已毕业 · PancakeSwap' : '联合曲线 · Flap'}
-          </span>
-        </div>
-
-        <div className="flex justify-between items-center">
-          <span className="term-dim">合约</span>
-          <span className="flex items-center gap-2">
-            {useMock ? (
-              <span className="term-darkest">待部署</span>
-            ) : (
-              <>
-                <a
-                  href={getBscScanAddressUrl(addresses.clwToken)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="term-link text-xs"
-                >
-                  {truncateAddress(addresses.clwToken)}
-                </a>
-                <button onClick={copyAddress} className="term-link text-xs">
-                  [{copied ? '已复制' : '复制'}]
-                </button>
-              </>
-            )}
-          </span>
-        </div>
-
-        <div className="term-line my-2" />
-
-        <a
-          href={purchaseLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="term-btn term-btn-primary text-xs block text-center"
-        >
-          [购买 CLW]
-        </a>
       </div>
-    </TerminalBox>
+    </div>
   );
 }

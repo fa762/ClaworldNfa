@@ -11,9 +11,10 @@ import { parseActiveEvents, getEventInfo } from '@/lib/events';
 import { formatBasisPoints, formatCLW } from '@/lib/format';
 import { isDemoMode } from '@/lib/env';
 import { mockWorldState } from '@/lib/mockData';
-import { TerminalBox } from '@/components/terminal/TerminalBox';
+import { useI18n } from '@/lib/i18n';
 
 export function WorldStateDashboard() {
+  const { t } = useI18n();
   const { data: rewardMul, isLoading: l1 } = useRewardMultiplier();
   const { data: pkLimit, isLoading: l2 } = usePkStakeLimit();
   const { data: mutBonus, isLoading: l3 } = useMutationBonus();
@@ -28,45 +29,46 @@ export function WorldStateDashboard() {
     : (events ? parseActiveEvents(BigInt(events.toString())) : []);
 
   const rows = [
-    { label: '奖励系数', value: useMock ? mockWorldState.rewardMultiplier : (rewardMul ? formatBasisPoints(rewardMul) : '--') },
-    { label: 'PK质押上限', value: useMock ? mockWorldState.pkStakeLimit : (pkLimit ? formatCLW(pkLimit) + ' CLW' : '--') },
-    { label: '变异加成', value: useMock ? mockWorldState.mutationBonus : (mutBonus ? formatBasisPoints(mutBonus) : '--') },
-    { label: '日消耗系数', value: useMock ? mockWorldState.dailyCostMultiplier : (costMul ? formatBasisPoints(costMul) : '--') },
+    { label: t('world.rewardMul'), value: useMock ? mockWorldState.rewardMultiplier : (rewardMul ? formatBasisPoints(rewardMul) : '--') },
+    { label: t('world.pkCap'), value: useMock ? mockWorldState.pkStakeLimit : (pkLimit ? formatCLW(pkLimit) + ' CLW' : '--') },
+    { label: t('world.mutBonus'), value: useMock ? mockWorldState.mutationBonus : (mutBonus ? formatBasisPoints(mutBonus) : '--') },
+    { label: t('world.dailyCost'), value: useMock ? mockWorldState.dailyCostMultiplier : (costMul ? formatBasisPoints(costMul) : '--') },
   ];
 
   return (
-    <TerminalBox title="世界状态">
+    <div className="term-box" data-title={t('world.title')}>
       {loading ? (
-        <div className="term-dim animate-glow-pulse">LOADING...</div>
+        <div className="term-dim animate-glow-pulse text-xs">{t('loading')}</div>
       ) : (
-        <div className="space-y-1.5 text-sm">
+        <div className="space-y-2 text-[11px] font-bold">
           {rows.map((r) => (
-            <div key={r.label} className="flex justify-between">
-              <span className="term-dim">{r.label}</span>
+            <div key={r.label} className="flex justify-between border-b border-crt-green/10 pb-1">
+              <span className="opacity-60">{r.label}</span>
               <span className="term-bright">{r.value}</span>
             </div>
           ))}
 
-          <div className="term-line my-2" />
+          {activeEventKeys.length > 0 && (
+            <div className="flex justify-between pt-1">
+              <span className="opacity-60">{t('world.events')}</span>
+              <span>
+                {activeEventKeys.map((key) => {
+                  const info = getEventInfo(key);
+                  return info ? (
+                    <span key={key} className={`ml-2 ${info.color === 'text-red-400' ? 'term-danger' : info.color === 'text-blue-400' ? 'rarity-rare' : 'term-warn'}`}>
+                      [{info.nameCN}]
+                    </span>
+                  ) : null;
+                })}
+              </span>
+            </div>
+          )}
 
-          <div className="flex justify-between">
-            <span className="term-dim">活跃事件</span>
-            <span>
-              {activeEventKeys.length > 0
-                ? activeEventKeys.map((key) => {
-                    const info = getEventInfo(key);
-                    return info ? (
-                      <span key={key} className={`ml-2 ${info.color === 'text-red-400' ? 'term-danger' : info.color === 'text-blue-400' ? 'rarity-rare' : 'term-warn'}`}>
-                        [{info.nameCN}]
-                      </span>
-                    ) : null;
-                  })
-                : <span className="term-darkest">无</span>
-              }
-            </span>
+          <div className="mt-3 text-[9px] opacity-40 animate-pulse">
+            {t('world.sync')}
           </div>
         </div>
       )}
-    </TerminalBox>
+    </div>
   );
 }

@@ -105,6 +105,9 @@ contract GenesisVault is
 
     bool public mintingActive;
 
+    // Pull-over-push: pending refunds for failed BNB transfers
+    mapping(address => uint256) public pendingRefunds;
+
     struct Commitment {
         bytes32 hash;
         uint256 value;      // BNB sent with commit
@@ -120,6 +123,8 @@ contract GenesisVault is
     event CommitMade(address indexed user, uint256 value);
     event GenesisRevealed(address indexed user, uint256 indexed nfaId, uint8 rarity, uint8 shelter);
     event CommitRefunded(address indexed user, uint256 amount);
+    event RefundPending(address indexed user, uint256 amount);
+    event RefundClaimed(address indexed user, uint256 amount);
 
     // ============================================
     // INITIALIZATION
@@ -269,10 +274,13 @@ contract GenesisVault is
 
         emit GenesisRevealed(msg.sender, nfaId, rarity, shelter);
 
-        // Refund excess BNB to the original committer (msg.sender)
+        // Refund excess BNB to the original committer (pull-over-push fallback)
         if (excess > 0) {
             (bool ok, ) = payable(msg.sender).call{value: excess}("");
-            require(ok, "Refund failed");
+            if (!ok) {
+                pendingRefunds[msg.sender] += excess;
+                emit RefundPending(msg.sender, excess);
+            }
         }
     }
 
@@ -484,5 +492,22 @@ contract GenesisVault is
         return _getPrice(rarity);
     }
 
+    /**
+     * @dev Claim any pending BNB refunds (from failed excess refund transfers).
+     */
+    function claimRefund() external nonReentrant {
+        uint256 amount = pendingRefunds[msg.sender];
+        require(amount > 0, "No pending refund");
+        pendingRefunds[msg.sender] = 0;
+        (bool ok, ) = payable(msg.sender).call{value: amount}("");
+        require(ok, "Refund transfer failed");
+        emit RefundClaimed(msg.sender, amount);
+    }
+
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    /**
+     * @dev Reserved storage gap for future upgrades.
+     */
+    uint256[40] private __gap;
 }

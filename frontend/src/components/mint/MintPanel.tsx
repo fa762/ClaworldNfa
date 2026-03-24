@@ -3,12 +3,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAccount } from 'wagmi';
 import { simulateContract } from '@wagmi/core';
-import { parseEther, zeroHash, type Address } from 'viem';
+import { parseEther, zeroHash, isAddress, type Address } from 'viem';
 import Link from 'next/link';
 import { config } from '@/components/wallet/WalletProvider';
 import { getBscScanTxUrl } from '@/contracts/addresses';
 import { getRarityName, getRarityClass, getRarityStars } from '@/lib/rarity';
 import { nativeSymbol } from '@/lib/format';
+import { useI18n } from '@/lib/i18n';
 import {
   useMintingActive,
   useMintedCount,
@@ -38,6 +39,8 @@ type Phase = 'select' | 'waiting' | 'ready' | 'expired' | 'success';
 
 export function MintPanel() {
   const { address, isConnected } = useAccount();
+  const { lang, t } = useI18n();
+  const isCN = lang === 'zh';
   const [selectedRarity, setSelectedRarity] = useState(0);
   const [countdown, setCountdown] = useState(0);
   const [revealedNfaId, setRevealedNfaId] = useState<string | null>(null);
@@ -104,7 +107,7 @@ export function MintPanel() {
     if (!address) return;
     const saved = loadSalt(address);
     if (!saved) {
-      setDebugError('未找到本地 salt 数据');
+      setDebugError(t('mint.noSalt'));
       return;
     }
     setDebugError(null);
@@ -178,9 +181,9 @@ export function MintPanel() {
       <div className="pipboy-split-sidebar" style={{ width: 220 }}>
         {/* Progress */}
         <div className="px-3 py-2">
-          <div className="term-bright text-xs glow mb-2">铸造进度</div>
+          <div className="term-bright text-xs glow mb-2">{t('mint.progress')}</div>
           <div className="flex items-center gap-2 text-xs mb-1">
-            <span className="term-dim">总量</span>
+            <span className="term-dim">{t('mint.total')}</span>
             <span className="term-bright">{totalMinted}</span>
             <span className="term-dim">/ {TOTAL_GENESIS}</span>
           </div>
@@ -195,7 +198,7 @@ export function MintPanel() {
             return (
               <div key={r} className="flex items-center gap-1 text-xs leading-5">
                 <span className={`w-10 text-right ${getRarityClass(r)}`}>
-                  {getRarityName(r, true)}
+                  {getRarityName(r, isCN)}
                 </span>
                 <span className="term-dim flex-1">{minted}/{cap}</span>
                 <span className="term-dim">{RARITY_PRICES[r]}</span>
@@ -209,33 +212,33 @@ export function MintPanel() {
 
         {/* Instructions */}
         <div className="px-3 py-2 space-y-1 text-xs term-dim">
-          <div className="term-bright text-xs glow mb-1">铸造说明</div>
-          <div>&gt; commit-reveal 两步机制</div>
-          <div>&gt; 1. 选择稀有度 → 提交</div>
-          <div>&gt; 2. 等 1 分钟 → 揭示</div>
-          <div>&gt; 24h 未揭示可退款</div>
-          <div className="term-warn">&gt; [!] 勿清浏览器数据</div>
+          <div className="term-bright text-xs glow mb-1">{t('mint.instructions')}</div>
+          <div>{t('mint.inst1')}</div>
+          <div>{t('mint.inst2')}</div>
+          <div>{t('mint.inst3')}</div>
+          <div>{t('mint.inst4')}</div>
+          <div className="term-warn">{t('mint.inst5')}</div>
         </div>
       </div>
 
       {/* ═══ RIGHT: Mint Action ═══ */}
       <div className="pipboy-split-content flex flex-col">
-        <div className="term-bright text-sm glow mb-3">创世铸造 — Genesis Mint</div>
+        <div className="term-bright text-sm glow mb-3">{t('mint.genesis')}</div>
 
         {!isConnected ? (
           <div className="term-dim text-sm py-8 text-center">
-            连接钱包以进行铸造
+            {t('mint.connectWallet')}
           </div>
         ) : mintingActive === false ? (
           <div className="term-warn text-sm py-8 text-center">
-            [!] 铸造尚未开始
+            {t('mint.notStarted')}
           </div>
         ) : (
           <div className="space-y-3 flex-1">
             {/* Phase: SELECT */}
             {phase === 'select' && (
               <>
-                <div className="text-xs term-dim">&gt; 选择稀有度:</div>
+                <div className="text-xs term-dim">{t('mint.selectRarity')}</div>
                 <div className="space-y-1">
                   {[0, 1, 2, 3, 4].map((r) => {
                     const minted = rarityMinted ? Number(rarityMinted[r]) : 0;
@@ -256,11 +259,11 @@ export function MintPanel() {
                         style={isSelected ? { background: 'rgba(51,255,102,0.08)' } : undefined}
                       >
                         {isSelected ? '> ' : '  '}
-                        {getRarityName(r, true)}
+                        {getRarityName(r, isCN)}
                         {' '}{RARITY_PRICES[r]} {nativeSymbol}
-                        {' '}· 空投 {RARITY_AIRDROPS[r]} CLW
+                        {' '}· {t('mint.airdrop')} {RARITY_AIRDROPS[r]} CLW
                         {getRarityStars(r) ? ` ${getRarityStars(r)}` : ''}
-                        {soldOut ? ' [SOLD OUT]' : ''}
+                        {soldOut ? ` ${t('mint.soldOut')}` : ''}
                       </button>
                     );
                   })}
@@ -270,11 +273,11 @@ export function MintPanel() {
 
                 <div className="text-xs space-y-1">
                   <div className="term-dim">
-                    &gt; 已选: <span className={getRarityClass(selectedRarity)}>{getRarityName(selectedRarity, true)}</span>
+                    {t('mint.selected')} <span className={getRarityClass(selectedRarity)}>{getRarityName(selectedRarity, isCN)}</span>
                   </div>
                   <div className="term-dim">
-                    &gt; 费用: <span className="term-bright">{RARITY_PRICES[selectedRarity]} {nativeSymbol}</span>
-                    {' '}· 空投: <span className="term-bright">{RARITY_AIRDROPS[selectedRarity]} CLW</span>
+                    {t('mint.cost')} <span className="term-bright">{RARITY_PRICES[selectedRarity]} {nativeSymbol}</span>
+                    {' '}· {t('mint.airdrop')}: <span className="term-bright">{RARITY_AIRDROPS[selectedRarity]} CLW</span>
                   </div>
                 </div>
 
@@ -283,12 +286,12 @@ export function MintPanel() {
                   disabled={commitMint.isPending || commitMint.isConfirming}
                   className="term-btn term-btn-primary text-sm w-full"
                 >
-                  [{commitMint.isPending ? '签名...' : commitMint.isConfirming ? '确认中...' : `确认铸造 — ${RARITY_PRICES[selectedRarity]} ${nativeSymbol}`}]
+                  [{commitMint.isPending ? t('mint.signing') : commitMint.isConfirming ? t('mint.confirming') : `${t('mint.confirmMint')} — ${RARITY_PRICES[selectedRarity]} ${nativeSymbol}`}]
                 </button>
 
                 {commitMint.hash && (
                   <a href={getBscScanTxUrl(commitMint.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
-                    [查看交易 →]
+                    [{t('mint.viewTx')}]
                   </a>
                 )}
                 {commitMint.error && (
@@ -302,22 +305,22 @@ export function MintPanel() {
             {/* Phase: WAITING */}
             {phase === 'waiting' && (
               <div className="text-center space-y-3 py-6">
-                <div className="term-warn text-sm">等待揭示窗口...</div>
+                <div className="term-warn text-sm">{t('mint.waiting')}</div>
                 <div className="term-bright text-2xl glow-strong">{formatTime(countdown)}</div>
-                <div className="term-dim text-xs">提交已记录，揭示窗口将在倒计时结束后开放</div>
+                <div className="term-dim text-xs">{t('mint.committed')}</div>
               </div>
             )}
 
             {/* Phase: READY */}
             {phase === 'ready' && (
               <div className="space-y-3">
-                <div className="text-sm term-bright glow">揭示窗口已开放!</div>
+                <div className="text-sm term-bright glow">{t('mint.revealOpen')}</div>
                 <div className="term-dim text-xs">
-                  剩余揭示时间: <span className="term-warn">{formatTime(countdown)}</span>
+                  {t('mint.revealTime')} <span className="term-warn">{formatTime(countdown)}</span>
                 </div>
                 {!savedSalt && (
                   <div className="term-danger text-xs">
-                    [!] 未找到本地 salt 数据。如果您清除了浏览器数据，需要等待 24 小时后申请退款。
+                    {t('mint.noSalt')}
                   </div>
                 )}
                 <button
@@ -325,11 +328,11 @@ export function MintPanel() {
                   disabled={revealMint.isPending || revealMint.isConfirming || !savedSalt}
                   className="term-btn term-btn-primary text-sm w-full"
                 >
-                  [{revealMint.isPending ? '签名...' : revealMint.isConfirming ? '确认中...' : '揭示你的龙虾 NFA'}]
+                  [{revealMint.isPending ? t('mint.signing') : revealMint.isConfirming ? t('mint.confirming') : t('mint.revealBtn')}]
                 </button>
                 {revealMint.hash && (
                   <a href={getBscScanTxUrl(revealMint.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
-                    [查看交易 →]
+                    [{t('mint.viewTx')}]
                   </a>
                 )}
                 {revealMint.error && (
@@ -346,20 +349,20 @@ export function MintPanel() {
             {/* Phase: EXPIRED */}
             {phase === 'expired' && (
               <div className="space-y-3">
-                <div className="term-danger text-sm">[!] 揭示窗口已过期</div>
+                <div className="term-danger text-sm">{t('mint.expired')}</div>
                 <div className="term-dim text-xs">
-                  超过 24 小时未揭示。你可以申请退回已支付的 {nativeSymbol}。
+                  {t('mint.expiredDesc')} {nativeSymbol}。
                 </div>
                 <button
                   onClick={handleRefund}
                   disabled={refundHook.isPending || refundHook.isConfirming}
                   className="term-btn term-btn-primary text-sm w-full"
                 >
-                  [{refundHook.isPending ? '签名...' : refundHook.isConfirming ? '确认中...' : '申请退款'}]
+                  [{refundHook.isPending ? t('mint.signing') : refundHook.isConfirming ? t('mint.confirming') : t('mint.refund')}]
                 </button>
                 {refundHook.hash && (
                   <a href={getBscScanTxUrl(refundHook.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
-                    [查看交易 →]
+                    [{t('mint.viewTx')}]
                   </a>
                 )}
                 {refundHook.error && (
@@ -373,19 +376,19 @@ export function MintPanel() {
             {/* Phase: SUCCESS */}
             {phase === 'success' && (
               <div className="text-center space-y-3 py-6">
-                <div className="term-bright text-lg glow-strong">铸造成功!</div>
-                <div className="term-dim text-sm">你的创世龙虾 NFA 已铸造</div>
+                <div className="term-bright text-lg glow-strong">{t('mint.success')}</div>
+                <div className="term-dim text-sm">{t('mint.successDesc')}</div>
                 {revealMint.hash && (
                   <a href={getBscScanTxUrl(revealMint.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
-                    [查看铸造交易 →]
+                    [{t('mint.viewMintTx')}]
                   </a>
                 )}
                 <div className="flex justify-center gap-3 pt-2">
                   <Link href="/nfa" className="term-btn term-btn-primary text-sm">
-                    [查看 NFA 合集]
+                    [{t('mint.viewCollection')}]
                   </Link>
                   <button onClick={handleReset} className="term-btn text-sm">
-                    [铸造另一个]
+                    [{t('mint.mintAnother')}]
                   </button>
                 </div>
               </div>
@@ -398,7 +401,7 @@ export function MintPanel() {
           <>
             <div className="term-line my-3" />
             <div className="space-y-2">
-              <div className="term-warn text-xs glow">[ADMIN] 免费铸造</div>
+              <div className="term-warn text-xs glow">{t('mint.adminFree')}</div>
               <div className="flex gap-2 items-center flex-wrap">
                 {[0, 1, 2, 3, 4].map((r) => (
                   <button
@@ -406,13 +409,13 @@ export function MintPanel() {
                     onClick={() => setOwnerRarity(r)}
                     className={`text-xs ${ownerRarity === r ? `${getRarityClass(r)} glow` : 'term-dim hover:text-crt-green'}`}
                   >
-                    [{ownerRarity === r ? '>' : ' '}{getRarityName(r, true)}]
+                    [{ownerRarity === r ? '>' : ' '}{getRarityName(r, isCN)}]
                   </button>
                 ))}
               </div>
               <input
                 type="text"
-                placeholder="接收地址 (留空 = 自己)"
+                placeholder={t('mint.recipientPlaceholder')}
                 value={ownerRecipient}
                 onChange={(e) => setOwnerRecipient(e.target.value)}
                 className="w-full bg-transparent border border-crt-green/30 text-crt-green text-xs px-2 py-1 placeholder:text-crt-green/20 focus:outline-none focus:border-crt-green/60"
@@ -421,7 +424,12 @@ export function MintPanel() {
                 onClick={async () => {
                   setOwnerSimError(null);
                   ownerMintHook.reset();
-                  const recipient = (ownerRecipient.trim() || address) as Address;
+                  const rawRecipient = ownerRecipient.trim();
+                  if (rawRecipient && !isAddress(rawRecipient)) {
+                    setOwnerSimError(t('mint.invalidAddr'));
+                    return;
+                  }
+                  const recipient = (rawRecipient || address) as Address;
                   try {
                     await simulateContract(config, {
                       ...vaultContract,
@@ -441,18 +449,18 @@ export function MintPanel() {
                 disabled={ownerMintHook.isPending || ownerMintHook.isConfirming}
                 className="term-btn term-btn-primary text-xs w-full"
               >
-                [{ownerMintHook.isPending ? '签名...' : ownerMintHook.isConfirming ? '确认中...' : `免费铸造 ${getRarityName(ownerRarity, true)}`}]
+                [{ownerMintHook.isPending ? t('mint.signing') : ownerMintHook.isConfirming ? t('mint.confirming') : `${t('mint.freeMint')} ${getRarityName(ownerRarity, isCN)}`}]
               </button>
               {ownerMintHook.hash && (
                 <a href={getBscScanTxUrl(ownerMintHook.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
-                  [查看交易 →]
+                  [{t('mint.viewTx')}]
                 </a>
               )}
               {ownerMintHook.isSuccess && (
                 <>
-                  <div className="term-bright text-xs glow">铸造成功!</div>
+                  <div className="term-bright text-xs glow">{t('mint.success')}</div>
                   <button onClick={() => ownerMintHook.reset()} className="term-btn text-xs">
-                    [继续铸造]
+                    [{t('mint.continueBtn')}]
                   </button>
                 </>
               )}
@@ -463,7 +471,7 @@ export function MintPanel() {
               )}
               {ownerSimError && (
                 <div className="term-danger text-xs">
-                  [模拟失败] {ownerSimError}
+                  [{t('mint.simFail')}] {ownerSimError}
                 </div>
               )}
             </div>

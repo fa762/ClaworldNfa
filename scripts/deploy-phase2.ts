@@ -63,19 +63,31 @@ async function main() {
   const router = await ethers.getContractAt("ClawRouter", routerAddress);
 
   // Set GenesisVault as minter for both NFA and Router
-  await nfa.setMinter(vault.address);
+  await (await nfa.setMinter(vault.address)).wait();
   console.log("Set GenesisVault as NFA minter");
 
-  await router.setMinter(vault.address);
+  await (await router.setMinter(vault.address)).wait();
   console.log("Set GenesisVault as Router minter");
 
   // Authorize GenesisVault as skill (for addCLW airdrops)
-  await router.authorizeSkill(vault.address, true);
+  await (await router.authorizeSkill(vault.address, true)).wait();
   console.log("Authorized GenesisVault as skill");
 
   // Set WorldState on Router (for dailyCostMultiplier)
-  await router.setWorldState(worldState.address);
+  await (await router.setWorldState(worldState.address)).wait();
   console.log("Set WorldState on Router");
+
+  // --- Post-deployment verification ---
+  console.log("\nVerifying roles...");
+  const nfaMinter = await nfa.minter();
+  if (nfaMinter !== vault.address) throw new Error(`NFA minter mismatch: expected ${vault.address}, got ${nfaMinter}`);
+  const routerMinter = await router.minter();
+  if (routerMinter !== vault.address) throw new Error(`Router minter mismatch: expected ${vault.address}, got ${routerMinter}`);
+  const isSkill = await router.authorizedSkills(vault.address);
+  if (!isSkill) throw new Error("GenesisVault not authorized as skill on Router");
+  const ws = await router.worldState();
+  if (ws !== worldState.address) throw new Error(`WorldState mismatch: expected ${worldState.address}, got ${ws}`);
+  console.log("All role verifications passed!");
 
   console.log("\n--- Phase 2 Deployment Complete ---");
   console.log("GenesisVault:", vault.address);

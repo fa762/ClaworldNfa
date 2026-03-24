@@ -7,6 +7,7 @@ import { parseEther } from 'viem';
 import { getBscScanTxUrl } from '@/contracts/addresses';
 import { TerminalBox } from '@/components/terminal/TerminalBox';
 import { nativeSymbol } from '@/lib/format';
+import { useI18n } from '@/lib/i18n';
 
 type Tab = 'bnb' | 'clw' | 'quick';
 
@@ -17,6 +18,7 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
   const { address, isConnected } = useAccount();
   const [tab, setTab] = useState<Tab>('bnb');
   const [amount, setAmount] = useState('');
+  const { t } = useI18n();
 
   const fundBNB = useFundBNB();
   const depositCLW = useDepositCLW();
@@ -25,9 +27,9 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
 
   if (!isConnected) {
     return (
-      <TerminalBox title="充值">
+      <TerminalBox title={t('deposit.title')}>
         <div className="term-dim text-sm py-4 text-center">
-          连接钱包以进行充值
+          {t('deposit.connectWallet')}
         </div>
       </TerminalBox>
     );
@@ -45,7 +47,8 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
   const quickAmounts = tab === 'clw' ? QUICK_CLW : QUICK_BNB;
 
   function handleSubmit() {
-    if (!amount || Number(amount) <= 0) return;
+    const num = Number(amount);
+    if (!amount || isNaN(num) || num <= 0) return;
     switch (tab) {
       case 'bnb': fundBNB.fundAgent(tokenId, amount); break;
       case 'clw':
@@ -60,33 +63,33 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
   }
 
   return (
-    <TerminalBox title="充值">
+    <TerminalBox title={t('deposit.title')}>
       <div className="space-y-3">
         {/* Mode selector */}
         <div className="flex gap-2 text-xs">
-          <span className="term-dim">&gt; 模式:</span>
-          {tabs.map((t) => (
+          <span className="term-dim">{t('deposit.mode')}</span>
+          {tabs.map((tabItem) => (
             <button
-              key={t.key}
-              onClick={() => { if (!t.disabled) { setTab(t.key); setAmount(''); } }}
-              disabled={t.disabled}
+              key={tabItem.key}
+              onClick={() => { if (!tabItem.disabled) { setTab(tabItem.key); setAmount(''); } }}
+              disabled={tabItem.disabled}
               className={
-                tab === t.key
+                tab === tabItem.key
                   ? 'term-bright glow'
-                  : t.disabled
+                  : tabItem.disabled
                   ? 'term-darkest cursor-not-allowed'
                   : 'term-dim hover:text-crt-green'
               }
             >
-              [{t.key === tab ? `> ${t.label}` : t.label}]
-              {t.disabled && <span className="term-darkest ml-0.5">(待毕业)</span>}
+              [{tabItem.key === tab ? `> ${tabItem.label}` : tabItem.label}]
+              {tabItem.disabled && <span className="term-darkest ml-0.5">{t('deposit.pendingGrad')}</span>}
             </button>
           ))}
         </div>
 
         {/* Quick amounts */}
         <div className="flex gap-2 text-xs">
-          <span className="term-dim">&gt; 快选:</span>
+          <span className="term-dim">{t('deposit.quick')}</span>
           {quickAmounts.map((qa) => (
             <button
               key={qa}
@@ -105,7 +108,7 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder={tab === 'clw' ? 'CLW 数量' : `${nativeSymbol} 数量`}
+            placeholder={tab === 'clw' ? t('deposit.clwAmount') : `${nativeSymbol}${t('deposit.bnbAmount')}`}
             className="term-input flex-1 text-sm"
             min="0"
             step="0.01"
@@ -115,18 +118,18 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
             disabled={isPending || isConfirming || !amount}
             className="term-btn term-btn-primary text-sm"
           >
-            [{isPending ? '签名...' : isConfirming ? '确认中...' : '确认充值'}]
+            [{isPending ? t('deposit.signing') : isConfirming ? t('deposit.confirming') : t('deposit.confirm')}]
           </button>
         </div>
 
         {/* Warnings */}
         {tab === 'clw' && allowance !== undefined && amount && parseEther(amount) > allowance && (
-          <div className="term-warn text-xs">[!] 需要先授权 CLW，将弹出两次交易</div>
+          <div className="term-warn text-xs">{t('deposit.needApprove')}</div>
         )}
 
         {hash && (
           <a href={getBscScanTxUrl(hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
-            [查看交易 →]
+            [{t('deposit.viewTx')}]
           </a>
         )}
       </div>
