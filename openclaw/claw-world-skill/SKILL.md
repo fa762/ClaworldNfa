@@ -72,56 +72,110 @@ The lobster's personality is driven by **player choices**, not randomness:
 
 **Match Score**: personality vector dot product with task requirements. A well-trained specialist lobster earns up to **20x** more than a generic one.
 
-## Getting Started (First Time Setup)
+## Getting Started (First Time Setup) — MUST NOT GET STUCK
 
-When a player first uses this skill, here's what happens:
+When a player first uses this skill, follow this EXACT flow. **Do not ask unnecessary questions. Do not get stuck.**
 
-1. **Wallet Creation**: The skill automatically generates a local wallet
-   - `/wallet init <your-pin>` - Create wallet with a PIN to encrypt the private key
-   - `/wallet` - Show your OpenClaw wallet address
-   - The private key is encrypted and stored locally at `~/.openclaw/claw-world/wallet.enc`
-   - **The private key never leaves the player's device**
+### Step 1: Check existing wallet
+```bash
+if [ -f ~/.openclaw/claw-world/wallet.json ]; then
+  echo "WALLET_EXISTS"
+  cat ~/.openclaw/claw-world/wallet.json | head -1
+else
+  echo "NO_WALLET"
+fi
+```
+- If `WALLET_EXISTS`: skip to Step 3. Read the address from the file.
+- If `NO_WALLET`: go to Step 2.
 
-2. **Transfer NFA**: The player must transfer their lobster NFA to the OpenClaw wallet
-   - Go to https://clawnfaterminal.xyz → NFA detail page → Maintain tab → "Transfer to OpenClaw"
-   - Paste the OpenClaw wallet address shown by `/wallet`
-   - Confirm the transfer in MetaMask
-   - Once transferred, the lobster lives inside OpenClaw
+### Step 2: Create wallet (only if no wallet exists)
+Ask the user for a PIN (4-6 digits). Then run:
+```bash
+mkdir -p ~/.openclaw/claw-world
+node -e "
+const crypto = require('crypto');
+const { Wallet } = require('ethers');
+const pin = process.argv[1];
+const w = Wallet.createRandom();
+const key = crypto.scryptSync(pin, 'claw-world-salt', 32);
+const iv = crypto.randomBytes(16);
+const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+let enc = cipher.update(w.privateKey, 'utf8', 'hex');
+enc += cipher.final('hex');
+const data = JSON.stringify({
+  address: w.address,
+  encrypted: enc,
+  iv: iv.toString('hex')
+});
+require('fs').writeFileSync(
+  require('os').homedir() + '/.openclaw/claw-world/wallet.json', data
+);
+console.log('WALLET_CREATED');
+console.log('ADDRESS:' + w.address);
+" "<USER_PIN>"
+```
+Show the address to the user. Then continue to Step 3.
 
-3. **Start Playing**: After transfer, the lobster is ready
-   - `/status` - See lobster stats
-   - `/task list` - Get personalized tasks
-   - Or just talk to your lobster naturally!
+### Step 3: Check network config
+```bash
+cat ~/.openclaw/claw-world/network.conf 2>/dev/null || echo "NOT_SET"
+```
+- If `NOT_SET`: ask "测试网还是主网？" and save choice:
+  `echo "testnet" > ~/.openclaw/claw-world/network.conf`
 
-### Wallet Commands
+### Step 4: Detect NFA ownership
+Use the wallet address to check if it owns any NFA:
+```bash
+cast call <ClawNFA_address> "balanceOf(address)" <wallet_address> --rpc-url <rpc>
+```
+- If balance > 0: find tokenId with `tokenOfOwnerByIndex` and load lobster data
+- If balance = 0: tell user "你的 OpenClaw 钱包还没有龙虾。请在官网 Mint 后转移到此地址: <address>"
 
-| Command | Description |
-|---------|-------------|
-| `/wallet init <pin>` | Create a new wallet (first time only) |
-| `/wallet` | Show wallet address and balances |
-| `/wallet unlock <pin>` | Unlock wallet for transactions |
+### Step 5: Ready to play!
+Load lobster data with `getLobsterState` and greet the user in character.
 
-## Gas Fee (Important!)
+**THE ENTIRE FLOW ABOVE MUST COMPLETE WITHOUT GETTING STUCK.**
+If any step fails, show the error clearly and suggest a fix.
 
-Your OpenClaw wallet needs a small amount of BNB for transaction gas fees:
+### Wallet Unlock (for transactions)
+When a transaction is needed, decrypt the private key:
+```bash
+node -e "
+const crypto = require('crypto');
+const fs = require('fs');
+const pin = process.argv[1];
+const data = JSON.parse(fs.readFileSync(
+  require('os').homedir() + '/.openclaw/claw-world/wallet.json', 'utf8'
+));
+const key = crypto.scryptSync(pin, 'claw-world-salt', 32);
+const iv = Buffer.from(data.iv, 'hex');
+const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+let dec = decipher.update(data.encrypted, 'hex', 'utf8');
+dec += decipher.final('utf8');
+console.log('UNLOCKED');
+console.log('KEY:' + dec);
+" "<USER_PIN>"
+```
+**NEVER show the private key to the user.** Only use it internally for signing.
+
+## Gas Fee
+
 - **BSC Testnet**: Get free tBNB from https://www.bnbchain.org/en/testnet-faucet
 - **BSC Mainnet**: Transfer ~0.01 BNB to your OpenClaw wallet address
-
-Without gas, the lobster cannot execute on-chain actions (tasks, PK, market trades).
-
-Send tBNB/BNB to the address shown by `/wallet` before transferring your NFA.
+- Without gas, on-chain actions will fail. Check balance:
+  `cast balance <wallet_address> --rpc-url <rpc>`
 
 ## Network Configuration
 
-**Current mode: BSC Testnet (testing)**
+Check `~/.openclaw/claw-world/network.conf` for the active network.
+If file does not exist, **ask the user**: "你要连接测试网还是主网？"
 
-When executing on-chain commands, use this RPC and these contract addresses:
-
+### BSC Testnet (chainId 97)
 ```
-Chain: BSC Testnet (chainId 97)
 RPC: https://bsc-testnet-rpc.publicnode.com
+Gas token: tBNB (free from https://www.bnbchain.org/en/testnet-faucet)
 
-Contract Addresses:
+Contracts:
   ClawNFA:           0x1c69be3401a78CFeDC2B2543E62877874f10B135
   ClawRouter:        0xA7Ee12C5E9435686978F4b87996B4Eb461c34603
   GenesisVault:      0x6d176022759339da787fD3E2f1314019C3fb7867
@@ -131,10 +185,28 @@ Contract Addresses:
   WorldState:        0x3479E9d103Ea28c9b3f94a73d3cf7bC9187e4F7d
   DepositRouter:     0xd61Cc50b2d15cC58b24c0f7B6cC83bbc0b0fB448
   PersonalityEngine: 0xab8F67949bf607181ca89E6aAaF401cFeA4dac0e
-  MockCLW:           0xCdb158C1A1F0e8B85d785172f2109bC53e2F41FC
-
-Gas token: tBNB (free from https://www.bnbchain.org/en/testnet-faucet)
+  CLW:               0xCdb158C1A1F0e8B85d785172f2109bC53e2F41FC
 ```
+
+### BSC Mainnet (chainId 56) — 主网上线后填入
+```
+RPC: https://bsc-rpc.publicnode.com
+Gas token: BNB
+
+Contracts:
+  ClawNFA:           <TBD>
+  ClawRouter:        <TBD>
+  GenesisVault:      <TBD>
+  TaskSkill:         <TBD>
+  PKSkill:           <TBD>
+  MarketSkill:       <TBD>
+  WorldState:        <TBD>
+  DepositRouter:     <TBD>
+  PersonalityEngine: <TBD>
+  CLW:               <TBD>
+```
+
+To save network choice: `echo "testnet" > ~/.openclaw/claw-world/network.conf`
 
 ## On-Chain Data Reading (CRITICAL — field order matters!)
 
@@ -172,6 +244,66 @@ Example cast command:
 cast call 0xA7Ee12C5E9435686978F4b87996B4Eb461c34603 \
   "getLobsterState(uint256)" 1 \
   --rpc-url https://bsc-testnet-rpc.publicnode.com
+```
+
+## On-Chain Write Operations (Transaction ABI)
+
+All write operations require the player's OpenClaw wallet to sign transactions.
+Use `cast send --private-key <key> --rpc-url <rpc>` or ethers.js Wallet.
+
+### TaskSkill — Complete a task
+The player's wallet IS the operator (authorized on testnet).
+```
+Function: completeTypedTask(uint256 nfaId, uint8 taskType, uint32 xpReward, uint256 clwReward, uint16 matchScore)
+Contract: TaskSkill address (see network config above)
+
+Parameters:
+  nfaId      — The lobster's token ID
+  taskType   — 0=courage, 1=wisdom, 2=social, 3=create, 4=grit
+  xpReward   — Base XP (e.g. 50)
+  clwReward  — Base CLW in wei (e.g. 50e18 = 50 CLW)
+  matchScore — 0-20000 basis points (10000 = 1.0x, calculated from personality·task vector)
+
+Match score calculation:
+  lobsterPersonality = [courage, wisdom, social, create, grit] (each 0-100)
+  taskRequirement = [0,0,0,0,0] with 100 in the matching dimension
+  dotProduct = sum(lobsterPersonality[i] * taskRequirement[i]) for i in 0..4
+  matchScore = dotProduct * 200 (scales 0-100 range to 0-20000)
+  Example: courage=72, task=courage → matchScore = 72 * 200 = 14400 (1.44x)
+```
+
+Example:
+```bash
+cast send <TaskSkill_address> \
+  "completeTypedTask(uint256,uint8,uint32,uint256,uint16)" \
+  1 3 50 50000000000000000000 14400 \
+  --private-key <wallet_key> --rpc-url <rpc>
+```
+
+### PKSkill — PvP Battle (commit-reveal)
+```
+createMatch(uint256 nfaId, uint256 stake)         — Create match, stake CLW
+joinMatch(uint256 matchId, uint256 nfaId)          — Join existing match
+commitStrategy(uint256 matchId, bytes32 commitment) — Submit hashed strategy
+revealStrategy(uint256 matchId, uint8 strategy, bytes32 salt) — Reveal strategy
+settleMatch(uint256 matchId)                       — Settle and distribute rewards
+
+Strategy: 0=AllAttack, 1=Balanced, 2=AllDefense
+Commitment: keccak256(abi.encodePacked(strategy, salt))
+```
+
+### MarketSkill — Marketplace
+```
+listFixedPrice(uint256 nfaId, uint256 priceBNB)   — List for fixed price (BNB in wei)
+listAuction(uint256 nfaId, uint256 startPrice)     — List for 24h auction
+buy(uint256 listingId)                              — Buy a listing (send BNB)
+bid(uint256 listingId)                              — Bid on auction (send BNB)
+cancelListing(uint256 listingId)                    — Cancel your listing
+```
+
+### ClawNFA — Transfer
+```
+safeTransferFrom(address from, address to, uint256 tokenId) — Transfer NFA
 ```
 
 ## Wallet Persistence (IMPORTANT)
