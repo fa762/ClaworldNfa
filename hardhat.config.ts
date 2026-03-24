@@ -10,6 +10,15 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
+// Proxy support for BSC testnet/mainnet deployments
+// Set HTTP_PROXY=http://127.0.0.1:59527 in .env to enable
+if (process.env.HTTP_PROXY) {
+  const HttpsProxyAgent = require("https-proxy-agent");
+  const https = require("https");
+  https.globalAgent = new HttpsProxyAgent(process.env.HTTP_PROXY);
+}
+
+
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.26",
@@ -26,9 +35,11 @@ const config: HardhatUserConfig = {
       chainId: 31337,
     },
     bscTestnet: {
-      url: "https://bsc-testnet-rpc.publicnode.com",
+      url: process.env.BSC_TESTNET_RPC || "https://bsc-testnet.bnbchain.org",
       chainId: 97,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      timeout: 120000,
+      httpHeaders: {},
     },
     bscMainnet: {
       url: "https://bsc-dataseed1.bnbchain.org",

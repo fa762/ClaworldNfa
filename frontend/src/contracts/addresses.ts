@@ -8,6 +8,10 @@ export const addresses = {
   clwToken: process.env.NEXT_PUBLIC_CLW_TOKEN_ADDRESS as Address,
   flapPortal: process.env.NEXT_PUBLIC_FLAP_PORTAL_ADDRESS as Address,
   pancakeRouter: process.env.NEXT_PUBLIC_PANCAKE_ROUTER_ADDRESS as Address,
+  // Phase 4: New contracts
+  depositRouter: process.env.NEXT_PUBLIC_DEPOSIT_ROUTER_ADDRESS as Address,
+  personalityEngine: process.env.NEXT_PUBLIC_PERSONALITY_ENGINE_ADDRESS as Address,
+  pkSkill: process.env.NEXT_PUBLIC_PKSKILL_ADDRESS as Address,
 } as const;
 
 export const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || '97');
