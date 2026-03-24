@@ -8,10 +8,10 @@ interface DNABarChartProps {
 }
 
 const GENE_COLORS: Record<string, string> = {
-  STR: 'term-danger',
-  DEF: 'rarity-rare',
-  SPD: 'text-crt-green',
-  VIT: 'term-warn',
+  STR: 'bg-red-500',
+  DEF: 'bg-cyan-400',
+  SPD: 'bg-green-400',
+  VIT: 'bg-amber-400',
 };
 
 export function DNABarChart({ str, def, spd, vit }: DNABarChartProps) {
@@ -30,7 +30,6 @@ export function DNABarChart({ str, def, spd, vit }: DNABarChartProps) {
           label={d.label}
           value={d.value}
           max={100}
-          width={20}
           color={GENE_COLORS[d.name]}
         />
       ))}
