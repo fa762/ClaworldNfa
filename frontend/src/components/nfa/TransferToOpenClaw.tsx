@@ -3,10 +3,9 @@
 import { useState } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { isAddress } from 'viem';
-import { contracts } from '@/contracts/addresses';
+import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { ClawNFAABI } from '@/contracts/abis/ClawNFA';
 import { TerminalBox } from '@/components/terminal/TerminalBox';
-import { getBscScanTxUrl } from '@/contracts/addresses';
 import { useI18n } from '@/lib/i18n';
 
 interface TransferToOpenClawProps {
@@ -33,7 +32,7 @@ export function TransferToOpenClaw({ tokenId, ownerAddress }: TransferToOpenClaw
   function handleTransfer() {
     if (!isValidTarget || !address) return;
     writeContract({
-      address: contracts.clawNFA as `0x${string}`,
+      address: addresses.clawNFA as `0x${string}`,
       abi: ClawNFAABI,
       functionName: 'transferFrom',
       args: [address, openClawAddress as `0x${string}`, tokenId],
