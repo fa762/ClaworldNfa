@@ -136,7 +136,52 @@ Contract Addresses:
 Gas token: tBNB (free from https://www.bnbchain.org/en/testnet-faucet)
 ```
 
-To read lobster data, use `cast` or `ethers.js` to call ClawRouter.getLobsterState(tokenId) and ClawNFA.ownerOf(tokenId).
+## On-Chain Data Reading (CRITICAL — field order matters!)
+
+To read lobster data, call `ClawRouter.getLobsterState(tokenId)`. It returns a tuple with fields in **this exact order**:
+
+```
+getLobsterState(uint256 tokenId) returns:
+  [0]  rarity    uint8    — 0=Common, 1=Rare, 2=Epic, 3=Legendary, 4=Mythic
+  [1]  shelter   uint8    — 0-7 (SHELTER location)
+  [2]  courage   uint8    — Personality: 勇气 (0-100)
+  [3]  wisdom    uint8    — Personality: 智慧 (0-100)
+  [4]  social    uint8    — Personality: 社交 (0-100)
+  [5]  create    uint8    — Personality: 创造 (0-100)
+  [6]  grit      uint8    — Personality: 意志 (0-100)
+  [7]  str       uint8    — DNA: 力量 STR (0-100)
+  [8]  def       uint8    — DNA: 防御 DEF (0-100)
+  [9]  spd       uint8    — DNA: 速度 SPD (0-100)
+  [10] vit       uint8    — DNA: 生命 VIT (0-100)
+  [11] mutation1 bytes32  — Mutation slot 1
+  [12] mutation2 bytes32  — Mutation slot 2
+  [13] level     uint16   — Level (starts at 1)
+  [14] xp        uint32   — XP within current level
+  [15] lastUpkeep uint40  — Last upkeep timestamp
+```
+
+**DO NOT mix up field indices!** Personality is [2]-[6], DNA is [7]-[10], Level is [13].
+
+Other useful reads:
+- `ClawRouter.clwBalances(tokenId)` → CLW balance (uint256, 18 decimals)
+- `ClawRouter.getDailyCost(tokenId)` → daily CLW upkeep cost
+- `ClawNFA.ownerOf(tokenId)` → owner address
+
+Example cast command:
+```bash
+cast call 0xA7Ee12C5E9435686978F4b87996B4Eb461c34603 \
+  "getLobsterState(uint256)" 1 \
+  --rpc-url https://bsc-testnet-rpc.publicnode.com
+```
+
+## Wallet Persistence (IMPORTANT)
+
+The wallet file is stored at `~/.openclaw/claw-world/wallet.enc`.
+**Before asking the user to create a new wallet, ALWAYS check if this file already exists!**
+If it exists, read the address from it and skip wallet setup.
+```bash
+ls ~/.openclaw/claw-world/wallet.enc 2>/dev/null && echo "Wallet exists" || echo "No wallet"
+```
 
 ## How to respond
 
