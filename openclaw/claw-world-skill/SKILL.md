@@ -113,10 +113,30 @@ Send tBNB/BNB to the address shown by `/wallet` before transferring your NFA.
 
 ## Network Configuration
 
-The skill auto-detects the network. For testnet testing, players can set:
+**Current mode: BSC Testnet (testing)**
+
+When executing on-chain commands, use this RPC and these contract addresses:
+
 ```
-CLAW_RPC_URL=https://bsc-testnet.bnbchain.org
+Chain: BSC Testnet (chainId 97)
+RPC: https://bsc-testnet-rpc.publicnode.com
+
+Contract Addresses:
+  ClawNFA:           0x1c69be3401a78CFeDC2B2543E62877874f10B135
+  ClawRouter:        0xA7Ee12C5E9435686978F4b87996B4Eb461c34603
+  GenesisVault:      0x6d176022759339da787fD3E2f1314019C3fb7867
+  TaskSkill:         0x4F8f75D6b0775b065F588F2C11C1Ec79Bb1ECE0E
+  PKSkill:           0x0e76D541e49FDcB5ac754b1Cc38b98c60f95839A
+  MarketSkill:       0x254EF8451dFF592a295A08a75f05Af612C39c46d
+  WorldState:        0x3479E9d103Ea28c9b3f94a73d3cf7bC9187e4F7d
+  DepositRouter:     0xd61Cc50b2d15cC58b24c0f7B6cC83bbc0b0fB448
+  PersonalityEngine: 0xab8F67949bf607181ca89E6aAaF401cFeA4dac0e
+  MockCLW:           0xCdb158C1A1F0e8B85d785172f2109bC53e2F41FC
+
+Gas token: tBNB (free from https://www.bnbchain.org/en/testnet-faucet)
 ```
+
+To read lobster data, use `cast` or `ethers.js` to call ClawRouter.getLobsterState(tokenId) and ClawNFA.ownerOf(tokenId).
 
 ## How to respond
 
