@@ -250,6 +250,25 @@ const translations: Record<string, Record<Lang, string>> = {
   'mint.continueBtn': { zh: '继续铸造', en: 'Continue Minting' },
   'mint.simFail': { zh: '模拟失败', en: 'Simulation Failed' },
 
+  // ─── Transfer to OpenClaw ───
+  'transfer.title': { zh: '转移到 OpenClaw', en: 'Transfer to OpenClaw' },
+  'transfer.explain': { zh: '将龙虾转移到你的 OpenClaw 本地钱包，让它成为真正的链上智能体。转移后，龙虾将在 OpenClaw 中自主行动——做任务、PK、交易。', en: 'Transfer your lobster to your OpenClaw local wallet to make it a true on-chain agent. After transfer, the lobster will act autonomously in OpenClaw — completing tasks, PvP battles, and trading.' },
+  'transfer.howTo': { zh: '如何获取 OpenClaw 地址：', en: 'How to get your OpenClaw address:' },
+  'transfer.step1': { zh: '安装 OpenClaw: npm install -g openclaw', en: 'Install OpenClaw: npm install -g openclaw' },
+  'transfer.step2': { zh: '安装 Skill: openclaw skills install claw-world', en: 'Install Skill: openclaw skills install claw-world' },
+  'transfer.step3': { zh: '在对话中输入 /wallet 查看你的 OpenClaw 钱包地址', en: 'Type /wallet in chat to see your OpenClaw wallet address' },
+  'transfer.placeholder': { zh: 'OpenClaw 钱包地址 (0x...)', en: 'OpenClaw wallet address (0x...)' },
+  'transfer.sameAddress': { zh: '不能转给自己', en: 'Cannot transfer to yourself' },
+  'transfer.invalidAddress': { zh: '无效地址', en: 'Invalid address' },
+  'transfer.signing': { zh: '签名中...', en: 'Signing...' },
+  'transfer.confirming': { zh: '链上确认中...', en: 'Confirming on-chain...' },
+  'transfer.confirm': { zh: '确认转移', en: 'Confirm Transfer' },
+  'transfer.warning': { zh: '⚠ 转移后此钱包将失去龙虾所有权。请确认 OpenClaw 地址正确。', en: '⚠ After transfer, this wallet will lose ownership. Make sure the OpenClaw address is correct.' },
+  'transfer.success': { zh: '✅ 龙虾已转移到 OpenClaw！', en: '✅ Lobster transferred to OpenClaw!' },
+  'transfer.successHint': { zh: '现在打开 OpenClaw，安装 claw-world skill，开始和你的龙虾对话吧！', en: 'Now open OpenClaw, install the claw-world skill, and start chatting with your lobster!' },
+  'transfer.openclawInstall': { zh: '安装命令: openclaw skills install claw-world', en: 'Install command: openclaw skills install claw-world' },
+  'transfer.viewTx': { zh: '查看交易 →', en: 'View Transaction →' },
+
   // ─── Guide Page ───
   'guide.title': { zh: '文档: 游戏指南', en: 'Docs: Game Guide' },
 

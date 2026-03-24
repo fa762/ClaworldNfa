@@ -116,9 +116,11 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   const daysRemaining = cost > 0n ? Number(balance / cost) : Infinity;
 
   const getJobName = (idx: number) => t(`job.${idx}`) || t('detail.unknown');
-  const jobName = useMock
-    ? getJobName(mock!.jobClass)
-    : (jobClass !== undefined ? getJobName(Number(jobClass)) : t('detail.unknown'));
+  // jobClass from contract returns [uint8, string] tuple — extract the number
+  const jobClassNum = useMock
+    ? mock!.jobClass
+    : (jobClass !== undefined ? Number(Array.isArray(jobClass) ? jobClass[0] : jobClass) : NaN);
+  const jobName = !isNaN(jobClassNum) ? getJobName(jobClassNum) : t('detail.unknown');
 
   const name = getMockLobsterName(numId);
   const imageUrl = resolveIpfsUrl(useMock ? '' : ((agentMeta as any)?.vaultURI ?? ''));
@@ -206,10 +208,10 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
             <div className="space-y-3 p-2">
               <div className="text-xs term-dim mb-2">{t('gene.title')}</div>
               <div className="space-y-1.5">
-                <TerminalBar label="STR" sublabel={t('gene.str')} value={str} color="term-danger" />
-                <TerminalBar label="DEF" sublabel={t('gene.def')} value={def} color="term-link" />
+                <TerminalBar label="STR" sublabel={t('gene.str')} value={str} color="text-red-400" />
+                <TerminalBar label="DEF" sublabel={t('gene.def')} value={def} color="text-cyan-400" />
                 <TerminalBar label="SPD" sublabel={t('gene.spd')} value={spd} color="text-crt-green" />
-                <TerminalBar label="VIT" sublabel={t('gene.vit')} value={vit} color="term-warn" />
+                <TerminalBar label="VIT" sublabel={t('gene.vit')} value={vit} color="text-amber-400" />
               </div>
               <div className="term-line my-2" />
               <MutationSlots mutation1={mutation1} mutation2={mutation2} />
