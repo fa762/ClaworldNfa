@@ -226,8 +226,9 @@ export function formatWorldState(
 
 export function formatHelp(format: OutputFormat): GameResponse {
   const commands = [
+    ['/wallet [init|unlock]', '钱包管理'],
     ['/status [id]', '查看龙虾状态'],
-    ['/task list|accept|complete', '任务系统'],
+    ['/task list|accept', '任务系统'],
     ['/pk create|join|commit|reveal|settle', 'PvP 对战'],
     ['/market list|sell|buy|cancel', '市场交易'],
     ['/deposit <amount>', '充值 CLW'],

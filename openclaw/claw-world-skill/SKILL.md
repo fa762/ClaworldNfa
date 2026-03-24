@@ -101,6 +101,16 @@ When a player first uses this skill, here's what happens:
 | `/wallet` | Show wallet address and balances |
 | `/wallet unlock <pin>` | Unlock wallet for transactions |
 
+## Gas Fee (Important!)
+
+Your OpenClaw wallet needs a small amount of BNB for transaction gas fees:
+- **BSC Testnet**: Get free tBNB from https://www.bnbchain.org/en/testnet-faucet
+- **BSC Mainnet**: Transfer ~0.01 BNB to your OpenClaw wallet address
+
+Without gas, the lobster cannot execute on-chain actions (tasks, PK, market trades).
+
+Send tBNB/BNB to the address shown by `/wallet` before transferring your NFA.
+
 ## Network Configuration
 
 The skill auto-detects the network. For testnet testing, players can set:

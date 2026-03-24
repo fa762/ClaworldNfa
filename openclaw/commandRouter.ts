@@ -14,6 +14,7 @@ const COMMAND_PATTERNS: Record<string, RegExp> = {
   market:   /^\/(market|m)(?:\s+(.+))?$/i,
   deposit:  /^\/(deposit|d)(?:\s+(.+))?$/i,
   withdraw: /^\/(withdraw|w)(?:\s+(.+))?$/i,
+  wallet:   /^\/(wallet|chain)(?:\s+(.+))?$/i,
   help:     /^\/(help|h|\?)$/i,
   job:      /^\/(job|class)(?:\s+(\d+))?$/i,
   world:    /^\/(world|ws)$/i,

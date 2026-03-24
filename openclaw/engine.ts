@@ -30,6 +30,7 @@ import {
   TASK_TYPE_ICONS,
 } from './types';
 import { MarketSkill } from './skills/marketSkill';
+import { ChainSkill, formatWalletInfo } from './skills/chainSkill';
 import * as formatter from './formatter';
 import {
   buildLobsterSystemPrompt,
@@ -49,6 +50,7 @@ export class ClawEngine {
   private client: GameContractClient;
   private ai: AIProvider;
   private marketSkill: MarketSkill;
+  private chainSkill: ChainSkill | null = null;
   private format: OutputFormat;
 
   /** Per-NFA chat history for AI dialogue continuity. */
@@ -66,11 +68,13 @@ export class ClawEngine {
   constructor(
     client: GameContractClient,
     ai: AIProvider,
-    format: OutputFormat = 'plain'
+    format: OutputFormat = 'plain',
+    chainSkill?: ChainSkill
   ) {
     this.client = client;
     this.ai = ai;
     this.marketSkill = new MarketSkill(client);
+    this.chainSkill = chainSkill || null;
     this.format = format;
   }
 
@@ -119,6 +123,8 @@ export class ClawEngine {
           return this.handleWorld();
         case 'job':
           return this.handleJob(nfaId);
+        case 'wallet':
+          return this.handleWallet(cmd.args);
         case 'help':
           return formatter.formatHelp(this.format);
         default:
@@ -722,6 +728,68 @@ export class ClawEngine {
         `等级: ${state.level}`,
       ].join('\n'),
     };
+  }
+
+  // ============================================
+  // WALLET
+  // ============================================
+
+  private async handleWallet(args: string[]): Promise<GameResponse> {
+    if (!this.chainSkill) {
+      return { text: 'chain.skill 未配置。请检查 OpenClaw 设置。' };
+    }
+
+    const sub = args[0];
+
+    if (sub === 'init') {
+      const pin = args[1];
+      if (!pin || pin.length < 4) {
+        return { text: '用法: /wallet init <PIN码> （至少4位）' };
+      }
+      const address = await this.chainSkill.initWallet(pin);
+      return {
+        text: [
+          this.format === 'plain' ? '=== 🔑 钱包已创建 ===' : '🔑 **钱包已创建**',
+          `地址: ${address}`,
+          '',
+          '接下来：',
+          '1. 往此地址转入少量 tBNB 作为 gas 费',
+          '2. 去官网 NFA 详情页 → 维护 Tab → 转移到 OpenClaw',
+          '3. 粘贴上面的地址，确认转移',
+          '4. 转移完成后输入 /status 查看你的龙虾！',
+        ].join('\n'),
+      };
+    }
+
+    if (sub === 'unlock') {
+      const pin = args[1];
+      if (!pin) return { text: '用法: /wallet unlock <PIN码>' };
+      try {
+        this.chainSkill.unlockWallet(pin);
+        return { text: '🔓 钱包已解锁。' };
+      } catch {
+        return { text: '❌ PIN码错误。' };
+      }
+    }
+
+    // Default: show wallet info
+    try {
+      const info = await this.chainSkill.getWalletInfo();
+      return { text: formatWalletInfo(info, this.format) };
+    } catch {
+      const addr = this.chainSkill.getAddress();
+      if (addr) {
+        return {
+          text: [
+            this.format === 'plain' ? '=== 🔑 OpenClaw 钱包 ===' : '🔑 **OpenClaw 钱包**',
+            `地址: ${addr}`,
+            '',
+            '⚠ 钱包已锁定。使用 /wallet unlock <PIN码> 解锁。',
+          ].join('\n'),
+        };
+      }
+      return { text: '还没有钱包。使用 /wallet init <PIN码> 创建钱包。' };
+    }
   }
 
   // ============================================

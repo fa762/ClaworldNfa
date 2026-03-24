@@ -21,6 +21,7 @@ export { GameContractClient } from './contracts';
 export type { ContractAddresses } from './contracts';
 
 // Skills
+export { ChainSkill, formatWalletInfo } from './skills/chainSkill';
 export { TaskSkill } from './skills/taskSkill';
 export { PKSkill } from './skills/pkSkill';
 export { MarketSkill } from './skills/marketSkill';
