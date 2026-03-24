@@ -10,6 +10,7 @@ import { PipBoyStatList } from '@/components/nfa/PipBoyStatList';
 import { XPProgressBar } from '@/components/nfa/XPProgressBar';
 import { MutationSlots } from '@/components/nfa/MutationSlots';
 import { DepositPanel } from '@/components/nfa/DepositPanel';
+import { TransferToOpenClaw } from '@/components/nfa/TransferToOpenClaw';
 import { TerminalBar } from '@/components/terminal/TerminalBar';
 import { formatCLW, truncateAddress } from '@/lib/format';
 import { getBscScanAddressUrl } from '@/contracts/addresses';
@@ -216,7 +217,10 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
           )}
 
           {tab === 'maintain' && (
-            <DepositPanel tokenId={id} />
+            <div className="space-y-4">
+              <DepositPanel tokenId={id} />
+              <TransferToOpenClaw tokenId={id} ownerAddress={ownerAddress} />
+            </div>
           )}
         </div>
 
