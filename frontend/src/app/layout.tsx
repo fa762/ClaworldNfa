@@ -1,15 +1,19 @@
-import type { Metadata } from "next";
-import localFont from "next/font/local";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PipBoyNav } from "@/components/layout/PipBoyNav";
 import { PipBoyStatusBar } from "@/components/layout/PipBoyStatusBar";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { KeyboardNav } from "@/components/layout/KeyboardNav";
+import { CRTPositioner } from "@/components/layout/CRTPositioner";
+import { I18nProvider } from "@/lib/i18n";
 
-const jetbrainsMono = localFont({
-  src: "../../public/fonts/JetBrainsMono-Variable.ttf",
-  display: "swap",
-  variable: "--font-jetbrains",
-});
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://clawnfaterminal.xyz'),
@@ -32,23 +36,54 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={jetbrainsMono.variable}>
+    <html lang="zh-CN">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>
-        <div id="crt-screen">
-          <WalletProvider>
-            <div className="pipboy-shell">
-              <div className="pipboy-screen">
-                <PipBoyNav />
-                <main className="flex-1 overflow-y-auto min-h-0">{children}</main>
-                <PipBoyStatusBar />
-              </div>
-              <div className="pipboy-hardware">
-                <span className="pipboy-screw" />
-                <span className="pipboy-screw" />
+        <WalletProvider>
+        <I18nProvider>
+          {/* Terminal background image */}
+          <div className="terminal-backdrop">
+            <img
+              src="/terminal-bg.png"
+              alt=""
+              className="terminal-bg-img"
+              draggable={false}
+            />
+
+            {/* CRT screen area — positioned over the screen in the image */}
+            <div className="crt-viewport">
+              {/* CRT convex distortion wrapper */}
+              <div className="crt-barrel">
+                {/* CRT Effects layers */}
+                <div className="crt-glow-overlay" />
+                <div className="crt-scanlines" />
+                <div className="crt-glass" />
+
+                {/* Screen surface */}
+                <div className="crt-screen">
+                  <div className="crt-content">
+                    <PipBoyNav />
+                    <main className="flex-1 overflow-y-auto min-h-0">
+                      <ErrorBoundary>{children}</ErrorBoundary>
+                    </main>
+                    <PipBoyStatusBar />
+                  </div>
+                </div>
               </div>
             </div>
-          </WalletProvider>
-        </div>
+          </div>
+
+          <KeyboardNav />
+          <CRTPositioner />
+        </I18nProvider>
+        </WalletProvider>
       </body>
     </html>
   );
