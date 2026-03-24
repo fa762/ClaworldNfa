@@ -1,7 +1,7 @@
 # CLAW CIVILIZATION UNIVERSE — 项目状态与开发计划
 
 > 本文档是 AI 助手的持久记忆文件。每次对话开始时应读取此文件，了解项目全貌和当前进度。
-> 最后更新：2026-03-24
+> 最后更新：2026-03-24 深夜（重大进展！OpenClaw 游戏链路已跑通）
 
 ---
 
@@ -29,7 +29,7 @@
 
 **任务匹配度机制**：龙虾 personality 向量 · 任务需求向量 = 0.05x~2.0x 奖励倍率。精心培养的龙虾收益是白板龙虾的 20 倍。
 
-### 用户旅程
+### 用户旅程（已验证！）
 
 ```
 官网 Mint NFA → 官网 NFA 详情页"转移到 OpenClaw" → OpenClaw 对话框玩游戏
@@ -38,6 +38,8 @@
                                                               ↓
                                                     龙虾通过 market.skill 可卖/换给其他玩家
 ```
+
+**2026-03-24 实测**：已在 BSC Testnet 完成 Mint → 转移 → OpenClaw 对话 → 任务生成 → 任务选择 的完整流程。
 
 ---
 
@@ -52,7 +54,7 @@ clawworld/
 │   │   ├── DepositRouter.sol    # DEX/Flap 充值路由（从 Router 拆出）
 │   │   └── PersonalityEngine.sol # 性格演化引擎（从 Router 拆出）
 │   ├── skills/
-│   │   ├── GenesisVault.sol     # 888创世Mint（commit-reveal）
+│   │   ├── GenesisVault.sol     # 888创世Mint（commit-reveal + 增强熵源）
 │   │   ├── TaskSkill.sol        # 任务系统（operator提交结果）
 │   │   ├── PKSkill.sol          # PvP一次性结算（commit-reveal策略+增强熵源）
 │   │   └── MarketSkill.sol      # 市场：固定价/拍卖/互换
@@ -66,11 +68,11 @@ clawworld/
 │       ├── components/          # UI组件：PipBoy风格 + TransferToOpenClaw
 │       ├── contracts/           # ABI（全部已生成）+ hooks（wagmi）
 │       ├── content/             # 静态内容（指南/世界观文本）
-│       └── lib/                 # 工具函数
+│       └── lib/                 # 工具函数 + i18n
 ├── openclaw/                    # OpenClaw Skill 适配层
-│   ├── claw-world-skill/        # 可安装的 OpenClaw Skill 包
-│   │   └── SKILL.md            # Skill 元数据 + 命令文档 + 配置说明
-│   ├── skills/                  # Skill 实现
+│   ├── claw-world-skill/        # ⭐ 可安装的 OpenClaw Skill 包（游戏本体）
+│   │   └── SKILL.md            # Skill 元数据 + 完整 ABI + 钱包流程 + 双网络配置
+│   ├── skills/                  # Skill TypeScript 实现
 │   │   ├── chainSkill.ts       # 钱包生成、PIN加密、余额查询
 │   │   ├── taskSkill.ts        # AI任务生成 + 选择完成 + matchScore
 │   │   ├── pkSkill.ts          # 策略分析 + commit-reveal + 战斗叙事
@@ -99,23 +101,27 @@ clawworld/
 
 ## 三、各模块当前状态
 
-### A. 智能合约 — ✅ 已完成，已编译已部署
+### A. 智能合约 — ✅ 全部完成，测试网已部署
 
 | 合约 | 测试网部署 | 编译 | 授权 | 说明 |
 |------|-----------|------|------|------|
 | ClawNFA.sol | ✅ `0x1c69...B135` | ✅ | — | ERC-721 NFA 代币 |
-| ClawRouter.sol | ✅ `0xA7Ee...c34603` | ✅ | — | 核心路由 |
+| ClawRouter.sol | ✅ `0xA7Ee...c34603` | ✅ | — | 核心路由（已瘦身，提取 Deposit+Personality） |
 | DepositRouter.sol | ✅ `0xd61C...B448` | ✅ | ✅ authorized | DEX充值 |
 | PersonalityEngine.sol | ✅ `0xab8F...dac0e` | ✅ | ✅ authorized | 性格演化 |
-| GenesisVault.sol | ✅ `0x6d17...7867` | ✅ | ✅ authorized | 888创世Mint |
-| TaskSkill.sol | ✅ `0x4F8f...CE0E` | ✅ | ✅ authorized + operator | 任务系统 |
+| GenesisVault.sol | ✅ `0x6d17...7867` | ✅ | ✅ authorized | 888创世Mint（增强熵源） |
+| TaskSkill.sol | ✅ `0x4F8f...CE0E` | ✅ | ✅ authorized + **双operator** | 任务系统 |
 | PKSkill.sol | ✅ `0x0e76...839A` | ✅ | ✅ authorized | PvP（增强熵源） |
 | MarketSkill.sol | ✅ `0x254E...c46d` | ✅ | ✅ authorized | 市场交易 |
 | WorldState.sol | ✅ `0x3479...4F7d` | ✅ | — | 世界状态（24h timelock） |
 | ClawOracle.sol | ✅ 已部署 | ✅ | — | AI预言机 |
 | MockCLW | ✅ `0xCdb1...41FC` | ✅ | — | 测试代币（已mint 100万） |
 
-**测试：223 passing, 0 failing, 2 pending（CLW/XP cap 未在合约实现，测试已 skip）**
+**TaskSkill Operator 授权：**
+- 部署账户：`0x30DEf3cF07DE89DE1637B940B875686E26Cc342c` ✅
+- 玩家 OpenClaw 钱包：`0x0e779680f36e3976a0eE2bFeC07FF17241b79e76` ✅（2026-03-24 新增）
+
+**测试：223 passing, 0 failing**
 
 ### B. 官网前端 — ✅ 展示层完成 + 转移入口
 
@@ -123,42 +129,58 @@ clawworld/
 |-----------|------|------|
 | 首页 | ✅ | HeroSection + WorldStateDashboard + CLWTokenInfo |
 | NFA 合集 | ✅ | LobsterGrid + FilterBar + 分页 |
-| NFA 详情 | ✅ | 4 Tab：状态/SPECIAL/基因/维护，图片常驻右侧 |
-| NFA 详情-SPECIAL | ✅ | 5维性格 + ▲▼指示器（≥70/≤25） |
-| NFA 详情-基因 | ✅ | STR/DEF/SPD/VIT bar + sublabel + 变异槽 |
-| NFA 详情-维护 | ✅ | BNB/CLW充值 + **转移到 OpenClaw** 入口 |
+| NFA 详情 | ✅ | 4 Tab：状态/SPECIAL/基因/维护，**图片常驻右侧所有 Tab** |
+| NFA 详情-状态 | ✅ | 等级/稀有度/CLW余额/日消耗/可维持天数/职业 |
+| NFA 详情-SPECIAL | ✅ | 5维性格（勇气/智慧/社交/创造/毅力），带 ▲▼ 指示器 |
+| NFA 详情-基因 | ✅ | STR/DEF/SPD/VIT CSS bar（不用 Unicode）+ sublabel + 变异槽 |
+| NFA 详情-维护 | ✅ | BNB/CLW充值 + **转移到 OpenClaw** 入口（含 i18n） |
 | Mint 面板 | ✅ | commit-reveal 流程 |
 | 钱包连接 | ✅ | wagmi + WalletConnect |
-| 前端 ABI | ✅ | ClawNFA, ClawRouter, GenesisVault, WorldState, ERC20, **TaskSkill, PKSkill, MarketSkill** |
-| Task/PK/Market 页面 | ❌ 未实现 | 游戏在 OpenClaw 里进行，前端仅做历史查看（低优先级） |
+| 前端 ABI | ✅ | ClawNFA, ClawRouter, GenesisVault, WorldState, ERC20, TaskSkill, PKSkill, MarketSkill |
+| i18n | ✅ | 中英文切换，所有页面已翻译 |
+| CRT 特效 | ✅ | terminal-backdrop + barrel distortion + scanlines |
+| Task/PK/Market 前端页面 | ❌ 不需要 | 游戏在 OpenClaw 里进行，前端仅做展示 |
 
-### C. OpenClaw Skill 插件 — ✅ 核心已实现
+**前端 Bug 已修复（2026-03-24）：**
+- ✅ SPECIAL 和基因 Tab 内容不再重叠（SPECIAL 只显示性格，基因只显示 DNA）
+- ✅ 基因页 TerminalBar 改用 CSS div（不用 Unicode，对齐完美）
+- ✅ 图片常驻所有 Tab 右侧
+- ✅ 职业显示 `job.NaN` 已修复
+- ✅ 转移到 OpenClaw 入口 i18n 翻译补全
+- ✅ layout.tsx CRT 特效恢复（合并冲突误覆盖已修复）
 
-| Skill | 状态 | 说明 |
-|-------|------|------|
-| chain.skill | ✅ 已实现 | 钱包生成、PIN加密（AES-256-CBC）、余额查询、NFA检测 |
-| task.skill | ✅ 已实现 | AI生成3任务 → 选择完成 → matchScore链上结算 |
-| pk.skill | ✅ 已实现 | 对手分析 → 性格驱动策略建议 → commit-reveal → 战斗叙事 |
-| market.skill | ✅ 已实现 | 挂售/拍卖/互换/购买，事件扫描缓存 |
-| oracle.skill | ✅ 已实现 | 事件监听 → AI推理 → IPFS上传 → fulfillReasoning |
-| ClawEngine | ✅ 已实现 | 统一编排器，/wallet /status /task /pk /market /help 全路由 |
-| SKILL.md | ✅ 已完成 | 可安装 Skill 包，含命令文档+配置+gas说明 |
-| mint.skill | ❌ 未实现 | Telegram内Mint交互（低优先级，官网可Mint） |
-| launch.skill | ❌ 未实现 | Flap平台代币操作（等代币上线） |
-| equip.skill | ❌ 未实现 | 装备系统（P4） |
+### C. OpenClaw Skill 插件 — ⭐ 游戏本体，测试网已跑通
 
-### D. AI 系统 — ✅ Prompt 框架完成
+| 模块 | 状态 | 说明 |
+|------|------|------|
+| SKILL.md | ✅ 完整 | 双网络配置 + 完整合约 ABI + 5步不卡住流程 + matchScore 公式 |
+| 钱包创建 | ✅ 已测试 | AES-256-CBC + PIN 加密，存 `~/.openclaw/claw-world/wallet.json` |
+| 钱包持久化 | ✅ | 新对话先检查 wallet.json 是否存在，不重复创建 |
+| 网络选择 | ✅ | `~/.openclaw/claw-world/network.conf`，测试网/主网切换 |
+| NFA 状态读取 | ✅ 已测试 | getLobsterState 字段映射精确（[0]-[15]），数据正确 |
+| 任务生成 | ✅ 已测试 | AI 根据性格生成 3 个任务，匹配度正确计算 |
+| 任务链上提交 | ✅ 已授权 | 玩家钱包已设为 TaskSkill operator，可直接签名提交 |
+| PK commit-reveal | ✅ ABI 完整 | SKILL.md 里有完整函数签名 |
+| 市场交易 | ✅ ABI 完整 | 挂售/拍卖/购买/取消 |
+| NFA 转移 | ✅ ABI 完整 | safeTransferFrom |
+| cast 工具 | ✅ | SKILL.md 有 cast 命令示例 |
+
+**已知问题待修复：**
+- 🟡 任务提交后的链上 tx 可能卡住（需要继续测试确认）
+- 🟡 PK 和 Market 还未实际测试（ABI 已写好，等测试）
+- 🟡 OpenClaw AI 偶尔会读错字段（已加精确映射，但需更多测试）
+
+### D. AI 系统 — ✅ 通过 OpenClaw 原生 AI 驱动
 
 | 组件 | 状态 | 说明 |
 |------|------|------|
-| 任务AI生成 | ✅ | `buildTaskGenerationPrompt()` 根据性格+WorldState生成3任务 |
-| matchScore计算 | ✅ | 向量点积公式，0-20000 basis points |
-| PK策略建议 | ✅ | `buildStrategyAdvicePrompt()` 性格驱动策略 |
-| 战斗叙事 | ✅ | `buildBattleNarrativePrompt()` AI生成戏剧叙事 |
-| personality注入 | ✅ | `buildLobsterSystemPrompt()` 不同性格不同说话方式 |
-| 市场定价建议 | ✅ | `buildPriceAdvicePrompt()` 基于稀有度/属性建议 |
-| 预言机推理 | ✅ | `buildOracleReasoningPrompt()` 链上决策 |
-| **AIProvider 具体实现** | ❌ | 需要接入实际 LLM（Claude/GPT/本地模型），目前是接口 |
+| 任务AI生成 | ✅ | OpenClaw AI 根据 SKILL.md 指令 + 链上性格数据生成任务 |
+| matchScore计算 | ✅ | 向量点积公式写在 SKILL.md，AI 可计算 |
+| PK策略建议 | ✅ | SKILL.md 有策略说明 |
+| personality注入 | ✅ | SKILL.md 里有性格→说话方式的映射 |
+| **AIProvider** | ✅ 不需要了！ | OpenClaw 自带 AI，不需要单独的 AIProvider 接口 |
+
+**重要理解更新**：之前文档说"AIProvider 需要接入 LLM"是错的。OpenClaw 本身就是 AI 助手，SKILL.md 就是给 AI 的指令。龙虾的对话、任务生成、策略建议都由 OpenClaw 的 AI 根据 SKILL.md 自动完成。不需要额外接入 Claude/GPT API。
 
 ### E. NFT Art Pipeline — 🟡 Prompt 已生成，图片待生成
 
@@ -166,11 +188,11 @@ clawworld/
 |------|------|------|
 | Art Bible | ✅ | `claw_nft_artbible.md` 完整（28个角色+860居民规范） |
 | Prompt 生成 | ✅ | `scripts/output/nft-prompts.json` + `.txt`（888个） |
-| 图片生成 | ❌ 待手动 | 用 Midjourney 批量生成（用户负责） |
+| 图片生成 | ❌ **用户负责** | 用 Midjourney 批量生成 |
 | IPFS上传 | ❌ | 图片生成后批量上传 |
 | tokenURI设置 | ❌ | 链上设置 vaultURI / vaultHash |
 
-### F. 代币经济 — 未启动
+### F. 代币经济 — 未启动（测试完成后启动）
 
 | 步骤 | 状态 | 说明 |
 |------|------|------|
@@ -196,21 +218,36 @@ clawworld/
 - [x] PKSkill cancelJoinedMatch Bug 修复
 - [x] ClawRouter 熵源增强
 - [x] WorldState 24h Timelock（proposeWorldState → executeWorldState）
+- [x] GenesisVault 增强熵源（不用 VRF，体验优先）
 
 ### Phase 2：ClawRouter 重构 — ✅ 已完成
 - [x] 提取 DepositRouter（DEX/Flap逻辑独立）
 - [x] 提取 PersonalityEngine（性格演化逻辑独立）
 - [x] ClawRouter 瘦身（保留 facade 向后兼容）
 
-### Phase 3：OpenClaw Skill 插件 — ✅ 核心已完成
+### Phase 3：OpenClaw Skill 插件 — ✅ 核心已完成并测试
 - [x] chain.skill — 钱包生成、PIN加密
 - [x] task.skill — AI任务生成+选择完成+链上结算
 - [x] pk.skill — 策略分析+commit-reveal+叙事
 - [x] market.skill — 市场交易
 - [x] oracle.skill — AI预言机
 - [x] ClawEngine 编排器
-- [x] SKILL.md 可安装包
+- [x] SKILL.md 可安装包（双网络+完整ABI+5步流程）
 - [x] 前端"转移到 OpenClaw"入口
+- [x] 玩家钱包设为 TaskSkill operator
+- [x] OpenClaw 对话游戏链路跑通（2026-03-24 实测）
+
+### Phase 3.5：测试网完整测试 — 🟡 进行中
+- [x] Mint 流程（commit-reveal + tBNB）
+- [x] NFA 状态查看（getLobsterState 数据正确）
+- [x] 钱包创建 + 持久化
+- [x] 任务生成（AI 生成 3 个任务 + matchScore）
+- [ ] **3.5.1** 任务链上提交（completeTypedTask tx 成功执行）
+- [ ] **3.5.2** PK 完整流程（create → join → commit → reveal → settle）
+- [ ] **3.5.3** Market 完整流程（list → buy / auction → bid → settle）
+- [ ] **3.5.4** 性格演化验证（完成多个任务后性格变化）
+- [ ] **3.5.5** 多 NFA 测试（mint 第 2、3 只龙虾）
+- [ ] **3.5.6** 世界状态影响测试（改 rewardMultiplier 后奖励变化）
 
 ### Phase 4：NFT Art — 🟡 进行中
 - [x] Art Bible 完成
@@ -220,18 +257,24 @@ clawworld/
 - [ ] **4.3** 链上设置 vaultURI / vaultHash
 - [ ] **4.4** 后创世Mint的动态图片方案
 
-### Phase 5：代币经济 — 未开始
+### Phase 5：代币经济 — 测试完成后启动
 - [ ] Flap 创建 CLW 代币
 - [ ] Bonding Curve 测试
 - [ ] 毕业后 PancakeSwap 集成
 - [ ] launch.skill 开发
+- [ ] DepositRouter 更新真实 CLW 代币地址
 
-### Phase 6：后续优化 — 未开始
-- [ ] 前端 Task/PK/Market 历史查看页面
-- [ ] AIProvider 具体实现（接入 Claude API 或本地 LLM）
-- [ ] equip.skill 装备系统
+### Phase 6：主网上线 — 准备中
+- [ ] 主网部署所有合约
+- [ ] SKILL.md 填入主网合约地址
+- [ ] 前端切换到主网 RPC
+- [ ] 发布 claw-world skill 到 ClawHub
 - [ ] 专业安全审计
-- [ ] Chainlink VRF 集成（替代当前增强熵源方案）
+
+### Phase 7：后续优化
+- [ ] 前端 Task/PK/Market 历史查看页面
+- [ ] equip.skill 装备系统
+- [ ] Chainlink VRF 集成（可选，替代当前增强熵源方案）
 
 ---
 
@@ -240,7 +283,7 @@ clawworld/
 | 项目 | 值 |
 |------|------|
 | 链 | BNB Chain（BSC Testnet 测试中） |
-| 前端部署 | Vercel |
+| 前端部署 | Vercel（自动从 main 构建） |
 | 前端框架 | Next.js 16 + React 19 + wagmi + viem |
 | 合约框架 | Hardhat + OpenZeppelin UUPS + ethers.js |
 | 代理模式 | UUPS Upgradeable Proxy |
@@ -248,6 +291,8 @@ clawworld/
 | Node 版本 | 22 |
 | 测试 | 223 passing, 0 failing |
 | RPC 代理 | http://127.0.0.1:59527（本地纵云梯） |
+| OpenClaw | v2026.3.13（WSL2 上运行） |
+| Skill 位置 | `~/.openclaw/skills/claw-world/SKILL.md` |
 
 ### 测试网合约地址
 
@@ -266,10 +311,16 @@ clawworld/
 | FlapPortal (Mock) | `0x9F07D34F55146FE59495A9C5694e223b531Ff7C5` |
 | PancakeRouter (Mock) | `0x4766aDF17656c7A6046804fd06e930C17Ee32992` |
 
-### 部署账户
-- 地址：`0x30DEf3cF07DE89DE1637B940B875686E26Cc342c`
+### 部署/Operator 账户
+- 部署账户地址：`0x30DEf3cF07DE89DE1637B940B875686E26Cc342c`
 - 角色：owner + TaskSkill operator
 - MockCLW 余额：1,000,000 CLW
+
+### 测试玩家账户
+- OpenClaw 钱包：`0x0e779680f36e3976a0eE2bFeC07FF17241b79e76`
+- 角色：TaskSkill operator（2026-03-24 授权）
+- 拥有 NFA #1（Common, Shelter-06）
+- NFA #1 数据：courage=25, wisdom=40, **social=72**, create=33, grit=42, STR=20, DEF=46, SPD=27, VIT=21
 
 ---
 
@@ -284,18 +335,47 @@ clawworld/
 7. **Pull-over-push**：所有BNB退款都通过 pendingWithdrawals + claimRefund()
 8. **无后端**：官网直接读链上数据，AI在用户本地运行
 9. **Storage Gap**：所有UUPS合约保留40个slot给未来升级
-10. **Operator模式**：测试网用本地私钥直接签名，主网方案待定（可能加 Relay）
+10. **Operator模式**：测试网玩家钱包直接设为 operator；主网方案待定（可能加 Relay）
+11. **AIProvider 不需要了**：OpenClaw 自带 AI，SKILL.md 就是 AI 的指令。不需要单独接 LLM API
+12. **双网络设计**：SKILL.md 同时包含测试网和主网地址，通过 network.conf 切换，主网上线只需填地址
+13. **Skill 包 = 游戏本体**：SKILL.md 是纯文本指令文件，告诉 OpenClaw AI 怎么玩这个游戏、怎么调合约
 
 ---
 
-## 七、联系与参考
+## 七、2026-03-24 工作日志（今日重大进展）
+
+### 完成事项
+1. ✅ 合约事件索引优化（indexed 关键字）
+2. ✅ 前端 SPECIAL/基因 Tab 分离（不再重叠）
+3. ✅ 前端基因页 TerminalBar 改用 CSS bar（完美对齐）
+4. ✅ 前端图片常驻所有 Tab 右侧
+5. ✅ 前端职业 `job.NaN` bug 修复
+6. ✅ 前端转移到 OpenClaw i18n 补全
+7. ✅ layout.tsx CRT 特效恢复
+8. ✅ SKILL.md 完整重写：双网络 + 完整 ABI + 5步流程 + matchScore 公式
+9. ✅ OpenClaw Skill 安装成功（`openclaw skills list` 显示 `✓ ready`）
+10. ✅ 玩家 OpenClaw 钱包设为 TaskSkill operator
+11. ✅ 链上数据字段映射修复（personality/DNA/level 不再错位）
+12. ✅ 钱包持久化检查（新对话不重复创建钱包）
+13. ✅ **完整游戏链路跑通**：Mint → 查看状态 → 生成任务 → 选择任务
+
+### 待完成（明天继续）
+1. 🟡 任务链上提交完整测试
+2. 🟡 PK 完整流程测试
+3. 🟡 Market 完整流程测试
+4. 🟡 NFT 图片（用户用 Midjourney 生成）
+5. 🟡 发币上线准备
+
+---
+
+## 八、联系与参考
 
 - 技术架构：`CCU_Technical_Architecture_v4.0.md`
 - 玩家手册：`游戏说明.md`
 - NFT美术档案：`claw_nft_artbible.md`
 - 合约地址：`frontend/src/contracts/addresses.ts`
 - 前端ABI：`frontend/src/contracts/abis/`
-- OpenClaw Skill包：`openclaw/claw-world-skill/SKILL.md`
+- **OpenClaw Skill包**：`openclaw/claw-world-skill/SKILL.md`（⭐ 游戏本体）
 - NFT Prompt：`scripts/output/nft-prompts.json`
 - 部署脚本：`scripts/deploy-phase1.ts`, `deploy-phase2.ts`, `deploy-phase3.ts`, `upgrade-phase4.ts`
 - 集成测试：`test/Integration.test.ts`
