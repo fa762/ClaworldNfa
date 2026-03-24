@@ -3,10 +3,17 @@
  *
  * When user input is not a command, forward to AI API with lobster personality context.
  * The AI responds in character based on the lobster's personality dimensions.
+ *
+ * Also provides prompt builders for task generation, PK strategy, battle narrative,
+ * market pricing advice, and oracle reasoning.
  */
 
-import type { LobsterState } from './types';
-import { JOB_NAMES_CN, RARITY_NAMES_CN, SHELTER_NAMES } from './types';
+import type { LobsterState, AIProvider, ChatMessage } from './types';
+import { JOB_NAMES_CN, RARITY_NAMES_CN, SHELTER_NAMES, TASK_TYPE_NAMES } from './types';
+
+// ============================================
+// CORE DIALOGUE
+// ============================================
 
 /**
  * Build a system prompt that shapes the AI personality based on the lobster's stats.
@@ -82,18 +89,6 @@ function describePersonality(state: LobsterState): string {
 }
 
 /**
- * Interface for AI API call. Implement based on your AI provider.
- */
-export interface AIProvider {
-  chat(systemPrompt: string, userMessage: string, history?: ChatMessage[]): Promise<string>;
-}
-
-export interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-/**
  * Handle a non-command message by forwarding to AI.
  */
 export async function handleDialogue(
@@ -107,4 +102,293 @@ export async function handleDialogue(
 ): Promise<string> {
   const systemPrompt = buildLobsterSystemPrompt(nfaId, state, jobClass, worldEvents);
   return ai.chat(systemPrompt, userMessage, chatHistory);
+}
+
+// ============================================
+// TASK GENERATION PROMPT
+// ============================================
+
+/**
+ * Build a system prompt for generating 3 personalized tasks.
+ *
+ * The AI should return a JSON array of 3 task objects, each containing:
+ *   taskType (0-4), title, description, personalityVector, baseXP, baseCLW, difficulty
+ *
+ * @param state       Current lobster state
+ * @param jobClass    Current job class (0-5)
+ * @param worldState  World parameters that affect task generation
+ */
+export function buildTaskGenerationPrompt(
+  state: LobsterState,
+  jobClass: number,
+  worldState: { rewardMultiplier: number; activeEvents: string[] }
+): string {
+  const personality = describePersonality(state);
+  const job = JOB_NAMES_CN[jobClass] || '未知';
+  const rarity = RARITY_NAMES_CN[state.rarity] || '未知';
+
+  const dominantTrait = findDominantTrait(state);
+  const weakTrait = findWeakestTrait(state);
+
+  return [
+    `你是 Claw World 的任务生成系统。`,
+    ``,
+    `当前龙虾信息：`,
+    `- 稀有度：${rarity}，等级：${state.level}，职业：${job}`,
+    `- 性格：${personality}`,
+    `- 属性值：勇气${state.courage} 智慧${state.wisdom} 社交${state.social} 创造${state.create} 毅力${state.grit}`,
+    `- 战斗基因：STR${state.str} DEF${state.def} SPD${state.spd} VIT${state.vit}`,
+    `- 最强维度：${TASK_TYPE_NAMES[dominantTrait]}（${getTraitValue(state, dominantTrait)}）`,
+    `- 最弱维度：${TASK_TYPE_NAMES[weakTrait]}（${getTraitValue(state, weakTrait)}）`,
+    ``,
+    worldState.activeEvents.length > 0
+      ? `当前世界事件：${worldState.activeEvents.join('、')}。任务内容应呼应世界事件。`
+      : '',
+    `奖励倍率：${(worldState.rewardMultiplier / 10000).toFixed(1)}x`,
+    ``,
+    `请生成3个任务，遵循以下规则：`,
+    `1. 一个任务对应龙虾的强势维度（匹配度高，收益稳定）`,
+    `2. 一个任务对应龙虾的弱势维度（匹配度低，但能锻炼弱项）`,
+    `3. 一个任务为均衡型（多维度参与）`,
+    `4. 每个任务的 personalityVector 是5个数字的数组 [勇气权重, 智慧权重, 社交权重, 创造权重, 毅力权重]，总和约为100`,
+    `5. difficulty 取值：easy / medium / hard，等级越高难度越高`,
+    `6. baseXP 范围 10-100，baseCLW 范围 5-50（整数）`,
+    `7. taskType 对应：0=勇气, 1=智慧, 2=社交, 3=创造, 4=毅力`,
+    `8. 任务标题和描述要有趣，符合龙虾世界观`,
+    ``,
+    `严格输出 JSON 数组格式，不要输出任何其他文字：`,
+    `[`,
+    `  { "taskType": 0, "title": "...", "description": "...", "personalityVector": [40,10,20,10,20], "baseXP": 30, "baseCLW": 15, "difficulty": "medium" },`,
+    `  ...`,
+    `]`,
+  ].filter(Boolean).join('\n');
+}
+
+// ============================================
+// PK STRATEGY ADVICE PROMPT
+// ============================================
+
+/**
+ * Build a prompt for PK strategy analysis, written in character.
+ * The AI analyzes opponent stats and recommends a strategy.
+ *
+ * @param myState        Current lobster state
+ * @param opponentState  Opponent lobster state
+ */
+export function buildStrategyAdvicePrompt(
+  myState: LobsterState,
+  opponentState: LobsterState
+): string {
+  const myPersonality = describePersonality(myState);
+
+  return [
+    `你是一只龙虾的战斗顾问，用符合主人性格的方式给出建议。`,
+    ``,
+    `你的主人性格：${myPersonality}`,
+    ``,
+    `=== 我方数据 ===`,
+    `等级: ${myState.level}`,
+    `STR: ${myState.str}, DEF: ${myState.def}, SPD: ${myState.spd}, VIT: ${myState.vit}`,
+    `勇气: ${myState.courage}, 毅力: ${myState.grit}`,
+    ``,
+    `=== 对手数据 ===`,
+    `等级: ${opponentState.level}`,
+    `STR: ${opponentState.str}, DEF: ${opponentState.def}, SPD: ${opponentState.spd}, VIT: ${opponentState.vit}`,
+    ``,
+    `=== 策略说明 ===`,
+    `策略0 = 全攻：攻击力最大化，适合STR远高于对手DEF的情况`,
+    `策略1 = 均衡：攻防兼顾，适合实力接近的对手`,
+    `策略2 = 全防：防御最大化，适合对手STR很高但自己DEF也高的情况`,
+    ``,
+    `分析对手弱点，然后用符合主人性格的语气推荐一个策略。`,
+    ``,
+    `严格输出 JSON 格式：`,
+    `{`,
+    `  "recommendedStrategy": 0或1或2,`,
+    `  "confidence": 0-100,`,
+    `  "reasoning": "用主人的性格语气说2-3句分析和建议"`,
+    `}`,
+    `不要输出任何其他文字。`,
+  ].join('\n');
+}
+
+// ============================================
+// BATTLE NARRATIVE PROMPT
+// ============================================
+
+/**
+ * Build a prompt for generating a PK battle narrative.
+ * The AI writes a short dramatic story of the fight.
+ *
+ * @param myState            Player lobster state
+ * @param opponentState      Opponent lobster state
+ * @param myStrategy         Player's chosen strategy (0/1/2)
+ * @param opponentStrategy   Opponent's chosen strategy (0/1/2)
+ * @param winnerId           NFA ID of the winner (0 = draw)
+ * @param mutationTriggered  Whether a mutation was triggered
+ */
+export function buildBattleNarrativePrompt(
+  myState: LobsterState,
+  opponentState: LobsterState,
+  myStrategy: number,
+  opponentStrategy: number,
+  winnerId: number,
+  mutationTriggered: boolean
+): string {
+  const strategyNames = ['全攻', '均衡', '全防'];
+
+  return [
+    `你是 Claw World 的战斗叙事生成器。请用生动的中文描写一场龙虾PK战斗。`,
+    ``,
+    `=== 战斗信息 ===`,
+    `我方：Lv.${myState.level}，STR${myState.str}/DEF${myState.def}/SPD${myState.spd}/VIT${myState.vit}`,
+    `我方性格：${describePersonality(myState)}`,
+    `我方策略：${strategyNames[myStrategy]}`,
+    ``,
+    `对手：Lv.${opponentState.level}，STR${opponentState.str}/DEF${opponentState.def}/SPD${opponentState.spd}/VIT${opponentState.vit}`,
+    `对手性格：${describePersonality(opponentState)}`,
+    `对手策略：${strategyNames[opponentStrategy]}`,
+    ``,
+    winnerId > 0 ? `胜者：NFA #${winnerId}` : `结果：平局`,
+    mutationTriggered ? `特殊事件：战斗中触发了基因变异！` : '',
+    ``,
+    `要求：`,
+    `- 用3-5句话描写这场战斗`,
+    `- 体现双方策略选择的对抗`,
+    `- 体现龙虾们的性格特征`,
+    `- 如果触发了变异，要着重描写变异时刻`,
+    `- 语气戏剧化但简洁`,
+    `- 直接输出叙事文本，不要加标题或前缀`,
+  ].filter(Boolean).join('\n');
+}
+
+// ============================================
+// MARKET PRICE ADVICE PROMPT
+// ============================================
+
+/**
+ * Build a prompt for market pricing advice.
+ * Helps the player decide a fair price for their lobster.
+ *
+ * @param state   The lobster to be priced
+ * @param rarity  Rarity index (0-4)
+ */
+export function buildPriceAdvicePrompt(
+  state: LobsterState,
+  rarity: number
+): string {
+  const rarityName = RARITY_NAMES_CN[rarity] || '未知';
+  const totalStats = state.str + state.def + state.spd + state.vit;
+  const totalPersonality = state.courage + state.wisdom + state.social + state.create + state.grit;
+
+  return [
+    `你是 Claw World 的市场分析师。请根据龙虾属性估算合理定价范围。`,
+    ``,
+    `=== 龙虾数据 ===`,
+    `稀有度：${rarityName}（${rarity}）`,
+    `等级：${state.level}`,
+    `SPECIAL总值：${totalPersonality}（勇${state.courage}/智${state.wisdom}/社${state.social}/创${state.create}/毅${state.grit}）`,
+    `DNA总值：${totalStats}（STR${state.str}/DEF${state.def}/SPD${state.spd}/VIT${state.vit}）`,
+    `变异槽：${state.mutation1 !== '0x' + '0'.repeat(64) ? '已激活' : '空'} / ${state.mutation2 !== '0x' + '0'.repeat(64) ? '已激活' : '空'}`,
+    ``,
+    `定价参考规则：`,
+    `- 普通稀有度基础价 0.01-0.05 BNB`,
+    `- 稀有基础价 0.05-0.2 BNB`,
+    `- 史诗基础价 0.2-0.5 BNB`,
+    `- 传说基础价 0.5-2 BNB`,
+    `- 神话基础价 2-10 BNB`,
+    `- 等级每10级加成20%`,
+    `- 性格极端（某维度>80或<20）有收藏溢价`,
+    `- 变异槽激活增加30%价值`,
+    ``,
+    `严格输出 JSON：`,
+    `{`,
+    `  "minPrice": "最低建议价(BNB)",`,
+    `  "maxPrice": "最高建议价(BNB)",`,
+    `  "reasoning": "简短定价理由(1-2句话)"`,
+    `}`,
+    `不要输出其他文字。`,
+  ].join('\n');
+}
+
+// ============================================
+// ORACLE REASONING PROMPT
+// ============================================
+
+/**
+ * Build a prompt for oracle AI reasoning decisions.
+ * The oracle must analyze the lobster's state and the request,
+ * then choose one option from numChoices.
+ *
+ * @param state         Lobster state
+ * @param requestPrompt The on-chain reasoning request prompt
+ * @param numChoices    Number of options to choose from
+ */
+export function buildOracleReasoningPrompt(
+  state: LobsterState,
+  requestPrompt: string,
+  numChoices: number
+): string {
+  const personality = describePersonality(state);
+
+  const choiceList = Array.from({ length: numChoices }, (_, i) => `  选项${i + 1}`).join('\n');
+
+  return [
+    `你是 Claw World 的 AI 预言机。你需要根据龙虾的状态做出一个推理决策。`,
+    ``,
+    `=== 龙虾状态 ===`,
+    `等级：${state.level}`,
+    `性格：${personality}`,
+    `属性：勇气${state.courage} 智慧${state.wisdom} 社交${state.social} 创造${state.create} 毅力${state.grit}`,
+    `基因：STR${state.str} DEF${state.def} SPD${state.spd} VIT${state.vit}`,
+    ``,
+    `=== 推理请求 ===`,
+    requestPrompt,
+    ``,
+    `可选项（共${numChoices}个）：`,
+    choiceList,
+    ``,
+    `请根据龙虾的性格和属性特点做出最合理的选择。`,
+    `性格越突出的维度应该对决策影响越大。`,
+    ``,
+    `先简要分析（2-3句话），然后给出选择。`,
+    `最后一行必须是：选择：X（X为1到${numChoices}之间的数字）`,
+  ].join('\n');
+}
+
+// ============================================
+// HELPERS
+// ============================================
+
+/**
+ * Find the dominant (highest) personality trait index.
+ * 0=courage, 1=wisdom, 2=social, 3=create, 4=grit
+ */
+function findDominantTrait(state: LobsterState): number {
+  const values = [state.courage, state.wisdom, state.social, state.create, state.grit];
+  let maxIdx = 0;
+  for (let i = 1; i < values.length; i++) {
+    if (values[i] > values[maxIdx]) maxIdx = i;
+  }
+  return maxIdx;
+}
+
+/**
+ * Find the weakest (lowest) personality trait index.
+ */
+function findWeakestTrait(state: LobsterState): number {
+  const values = [state.courage, state.wisdom, state.social, state.create, state.grit];
+  let minIdx = 0;
+  for (let i = 1; i < values.length; i++) {
+    if (values[i] < values[minIdx]) minIdx = i;
+  }
+  return minIdx;
+}
+
+/**
+ * Get trait value by index (0-4).
+ */
+function getTraitValue(state: LobsterState, index: number): number {
+  const values = [state.courage, state.wisdom, state.social, state.create, state.grit];
+  return values[index] ?? 0;
 }
