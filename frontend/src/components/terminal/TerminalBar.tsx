@@ -13,7 +13,7 @@ export function TerminalBar({ label, sublabel, value, max = 100, color }: Termin
     <div className="flex items-center gap-2 text-[13px] font-mono">
       <span className="w-8 shrink-0 term-bright text-right text-xs">{label}</span>
       {sublabel && <span className="w-10 shrink-0 term-dim text-xs">{sublabel}</span>}
-      <div className="flex-1 h-3 bg-[#0a1a0a] border border-[#1a3a1a] relative overflow-hidden">
+      <div className="flex-1 h-4 bg-[#0a1a0a] border border-[#1a3a1a] relative overflow-hidden">
         <div
           className={`h-full ${color || 'bg-crt-green'}`}
           style={{ width: `${pct}%` }}
