@@ -122,12 +122,8 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   const name = getMockLobsterName(numId);
   const imageUrl = resolveIpfsUrl(useMock ? '' : ((agentMeta as any)?.vaultURI ?? ''));
 
-  // SPECIAL stats for PipBoyStatList
+  // SPECIAL tab: only personality stats (no DNA — DNA is in gene tab)
   const specialStats = [
-    { key: 'STR', label: t('statLabel.STR'), enLabel: t('statEn.STR'), value: str },
-    { key: 'DEF', label: t('statLabel.DEF'), enLabel: t('statEn.DEF'), value: def },
-    { key: 'SPD', label: t('statLabel.SPD'), enLabel: t('statEn.SPD'), value: spd },
-    { key: 'VIT', label: t('statLabel.VIT'), enLabel: t('statEn.VIT'), value: vit },
     { key: 'courage', label: t('statLabel.courage'), enLabel: t('statEn.courage'), value: courage },
     { key: 'wisdom', label: t('statLabel.wisdom'), enLabel: t('statEn.wisdom'), value: wisdom },
     { key: 'social', label: t('statLabel.social'), enLabel: t('statEn.social'), value: social },
