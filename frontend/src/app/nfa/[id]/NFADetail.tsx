@@ -208,10 +208,10 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
             <div className="space-y-3 p-2">
               <div className="text-xs term-dim mb-2">{t('gene.title')}</div>
               <div className="space-y-1.5">
-                <TerminalBar label="STR" sublabel={t('gene.str')} value={str} color="text-red-400" />
-                <TerminalBar label="DEF" sublabel={t('gene.def')} value={def} color="text-cyan-400" />
-                <TerminalBar label="SPD" sublabel={t('gene.spd')} value={spd} color="text-crt-green" />
-                <TerminalBar label="VIT" sublabel={t('gene.vit')} value={vit} color="text-amber-400" />
+                <TerminalBar label="STR" sublabel={t('gene.str')} value={str} color="bg-red-500" />
+                <TerminalBar label="DEF" sublabel={t('gene.def')} value={def} color="bg-cyan-400" />
+                <TerminalBar label="SPD" sublabel={t('gene.spd')} value={spd} color="bg-green-400" />
+                <TerminalBar label="VIT" sublabel={t('gene.vit')} value={vit} color="bg-amber-400" />
               </div>
               <div className="term-line my-2" />
               <MutationSlots mutation1={mutation1} mutation2={mutation2} />
