@@ -17,10 +17,10 @@ interface PipBoyStatListProps {
   sideContent?: React.ReactNode;
 }
 
-function getIndicator(value: number): string {
-  if (value >= 70) return '(+)';
-  if (value <= 25) return '(-)';
-  return '   ';
+function getIndicator(value: number): { text: string; color: string } {
+  if (value >= 70) return { text: '▲', color: 'text-crt-green glow' };
+  if (value <= 25) return { text: '▼', color: 'term-danger' };
+  return { text: ' ', color: '' };
 }
 
 export function PipBoyStatList({ stats, sideContent }: PipBoyStatListProps) {
@@ -40,7 +40,7 @@ export function PipBoyStatList({ stats, sideContent }: PipBoyStatListProps) {
           >
             <span className="w-16 shrink-0 term-dim text-xs">{stat.label}</span>
             <span className="w-24 shrink-0 text-xs term-darkest">{stat.enLabel}</span>
-            <span className="w-8 text-right text-xs term-dim">{getIndicator(stat.value)}</span>
+            <span className={`w-6 text-right text-xs ${getIndicator(stat.value).color}`}>{getIndicator(stat.value).text}</span>
             <span className="w-8 text-right term-bright text-sm">{stat.value}</span>
           </div>
         ))}

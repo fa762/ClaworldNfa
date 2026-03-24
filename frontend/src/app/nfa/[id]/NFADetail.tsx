@@ -166,12 +166,12 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
         ))}
       </div>
 
-      {/* Tab content */}
-      <div className="animate-fade-in">
-        {tab === 'status' && (
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Left: info list */}
-            <div className="flex-1 space-y-1 text-sm">
+      {/* Tab content: left panel + persistent right image */}
+      <div className="flex flex-col sm:flex-row gap-4 animate-fade-in">
+        {/* Left: tab content */}
+        <div className="flex-1 min-w-0">
+          {tab === 'status' && (
+            <div className="space-y-1 text-sm">
               <Row label={t('detail.rarity')}><RarityBadge rarity={rarity} /></Row>
               <Row label={t('detail.level')}><span className="term-bright">Lv.{level}</span></Row>
               <Row label={t('detail.shelter')}><ShelterTag shelter={shelter} /></Row>
@@ -195,34 +195,35 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
                 </Row>
               )}
             </div>
-            {/* Right: image */}
-            <div className="w-full sm:w-48 shrink-0">
-              {lobsterImage}
+          )}
+
+          {tab === 'special' && (
+            <PipBoyStatList stats={specialStats} />
+          )}
+
+          {tab === 'gene' && (
+            <div className="space-y-3 p-2">
+              <div className="text-xs term-dim mb-2">{t('gene.title')}</div>
+              <div className="space-y-1.5">
+                <TerminalBar label="STR" sublabel={t('gene.str')} value={str} color="term-danger" />
+                <TerminalBar label="DEF" sublabel={t('gene.def')} value={def} color="term-link" />
+                <TerminalBar label="SPD" sublabel={t('gene.spd')} value={spd} color="text-crt-green" />
+                <TerminalBar label="VIT" sublabel={t('gene.vit')} value={vit} color="term-warn" />
+              </div>
+              <div className="term-line my-2" />
+              <MutationSlots mutation1={mutation1} mutation2={mutation2} />
             </div>
-          </div>
-        )}
+          )}
 
-        {tab === 'special' && (
-          <PipBoyStatList stats={specialStats} sideContent={lobsterImage} />
-        )}
+          {tab === 'maintain' && (
+            <DepositPanel tokenId={id} />
+          )}
+        </div>
 
-        {tab === 'gene' && (
-          <div className="space-y-3 p-2">
-            <div className="text-xs term-dim mb-2">{t('gene.title')}</div>
-            <div className="space-y-1">
-              <TerminalBar label={t('gene.str')} value={str} color="term-danger" />
-              <TerminalBar label={t('gene.def')} value={def} color="rarity-rare" />
-              <TerminalBar label={t('gene.spd')} value={spd} color="text-crt-green" />
-              <TerminalBar label={t('gene.vit')} value={vit} color="term-warn" />
-            </div>
-            <div className="term-line my-2" />
-            <MutationSlots mutation1={mutation1} mutation2={mutation2} />
-          </div>
-        )}
-
-        {tab === 'maintain' && (
-          <DepositPanel tokenId={id} />
-        )}
+        {/* Right: persistent lobster image */}
+        <div className="w-full sm:w-48 shrink-0">
+          {lobsterImage}
+        </div>
       </div>
 
       {/* Bottom mini status bar (Pip-Boy style) */}
