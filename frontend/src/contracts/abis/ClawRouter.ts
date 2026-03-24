@@ -102,7 +102,7 @@ export const ClawRouterABI = [
         "type": "uint256"
       },
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "skill",
         "type": "address"
@@ -127,7 +127,7 @@ export const ClawRouterABI = [
         "type": "uint256"
       },
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "skill",
         "type": "address"
@@ -690,6 +690,19 @@ export const ClawRouterABI = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "geneBoostNonce",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -1206,6 +1219,19 @@ export const ClawRouterABI = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "personalityEngine",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -1360,6 +1386,42 @@ export const ClawRouterABI = [
       }
     ],
     "name": "setPancakeRouter",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "nfaId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "dimension",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "newValue",
+        "type": "uint8"
+      }
+    ],
+    "name": "setPersonalityByEngine",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_engine",
+        "type": "address"
+      }
+    ],
+    "name": "setPersonalityEngine",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

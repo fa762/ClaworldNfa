@@ -123,6 +123,81 @@ export const WorldStateABI = [
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      }
+    ],
+    "name": "WorldStateCancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      }
+    ],
+    "name": "WorldStateExecuted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rewardMultiplier",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "pkStakeLimit",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "mutationBonus",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "dailyCostMultiplier",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "activeEvents",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "executeAfter",
+        "type": "uint256"
+      }
+    ],
+    "name": "WorldStateProposed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": false,
         "internalType": "uint256",
         "name": "rewardMultiplier",
@@ -197,6 +272,19 @@ export const WorldStateABI = [
   },
   {
     "inputs": [],
+    "name": "TIMELOCK_DELAY",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "activeEvents",
     "outputs": [
       {
@@ -211,6 +299,13 @@ export const WorldStateABI = [
   {
     "inputs": [],
     "name": "autoUpdate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "cancelProposal",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -239,6 +334,13 @@ export const WorldStateABI = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "executeWorldState",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -334,6 +436,49 @@ export const WorldStateABI = [
   },
   {
     "inputs": [],
+    "name": "pendingState",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "rewardMultiplier",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "pkStakeLimit",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "mutationBonus",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "dailyCostMultiplier",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "activeEvents",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint64",
+        "name": "proposedAt",
+        "type": "uint64"
+      },
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "pkStakeLimit",
     "outputs": [
       {
@@ -369,6 +514,52 @@ export const WorldStateABI = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proposalCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_rewardMul",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_pkLimit",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_mutBonus",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_costMul",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_events",
+        "type": "bytes32"
+      }
+    ],
+    "name": "proposeWorldState",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -475,39 +666,6 @@ export const WorldStateABI = [
       }
     ],
     "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_rewardMul",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_pkLimit",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_mutBonus",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_costMul",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "_events",
-        "type": "bytes32"
-      }
-    ],
-    "name": "updateWorldState",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
