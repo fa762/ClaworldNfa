@@ -3,7 +3,7 @@
 import { useCLWPrice } from '@/contracts/hooks/useWorldState';
 import { useGraduated } from '@/contracts/hooks/useClawRouter';
 import { addresses, getBscScanAddressUrl } from '@/contracts/addresses';
-import { formatBNB, truncateAddress } from '@/lib/format';
+import { formatBNB, truncateAddress, nativeSymbol } from '@/lib/format';
 import { useState } from 'react';
 import { isDemoMode } from '@/lib/env';
 import { mockTokenInfo } from '@/lib/mockData';
@@ -36,7 +36,7 @@ export function CLWTokenInfo() {
             <span className="term-dim animate-glow-pulse">LOADING...</span>
           ) : (
             <span className="term-bright glow-strong">
-              {useMock ? mockTokenInfo.price : (price ? `${formatBNB(price)} BNB` : '待部署')}
+              {useMock ? mockTokenInfo.price : (price ? `${formatBNB(price)} ${nativeSymbol}` : '待部署')}
             </span>
           )}
         </div>

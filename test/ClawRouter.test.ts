@@ -620,57 +620,11 @@ describe("ClawRouter", function () {
       await router.setGraduated(true);
     });
 
-    it("should swap BNB for CLW and deposit to lobster", async function () {
+    it("should revert with DEPRECATED message (moved to DepositRouter)", async function () {
       const bnbAmount = ethers.utils.parseEther("1");
-      await router.connect(user1).buyAndDeposit(tokenId, { value: bnbAmount });
-
-      // 1 BNB × 1000 rate = 1000 CLW
-      expect(await router.clwBalances(tokenId)).to.equal(ethers.utils.parseEther("1000"));
-    });
-
-    it("should emit BuyAndDeposit event", async function () {
-      const bnbAmount = ethers.utils.parseEther("0.5");
-      await expect(router.connect(user1).buyAndDeposit(tokenId, { value: bnbAmount }))
-        .to.emit(router, "BuyAndDeposit")
-        .withArgs(tokenId, bnbAmount, ethers.utils.parseEther("500"));
-    });
-
-    it("should reject when not graduated", async function () {
-      await router.setGraduated(false);
       await expect(
-        router.connect(user1).buyAndDeposit(tokenId, { value: ethers.utils.parseEther("1") })
-      ).to.be.revertedWith("Not graduated to DEX");
-    });
-
-    it("should reject zero BNB", async function () {
-      await expect(
-        router.connect(user1).buyAndDeposit(tokenId, { value: 0 })
-      ).to.be.revertedWith("Zero BNB");
-    });
-
-    it("should revive dormant lobster", async function () {
-      // Create a lobster with grit=0 so cost is exactly 10 CLW/day
-      const dormantId = await setupLobster(user2, { grit: 0 });
-      await clw.mint(user2.address, ethers.utils.parseEther("10000"));
-      await clw.connect(user2).approve(router.address, ethers.constants.MaxUint256);
-      await router.connect(user2).depositCLW(dormantId, ethers.utils.parseEther("10"));
-
-      // Drain via upkeep (1 day = 10 CLW exactly)
-      await increaseTime(86400);
-      await router.processUpkeep(dormantId);
-      expect(await router.clwBalances(dormantId)).to.equal(0);
-
-      // Wait 72+ hours for dormancy
-      await increaseTime(72 * 3600 + 1);
-      await router.processUpkeep(dormantId);
-
-      const stateBefore = await nfa.getAgentState(dormantId);
-      expect(stateBefore.active).to.equal(false);
-
-      // buyAndDeposit should revive
-      await router.connect(user2).buyAndDeposit(dormantId, { value: ethers.utils.parseEther("1") });
-      const stateAfter = await nfa.getAgentState(dormantId);
-      expect(stateAfter.active).to.equal(true);
+        router.connect(user1).buyAndDeposit(tokenId, { value: bnbAmount })
+      ).to.be.revertedWith("DEPRECATED: Use DepositRouter");
     });
   });
 
@@ -691,43 +645,18 @@ describe("ClawRouter", function () {
       // Not graduated (pre-DEX)
     });
 
-    it("should buy CLW via Flap and deposit", async function () {
-      const bnbAmount = ethers.utils.parseEther("0.5");
-      await router.connect(user1).flapBuyAndDeposit(tokenId, { value: bnbAmount });
-
-      // 0.5 BNB × 2000 = 1000 CLW
-      expect(await router.clwBalances(tokenId)).to.equal(ethers.utils.parseEther("1000"));
-    });
-
-    it("should emit FlapBuyAndDeposit event", async function () {
-      const bnbAmount = ethers.utils.parseEther("1");
-      await expect(router.connect(user1).flapBuyAndDeposit(tokenId, { value: bnbAmount }))
-        .to.emit(router, "FlapBuyAndDeposit")
-        .withArgs(tokenId, bnbAmount, ethers.utils.parseEther("2000"));
-    });
-
-    it("should reject when already graduated", async function () {
-      await router.setGraduated(true);
+    it("should revert with DEPRECATED message (moved to DepositRouter)", async function () {
       await expect(
         router.connect(user1).flapBuyAndDeposit(tokenId, { value: ethers.utils.parseEther("1") })
-      ).to.be.revertedWith("Already graduated");
-    });
-
-    it("should reject zero BNB", async function () {
-      await expect(
-        router.connect(user1).flapBuyAndDeposit(tokenId, { value: 0 })
-      ).to.be.revertedWith("Zero BNB");
+      ).to.be.revertedWith("DEPRECATED: Use DepositRouter");
     });
   });
 
-  describe("previewFlapBuy", function () {
-    it("should preview Flap buy amount", async function () {
-      const MockFlapPortal = await ethers.getContractFactory("MockFlapPortal");
-      const mockFlap = await MockFlapPortal.deploy(clw.address, ethers.utils.parseEther("2000"));
-      await router.setFlapPortal(mockFlap.address);
-
-      const preview = await router.previewFlapBuy(ethers.utils.parseEther("1"));
-      expect(preview).to.equal(ethers.utils.parseEther("2000"));
+  describe("previewFlapBuy (DEPRECATED)", function () {
+    it("should revert with DEPRECATED message", async function () {
+      await expect(
+        router.previewFlapBuy(ethers.utils.parseEther("1"))
+      ).to.be.revertedWith("DEPRECATED: Use DepositRouter");
     });
   });
 });

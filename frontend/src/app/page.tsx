@@ -40,6 +40,8 @@ export default function Home() {
       {/* Quick nav */}
       <div className="text-sm term-dim">
         <span>&gt; 输入指令: </span>
+        <Link href="/mint" className="term-link">[创世铸造]</Link>
+        <span className="mx-1">│</span>
         <Link href="/nfa" className="term-link">[NFA 合集]</Link>
         <span className="mx-1">│</span>
         <Link href="/guide" className="term-link">[游戏指南]</Link>

@@ -42,6 +42,29 @@ contract WorldState is OwnableUpgradeable, UUPSUpgradeable {
 
     uint64 public lastAutoUpdate;
 
+    // ============================================
+    // TIMELOCK
+    // ============================================
+
+    uint256 public constant TIMELOCK_DELAY = 24 hours;
+
+    struct PendingState {
+        uint256 rewardMultiplier;
+        uint256 pkStakeLimit;
+        uint256 mutationBonus;
+        uint256 dailyCostMultiplier;
+        bytes32 activeEvents;
+        uint64 proposedAt;
+        bool exists;
+    }
+
+    PendingState public pendingState;
+    uint256 public proposalCount;
+
+    // ============================================
+    // EVENTS
+    // ============================================
+
     event WorldStateUpdated(
         uint256 rewardMultiplier,
         uint256 pkStakeLimit,
@@ -51,6 +74,17 @@ contract WorldState is OwnableUpgradeable, UUPSUpgradeable {
     );
     event AutoUpdateTriggered(uint256 clwPrice, address keeper);
     event KeeperUpdated(address keeper, bool authorized);
+    event WorldStateProposed(
+        uint256 indexed proposalId,
+        uint256 rewardMultiplier,
+        uint256 pkStakeLimit,
+        uint256 mutationBonus,
+        uint256 dailyCostMultiplier,
+        bytes32 activeEvents,
+        uint256 executeAfter
+    );
+    event WorldStateExecuted(uint256 indexed proposalId);
+    event WorldStateCancelled(uint256 indexed proposalId);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -73,23 +107,68 @@ contract WorldState is OwnableUpgradeable, UUPSUpgradeable {
     }
 
     // ============================================
-    // MANUAL UPDATE (owner only)
+    // MANUAL UPDATE (owner only, via timelock)
     // ============================================
 
-    function updateWorldState(
+    /**
+     * @dev Propose a world state change. Takes effect after TIMELOCK_DELAY (24h).
+     *      Only one proposal can be active at a time.
+     */
+    function proposeWorldState(
         uint256 _rewardMul,
         uint256 _pkLimit,
         uint256 _mutBonus,
         uint256 _costMul,
         bytes32 _events
     ) external onlyOwner {
-        rewardMultiplier = _rewardMul;
-        pkStakeLimit = _pkLimit;
-        mutationBonus = _mutBonus;
-        dailyCostMultiplier = _costMul;
-        activeEvents = _events;
+        require(!pendingState.exists, "Proposal already pending");
 
-        emit WorldStateUpdated(_rewardMul, _pkLimit, _mutBonus, _costMul, _events);
+        pendingState = PendingState({
+            rewardMultiplier: _rewardMul,
+            pkStakeLimit: _pkLimit,
+            mutationBonus: _mutBonus,
+            dailyCostMultiplier: _costMul,
+            activeEvents: _events,
+            proposedAt: uint64(block.timestamp),
+            exists: true
+        });
+
+        uint256 proposalId = ++proposalCount;
+        emit WorldStateProposed(
+            proposalId, _rewardMul, _pkLimit, _mutBonus, _costMul, _events,
+            block.timestamp + TIMELOCK_DELAY
+        );
+    }
+
+    /**
+     * @dev Execute a pending proposal after the timelock delay has passed.
+     */
+    function executeWorldState() external onlyOwner {
+        require(pendingState.exists, "No pending proposal");
+        require(
+            block.timestamp >= pendingState.proposedAt + TIMELOCK_DELAY,
+            "Timelock not expired"
+        );
+
+        rewardMultiplier = pendingState.rewardMultiplier;
+        pkStakeLimit = pendingState.pkStakeLimit;
+        mutationBonus = pendingState.mutationBonus;
+        dailyCostMultiplier = pendingState.dailyCostMultiplier;
+        activeEvents = pendingState.activeEvents;
+
+        delete pendingState;
+
+        emit WorldStateExecuted(proposalCount);
+        emit WorldStateUpdated(rewardMultiplier, pkStakeLimit, mutationBonus, dailyCostMultiplier, activeEvents);
+    }
+
+    /**
+     * @dev Cancel a pending proposal.
+     */
+    function cancelProposal() external onlyOwner {
+        require(pendingState.exists, "No pending proposal");
+        delete pendingState;
+        emit WorldStateCancelled(proposalCount);
     }
 
     // ============================================

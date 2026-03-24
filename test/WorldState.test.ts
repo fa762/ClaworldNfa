@@ -45,11 +45,19 @@ describe("WorldState", function () {
     });
   });
 
-  describe("Manual Update", function () {
-    it("should allow owner to update all parameters", async function () {
+  describe("Timelock: Propose & Execute", function () {
+    it("should propose and execute after delay", async function () {
       const events = ethers.utils.formatBytes32String("test");
-      await worldState.updateWorldState(15000, 2000, 12000, 8000, events);
+      await worldState.proposeWorldState(15000, 2000, 12000, 8000, events);
 
+      // Values should NOT change yet
+      expect(await worldState.rewardMultiplier()).to.equal(10000);
+
+      // Wait for timelock delay (24 hours)
+      await increaseTime(24 * 3600 + 1);
+      await worldState.executeWorldState();
+
+      // Now values should be updated
       expect(await worldState.rewardMultiplier()).to.equal(15000);
       expect(await worldState.pkStakeLimit()).to.equal(2000);
       expect(await worldState.mutationBonus()).to.equal(12000);
@@ -57,16 +65,96 @@ describe("WorldState", function () {
       expect(await worldState.activeEvents()).to.equal(events);
     });
 
-    it("should reject non-owner manual update", async function () {
+    it("should reject execute before delay", async function () {
+      await worldState.proposeWorldState(15000, 2000, 12000, 8000, ethers.constants.HashZero);
+
       await expect(
-        worldState.connect(user1).updateWorldState(10000, 1000, 10000, 10000, ethers.constants.HashZero)
+        worldState.executeWorldState()
+      ).to.be.revertedWith("Timelock not expired");
+    });
+
+    it("should reject non-owner propose", async function () {
+      await expect(
+        worldState.connect(user1).proposeWorldState(10000, 1000, 10000, 10000, ethers.constants.HashZero)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("should emit WorldStateUpdated event", async function () {
+    it("should reject second proposal while one is pending", async function () {
+      await worldState.proposeWorldState(15000, 2000, 12000, 8000, ethers.constants.HashZero);
       await expect(
-        worldState.updateWorldState(15000, 2000, 12000, 8000, ethers.constants.HashZero)
-      ).to.emit(worldState, "WorldStateUpdated");
+        worldState.proposeWorldState(20000, 3000, 15000, 9000, ethers.constants.HashZero)
+      ).to.be.revertedWith("Proposal already pending");
+    });
+
+    it("should emit WorldStateProposed event", async function () {
+      await expect(
+        worldState.proposeWorldState(15000, 2000, 12000, 8000, ethers.constants.HashZero)
+      ).to.emit(worldState, "WorldStateProposed");
+    });
+
+    it("should emit WorldStateExecuted and WorldStateUpdated on execute", async function () {
+      await worldState.proposeWorldState(15000, 2000, 12000, 8000, ethers.constants.HashZero);
+      await increaseTime(24 * 3600 + 1);
+      const tx = worldState.executeWorldState();
+      await expect(tx).to.emit(worldState, "WorldStateExecuted");
+      await expect(tx).to.emit(worldState, "WorldStateUpdated");
+    });
+
+    it("should reject execute when no proposal exists", async function () {
+      await expect(
+        worldState.executeWorldState()
+      ).to.be.revertedWith("No pending proposal");
+    });
+  });
+
+  describe("Timelock: Cancel", function () {
+    it("should cancel a pending proposal", async function () {
+      await worldState.proposeWorldState(15000, 2000, 12000, 8000, ethers.constants.HashZero);
+      await worldState.cancelProposal();
+
+      // Should be able to propose again
+      await worldState.proposeWorldState(20000, 3000, 15000, 9000, ethers.constants.HashZero);
+    });
+
+    it("should emit WorldStateCancelled", async function () {
+      await worldState.proposeWorldState(15000, 2000, 12000, 8000, ethers.constants.HashZero);
+      await expect(worldState.cancelProposal()).to.emit(worldState, "WorldStateCancelled");
+    });
+
+    it("should reject cancel when no proposal exists", async function () {
+      await expect(
+        worldState.cancelProposal()
+      ).to.be.revertedWith("No pending proposal");
+    });
+
+    it("should not affect live state on cancel", async function () {
+      await worldState.proposeWorldState(15000, 2000, 12000, 8000, ethers.constants.HashZero);
+      await worldState.cancelProposal();
+
+      // Values should still be defaults
+      expect(await worldState.rewardMultiplier()).to.equal(10000);
+      expect(await worldState.pkStakeLimit()).to.equal(ethers.utils.parseEther("1000"));
+    });
+  });
+
+  describe("AutoUpdate independence from Timelock", function () {
+    it("autoUpdate should still work independently of timelock", async function () {
+      // Propose a manual change (not yet executed)
+      await worldState.proposeWorldState(20000, 5000, 20000, 5000, ethers.constants.HashZero);
+
+      // autoUpdate should still work
+      await pair.setReserves(
+        ethers.utils.parseEther("1000"),
+        ethers.utils.parseEther("10")
+      );
+      await worldState.connect(keeper).autoUpdate();
+
+      // autoUpdate values should take effect immediately (bubble mode)
+      expect(await worldState.rewardMultiplier()).to.equal(8000);
+
+      // Pending proposal still exists
+      const pending = await worldState.pendingState();
+      expect(pending.exists).to.equal(true);
     });
   });
 

@@ -1,4 +1,5 @@
 import type { LobsterCardData } from '@/components/nfa/LobsterCard';
+import { nativeSymbol } from '@/lib/format';
 
 /**
  * Mock world state data for demo mode
@@ -15,11 +16,11 @@ export const mockWorldState = {
  * Mock CLW token data for demo mode
  */
 export const mockTokenInfo = {
-  price: '0.0025 BNB',
+  price: `0.0025 ${nativeSymbol}`,
   graduated: false,
   totalSupply: '100,000,000 CLW',
   holders: 1_284,
-  marketCap: '250,000 BNB',
+  marketCap: `250,000 ${nativeSymbol}`,
 };
 
 /**

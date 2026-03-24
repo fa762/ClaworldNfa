@@ -1,4 +1,7 @@
 import { formatEther } from 'viem';
+import { isTestnet } from './env';
+
+export const nativeSymbol = isTestnet ? 'tBNB' : 'BNB';
 
 export function formatBNB(wei: bigint, decimals = 4): string {
   const val = Number(formatEther(wei));

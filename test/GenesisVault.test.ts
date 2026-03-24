@@ -85,7 +85,7 @@ describe("GenesisVault", function () {
       const salt = ethers.utils.formatBytes32String("mysalt");
       const hash = computeHash(0, salt, user1.address);
 
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.18") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") });
       await increaseTime(61);
       await vault.connect(user1).reveal(0, salt);
 
@@ -96,7 +96,7 @@ describe("GenesisVault", function () {
     it("should reject reveal before delay", async function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.18") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") });
 
       await expect(vault.connect(user1).reveal(0, salt)).to.be.revertedWith("Too early");
     });
@@ -104,7 +104,7 @@ describe("GenesisVault", function () {
     it("should reject reveal after window", async function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.18") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") });
 
       await increaseTime(24 * 3600 + 1); // Past window
       await expect(vault.connect(user1).reveal(0, salt)).to.be.revertedWith("Reveal expired");
@@ -114,7 +114,7 @@ describe("GenesisVault", function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address); // Committed for Common
 
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.88") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.38") });
       await increaseTime(61);
 
       // Try to reveal as Rare
@@ -125,9 +125,9 @@ describe("GenesisVault", function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
 
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.18") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") });
       await expect(
-        vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.18") })
+        vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") })
       ).to.be.revertedWith("Already committed");
     });
 
@@ -135,7 +135,7 @@ describe("GenesisVault", function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
 
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.18") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") });
       await increaseTime(61);
       await vault.connect(user1).reveal(0, salt);
 
@@ -145,35 +145,35 @@ describe("GenesisVault", function () {
 
   describe("Rarity Pricing", function () {
     it("should accept correct Common price", async function () {
-      await commitAndReveal(user1, 0, "0.18");
+      await commitAndReveal(user1, 0, "0.08");
       expect(await vault.mintedCount()).to.equal(1);
     });
 
     it("should accept correct Rare price", async function () {
-      await commitAndReveal(user1, 1, "0.88");
+      await commitAndReveal(user1, 1, "0.38");
       expect(await vault.mintedCount()).to.equal(1);
     });
 
     it("should accept correct Epic price", async function () {
-      await commitAndReveal(user1, 2, "1.88");
+      await commitAndReveal(user1, 2, "0.88");
       expect(await vault.mintedCount()).to.equal(1);
     });
 
     it("should accept correct Legendary price", async function () {
-      await commitAndReveal(user1, 3, "3.88");
+      await commitAndReveal(user1, 3, "1.88");
       expect(await vault.mintedCount()).to.equal(1);
     });
 
     it("should accept correct Mythic price", async function () {
-      await commitAndReveal(user1, 4, "8.88");
+      await commitAndReveal(user1, 4, "3.88");
       expect(await vault.mintedCount()).to.equal(1);
     });
 
     it("should reject insufficient BNB", async function () {
       const salt = ethers.utils.formatBytes32String("salt");
-      const hash = computeHash(1, salt, user1.address); // Rare = 0.88
+      const hash = computeHash(1, salt, user1.address); // Rare = 0.38
 
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.18") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") });
       await increaseTime(61);
       await expect(vault.connect(user1).reveal(1, salt)).to.be.revertedWith("Insufficient BNB");
     });
@@ -181,7 +181,7 @@ describe("GenesisVault", function () {
     it("should refund excess BNB", async function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
-      const excess = ethers.utils.parseEther("1"); // Sending 1 BNB for 0.18 price
+      const excess = ethers.utils.parseEther("1"); // Sending 1 BNB for 0.08 price
 
       const balBefore = await user1.getBalance();
       const tx1 = await vault.connect(user1).commit(hash, { value: excess });
@@ -193,14 +193,14 @@ describe("GenesisVault", function () {
 
       const gasCost = r1.gasUsed.mul(r1.effectiveGasPrice).add(r2.gasUsed.mul(r2.effectiveGasPrice));
       const spent = balBefore.sub(balAfter).sub(gasCost);
-      // Should have spent exactly 0.18 BNB (price) net
-      expect(spent).to.equal(ethers.utils.parseEther("0.18"));
+      // Should have spent exactly 0.08 BNB (price) net
+      expect(spent).to.equal(ethers.utils.parseEther("0.08"));
     });
   });
 
   describe("Attribute Generation", function () {
     it("should generate personality in [20, 80] range", async function () {
-      await commitAndReveal(user1, 0, "0.18");
+      await commitAndReveal(user1, 0, "0.08");
       const state = await router.getLobsterState(1);
 
       expect(state.courage).to.be.gte(20).and.lte(80);
@@ -211,7 +211,7 @@ describe("GenesisVault", function () {
     });
 
     it("should generate DNA within Common range (80-140)", async function () {
-      await commitAndReveal(user1, 0, "0.18");
+      await commitAndReveal(user1, 0, "0.08");
       const state = await router.getLobsterState(1);
 
       const dnaSum = state.str + state.def + state.spd + state.vit;
@@ -225,42 +225,42 @@ describe("GenesisVault", function () {
     });
 
     it("should assign shelter 0-7", async function () {
-      await commitAndReveal(user1, 0, "0.18");
+      await commitAndReveal(user1, 0, "0.08");
       const state = await router.getLobsterState(1);
       expect(state.shelter).to.be.gte(0).and.lte(7);
     });
 
     it("should set correct rarity", async function () {
-      await commitAndReveal(user1, 2, "1.88"); // Epic
+      await commitAndReveal(user1, 2, "0.88"); // Epic
       const state = await router.getLobsterState(1);
       expect(state.rarity).to.equal(2);
     });
   });
 
   describe("CLW Airdrop", function () {
-    it("should airdrop 100 CLW to Common lobster", async function () {
-      await commitAndReveal(user1, 0, "0.18");
+    it("should airdrop 1000 CLW to Common lobster", async function () {
+      await commitAndReveal(user1, 0, "0.08");
       const balance = await router.clwBalances(1);
-      expect(balance).to.equal(ethers.utils.parseEther("100"));
+      expect(balance).to.equal(ethers.utils.parseEther("1000"));
     });
 
-    it("should airdrop 300 CLW to Rare lobster", async function () {
-      await commitAndReveal(user1, 1, "0.88");
+    it("should airdrop 3000 CLW to Rare lobster", async function () {
+      await commitAndReveal(user1, 1, "0.38");
       const balance = await router.clwBalances(1);
-      expect(balance).to.equal(ethers.utils.parseEther("300"));
+      expect(balance).to.equal(ethers.utils.parseEther("3000"));
     });
   });
 
   describe("Rarity Cap", function () {
     it("should enforce Mythic cap of 1", async function () {
-      await commitAndReveal(user1, 4, "8.88");
+      await commitAndReveal(user1, 4, "3.88");
       const minted = await vault.getRarityMinted();
       expect(minted[4]).to.equal(1);
 
       // Second Mythic should fail
       const salt = ethers.utils.formatBytes32String("salt2");
       const hash = computeHash(4, salt, user2.address);
-      await vault.connect(user2).commit(hash, { value: ethers.utils.parseEther("8.88") });
+      await vault.connect(user2).commit(hash, { value: ethers.utils.parseEther("3.88") });
       await increaseTime(61);
       await expect(vault.connect(user2).reveal(4, salt)).to.be.revertedWith("Rarity sold out");
     });
@@ -270,7 +270,7 @@ describe("GenesisVault", function () {
     it("should refund after window expires", async function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
-      const amount = ethers.utils.parseEther("0.18");
+      const amount = ethers.utils.parseEther("0.08");
 
       await vault.connect(user1).commit(hash, { value: amount });
       await increaseTime(24 * 3600 + 1);
@@ -288,14 +288,14 @@ describe("GenesisVault", function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
 
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.18") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") });
       await expect(vault.connect(user1).refundExpired()).to.be.revertedWith("Window still open");
     });
   });
 
   describe("Admin", function () {
     it("should allow owner to withdraw funds", async function () {
-      await commitAndReveal(user1, 0, "0.18");
+      await commitAndReveal(user1, 0, "0.08");
 
       const balBefore = await owner.getBalance();
       const tx = await vault.withdraw();
@@ -303,7 +303,7 @@ describe("GenesisVault", function () {
       const gasCost = receipt.gasUsed.mul(receipt.effectiveGasPrice);
       const balAfter = await owner.getBalance();
 
-      expect(balAfter.sub(balBefore).add(gasCost)).to.equal(ethers.utils.parseEther("0.18"));
+      expect(balAfter.sub(balBefore).add(gasCost)).to.equal(ethers.utils.parseEther("0.08"));
     });
 
     it("should allow owner to toggle minting", async function () {
@@ -311,7 +311,7 @@ describe("GenesisVault", function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
       await expect(
-        vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.18") })
+        vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") })
       ).to.be.revertedWith("Minting not active");
     });
   });
@@ -328,9 +328,9 @@ describe("GenesisVault", function () {
     });
 
     it("should return correct prices", async function () {
-      expect(await vault.getPrice(0)).to.equal(ethers.utils.parseEther("0.18"));
-      expect(await vault.getPrice(1)).to.equal(ethers.utils.parseEther("0.88"));
-      expect(await vault.getPrice(4)).to.equal(ethers.utils.parseEther("8.88"));
+      expect(await vault.getPrice(0)).to.equal(ethers.utils.parseEther("0.08"));
+      expect(await vault.getPrice(1)).to.equal(ethers.utils.parseEther("0.38"));
+      expect(await vault.getPrice(4)).to.equal(ethers.utils.parseEther("3.88"));
     });
   });
 });

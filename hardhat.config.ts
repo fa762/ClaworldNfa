@@ -10,6 +10,15 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
+// Proxy support for BSC testnet/mainnet deployments
+// Set HTTP_PROXY=http://127.0.0.1:59527 in .env to enable
+if (process.env.HTTP_PROXY) {
+  const HttpsProxyAgent = require("https-proxy-agent");
+  const https = require("https");
+  https.globalAgent = new HttpsProxyAgent(process.env.HTTP_PROXY);
+}
+
+
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.26",
@@ -26,9 +35,11 @@ const config: HardhatUserConfig = {
       chainId: 31337,
     },
     bscTestnet: {
-      url: "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
+      url: process.env.BSC_TESTNET_RPC || "https://bsc-testnet.bnbchain.org",
       chainId: 97,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      timeout: 120000,
+      httpHeaders: {},
     },
     bscMainnet: {
       url: "https://bsc-dataseed1.bnbchain.org",
@@ -45,5 +56,22 @@ const config: HardhatUserConfig = {
     runOnCompile: false,
   },
 };
+import { subtask } from "hardhat/config";
+import { TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD } from "hardhat/builtin-tasks/task-names";
+import path from "path";
+
+subtask(TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD, async (args: any) => {
+  const compilerPath = path.join(
+    process.env.USERPROFILE || "",
+    ".cache", "hardhat-nodejs", "compilers-v2", "wasm",
+    "soljson-v0.8.26+commit.8a97fa7a.js"
+  );
+  return {
+    version: args.solcVersion,
+    longVersion: "0.8.26+commit.8a97fa7a",
+    compilerPath,
+    isSolcJs: true,
+  };
+});
 
 export default config;

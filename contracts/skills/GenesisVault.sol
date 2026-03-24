@@ -67,11 +67,11 @@ contract GenesisVault is
     uint256 public constant REVEAL_WINDOW = 24 hours;
 
     // Rarity pricing (BNB)
-    uint256 public constant PRICE_COMMON    = 0.18 ether;
-    uint256 public constant PRICE_RARE      = 0.88 ether;
-    uint256 public constant PRICE_EPIC      = 1.88 ether;
-    uint256 public constant PRICE_LEGENDARY = 3.88 ether;
-    uint256 public constant PRICE_MYTHIC    = 8.88 ether;
+    uint256 public constant PRICE_COMMON    = 0.08 ether;
+    uint256 public constant PRICE_RARE      = 0.38 ether;
+    uint256 public constant PRICE_EPIC      = 0.88 ether;
+    uint256 public constant PRICE_LEGENDARY = 1.88 ether;
+    uint256 public constant PRICE_MYTHIC    = 3.88 ether;
 
     // Rarity caps (max count per rarity)
     uint16 public constant CAP_MYTHIC    = 1;
@@ -81,11 +81,11 @@ contract GenesisVault is
     uint16 public constant CAP_COMMON    = 860;
 
     // CLW airdrop amounts per rarity
-    uint256 public constant AIRDROP_COMMON    = 100 ether;
-    uint256 public constant AIRDROP_RARE      = 300 ether;
-    uint256 public constant AIRDROP_EPIC      = 600 ether;
-    uint256 public constant AIRDROP_LEGENDARY = 1200 ether;
-    uint256 public constant AIRDROP_MYTHIC    = 3000 ether;
+    uint256 public constant AIRDROP_COMMON    = 1000 ether;
+    uint256 public constant AIRDROP_RARE      = 3000 ether;
+    uint256 public constant AIRDROP_EPIC      = 6000 ether;
+    uint256 public constant AIRDROP_LEGENDARY = 12000 ether;
+    uint256 public constant AIRDROP_MYTHIC    = 30000 ether;
 
     // DNA total sum ranges by rarity [min, max]
     uint16[2][5] public DNA_RANGES; // Initialized in initialize()
@@ -176,16 +176,32 @@ contract GenesisVault is
     }
 
     /**
-     * @dev Phase 2: Reveal rarity + salt. Verifies hash, price, and mints.
+     * @dev Phase 2: Reveal rarity + salt. Mints to msg.sender.
      */
     function reveal(uint8 rarity, bytes32 salt) external nonReentrant {
+        _reveal(rarity, salt, msg.sender);
+    }
+
+    /**
+     * @dev Phase 2 (variant): Reveal and mint to a specified recipient address.
+     *      Allows minting directly to a game wallet / chat wallet.
+     */
+    function revealTo(uint8 rarity, bytes32 salt, address recipient) external nonReentrant {
+        require(recipient != address(0), "Invalid recipient");
+        _reveal(rarity, salt, recipient);
+    }
+
+    /**
+     * @dev Internal reveal logic shared by reveal() and revealTo().
+     */
+    function _reveal(uint8 rarity, bytes32 salt, address recipient) internal {
         Commitment storage c = commitments[msg.sender];
         require(c.hash != bytes32(0), "No commitment");
         require(!c.revealed, "Already revealed");
         require(block.timestamp >= c.timestamp + REVEAL_DELAY, "Too early");
         require(block.timestamp <= c.timestamp + REVEAL_WINDOW, "Reveal expired");
 
-        // Verify hash
+        // Verify hash (always based on msg.sender who committed)
         bytes32 expectedHash = keccak256(abi.encodePacked(rarity, salt, msg.sender));
         require(c.hash == expectedHash, "Invalid reveal");
 
@@ -211,7 +227,7 @@ contract GenesisVault is
 
         (uint8 shelter, uint8[5] memory personality, uint8[4] memory dna) = _generateAttributes(seed, rarity);
 
-        // Mint NFA
+        // Mint NFA to recipient (can be msg.sender or a game wallet)
         IGenesisNFA.AgentMetadata memory meta = IGenesisNFA.AgentMetadata({
             persona: "",
             experience: "",
@@ -221,7 +237,7 @@ contract GenesisVault is
             vaultHash: bytes32(0)
         });
 
-        uint256 nfaId = nfa.mintTo(msg.sender, address(router), "", meta);
+        uint256 nfaId = nfa.mintTo(recipient, address(router), "", meta);
 
         // Initialize lobster in router
         IGenesisRouter.LobsterState memory lobState = IGenesisRouter.LobsterState({
@@ -253,7 +269,7 @@ contract GenesisVault is
 
         emit GenesisRevealed(msg.sender, nfaId, rarity, shelter);
 
-        // Refund excess BNB
+        // Refund excess BNB to the original committer (msg.sender)
         if (excess > 0) {
             (bool ok, ) = payable(msg.sender).call{value: excess}("");
             require(ok, "Refund failed");
@@ -384,6 +400,64 @@ contract GenesisVault is
     // ============================================
     // ADMIN
     // ============================================
+
+    /**
+     * @dev Owner-only free mint, skips commit-reveal and payment.
+     */
+    function ownerMint(uint8 rarity, address recipient) external onlyOwner nonReentrant {
+        require(rarity <= 4, "Invalid rarity");
+        require(recipient != address(0), "Invalid recipient");
+        require(_checkRarityCap(rarity), "Rarity sold out");
+        require(mintedCount < TOTAL_GENESIS, "Genesis sold out");
+
+        mintedCount++;
+        rarityMinted[rarity]++;
+
+        bytes32 seed = keccak256(abi.encodePacked(
+            blockhash(block.number - 1), msg.sender, recipient, mintedCount
+        ));
+
+        (uint8 shelter, uint8[5] memory personality, uint8[4] memory dna) = _generateAttributes(seed, rarity);
+
+        IGenesisNFA.AgentMetadata memory meta = IGenesisNFA.AgentMetadata({
+            persona: "",
+            experience: "",
+            voiceHash: "",
+            animationURI: "",
+            vaultURI: "",
+            vaultHash: bytes32(0)
+        });
+
+        uint256 nfaId = nfa.mintTo(recipient, address(router), "", meta);
+
+        IGenesisRouter.LobsterState memory lobState = IGenesisRouter.LobsterState({
+            rarity: rarity,
+            shelter: shelter,
+            courage: personality[0],
+            wisdom: personality[1],
+            social: personality[2],
+            create: personality[3],
+            grit: personality[4],
+            str: dna[0],
+            def: dna[1],
+            spd: dna[2],
+            vit: dna[3],
+            mutation1: bytes32(0),
+            mutation2: bytes32(0),
+            level: 1,
+            xp: 0,
+            lastUpkeepTime: 0
+        });
+
+        router.initializeLobster(nfaId, lobState);
+
+        uint256 airdrop = _getAirdrop(rarity);
+        if (airdrop > 0) {
+            router.addCLW(nfaId, airdrop);
+        }
+
+        emit GenesisRevealed(msg.sender, nfaId, rarity, shelter);
+    }
 
     function setMintingActive(bool active) external onlyOwner {
         mintingActive = active;

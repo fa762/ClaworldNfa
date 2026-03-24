@@ -66,16 +66,21 @@ contract PKSkill is
         uint64 phaseTimestamp;
         bool revealedA;
         bool revealedB;
+        bytes32 saltA;      // User-provided entropy from reveal
+        bytes32 saltB;      // User-provided entropy from reveal
     }
 
     uint256 private _matchIdCounter;
     mapping(uint256 => PKMatch) public matches;
 
+    /// @dev Global entropy nonce, incremented on each mutation check for unpredictability
+    uint256 public entropyNonce;
+
     event MatchCreated(uint256 indexed matchId, uint256 indexed nfaA, uint256 stake);
     event MatchJoined(uint256 indexed matchId, uint256 indexed nfaB);
     event StrategyCommitted(uint256 indexed matchId, uint256 indexed nfaId);
     event StrategyRevealed(uint256 indexed matchId, uint256 indexed nfaId, uint8 strategy);
-    event MatchSettled(uint256 indexed matchId, uint256 winner, uint256 loser, uint256 reward, uint256 burned);
+    event MatchSettled(uint256 indexed matchId, uint256 indexed winner, uint256 indexed loser, uint256 reward, uint256 burned);
     event MatchCancelled(uint256 indexed matchId);
     event MutationTriggered(uint256 indexed matchId, uint256 indexed nfaId, uint8 gene, uint8 newValue);
 
@@ -124,7 +129,9 @@ contract PKSkill is
             phase: Phase.OPEN,
             phaseTimestamp: uint64(block.timestamp),
             revealedA: false,
-            revealedB: false
+            revealedB: false,
+            saltA: bytes32(0),
+            saltB: bytes32(0)
         });
 
         emit MatchCreated(matchId, nfaId, stake);
@@ -180,11 +187,13 @@ contract PKSkill is
             require(m.commitA == expectedHash, "Invalid reveal");
             m.strategyA = strategy;
             m.revealedA = true;
+            m.saltA = salt;     // Store salt for entropy
         } else if (nfa.ownerOf(m.nfaB) == msg.sender) {
             require(!m.revealedB, "Already revealed");
             require(m.commitB == expectedHash, "Invalid reveal");
             m.strategyB = strategy;
             m.revealedB = true;
+            m.saltB = salt;     // Store salt for entropy
         } else {
             revert("Not a participant");
         }
@@ -230,6 +239,26 @@ contract PKSkill is
         m.phase = Phase.CANCELLED;
         // Return stake to A
         router.addCLW(m.nfaA, m.stake);
+
+        emit MatchCancelled(matchId);
+    }
+
+    /**
+     * @dev Cancel a match stuck in JOINED phase when neither player committed in time.
+     *      Returns stakes to both players.
+     */
+    function cancelJoinedMatch(uint256 matchId) external {
+        PKMatch storage m = matches[matchId];
+        require(m.phase == Phase.JOINED, "Not in joined phase");
+        require(
+            block.timestamp > m.phaseTimestamp + COMMIT_TIMEOUT,
+            "Commit window still open"
+        );
+
+        m.phase = Phase.CANCELLED;
+        // Return stakes to both players
+        router.addCLW(m.nfaA, m.stake);
+        router.addCLW(m.nfaB, m.stake);
 
         emit MatchCancelled(matchId);
     }
@@ -345,6 +374,7 @@ contract PKSkill is
     }
 
     function _checkMutation(uint256 matchId, uint256 winner, uint256 loser) internal {
+        PKMatch storage m = matches[matchId];
         (,,,,,,,,,,,,,uint16 winnerLevel,,) = router.lobsters(winner);
         (,,,,,,,,,,,,,uint16 loserLevel,,) = router.lobsters(loser);
 
@@ -354,9 +384,15 @@ contract PKSkill is
             if (address(worldState) != address(0)) {
                 mutChance = mutChance * worldState.mutationBonus() / 10000;
             }
-            uint256 rand = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, matchId))) % 100;
+            // Enhanced entropy: mix user-provided salts, gasleft(), and global nonce
+            uint256 rand = uint256(keccak256(abi.encodePacked(
+                block.prevrandao, block.timestamp, matchId,
+                m.saltA, m.saltB,
+                gasleft(), ++entropyNonce
+            ))) % 100;
             if (rand < mutChance) {
-                uint8 gene = uint8(rand % 4);
+                // Use separate hash for gene selection to avoid correlation
+                uint8 gene = uint8(uint256(keccak256(abi.encodePacked(rand, entropyNonce))) % 4);
                 // Boost by 5
                 (,,,,,,,uint8 str, uint8 def, uint8 spd, uint8 vit,,,,, ) = router.lobsters(winner);
                 uint8 currentVal;

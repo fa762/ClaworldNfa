@@ -85,8 +85,11 @@ describe("TaskSkill", function () {
   });
 
   it("should apply world state reward multiplier", async function () {
-    // Set 2x reward multiplier
-    await worldState.updateWorldState(20000, 1000, 10000, 10000, ethers.constants.HashZero);
+    // Set 2x reward multiplier via timelock
+    await worldState.proposeWorldState(20000, 1000, 10000, 10000, ethers.constants.HashZero);
+    await ethers.provider.send("evm_increaseTime", [24 * 3600 + 1]);
+    await ethers.provider.send("evm_mine", []);
+    await worldState.executeWorldState();
 
     const clwReward = ethers.utils.parseEther("50");
     // 100% match × 2x world = 100 CLW actual
