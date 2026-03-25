@@ -14,6 +14,10 @@ interface ITaskWorldState {
     function rewardMultiplier() external view returns (uint256);
 }
 
+interface ITaskNFA {
+    function ownerOf(uint256 tokenId) external view returns (address);
+}
+
 /**
  * @title TaskSkill
  * @dev Task completion handler. Called by oracle fulfillment or backend operator
@@ -28,9 +32,13 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
 
     ITaskRouter public router;
     ITaskWorldState public worldState;
+    ITaskNFA public nfa;
 
     // Authorized operators (oracle callback or backend)
     mapping(address => bool) public operators;
+
+    // Per-NFA daily task cooldown (tokenId => last completion timestamp)
+    mapping(uint256 => uint256) public lastTaskTime;
 
     event TaskCompleted(
         uint256 indexed nfaId,
@@ -126,6 +134,50 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
         }
 
         emit TaskCompleted(nfaId, xpReward, clwReward, actualClw, matchScore);
+    }
+
+    /**
+     * @dev Owner-callable task completion — NFA owner submits directly, no operator needed.
+     *      Capped rewards prevent abuse: max 50 XP, max 100 CLW per task, 1 task per 4 hours.
+     */
+    function ownerCompleteTypedTask(
+        uint256 nfaId,
+        uint8 taskType,
+        uint32 xpReward,
+        uint256 clwReward,
+        uint16 matchScore
+    ) external {
+        require(nfa.ownerOf(nfaId) == msg.sender, "Not NFA owner");
+        require(matchScore <= 20000, "Score too high");
+        require(taskType <= 4, "Invalid task type");
+        require(xpReward <= 50, "XP cap exceeded");
+        require(clwReward <= 100 * 1e18, "CLW cap exceeded");
+        require(block.timestamp >= lastTaskTime[nfaId] + 4 hours, "Cooldown active");
+
+        lastTaskTime[nfaId] = block.timestamp;
+
+        uint256 worldMul = worldState.rewardMultiplier();
+        uint256 actualClw = clwReward * uint256(matchScore) / 10000 * worldMul / 10000;
+
+        if (actualClw > 0) {
+            router.addCLW(nfaId, actualClw);
+        }
+        if (xpReward > 0) {
+            router.addXP(nfaId, xpReward);
+        }
+        if (matchScore >= 10000) {
+            router.evolvePersonality(nfaId, taskType, int8(1));
+            emit TaskPersonalityDrift(nfaId, taskType, int8(1));
+        }
+
+        emit TaskCompleted(nfaId, xpReward, clwReward, actualClw, matchScore);
+    }
+
+    /**
+     * @dev Set NFA contract address (for owner verification). Only callable once or by owner.
+     */
+    function setNFA(address _nfa) external onlyOwner {
+        nfa = ITaskNFA(_nfa);
     }
 
     function setOperator(address operator, bool authorized) external onlyOwner {

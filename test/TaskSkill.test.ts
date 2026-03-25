@@ -116,4 +116,65 @@ describe("TaskSkill", function () {
       .to.emit(taskSkill, "TaskCompleted")
       .withArgs(tokenId, 20, clwReward, clwReward, 10000);
   });
+
+  // ─── ownerCompleteTypedTask tests ───
+
+  describe("ownerCompleteTypedTask", function () {
+    beforeEach(async function () {
+      await taskSkill.setNFA(nfa.address);
+    });
+
+    it("should allow NFA owner to complete task directly", async function () {
+      const clwReward = ethers.utils.parseEther("50");
+      await taskSkill.connect(user1).ownerCompleteTypedTask(tokenId, 0, 30, clwReward, 10000);
+
+      expect(await router.clwBalances(tokenId)).to.equal(ethers.utils.parseEther("1050"));
+      const state = await router.getLobsterState(tokenId);
+      expect(state.xp).to.equal(30);
+    });
+
+    it("should reject non-owner", async function () {
+      await expect(
+        taskSkill.connect(operator).ownerCompleteTypedTask(tokenId, 0, 30, ethers.utils.parseEther("50"), 10000)
+      ).to.be.revertedWith("Not NFA owner");
+    });
+
+    it("should enforce XP cap (max 50)", async function () {
+      await expect(
+        taskSkill.connect(user1).ownerCompleteTypedTask(tokenId, 0, 51, ethers.utils.parseEther("50"), 10000)
+      ).to.be.revertedWith("XP cap exceeded");
+    });
+
+    it("should enforce CLW cap (max 100)", async function () {
+      await expect(
+        taskSkill.connect(user1).ownerCompleteTypedTask(tokenId, 0, 30, ethers.utils.parseEther("101"), 10000)
+      ).to.be.revertedWith("CLW cap exceeded");
+    });
+
+    it("should enforce 4-hour cooldown", async function () {
+      const clwReward = ethers.utils.parseEther("50");
+      await taskSkill.connect(user1).ownerCompleteTypedTask(tokenId, 0, 30, clwReward, 10000);
+
+      await expect(
+        taskSkill.connect(user1).ownerCompleteTypedTask(tokenId, 1, 20, clwReward, 10000)
+      ).to.be.revertedWith("Cooldown active");
+
+      // Fast forward 4 hours
+      await ethers.provider.send("evm_increaseTime", [4 * 3600 + 1]);
+      await ethers.provider.send("evm_mine", []);
+
+      await taskSkill.connect(user1).ownerCompleteTypedTask(tokenId, 1, 20, clwReward, 10000);
+      expect(await router.clwBalances(tokenId)).to.equal(ethers.utils.parseEther("1100"));
+    });
+
+    it("should trigger personality evolution on high match", async function () {
+      const clwReward = ethers.utils.parseEther("50");
+      await expect(
+        taskSkill.connect(user1).ownerCompleteTypedTask(tokenId, 2, 30, clwReward, 12000)
+      ).to.emit(taskSkill, "TaskPersonalityDrift").withArgs(tokenId, 2, 1);
+
+      const state = await router.getLobsterState(tokenId);
+      expect(state.social).to.equal(51); // was 50, +1
+    });
+  });
 });
