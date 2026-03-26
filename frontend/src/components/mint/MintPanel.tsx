@@ -180,8 +180,8 @@ export function MintPanel() {
 
   return (
     <div className="pipboy-split">
-      {/* ═══ LEFT: Stats & Info ═══ */}
-      <div className="pipboy-split-sidebar" style={{ width: 220 }}>
+      {/* ═══ LEFT: Stats & Info (hidden on mobile, compact sidebar on desktop) ═══ */}
+      <div className="pipboy-split-sidebar hidden sm:block" style={{ width: 220 }}>
         {/* Progress */}
         <div className="px-3 py-2">
           <div className="term-bright text-xs glow mb-2">{t('mint.progress')}</div>
@@ -226,7 +226,12 @@ export function MintPanel() {
 
       {/* ═══ RIGHT: Mint Action ═══ */}
       <div className="pipboy-split-content flex flex-col">
-        <div className="term-bright text-sm glow mb-3">{t('mint.genesis')}</div>
+        {/* Mobile compact header */}
+        <div className="sm:hidden mb-2 text-xs flex items-center justify-between">
+          <span className="term-bright glow">{t('mint.genesis')}</span>
+          <span className="term-dim">{totalMinted}/{TOTAL_GENESIS}</span>
+        </div>
+        <div className="hidden sm:block term-bright text-sm glow mb-3">{t('mint.genesis')}</div>
 
         {!isConnected ? (
           <div className="term-dim text-sm py-8 text-center">

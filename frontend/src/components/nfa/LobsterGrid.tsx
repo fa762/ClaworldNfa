@@ -217,7 +217,7 @@ export function LobsterGrid() {
                 </thead>
                 <tbody>
                   {paged.map((l) => (
-                    <tr key={l.tokenId} className="group">
+                    <tr key={l.tokenId} className="group cursor-pointer" onClick={() => window.location.href = `/nfa/${l.tokenId}`}>
                       <td>
                         <Link href={`/nfa/${l.tokenId}`} className="term-link">
                           #{String(l.tokenId).padStart(3, '0')}

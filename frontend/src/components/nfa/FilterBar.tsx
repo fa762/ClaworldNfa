@@ -91,9 +91,9 @@ export function FilterBar({ filters, onChange, walletConnected, viewMode, onView
         </button>
       )}
 
-      <span className="term-darkest ml-auto hidden sm:inline">│</span>
+      <span className="term-darkest ml-auto">│</span>
 
-      <div className="hidden sm:flex gap-1">
+      <div className="flex gap-1">
         <button
           onClick={() => onViewChange('list')}
           className={`text-xs px-2 py-0.5 ${viewMode === 'list' ? 'term-bright glow' : 'term-dim'}`}
