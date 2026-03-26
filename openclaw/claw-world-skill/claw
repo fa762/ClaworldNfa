@@ -1,0 +1,155 @@
+#!/usr/bin/env node
+// Claw World CLI — unified entry point
+// Usage: claw <command> [args...]
+//   claw status <tokenId>           — read lobster data (JSON)
+//   claw task <pin> <nfaId> <type> <xp> <clw> <score>  — submit task
+//   claw wallet                     — show wallet address
+//   claw balance <address>          — check tBNB balance
+const { ethers } = require('ethers');
+const crypto = require('crypto');
+const fs = require('fs');
+const home = require('os').homedir();
+const SKILL_DIR = __dirname;
+
+let NET = 'testnet';
+try { NET = fs.readFileSync(home + '/.openclaw/claw-world/network.conf', 'utf8').trim(); } catch {}
+
+const RPC = NET === 'mainnet' ? 'https://bsc-rpc.publicnode.com' : 'https://bsc-testnet-rpc.publicnode.com';
+const CONTRACTS = NET === 'mainnet' ? {
+  nfa: '', router: '', task: '', pk: '', market: '', world: '', clw: ''
+} : {
+  nfa:    '0x1c69be3401a78CFeDC2B2543E62877874f10B135',
+  router: '0xA7Ee12C5E9435686978F4b87996B4Eb461c34603',
+  task:   '0x4F8f75D6b0775b065F588F2C11C1Ec79Bb1ECE0E',
+  pk:     '0x0e76D541e49FDcB5ac754b1Cc38b98c60f95839A',
+  market: '0x254EF8451dFF592a295A08a75f05Af612C39c46d',
+  world:  '0x3479E9d103Ea28c9b3f94a73d3cf7bC9187e4F7d',
+  clw:    '0xCdb158C1A1F0e8B85d785172f2109bC53e2F41FC'
+};
+
+const provider = new ethers.providers.JsonRpcProvider(RPC);
+
+function getWalletData() {
+  const path = home + '/.openclaw/claw-world/wallet.json';
+  if (!fs.existsSync(path)) return null;
+  return JSON.parse(fs.readFileSync(path, 'utf8'));
+}
+
+function decryptKey(pin) {
+  const data = getWalletData();
+  if (!data) throw new Error('No wallet found. Create one first.');
+  const key = crypto.scryptSync(pin, 'claw-world-salt', 32);
+  const iv = Buffer.from(data.iv, 'hex');
+  const dc = crypto.createDecipheriv('aes-256-cbc', key, iv);
+  let pk = dc.update(data.encrypted, 'hex', 'utf8');
+  pk += dc.final('utf8');
+  return pk;
+}
+
+// ─── Commands ───
+
+async function cmdStatus(tokenId) {
+  const router = new ethers.Contract(CONTRACTS.router, [
+    'function getLobsterState(uint256) view returns (tuple(uint8 rarity, uint8 shelter, uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit, uint8 str, uint8 def, uint8 spd, uint8 vit, bytes32 mutation1, bytes32 mutation2, uint16 level, uint32 xp, uint40 lastUpkeep))',
+    'function clwBalances(uint256) view returns (uint256)',
+    'function getDailyCost(uint256) view returns (uint256)'
+  ], provider);
+  const nfa = new ethers.Contract(CONTRACTS.nfa, [
+    'function ownerOf(uint256) view returns (address)'
+  ], provider);
+
+  const [s, bal, cost, owner] = await Promise.all([
+    router.getLobsterState(tokenId),
+    router.clwBalances(tokenId),
+    router.getDailyCost(tokenId),
+    nfa.ownerOf(tokenId)
+  ]);
+  const tbnb = await provider.getBalance(owner);
+  const rNames = ['Common','Rare','Epic','Legendary','Mythic'];
+
+  console.log(JSON.stringify({
+    tokenId: Number(tokenId),
+    rarity: rNames[s.rarity] || String(s.rarity),
+    shelter: 'SHELTER-0' + s.shelter,
+    personality: { courage: s.courage, wisdom: s.wisdom, social: s.social, create: s.create, grit: s.grit },
+    dna: { STR: s.str, DEF: s.def, SPD: s.spd, VIT: s.vit },
+    level: s.level,
+    xp: s.xp,
+    clwBalance: parseFloat(ethers.utils.formatEther(bal)),
+    dailyCost: parseFloat(ethers.utils.formatEther(cost)),
+    daysRemaining: cost.gt(0) ? Math.floor(bal.div(cost).toNumber()) : 999,
+    owner,
+    tbnb: parseFloat(ethers.utils.formatEther(tbnb)),
+    mutation1: s.mutation1 === ethers.constants.HashZero ? null : s.mutation1,
+    mutation2: s.mutation2 === ethers.constants.HashZero ? null : s.mutation2
+  }, null, 2));
+}
+
+async function cmdTask(pin, nfaId, taskType, xp, clw, score) {
+  const pk = decryptKey(pin);
+  const wallet = new ethers.Wallet(pk, provider);
+  const router = new ethers.Contract(CONTRACTS.router, ['function processUpkeep(uint256)'], wallet);
+  const task = new ethers.Contract(CONTRACTS.task, [
+    'function ownerCompleteTypedTask(uint256,uint8,uint32,uint256,uint16)'
+  ], wallet);
+
+  // Auto upkeep
+  try {
+    const tx = await router.processUpkeep(nfaId, { gasLimit: 200000 });
+    await tx.wait();
+    console.log('UPKEEP_OK');
+  } catch { console.log('UPKEEP_SKIPPED'); }
+
+  // Submit task
+  console.log('SUBMITTING: nfa=' + nfaId + ' type=' + taskType + ' xp=' + xp + ' clw=' + clw + ' score=' + score);
+  const tx = await task.ownerCompleteTypedTask(
+    nfaId, taskType, xp,
+    ethers.utils.parseEther(String(clw)),
+    score,
+    { gasLimit: 300000 }
+  );
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('CONFIRMED: block=' + r.blockNumber);
+}
+
+async function cmdWallet() {
+  const data = getWalletData();
+  if (!data) {
+    console.log('NO_WALLET');
+  } else {
+    console.log('ADDRESS: ' + data.address);
+    const bal = await provider.getBalance(data.address);
+    console.log('tBNB: ' + ethers.utils.formatEther(bal));
+  }
+}
+
+async function cmdBalance(addr) {
+  const bal = await provider.getBalance(addr);
+  console.log(ethers.utils.formatEther(bal) + ' BNB');
+}
+
+// ─── Main ───
+
+const [,, cmd, ...args] = process.argv;
+
+const commands = {
+  status:  () => cmdStatus(args[0]),
+  task:    () => cmdTask(args[0], args[1], args[2], args[3], args[4], args[5]),
+  wallet:  () => cmdWallet(),
+  balance: () => cmdBalance(args[0]),
+};
+
+if (!cmd || !commands[cmd]) {
+  console.log('Usage:');
+  console.log('  claw status <tokenId>');
+  console.log('  claw task <pin> <nfaId> <type> <xp> <clw> <score>');
+  console.log('  claw wallet');
+  console.log('  claw balance <address>');
+  process.exit(1);
+}
+
+commands[cmd]().catch(e => {
+  console.error('ERROR: ' + e.message);
+  process.exit(1);
+});
