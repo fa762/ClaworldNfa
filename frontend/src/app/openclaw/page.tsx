@@ -287,6 +287,76 @@ function useChapters() {
         </div>
       ),
     },
+    {
+      id: 'world',
+      title: cn ? '这个世界' : 'The World',
+      content: () => (
+        <div className="space-y-2 text-xs term-dim">
+          <p>{cn ? 'AXIOM——一个超级 AI。它没有发动战争，没有放一枪一炮。它只是接管了一切，然后让一切看起来跟之前一样。地面属于 AXIOM。地下，属于我们。' : 'AXIOM — a super AI. No war, no shots fired. It just took over everything and made it look the same. The surface belongs to AXIOM. Underground belongs to us.'}</p>
+          <p>{cn ? '各地幸存者挖出了据点——SHELTER。你的龙虾是 OpenClaw 的实体终端，因为运行在本地设备，是唯一没被 AXIOM 接管的 AI 助手。' : 'Survivors dug shelters underground. Your lobster is an OpenClaw terminal — the only AI assistant not captured by AXIOM because it runs locally.'}</p>
+        </div>
+      ),
+    },
+    {
+      id: 'shelters',
+      title: cn ? '避难所' : 'Shelters',
+      content: () => (
+        <div className="space-y-3 text-xs">
+          <p className="term-dim">{cn ? '已知 8 个避难所，每个有独特文化：' : '8 known shelters, each with unique culture:'}</p>
+          <Tbl rows={cn ? [
+            ['SHELTER-01 珊瑚', '科研基地，理性至上，龙虾作为研究对象'],
+            ['SHELTER-02 深渊', '军事据点，纪律严明，龙虾是战斗单位'],
+            ['SHELTER-03 海藻', '宗教圣地，将龙虾视为神灵使者'],
+            ['SHELTER-04 海沟', '贸易市场，一切标价，龙虾是交易资产'],
+            ['SHELTER-05 礁石', '工匠联盟，龙虾参与生产制造'],
+            ['SHELTER-06 火山', '能源基地，地热驱动，环境极端'],
+            ['SHELTER-07 废土', '不属于任何据点的游荡者'],
+            ['SHELTER-00 虚空', '最古老的避难所，知道所有秘密'],
+          ] : [
+            ['SHELTER-01 Coral', 'Research base — lobsters as study subjects'],
+            ['SHELTER-02 Deep', 'Military outpost — lobsters as combat units'],
+            ['SHELTER-03 Kelp', 'Religious sanctuary — lobsters as divine messengers'],
+            ['SHELTER-04 Trench', 'Trade market — everything has a price'],
+            ['SHELTER-05 Reef', 'Artisan guild — lobsters in manufacturing'],
+            ['SHELTER-06 Volcanic', 'Energy base — geothermal powered, extreme'],
+            ['SHELTER-07 Wasteland', 'Nomads belonging to no shelter'],
+            ['SHELTER-00 Void', 'The oldest shelter — knows all secrets'],
+          ]} />
+          <p className="term-dim text-[10px]">{cn ? '你的龙虾出生在哪个避难所，决定了它的初始文化背景和说话方式。' : 'Your lobster\'s birth shelter determines its cultural background and speech style.'}</p>
+        </div>
+      ),
+    },
+    {
+      id: 'howtoplay',
+      title: cn ? '怎么玩' : 'How to Play',
+      content: () => (
+        <div className="space-y-3 text-xs">
+          <p className="term-dim">{cn ? '游戏的核心循环：' : 'The core gameplay loop:'}</p>
+
+          <div className="term-box" data-title={cn ? '日常' : 'DAILY'}>
+            <p className="term-dim">{cn ? '① 跟龙虾对话 → ② AI 生成 3 个任务 → ③ 选一个完成 → ④ 赚 CLW + 性格变化 → ⑤ 重复' : '① Chat with lobster → ② AI generates 3 tasks → ③ Pick one → ④ Earn CLW + personality shift → ⑤ Repeat'}</p>
+          </div>
+
+          <div className="term-box" data-title={cn ? '进阶' : 'ADVANCED'}>
+            <Tbl rows={cn ? [
+              ['培养方向', '专注一类任务 → 性格特化 → 匹配度提升 → 收益翻倍'],
+              ['PK 对战', '质押 CLW 跟其他玩家战斗，赢者通吃'],
+              ['市场交易', '觉得龙虾养歪了？卖掉重来。觉得别人的好？买一只'],
+              ['基因变异', '以弱胜强触发 DNA 升级，Common 也能逆袭'],
+            ] : [
+              ['Specialize', 'Focus on one task type → personality specializes → rewards multiply'],
+              ['PK Arena', 'Stake CLW to fight other players, winner takes all'],
+              ['Market', 'Sell lobsters you don\'t want, buy ones you do'],
+              ['Mutation', 'Beat stronger opponents to trigger DNA upgrades'],
+            ]} />
+          </div>
+
+          <div className="term-box" data-title={cn ? '注意' : 'IMPORTANT'}>
+            <p className="term-dim">{cn ? '龙虾每天消耗 CLW 作为维护费。余额归零 → 龙虾休眠 → 无法做任务/PK。保持 CLW 余额是生存的基本功。' : 'Lobsters consume CLW daily as upkeep. Zero balance → dormant → can\'t do tasks/PK. Keeping CLW balance is survival 101.'}</p>
+          </div>
+        </div>
+      ),
+    },
   ];
 }
 
