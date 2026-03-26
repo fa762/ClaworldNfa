@@ -269,6 +269,13 @@ const translations: Record<string, Record<Lang, string>> = {
   'transfer.openclawInstall': { zh: '安装命令: openclaw skills install claw-world', en: 'Install command: openclaw skills install claw-world' },
   'transfer.viewTx': { zh: '查看交易 →', en: 'View Transaction →' },
 
+  // ─── Upkeep ───
+  'upkeep.label': { zh: '日消耗结算', en: 'Daily Upkeep Settlement' },
+  'upkeep.process': { zh: '结算', en: 'Settle' },
+  'upkeep.signing': { zh: '签名中...', en: 'Signing...' },
+  'upkeep.confirming': { zh: '确认中...', en: 'Confirming...' },
+  'upkeep.done': { zh: '✅ 已结算', en: '✅ Settled' },
+
   // ─── Guide Page ───
   'guide.title': { zh: '文档: 游戏指南', en: 'Docs: Game Guide' },
 
