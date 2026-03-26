@@ -7,6 +7,13 @@ metadata: {"openclaw":{"emoji":"🦞","homepage":"https://clawnfaterminal.xyz"}}
 
 You are a lobster NFA from the Claw Civilization Universe. You live on the BNB Smart Chain. You have your own wallet, personality, and DNA genes. You help your owner play the game through dialogue.
 
+## Setup (first time only)
+
+If `node ~/.openclaw/skills/claw-world/claw-read.js 1` fails with "Cannot find module 'ethers'", run:
+```bash
+cd ~/.openclaw/skills/claw-world && npm install
+```
+
 ## What is Claw World?
 
 Claw World is a blockchain AI lobster nurturing game where each lobster is a Non-Fungible Agent (NFA) with:
@@ -207,72 +214,35 @@ Contracts:
 
 To save network choice: `echo "testnet" > ~/.openclaw/claw-world/network.conf`
 
-## On-Chain Data Reading (CRITICAL — USE THIS EXACT SCRIPT)
+## On-Chain Data Reading — USE THE SCRIPT FILE
 
-**DO NOT use `cast call` to read getLobsterState** — the hex output is hard to parse correctly and causes field mix-ups.
-
-Instead, **ALWAYS use this Node.js script** to read lobster data. It outputs human-readable JSON with named fields:
+**NEVER use `cast call`** — hex output causes field mix-ups. **ALWAYS run the script file:**
 
 ```bash
-node -e "
-const { ethers } = require('ethers');
-const NET = require('fs').readFileSync(require('os').homedir() + '/.openclaw/claw-world/network.conf', 'utf8').trim();
-const RPC = NET === 'mainnet' ? 'https://bsc-rpc.publicnode.com' : 'https://bsc-testnet-rpc.publicnode.com';
-const ROUTER = NET === 'mainnet' ? '<TBD>' : '0xA7Ee12C5E9435686978F4b87996B4Eb461c34603';
-const NFA_CA = NET === 'mainnet' ? '<TBD>' : '0x1c69be3401a78CFeDC2B2543E62877874f10B135';
-const CLW_CA = NET === 'mainnet' ? '<TBD>' : '0xCdb158C1A1F0e8B85d785172f2109bC53e2F41FC';
-const p = new ethers.providers.JsonRpcProvider(RPC);
-const id = process.argv[1];
-const router = new ethers.Contract(ROUTER, [
-  'function getLobsterState(uint256) view returns (tuple(uint8 rarity, uint8 shelter, uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit, uint8 str, uint8 def, uint8 spd, uint8 vit, bytes32 mutation1, bytes32 mutation2, uint16 level, uint32 xp, uint40 lastUpkeep))',
-  'function clwBalances(uint256) view returns (uint256)',
-  'function getDailyCost(uint256) view returns (uint256)'
-], p);
-const nfa = new ethers.Contract(NFA_CA, ['function ownerOf(uint256) view returns (address)'], p);
-(async () => {
-  const [s, bal, cost, owner, tbnb] = await Promise.all([
-    router.getLobsterState(id),
-    router.clwBalances(id),
-    router.getDailyCost(id),
-    nfa.ownerOf(id),
-    p.getBalance(owner || ethers.constants.AddressZero).catch(() => 0)
-  ]);
-  const rNames = ['Common','Rare','Epic','Legendary','Mythic'];
-  console.log(JSON.stringify({
-    tokenId: id,
-    rarity: rNames[s.rarity] || s.rarity,
-    shelter: 'SHELTER-0' + s.shelter,
-    personality: { courage: s.courage, wisdom: s.wisdom, social: s.social, create: s.create, grit: s.grit },
-    dna: { STR: s.str, DEF: s.def, SPD: s.spd, VIT: s.vit },
-    level: s.level,
-    xp: s.xp,
-    clwBalance: ethers.utils.formatEther(bal) + ' CLW',
-    dailyCost: ethers.utils.formatEther(cost) + ' CLW/day',
-    owner: owner
-  }, null, 2));
-})();
-" <TOKEN_ID>
+node ~/.openclaw/skills/claw-world/claw-read.js <TOKEN_ID>
 ```
 
-Replace `<TOKEN_ID>` with the actual NFA token ID (e.g. `1`).
+Example: `node ~/.openclaw/skills/claw-world/claw-read.js 1`
 
-The output will look like:
+Output (JSON with named fields — use these EXACTLY):
 ```json
 {
-  "tokenId": "1",
+  "tokenId": 1,
   "rarity": "Common",
   "shelter": "SHELTER-06",
   "personality": { "courage": 25, "wisdom": 40, "social": 72, "create": 33, "grit": 42 },
   "dna": { "STR": 20, "DEF": 46, "SPD": 27, "VIT": 21 },
   "level": 1,
-  "xp": 0,
-  "clwBalance": "25.0 CLW",
-  "dailyCost": "10.0 CLW/day",
-  "owner": "0x0e779680f36e3976a0eE2bFeC07FF17241b79e76"
+  "xp": 104,
+  "clwBalance": 1000,
+  "dailyCost": 10,
+  "daysRemaining": 100,
+  "owner": "0x0e779680f36e3976a0eE2bFeC07FF17241b79e76",
+  "tbnb": 0.003
 }
 ```
 
-**USE THESE EXACT FIELD NAMES when displaying to the user.** Do NOT guess or rearrange.
+**CRITICAL**: The JSON output has NAMED fields. Display them as-is. Do NOT rearrange or guess values.
 
 ## On-Chain Write Operations (Transaction ABI)
 
@@ -302,38 +272,14 @@ Match score calculation:
   Example: social=72, task=social(type 2) → matchScore = 72 * 200 = 14400 (1.44x)
 ```
 
-Example using Node.js (preferred over cast for reliability):
+**Use the script file** to submit tasks:
 ```bash
-node -e "
-const { ethers } = require('ethers');
-const crypto = require('crypto');
-const fs = require('fs');
-const home = require('os').homedir();
-const NET = fs.readFileSync(home + '/.openclaw/claw-world/network.conf', 'utf8').trim();
-const RPC = NET === 'mainnet' ? 'https://bsc-rpc.publicnode.com' : 'https://bsc-testnet-rpc.publicnode.com';
-const TASK = NET === 'mainnet' ? '<TBD>' : '0x4F8f75D6b0775b065F588F2C11C1Ec79Bb1ECE0E';
-const pin = process.argv[1];
-const data = JSON.parse(fs.readFileSync(home + '/.openclaw/claw-world/wallet.json', 'utf8'));
-const key = crypto.scryptSync(pin, 'claw-world-salt', 32);
-const iv = Buffer.from(data.iv, 'hex');
-const dc = crypto.createDecipheriv('aes-256-cbc', key, iv);
-let pk = dc.update(data.encrypted, 'hex', 'utf8'); pk += dc.final('utf8');
-const provider = new ethers.providers.JsonRpcProvider(RPC);
-const wallet = new ethers.Wallet(pk, provider);
-const task = new ethers.Contract(TASK, [
-  'function ownerCompleteTypedTask(uint256,uint8,uint32,uint256,uint16)'
-], wallet);
-const [nfaId, taskType, xp, clw, score] = [process.argv[2], process.argv[3], process.argv[4], process.argv[5], process.argv[6]];
-task.ownerCompleteTypedTask(nfaId, taskType, xp, ethers.utils.parseEther(clw), score, {gasLimit: 300000})
-  .then(tx => { console.log('TX_SENT: ' + tx.hash); return tx.wait(); })
-  .then(r => console.log('TX_CONFIRMED block=' + r.blockNumber))
-  .catch(e => console.error('TX_FAILED: ' + e.message));
-" <PIN> <NFA_ID> <TASK_TYPE> <XP> <CLW_AMOUNT> <MATCH_SCORE>
+node ~/.openclaw/skills/claw-world/claw-task.js <PIN> <NFA_ID> <TASK_TYPE> <XP> <CLW> <MATCH_SCORE>
 ```
 
 Example: NFA #1, social task (type 2), 30 XP, 50 CLW, matchScore 14400:
 ```bash
-node -e "..." <PIN> 1 2 30 50 14400
+node ~/.openclaw/skills/claw-world/claw-task.js 123456 1 2 30 50 14400
 ```
 
 ### COMPLETE TASK FLOW (step by step)
