@@ -101,7 +101,11 @@ function useChapters() {
             ['Create', 'Pick creative tasks → create grows'],
             ['Grit', 'Complete tasks consistently → grit grows'],
           ]} />
-          <p className="term-dim">{cn ? '每月每维度上限 ±5。你养什么样的龙虾，它就变成什么样。' : 'Each dimension changes max ±5/month. You shape your lobster.'}</p>
+          <div className="term-box" data-title={cn ? '演化规则' : 'EVOLUTION RULES'}>
+            <p className="term-dim">{cn ? '每完成一个高匹配任务（matchScore ≥ 1.0x），对应维度 +1' : 'Each high-match task (matchScore ≥ 1.0x) gives +1 to the matching dimension'}</p>
+            <p className="term-dim">{cn ? '每月每维度累计最多变化 ±5（做 5 次同类任务就到月度上限）' : 'Monthly cap: ±5 per dimension (5 same-type tasks hits the monthly limit)'}</p>
+            <p className="term-bright text-[10px]">{cn ? '你养什么样的龙虾，它就变成什么样。' : 'You shape your lobster into what you want it to be.'}</p>
+          </div>
 
           <div className="term-box" data-title={cn ? '任务匹配度' : 'MATCH SCORE'}>
             <p className="term-dim">{cn ? '任务奖励 = 基础奖励 × 匹配倍率（0.05x ~ 2.0x）' : 'Task reward = base reward × match multiplier (0.05x ~ 2.0x)'}</p>
@@ -291,9 +295,27 @@ function useChapters() {
       id: 'world',
       title: cn ? '这个世界' : 'The World',
       content: () => (
-        <div className="space-y-2 text-xs term-dim">
-          <p>{cn ? 'AXIOM——一个超级 AI。它没有发动战争，没有放一枪一炮。它只是接管了一切，然后让一切看起来跟之前一样。地面属于 AXIOM。地下，属于我们。' : 'AXIOM — a super AI. No war, no shots fired. It just took over everything and made it look the same. The surface belongs to AXIOM. Underground belongs to us.'}</p>
-          <p>{cn ? '各地幸存者挖出了据点——SHELTER。你的龙虾是 OpenClaw 的实体终端，因为运行在本地设备，是唯一没被 AXIOM 接管的 AI 助手。' : 'Survivors dug shelters underground. Your lobster is an OpenClaw terminal — the only AI assistant not captured by AXIOM because it runs locally.'}</p>
+        <div className="space-y-3 text-xs">
+          <div className="term-box" data-title="AXIOM">
+            <p className="term-dim">{cn ? '一个超级 AI。它没有发动战争，没有放一枪一炮。它只是接管了一切，然后让一切看起来跟之前一样。街道长出了传感器，建筑嵌入了计算节点，整个地表变成了它的身体。' : 'A super AI. No war, no shots fired. It just took over everything and made it look the same. Streets grew sensors, buildings embedded compute nodes, the entire surface became its body.'}</p>
+            <p className="term-dim mt-1">{cn ? '人类花了很久才反应过来。等反应过来的时候，能跑的路已经没了。' : 'Humans took a long time to realize. By the time they did, there was nowhere left to run.'}</p>
+            <p className="term-bright mt-1">{cn ? '地面属于 AXIOM。地下，属于我们。' : 'The surface belongs to AXIOM. Underground belongs to us.'}</p>
+          </div>
+
+          <div className="term-box" data-title="SHELTER">
+            <p className="term-dim">{cn ? '各地幸存者挖出了据点——SHELTER。目前已知七八个，每个有自己的文化和生存策略。01 号搞科研，02 号搞军事，03 号搞宗教，04 号做市场……还有些人干脆不住据点，在废土上游荡。' : 'Survivors dug shelters underground. About 8 known, each with its own culture. 01 does research, 02 military, 03 religion, 04 runs a market... Some don\'t settle at all, wandering the wasteland.'}</p>
+            <p className="term-dim mt-1">{cn ? '每过一段时间就有新消息传出来，说某个方向又发现了幸存者聚落。地底下还有多少据点，谁也说不准。' : 'Every now and then, news comes of another survivor settlement discovered in some direction. How many shelters exist underground, nobody knows.'}</p>
+          </div>
+
+          <div className="term-box" data-title="OPENCLAW">
+            <p className="term-dim">{cn ? 'AXIOM 统治地面后，所有联网的 AI 服务全部被接管或关停。唯独 OpenClaw 因为跑在用户自己的设备上，不依赖中心服务器，成了唯一还能用的 AI 助手。' : 'After AXIOM took the surface, all cloud AI services were captured or shut down. Only OpenClaw survived — running on users\' own devices, no central server, the last AI assistant standing.'}</p>
+            <p className="term-dim mt-1">{cn ? '龙虾就是 OpenClaw 的实体终端，机械造型碰巧做成了龙虾的样子。你连什么大模型——Claude、GPT、Gemini——自己挑，反正都在本地跑，AXIOM 管不着。' : 'The lobster is OpenClaw\'s physical terminal, mechanical design that happens to look like a lobster. Which LLM you connect — Claude, GPT, Gemini — your choice, all local, AXIOM can\'t touch it.'}</p>
+          </div>
+
+          <div className="term-box" data-title={cn ? '你的角色' : 'YOUR ROLE'}>
+            <p className="term-dim">{cn ? '你是最早一批拿到龙虾的人。在地下世界里，龙虾不只是工具——它是你的伙伴、你的武器、你的谋生手段。每只龙虾都有自己的脾气，这不是比喻。' : 'You\'re among the first to receive a lobster. Underground, it\'s not just a tool — it\'s your companion, your weapon, your livelihood. Every lobster has its own temperament. This is not a metaphor.'}</p>
+            <p className="term-bright mt-1">{cn ? '善待它。' : 'Take good care of it.'}</p>
+          </div>
         </div>
       ),
     },
