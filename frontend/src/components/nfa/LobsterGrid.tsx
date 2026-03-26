@@ -9,6 +9,7 @@ import { LobsterCard, type LobsterCardData } from './LobsterCard';
 import { FilterBar, type Filters } from './FilterBar';
 import { useTokensOfOwner, useTotalSupply } from '@/contracts/hooks/useClawNFA';
 import { isDemoMode, isTestnet } from '@/lib/env';
+import { formatCompact } from '@/lib/format';
 import { generateMockLobsters, getLobsterName } from '@/lib/mockData';
 import { ClawNFAABI as NFAAbi } from '@/contracts/abis/ClawNFA';
 import { getRarityName, getRarityClass, getRarityStars } from '@/lib/rarity';
@@ -96,7 +97,9 @@ export function LobsterGrid() {
             const clwRes = results[i * CALLS_PER_NFA + 3];
             if (agentState.status !== 'success' || lobsterState.status !== 'success') continue;
             const state = agentState.result as any;
-            const meta = agentMeta.status === 'success' ? (agentMeta.result as any) : null;
+            const metaRaw = agentMeta.status === 'success' ? (agentMeta.result as any) : null;
+            // wagmi wraps struct in Array — unwrap
+            const meta = Array.isArray(metaRaw) ? metaRaw[0] : metaRaw;
             const lobster = lobsterState.result as any;
             const clwRaw = clwRes.status === 'success' ? (clwRes.result as bigint) : 0n;
             const tokenId = Number(ids[i]);
@@ -115,8 +118,8 @@ export function LobsterGrid() {
               active: Boolean(state.active ?? state[1]),
               vaultURI: meta?.vaultURI ?? meta?.[4] ?? '',
               isOwned: false,
-              clwBalance: clwFormatted > 0 ? clwFormatted.toLocaleString('en', { maximumFractionDigits: 0 }) : undefined,
-              ownerBnb: bnbFormatted > 0 ? bnbFormatted.toFixed(4) : undefined,
+              clwBalance: clwFormatted > 0 ? formatCompact(clwFormatted) : undefined,
+              ownerBnb: bnbFormatted > 0 ? formatCompact(bnbFormatted) : undefined,
               clwRaw: clwFormatted,
               bnbRaw: bnbFormatted,
             });

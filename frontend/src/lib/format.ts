@@ -24,3 +24,23 @@ export function formatBasisPoints(bp: bigint | number): string {
   const val = Number(bp) / 10000;
   return `${val.toFixed(2)}x`;
 }
+
+/**
+ * Smart compact number display for card/grid views.
+ * 0.00001 → "<0.01"
+ * 0.123   → "0.12"
+ * 5.5     → "5.5"
+ * 999     → "999"
+ * 1,234   → "1.2K"
+ * 56,789  → "56.8K"
+ * 1234567 → "1.2M"
+ */
+export function formatCompact(val: number): string {
+  if (val <= 0) return '0';
+  if (val < 0.01) return '<0.01';
+  if (val < 1) return val.toFixed(2);
+  if (val < 10) return val.toFixed(1);
+  if (val < 1000) return Math.floor(val).toString();
+  if (val < 1_000_000) return (val / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  return (val / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+}
