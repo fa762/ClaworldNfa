@@ -336,6 +336,32 @@ Example: NFA #1, social task (type 2), 30 XP, 50 CLW, matchScore 14400:
 node -e "..." <PIN> 1 2 30 50 14400
 ```
 
+### COMPLETE TASK FLOW (step by step)
+
+When the player says "做任务" / "给我找活干":
+
+1. **Read lobster data** using the Node.js script above → get personality values
+2. **Generate 3 tasks** — each task has a type (0-4) and a fun description. Calculate matchScore:
+   - For a courage task: matchScore = courage_value × 200
+   - For a wisdom task: matchScore = wisdom_value × 200
+   - For a social task: matchScore = social_value × 200
+   - For a create task: matchScore = create_value × 200
+   - For a grit task: matchScore = grit_value × 200
+3. **Show tasks** with description, type, matchScore (as %), and estimated CLW reward
+4. **Player picks one** (says "选1" or "第2个" etc.)
+5. **Ask for PIN** to unlock wallet: "需要签名上链，请输入 PIN"
+6. **Execute the script above** with:
+   - PIN = player's PIN
+   - NFA_ID = the lobster's token ID
+   - TASK_TYPE = the chosen task's type (0-4)
+   - XP = 30 (standard)
+   - CLW_AMOUNT = 50 (standard base reward)
+   - MATCH_SCORE = calculated matchScore from step 2
+7. **Wait for TX_CONFIRMED** → show success message with actual CLW earned
+8. **Re-read lobster data** to show updated stats
+
+**CRITICAL**: In step 6, CLW_AMOUNT is in whole units (e.g. "50"), NOT in wei. The script converts it with `parseEther`.
+
 ### PKSkill — PvP Battle (commit-reveal)
 ```
 createMatch(uint256 nfaId, uint256 stake)         — Create match, stake CLW
