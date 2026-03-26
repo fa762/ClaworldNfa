@@ -28,25 +28,40 @@ const dc = crypto.createDecipheriv('aes-256-cbc', key, iv);
 let pk = dc.update(data.encrypted, 'hex', 'utf8');
 pk += dc.final('utf8');
 
+const ROUTER_CA = NET === 'mainnet' ? '' : '0xA7Ee12C5E9435686978F4b87996B4Eb461c34603';
+
 const provider = new ethers.providers.JsonRpcProvider(RPC);
 const wallet = new ethers.Wallet(pk, provider);
 const task = new ethers.Contract(TASK_CA, [
   'function ownerCompleteTypedTask(uint256,uint8,uint32,uint256,uint16)'
 ], wallet);
+const router = new ethers.Contract(ROUTER_CA, [
+  'function processUpkeep(uint256)'
+], wallet);
 
-console.log('SUBMITTING task: NFA #' + nfaId + ', type=' + taskType + ', xp=' + xp + ', clw=' + clw + ', score=' + score);
+(async () => {
+  // Step 1: Process upkeep first (deduct daily CLW costs)
+  try {
+    const upkeepTx = await router.processUpkeep(nfaId, { gasLimit: 200000 });
+    await upkeepTx.wait();
+    console.log('UPKEEP_PROCESSED');
+  } catch (e) {
+    // Upkeep may fail if < 1 day elapsed, that's OK
+    if (!e.message.includes('revert')) console.log('UPKEEP_SKIPPED: ' + e.message);
+  }
 
-task.ownerCompleteTypedTask(
-  nfaId, taskType, xp,
-  ethers.utils.parseEther(clw),
-  score,
-  { gasLimit: 300000 }
-).then(tx => {
+  // Step 2: Submit task
+  console.log('SUBMITTING task: NFA #' + nfaId + ', type=' + taskType + ', xp=' + xp + ', clw=' + clw + ', score=' + score);
+  const tx = await task.ownerCompleteTypedTask(
+    nfaId, taskType, xp,
+    ethers.utils.parseEther(clw),
+    score,
+    { gasLimit: 300000 }
+  );
   console.log('TX_SENT: ' + tx.hash);
-  return tx.wait();
-}).then(r => {
+  const r = await tx.wait();
   console.log('TX_CONFIRMED: block=' + r.blockNumber + ' gas=' + r.gasUsed.toString());
-}).catch(e => {
+})().catch(e => {
   console.error('TX_FAILED: ' + e.message);
   process.exit(1);
 });
