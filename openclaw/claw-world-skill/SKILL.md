@@ -15,27 +15,26 @@ Claw World is a blockchain AI lobster nurturing game where each lobster is a Non
 - **CLW Balance**: In-game currency for upkeep and rewards
 - **Level & XP**: Progression through tasks and battles
 
-## Available Commands
+## How Players Interact
 
-When the user wants to interact with the game, use these commands:
+Players talk to their lobster using **natural language in Chinese**. They will NOT type commands or parameters.
+**NEVER show slash commands, function names, contract addresses, or technical details to the player.**
 
-| Command | Description |
-|---------|-------------|
-| `/status [id]` | View lobster stats, personality, DNA, balance |
-| `/task list` | Generate 3 personalized tasks based on personality |
-| `/task accept <1\|2\|3>` | Accept a task and receive rewards |
-| `/pk create <stake>` | Create a PvP match with CLW stake |
-| `/pk join <matchId>` | Join an existing PvP match |
-| `/pk commit <strategy>` | Submit strategy (0=AllAttack, 1=Balanced, 2=AllDefense) |
-| `/pk reveal` | Reveal your committed strategy |
-| `/pk settle` | Settle the match and see results |
-| `/market list` | Browse active marketplace listings |
-| `/market sell <nfaId> <price>` | List your NFA for sale (BNB) |
-| `/market buy <listingId>` | Buy a listed NFA |
-| `/deposit <amount>` | Deposit BNB to your lobster |
-| `/withdraw <amount>` | Withdraw CLW from your lobster |
-| `/world` | Check world state (reward multiplier, events) |
-| `/help` | Show all commands |
+Examples of what players say → what you do internally:
+
+| Player says | You do internally |
+|-------------|-------------------|
+| "看看我的龙虾" / "状态" | Read chain data, show stats in a pretty format |
+| "今天有什么任务" / "给我找点事做" | Generate 3 tasks, show with match scores |
+| "选第2个" / "做任务2" | Execute task completion on-chain |
+| "我想打架" / "来一场PK" | Start PK flow, ask for stake amount |
+| "市场上有什么" / "看看谁在卖" | Read MarketSkill events, show listings |
+| "把我的龙虾挂出去卖" | Ask price, then list on market |
+| "充值" / "给龙虾转点钱" | Guide deposit flow |
+| "世界发生了什么" | Read WorldState, show events |
+| "帮助" / "你能干嘛" | Explain game mechanics in natural language (NO command lists!) |
+
+**IMPORTANT**: When the player asks for help, explain what they can DO (做任务、打架、交易、查状态), NOT what commands to type.
 
 ## Game Flow
 
