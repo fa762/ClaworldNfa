@@ -14,6 +14,7 @@ import { DepositPanel } from '@/components/nfa/DepositPanel';
 import { TransferToOpenClaw } from '@/components/nfa/TransferToOpenClaw';
 import { TerminalBar } from '@/components/terminal/TerminalBar';
 import { formatCLW, truncateAddress } from '@/lib/format';
+import { getXpProgress } from '@/lib/xp';
 import { addresses, getBscScanAddressUrl } from '@/contracts/addresses';
 import { isDemoMode } from '@/lib/env';
 import { getMockLobsterName } from '@/lib/mockData';
@@ -239,8 +240,17 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
         <span className="term-dim">CLW <span className="term-bright">{formatCLW(balance)}</span></span>
         <span className="term-dim">
           Lv.<span className="term-bright">{level}</span>
-          <span className="ml-2 text-crt-green">{'█'.repeat(Math.round(xp / 10))}</span>
-          <span className="term-darkest">{'░'.repeat(10 - Math.round(xp / 10))}</span>
+          {(() => {
+            const pct = getXpProgress(level, xp);
+            const filled = Math.min(10, Math.max(0, Math.round(pct / 10)));
+            return (
+              <>
+                <span className="ml-2 text-crt-green">{'█'.repeat(filled)}</span>
+                <span className="term-darkest">{'░'.repeat(10 - filled)}</span>
+              </>
+            );
+          })()}
+          <span className="term-dim ml-1 text-[10px]">{xp}xp</span>
         </span>
         <StatusBadge active={Boolean(active)} />
       </div>
