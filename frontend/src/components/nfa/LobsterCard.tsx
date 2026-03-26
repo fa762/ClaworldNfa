@@ -18,6 +18,8 @@ export interface LobsterCardData {
   isOwned: boolean;
   clwBalance?: string;     // formatted CLW
   ownerBnb?: string;       // formatted BNB/tBNB
+  clwRaw?: number;         // raw CLW for sorting
+  bnbRaw?: number;         // raw BNB for sorting
 }
 
 export function LobsterCard({ data }: { data: LobsterCardData }) {

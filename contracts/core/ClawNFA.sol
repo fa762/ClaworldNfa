@@ -241,7 +241,7 @@ contract ClawNFA is
     }
 
     /**
-     * @dev Update agent metadata
+     * @dev Update agent metadata (token owner only)
      */
     function updateAgentMetadata(
         uint256 tokenId,
@@ -250,6 +250,19 @@ contract ClawNFA is
     ) external onlyTokenOwner(tokenId) {
         _setTokenURI(tokenId, newMetadataURI);
         agentMetadata[tokenId] = newExtendedMetadata;
+        emit MetadataUpdated(tokenId);
+    }
+
+    /**
+     * @dev Admin batch-set vaultURI + vaultHash for NFT images (minter/owner only).
+     *      Used after mint to assign IPFS images without needing token owner permission.
+     */
+    function setVaultURI(uint256 tokenId, string memory vaultURI, bytes32 vaultHash) external {
+        require(msg.sender == minter || msg.sender == owner(), "Not minter or owner");
+        require(_exists(tokenId), "Token does not exist");
+        agentMetadata[tokenId].vaultURI = vaultURI;
+        agentMetadata[tokenId].vaultHash = vaultHash;
+        _setTokenURI(tokenId, vaultURI);
         emit MetadataUpdated(tokenId);
     }
 

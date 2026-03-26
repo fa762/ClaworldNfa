@@ -117,6 +117,8 @@ export function LobsterGrid() {
               isOwned: false,
               clwBalance: clwFormatted > 0 ? clwFormatted.toLocaleString('en', { maximumFractionDigits: 0 }) : undefined,
               ownerBnb: bnbFormatted > 0 ? bnbFormatted.toFixed(4) : undefined,
+              clwRaw: clwFormatted,
+              bnbRaw: bnbFormatted,
             });
           }
         } catch (err) {
@@ -144,6 +146,8 @@ export function LobsterGrid() {
       switch (filters.sortBy) {
         case 'level': return (a.level - b.level) * dir;
         case 'rarity': return (a.rarity - b.rarity) * dir;
+        case 'clw': return ((a.clwRaw ?? 0) - (b.clwRaw ?? 0)) * dir;
+        case 'bnb': return ((a.bnbRaw ?? 0) - (b.bnbRaw ?? 0)) * dir;
         default: return (a.tokenId - b.tokenId) * dir;
       }
     });

@@ -86,25 +86,28 @@ export function PipBoyNav() {
           </div>
         </div>
 
-        {/* Dropdown panel */}
+        {/* Overlay popup menu */}
         {mobileOpen && (
-          <div className="pipboy-mobile-dropdown">
-            {tabs.map((tab) => {
-              const isActive = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href);
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={`pipboy-mobile-link ${isActive ? 'pipboy-mobile-link-active' : ''}`}
-                >
-                  {isActive ? '> ' : '  '}{t(tab.labelKey)}
-                </Link>
-              );
-            })}
-            <div className="pipboy-mobile-wallet">
-              <ConnectButton />
+          <>
+            <div className="pipboy-mobile-overlay" onClick={() => setMobileOpen(false)} />
+            <div className="pipboy-mobile-popup">
+              {tabs.map((tab) => {
+                const isActive = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href);
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    className={`pipboy-mobile-link ${isActive ? 'pipboy-mobile-link-active' : ''}`}
+                  >
+                    {isActive ? '> ' : '  '}{t(tab.labelKey)}
+                  </Link>
+                );
+              })}
+              <div className="pipboy-mobile-wallet">
+                <ConnectButton />
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>

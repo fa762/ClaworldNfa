@@ -63,14 +63,7 @@ async function main() {
       }
 
       const vaultHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(cid));
-      const tx = await nfa.setAgentMetadataByOwner(tokenId, {
-        persona: meta.persona || '',
-        experience: meta.experience || '',
-        voiceHash: meta.voiceHash || '',
-        animationURI: meta.animationURI || '',
-        vaultURI: newURI,
-        vaultHash,
-      });
+      const tx = await nfa.setVaultURI(tokenId, newURI, vaultHash);
       await tx.wait();
       console.log(`  #${tokenId} → image ${imageNum} — ✅ ${newURI}`);
       updated++;
