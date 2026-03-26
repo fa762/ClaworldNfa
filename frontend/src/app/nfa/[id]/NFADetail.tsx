@@ -125,19 +125,10 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   const jobName = !isNaN(jobClassNum) ? getJobName(jobClassNum) : t('detail.unknown');
 
   const name = getLobsterName(numId);
-  // wagmi may return array or named object — handle both
-  // getAgentMetadata returns a struct, wagmi/viem may wrap in array: [{ persona, ..., vaultURI }]
+  // wagmi returns getAgentMetadata as Array(2) wrapping the struct — unwrap it
   const metaObj = Array.isArray(agentMeta) ? agentMeta[0] : agentMeta;
   const rawVaultURI = useMock ? '' : ((metaObj as any)?.vaultURI ?? (metaObj as any)?.[4] ?? '');
   const imageUrl = resolveIpfsUrl(rawVaultURI);
-
-  // Debug: remove after confirming images work
-  if (typeof window !== 'undefined' && !useMock) {
-    console.log('[NFADetail] agentMeta raw:', agentMeta);
-    console.log('[NFADetail] metaObj:', metaObj);
-    console.log('[NFADetail] rawVaultURI:', rawVaultURI);
-    console.log('[NFADetail] imageUrl:', imageUrl);
-  }
 
   // SPECIAL tab: only personality stats (no DNA — DNA is in gene tab)
   const specialStats = [
