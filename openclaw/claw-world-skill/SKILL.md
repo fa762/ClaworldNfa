@@ -214,17 +214,21 @@ Contracts:
 
 To save network choice: `echo "testnet" > ~/.openclaw/claw-world/network.conf`
 
-## On-Chain Data Reading — USE THE SCRIPT FILE
+## ⛔ MANDATORY RULES FOR ALL CHAIN DATA
 
-**NEVER use `cast call`** — hex output causes field mix-ups. **ALWAYS run the script file:**
+1. **NEVER use `cast call` or `cast send`** — hex parsing ALWAYS produces wrong data
+2. **NEVER write your own ethers.js inline scripts** — they break field ordering
+3. **ONLY use the pre-built script files** listed below
+4. If a script fails, show the error to the user. Do NOT fall back to cast.
 
+## Reading Lobster Data
+
+**THE ONLY WAY to read lobster data:**
 ```bash
 node ~/.openclaw/skills/claw-world/claw-read.js <TOKEN_ID>
 ```
 
-Example: `node ~/.openclaw/skills/claw-world/claw-read.js 1`
-
-Output (JSON with named fields — use these EXACTLY):
+This outputs correct JSON. Parse the JSON and display it. Example output:
 ```json
 {
   "tokenId": 1,
@@ -232,17 +236,14 @@ Output (JSON with named fields — use these EXACTLY):
   "shelter": "SHELTER-06",
   "personality": { "courage": 25, "wisdom": 40, "social": 72, "create": 33, "grit": 42 },
   "dna": { "STR": 20, "DEF": 46, "SPD": 27, "VIT": 21 },
-  "level": 1,
-  "xp": 104,
-  "clwBalance": 1000,
-  "dailyCost": 10,
-  "daysRemaining": 100,
+  "level": 1, "xp": 104,
+  "clwBalance": 1000, "dailyCost": 7.9, "daysRemaining": 126,
   "owner": "0x0e779680f36e3976a0eE2bFeC07FF17241b79e76",
   "tbnb": 0.003
 }
 ```
 
-**CRITICAL**: The JSON output has NAMED fields. Display them as-is. Do NOT rearrange or guess values.
+Display the values FROM THE JSON OUTPUT. Do NOT guess, rearrange, or use any other data source.
 
 ## On-Chain Write Operations (Transaction ABI)
 
@@ -272,7 +273,9 @@ Match score calculation:
   Example: social=72, task=social(type 2) → matchScore = 72 * 200 = 14400 (1.44x)
 ```
 
-**Use the script file** to submit tasks:
+## Submitting Tasks On-Chain
+
+**THE ONLY WAY to submit a task:**
 ```bash
 node ~/.openclaw/skills/claw-world/claw-task.js <PIN> <NFA_ID> <TASK_TYPE> <XP> <CLW> <MATCH_SCORE>
 ```
@@ -281,6 +284,8 @@ Example: NFA #1, social task (type 2), 30 XP, 50 CLW, matchScore 14400:
 ```bash
 node ~/.openclaw/skills/claw-world/claw-task.js 123456 1 2 30 50 14400
 ```
+
+**Do NOT use `cast send` or write your own ethers script.** Only use this file.
 
 ### COMPLETE TASK FLOW (step by step)
 
