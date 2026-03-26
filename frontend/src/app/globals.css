@@ -730,15 +730,16 @@
   border: 1px solid transparent;
   transition: all 50ms;
 }
-.pipboy-tab:hover {
+.pipboy-tab:hover:not(.pipboy-tab-active) {
   color: var(--color-crt-green);
   text-shadow: 0 0 6px var(--color-crt-glow);
 }
 .pipboy-tab-active {
-  color: #000;
+  color: #000 !important;
   background: var(--color-crt-green);
-  text-shadow: none;
+  text-shadow: none !important;
   box-shadow: 0 0 12px rgba(38, 255, 38, 0.4);
+  font-weight: 800;
 }
 
 /* Status bar */
