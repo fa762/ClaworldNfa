@@ -146,7 +146,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   );
 
   return (
-    <div className="px-4 py-3 max-w-5xl mx-auto">
+    <div className="px-4 py-3 max-w-5xl mx-auto flex flex-col h-full min-h-0">
       {useMock && (
         <div className="text-[10px] rarity-epic mb-2">[DEMO]</div>
       )}
@@ -172,7 +172,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
       </div>
 
       {/* Tab content: left panel + persistent right image */}
-      <div className="flex flex-col sm:flex-row gap-4 animate-fade-in">
+      <div className="flex flex-col sm:flex-row gap-2 animate-fade-in">
         {/* Left: tab content */}
         <div className="flex-1 min-w-0">
           {tab === 'status' && (
@@ -199,6 +199,11 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
                   </a>
                 </Row>
               )}
+              <Row label="NFA">
+                <a href={getBscScanAddressUrl(addresses.clawNFA as string) + `#readProxyContract`} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
+                  {truncateAddress(addresses.clawNFA as string)}
+                </a>
+              </Row>
             </div>
           )}
 
@@ -230,13 +235,13 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
         </div>
 
         {/* Right: persistent lobster image */}
-        <div className="w-full sm:w-48 shrink-0">
+        <div className="w-full sm:w-64 shrink-0">
           {lobsterImage}
         </div>
       </div>
 
-      {/* Bottom mini status bar (Pip-Boy style) */}
-      <div className="flex items-center justify-between mt-4 pt-2 border-t border-crt-darkest text-xs">
+      {/* Bottom mini status bar — sticky at page bottom */}
+      <div className="flex items-center justify-between mt-auto pt-2 border-t border-crt-darkest text-xs sticky bottom-0 bg-crt-black pb-1">
         <span className="term-dim">CLW <span className="term-bright">{formatCLW(balance)}</span></span>
         <span className="term-dim">
           Lv.<span className="term-bright">{level}</span>

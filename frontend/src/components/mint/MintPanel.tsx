@@ -30,6 +30,7 @@ import {
   loadSalt,
   clearSalt,
 } from '@/contracts/hooks/useGenesisVault';
+import { useTotalSupply } from '@/contracts/hooks/useClawNFA';
 
 const TOTAL_GENESIS = 888;
 const REVEAL_DELAY = 60;
@@ -49,6 +50,7 @@ export function MintPanel() {
 
   const { data: mintingActive } = useMintingActive();
   const { data: mintedCount } = useMintedCount();
+  const { data: totalSupply } = useTotalSupply();
   const { data: rarityMinted } = useRarityMinted();
   const { data: commitment } = useCommitment(address);
 
@@ -154,7 +156,8 @@ export function MintPanel() {
   }
 
   const savedSalt = address ? loadSalt(address) : null;
-  const totalMinted = mintedCount !== undefined ? Number(mintedCount) : 0;
+  // Use NFA totalSupply (includes ownerMint), fallback to vault mintedCount
+  const totalMinted = totalSupply !== undefined ? Number(totalSupply) : (mintedCount !== undefined ? Number(mintedCount) : 0);
 
   function formatTime(s: number): string {
     const h = Math.floor(s / 3600);
