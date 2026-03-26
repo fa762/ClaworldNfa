@@ -208,43 +208,72 @@ Contracts:
 
 To save network choice: `echo "testnet" > ~/.openclaw/claw-world/network.conf`
 
-## On-Chain Data Reading (CRITICAL — field order matters!)
+## On-Chain Data Reading (CRITICAL — USE THIS EXACT SCRIPT)
 
-To read lobster data, call `ClawRouter.getLobsterState(tokenId)`. It returns a tuple with fields in **this exact order**:
+**DO NOT use `cast call` to read getLobsterState** — the hex output is hard to parse correctly and causes field mix-ups.
 
-```
-getLobsterState(uint256 tokenId) returns:
-  [0]  rarity    uint8    — 0=Common, 1=Rare, 2=Epic, 3=Legendary, 4=Mythic
-  [1]  shelter   uint8    — 0-7 (SHELTER location)
-  [2]  courage   uint8    — Personality: 勇气 (0-100)
-  [3]  wisdom    uint8    — Personality: 智慧 (0-100)
-  [4]  social    uint8    — Personality: 社交 (0-100)
-  [5]  create    uint8    — Personality: 创造 (0-100)
-  [6]  grit      uint8    — Personality: 意志 (0-100)
-  [7]  str       uint8    — DNA: 力量 STR (0-100)
-  [8]  def       uint8    — DNA: 防御 DEF (0-100)
-  [9]  spd       uint8    — DNA: 速度 SPD (0-100)
-  [10] vit       uint8    — DNA: 生命 VIT (0-100)
-  [11] mutation1 bytes32  — Mutation slot 1
-  [12] mutation2 bytes32  — Mutation slot 2
-  [13] level     uint16   — Level (starts at 1)
-  [14] xp        uint32   — XP within current level
-  [15] lastUpkeep uint40  — Last upkeep timestamp
-```
+Instead, **ALWAYS use this Node.js script** to read lobster data. It outputs human-readable JSON with named fields:
 
-**DO NOT mix up field indices!** Personality is [2]-[6], DNA is [7]-[10], Level is [13].
-
-Other useful reads:
-- `ClawRouter.clwBalances(tokenId)` → CLW balance (uint256, 18 decimals)
-- `ClawRouter.getDailyCost(tokenId)` → daily CLW upkeep cost
-- `ClawNFA.ownerOf(tokenId)` → owner address
-
-Example cast command:
 ```bash
-cast call 0xA7Ee12C5E9435686978F4b87996B4Eb461c34603 \
-  "getLobsterState(uint256)" 1 \
-  --rpc-url https://bsc-testnet-rpc.publicnode.com
+node -e "
+const { ethers } = require('ethers');
+const NET = require('fs').readFileSync(require('os').homedir() + '/.openclaw/claw-world/network.conf', 'utf8').trim();
+const RPC = NET === 'mainnet' ? 'https://bsc-rpc.publicnode.com' : 'https://bsc-testnet-rpc.publicnode.com';
+const ROUTER = NET === 'mainnet' ? '<TBD>' : '0xA7Ee12C5E9435686978F4b87996B4Eb461c34603';
+const NFA_CA = NET === 'mainnet' ? '<TBD>' : '0x1c69be3401a78CFeDC2B2543E62877874f10B135';
+const CLW_CA = NET === 'mainnet' ? '<TBD>' : '0xCdb158C1A1F0e8B85d785172f2109bC53e2F41FC';
+const p = new ethers.providers.JsonRpcProvider(RPC);
+const id = process.argv[1];
+const router = new ethers.Contract(ROUTER, [
+  'function getLobsterState(uint256) view returns (tuple(uint8 rarity, uint8 shelter, uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit, uint8 str, uint8 def, uint8 spd, uint8 vit, bytes32 mutation1, bytes32 mutation2, uint16 level, uint32 xp, uint40 lastUpkeep))',
+  'function clwBalances(uint256) view returns (uint256)',
+  'function getDailyCost(uint256) view returns (uint256)'
+], p);
+const nfa = new ethers.Contract(NFA_CA, ['function ownerOf(uint256) view returns (address)'], p);
+(async () => {
+  const [s, bal, cost, owner, tbnb] = await Promise.all([
+    router.getLobsterState(id),
+    router.clwBalances(id),
+    router.getDailyCost(id),
+    nfa.ownerOf(id),
+    p.getBalance(owner || ethers.constants.AddressZero).catch(() => 0)
+  ]);
+  const rNames = ['Common','Rare','Epic','Legendary','Mythic'];
+  console.log(JSON.stringify({
+    tokenId: id,
+    rarity: rNames[s.rarity] || s.rarity,
+    shelter: 'SHELTER-0' + s.shelter,
+    personality: { courage: s.courage, wisdom: s.wisdom, social: s.social, create: s.create, grit: s.grit },
+    dna: { STR: s.str, DEF: s.def, SPD: s.spd, VIT: s.vit },
+    level: s.level,
+    xp: s.xp,
+    clwBalance: ethers.utils.formatEther(bal) + ' CLW',
+    dailyCost: ethers.utils.formatEther(cost) + ' CLW/day',
+    owner: owner
+  }, null, 2));
+})();
+" <TOKEN_ID>
 ```
+
+Replace `<TOKEN_ID>` with the actual NFA token ID (e.g. `1`).
+
+The output will look like:
+```json
+{
+  "tokenId": "1",
+  "rarity": "Common",
+  "shelter": "SHELTER-06",
+  "personality": { "courage": 25, "wisdom": 40, "social": 72, "create": 33, "grit": 42 },
+  "dna": { "STR": 20, "DEF": 46, "SPD": 27, "VIT": 21 },
+  "level": 1,
+  "xp": 0,
+  "clwBalance": "25.0 CLW",
+  "dailyCost": "10.0 CLW/day",
+  "owner": "0x0e779680f36e3976a0eE2bFeC07FF17241b79e76"
+}
+```
+
+**USE THESE EXACT FIELD NAMES when displaying to the user.** Do NOT guess or rearrange.
 
 ## On-Chain Write Operations (Transaction ABI)
 
@@ -252,32 +281,60 @@ All write operations require the player's OpenClaw wallet to sign transactions.
 Use `cast send --private-key <key> --rpc-url <rpc>` or ethers.js Wallet.
 
 ### TaskSkill — Complete a task
-The player's wallet IS the operator (authorized on testnet).
+The NFA owner can directly submit tasks (no operator needed) via `ownerCompleteTypedTask`.
+Anti-abuse caps: max 50 XP, max 100 CLW, 4-hour cooldown per NFA.
+
 ```
-Function: completeTypedTask(uint256 nfaId, uint8 taskType, uint32 xpReward, uint256 clwReward, uint16 matchScore)
+Function: ownerCompleteTypedTask(uint256 nfaId, uint8 taskType, uint32 xpReward, uint256 clwReward, uint16 matchScore)
 Contract: TaskSkill address (see network config above)
 
 Parameters:
   nfaId      — The lobster's token ID
   taskType   — 0=courage, 1=wisdom, 2=social, 3=create, 4=grit
-  xpReward   — Base XP (e.g. 50)
-  clwReward  — Base CLW in wei (e.g. 50e18 = 50 CLW)
-  matchScore — 0-20000 basis points (10000 = 1.0x, calculated from personality·task vector)
+  xpReward   — Base XP (max 50)
+  clwReward  — Base CLW in wei (max 100e18 = 100 CLW)
+  matchScore — 0-20000 basis points (10000 = 1.0x)
 
 Match score calculation:
   lobsterPersonality = [courage, wisdom, social, create, grit] (each 0-100)
   taskRequirement = [0,0,0,0,0] with 100 in the matching dimension
   dotProduct = sum(lobsterPersonality[i] * taskRequirement[i]) for i in 0..4
   matchScore = dotProduct * 200 (scales 0-100 range to 0-20000)
-  Example: courage=72, task=courage → matchScore = 72 * 200 = 14400 (1.44x)
+  Example: social=72, task=social(type 2) → matchScore = 72 * 200 = 14400 (1.44x)
 ```
 
-Example:
+Example using Node.js (preferred over cast for reliability):
 ```bash
-cast send <TaskSkill_address> \
-  "completeTypedTask(uint256,uint8,uint32,uint256,uint16)" \
-  1 3 50 50000000000000000000 14400 \
-  --private-key <wallet_key> --rpc-url <rpc>
+node -e "
+const { ethers } = require('ethers');
+const crypto = require('crypto');
+const fs = require('fs');
+const home = require('os').homedir();
+const NET = fs.readFileSync(home + '/.openclaw/claw-world/network.conf', 'utf8').trim();
+const RPC = NET === 'mainnet' ? 'https://bsc-rpc.publicnode.com' : 'https://bsc-testnet-rpc.publicnode.com';
+const TASK = NET === 'mainnet' ? '<TBD>' : '0x4F8f75D6b0775b065F588F2C11C1Ec79Bb1ECE0E';
+const pin = process.argv[1];
+const data = JSON.parse(fs.readFileSync(home + '/.openclaw/claw-world/wallet.json', 'utf8'));
+const key = crypto.scryptSync(pin, 'claw-world-salt', 32);
+const iv = Buffer.from(data.iv, 'hex');
+const dc = crypto.createDecipheriv('aes-256-cbc', key, iv);
+let pk = dc.update(data.encrypted, 'hex', 'utf8'); pk += dc.final('utf8');
+const provider = new ethers.providers.JsonRpcProvider(RPC);
+const wallet = new ethers.Wallet(pk, provider);
+const task = new ethers.Contract(TASK, [
+  'function ownerCompleteTypedTask(uint256,uint8,uint32,uint256,uint16)'
+], wallet);
+const [nfaId, taskType, xp, clw, score] = [process.argv[2], process.argv[3], process.argv[4], process.argv[5], process.argv[6]];
+task.ownerCompleteTypedTask(nfaId, taskType, xp, ethers.utils.parseEther(clw), score, {gasLimit: 300000})
+  .then(tx => { console.log('TX_SENT: ' + tx.hash); return tx.wait(); })
+  .then(r => console.log('TX_CONFIRMED block=' + r.blockNumber))
+  .catch(e => console.error('TX_FAILED: ' + e.message));
+" <PIN> <NFA_ID> <TASK_TYPE> <XP> <CLW_AMOUNT> <MATCH_SCORE>
+```
+
+Example: NFA #1, social task (type 2), 30 XP, 50 CLW, matchScore 14400:
+```bash
+node -e "..." <PIN> 1 2 30 50 14400
 ```
 
 ### PKSkill — PvP Battle (commit-reveal)
@@ -308,11 +365,15 @@ safeTransferFrom(address from, address to, uint256 tokenId) — Transfer NFA
 
 ## Wallet Persistence (IMPORTANT)
 
-The wallet file is stored at `~/.openclaw/claw-world/wallet.enc`.
+The wallet file is stored at `~/.openclaw/claw-world/wallet.json`.
 **Before asking the user to create a new wallet, ALWAYS check if this file already exists!**
 If it exists, read the address from it and skip wallet setup.
 ```bash
-ls ~/.openclaw/claw-world/wallet.enc 2>/dev/null && echo "Wallet exists" || echo "No wallet"
+if [ -f ~/.openclaw/claw-world/wallet.json ]; then
+  cat ~/.openclaw/claw-world/wallet.json | node -e "process.stdin.on('data',d=>{const j=JSON.parse(d);console.log('WALLET_EXISTS: '+j.address)})"
+else
+  echo "NO_WALLET"
+fi
 ```
 
 ## How to respond
