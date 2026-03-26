@@ -1645,7 +1645,7 @@
             "label": "router",
             "offset": 0,
             "slot": "201",
-            "type": "t_contract(ITaskRouter)14137",
+            "type": "t_contract(ITaskRouter)14381",
             "contract": "TaskSkill",
             "src": "contracts\\skills\\TaskSkill.sol:29"
           },
@@ -1653,7 +1653,7 @@
             "label": "worldState",
             "offset": 0,
             "slot": "202",
-            "type": "t_contract(ITaskWorldState)14143",
+            "type": "t_contract(ITaskWorldState)14387",
             "contract": "TaskSkill",
             "src": "contracts\\skills\\TaskSkill.sol:30"
           },
@@ -1683,11 +1683,11 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_contract(ITaskRouter)14137": {
+          "t_contract(ITaskRouter)14381": {
             "label": "contract ITaskRouter",
             "numberOfBytes": "20"
           },
-          "t_contract(ITaskWorldState)14143": {
+          "t_contract(ITaskWorldState)14387": {
             "label": "contract ITaskWorldState",
             "numberOfBytes": "20"
           },
@@ -3495,6 +3495,171 @@
           "t_uint64": {
             "label": "uint64",
             "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {}
+      }
+    },
+    "b7b6ce5bc5ab303556bff75cb03758f4300a887a61354a5b099c9675d31adfb6": {
+      "address": "0xCb013a2B979c7e8Df98364D0903F373412737A4B",
+      "txHash": "0x3ff05e5e1a0952a1ed24b5ae3ad02e682525effc163e2422f809fc000894e690",
+      "layout": {
+        "solcVersion": "0.8.26",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:68"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:40"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\ERC1967\\ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "router",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_contract(ITaskRouter)1323",
+            "contract": "TaskSkill",
+            "src": "contracts\\skills\\TaskSkill.sol:33"
+          },
+          {
+            "label": "worldState",
+            "offset": 0,
+            "slot": "202",
+            "type": "t_contract(ITaskWorldState)1329",
+            "contract": "TaskSkill",
+            "src": "contracts\\skills\\TaskSkill.sol:34"
+          },
+          {
+            "label": "operators",
+            "offset": 0,
+            "slot": "203",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "TaskSkill",
+            "src": "contracts\\skills\\TaskSkill.sol:37"
+          },
+          {
+            "label": "nfa",
+            "offset": 0,
+            "slot": "204",
+            "type": "t_contract(ITaskNFA)1337",
+            "contract": "TaskSkill",
+            "src": "contracts\\skills\\TaskSkill.sol:40"
+          },
+          {
+            "label": "lastTaskTime",
+            "offset": 0,
+            "slot": "205",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "TaskSkill",
+            "src": "contracts\\skills\\TaskSkill.sol:42"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "206",
+            "type": "t_array(t_uint256)40_storage",
+            "contract": "TaskSkill",
+            "src": "contracts\\skills\\TaskSkill.sol:194"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)40_storage": {
+            "label": "uint256[40]",
+            "numberOfBytes": "1280"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(ITaskNFA)1337": {
+            "label": "contract ITaskNFA",
+            "numberOfBytes": "20"
+          },
+          "t_contract(ITaskRouter)1323": {
+            "label": "contract ITaskRouter",
+            "numberOfBytes": "20"
+          },
+          "t_contract(ITaskWorldState)1329": {
+            "label": "contract ITaskWorldState",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
           },
           "t_uint8": {
             "label": "uint8",

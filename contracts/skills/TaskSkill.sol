@@ -32,11 +32,12 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
 
     ITaskRouter public router;
     ITaskWorldState public worldState;
-    ITaskNFA public nfa;
 
     // Authorized operators (oracle callback or backend)
     mapping(address => bool) public operators;
 
+    // --- New fields (appended after original storage layout) ---
+    ITaskNFA public nfa;
     // Per-NFA daily task cooldown (tokenId => last completion timestamp)
     mapping(uint256 => uint256) public lastTaskTime;
 
