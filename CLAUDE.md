@@ -1,7 +1,7 @@
 # CLAW CIVILIZATION UNIVERSE — 项目状态与开发计划
 
 > 本文档是 AI 助手的持久记忆文件。每次对话开始时应读取此文件，了解项目全貌和当前进度。
-> 最后更新：2026-03-24 深夜（重大进展！OpenClaw 游戏链路已跑通）
+> 最后更新：2026-03-26（claw CLI 完整实现 + 前端修复 + IPFS 工具）
 
 ---
 
@@ -359,12 +359,27 @@ clawworld/
 12. ✅ 钱包持久化检查（新对话不重复创建钱包）
 13. ✅ **完整游戏链路跑通**：Mint → 查看状态 → 生成任务 → 选择任务
 
-### 待完成（明天继续）
-1. 🟡 任务链上提交完整测试
-2. 🟡 PK 完整流程测试
-3. 🟡 Market 完整流程测试
-4. 🟡 NFT 图片（用户用 Midjourney 生成）
-5. 🟡 发币上线准备
+### 2026-03-26 工作日志
+
+1. ✅ TaskSkill 新增 `ownerCompleteTypedTask`（NFA owner 直接提交，无需 operator）
+2. ✅ TaskSkill 测试网升级 + `setNFA` 调用
+3. ✅ `claw` 统一 CLI 工具（status/task/pk/market/transfer/world 全部命令）
+4. ✅ SKILL.md 从头重写（禁止 cast，强制用 claw CLI）
+5. ✅ `claw-task.js` 自动调 processUpkeep
+6. ✅ PK 完整 commit-reveal 流程实现（自动 salt 保存/读取）
+7. ✅ Market 完整交易流程实现（自动 NFA approve）
+8. ✅ 前端 processUpkeep 结算按钮
+9. ✅ 前端首页 ASCII Logo 响应式修复
+10. ✅ IPFS 批量上传脚本 `scripts/upload-ipfs.ts`（支持断点续传）
+11. ✅ tokenURI 批量设置脚本 `scripts/set-token-uris.ts`
+12. ✅ 229 passing, 0 failing
+
+### 待完成
+1. 🟡 NFT 图片（用户用 Midjourney 生成）
+2. 🟡 图片上传 IPFS（脚本已就绪，等图片）
+3. 🟡 tokenURI 链上设置（脚本已就绪，等 IPFS CID）
+4. 🟡 CLW 代币 Flap 发行
+5. 🟡 主网部署
 
 ---
 

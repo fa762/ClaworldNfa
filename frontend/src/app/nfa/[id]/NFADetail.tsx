@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useAgentState, useAgentMetadata, useNFAOwner } from '@/contracts/hooks/useClawNFA';
 import { useLobsterState, useClwBalance, useDailyCost, useJobClass, useIsActive } from '@/contracts/hooks/useClawRouter';
 import { RarityBadge } from '@/components/nfa/RarityBadge';
@@ -13,7 +14,7 @@ import { DepositPanel } from '@/components/nfa/DepositPanel';
 import { TransferToOpenClaw } from '@/components/nfa/TransferToOpenClaw';
 import { TerminalBar } from '@/components/terminal/TerminalBar';
 import { formatCLW, truncateAddress } from '@/lib/format';
-import { getBscScanAddressUrl } from '@/contracts/addresses';
+import { addresses, getBscScanAddressUrl } from '@/contracts/addresses';
 import { isDemoMode } from '@/lib/env';
 import { getMockLobsterName } from '@/lib/mockData';
 import { resolveIpfsUrl } from '@/lib/ipfs';
@@ -220,6 +221,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
 
           {tab === 'maintain' && (
             <div className="space-y-4">
+              <UpkeepButton tokenId={id} />
               <DepositPanel tokenId={id} />
               <TransferToOpenClaw tokenId={id} ownerAddress={ownerAddress} />
             </div>
@@ -252,6 +254,36 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     <div className="flex justify-between items-center pipboy-stat-row">
       <span className="term-dim text-xs">{label}</span>
       {children}
+    </div>
+  );
+}
+
+/** 结算日消耗按钮 */
+function UpkeepButton({ tokenId }: { tokenId: bigint }) {
+  const { t } = useI18n();
+  const { data: hash, writeContract, isPending } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function handleUpkeep() {
+    writeContract({
+      address: addresses.clawRouter as `0x${string}`,
+      abi: [{ name: 'processUpkeep', type: 'function', stateMutability: 'nonpayable', inputs: [{ name: 'nfaId', type: 'uint256' }], outputs: [] }],
+      functionName: 'processUpkeep',
+      args: [tokenId],
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-3 text-xs p-2 border border-crt-darkest">
+      <span className="term-dim">{t('upkeep.label') || '日消耗结算'}</span>
+      <button
+        onClick={handleUpkeep}
+        disabled={isPending || isConfirming}
+        className="term-btn text-xs"
+      >
+        [{isPending ? (t('upkeep.signing') || '签名中...') : isConfirming ? (t('upkeep.confirming') || '确认中...') : (t('upkeep.process') || '结算')}]
+      </button>
+      {isSuccess && <span className="text-crt-green text-xs">{t('upkeep.done') || '✅ 已结算'}</span>}
     </div>
   );
 }

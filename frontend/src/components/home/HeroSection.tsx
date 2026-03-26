@@ -23,7 +23,7 @@ export function HeroSection() {
   return (
     <div className="animate-boot">
       {/* ASCII Logo */}
-      <pre className="text-[8px] sm:text-[10px] leading-[1.1] font-bold glow-strong overflow-x-auto whitespace-pre">
+      <pre className="text-[6px] sm:text-[9px] md:text-[10px] leading-[1.1] font-bold glow-strong overflow-hidden whitespace-pre">
         {ASCII_LOGO}
       </pre>
 
