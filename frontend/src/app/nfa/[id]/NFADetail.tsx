@@ -20,6 +20,8 @@ import { isDemoMode } from '@/lib/env';
 import { getLobsterName } from '@/lib/mockData';
 import { resolveIpfsUrl } from '@/lib/ipfs';
 import { useI18n } from '@/lib/i18n';
+import { useTaskStats, usePkStats } from '@/contracts/hooks/useNFAStats';
+import { formatCompact } from '@/lib/format';
 import Link from 'next/link';
 
 function getMockData(id: number) {
@@ -69,6 +71,8 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   const { data: jobClass } = useJobClass(id);
   const { data: isActive } = useIsActive(id);
   const { data: owner } = useNFAOwner(id);
+  const { data: taskStats } = useTaskStats(id);
+  const { data: pkStats } = usePkStats(id);
 
   const useMock = isDemoMode;
   const mock = useMock ? getMockData(numId) : null;
@@ -211,7 +215,25 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
           )}
 
           {tab === 'special' && (
-            <PipBoyStatList stats={specialStats} />
+            <div className="space-y-3">
+              <PipBoyStatList stats={specialStats} />
+              {/* Task Resume 任务履历 */}
+              {!useMock && taskStats && (
+                <div className="term-box mt-2" data-title="TASK RECORD">
+                  <div className="grid grid-cols-2 gap-1 text-[11px]">
+                    <div className="term-dim">Total Tasks</div>
+                    <div className="term-bright">{Number((taskStats as any)[0] ?? (taskStats as any).total ?? 0)}</div>
+                    <div className="term-dim">CLW Earned</div>
+                    <div className="term-bright">{formatCompact(Number(BigInt((taskStats as any)[1] ?? 0) / 10n**14n) / 10000)}</div>
+                    <div className="term-dim">Courage</div><div className="term-dim">{Number((taskStats as any)[2] ?? 0)}</div>
+                    <div className="term-dim">Wisdom</div><div className="term-dim">{Number((taskStats as any)[3] ?? 0)}</div>
+                    <div className="term-dim">Social</div><div className="term-dim">{Number((taskStats as any)[4] ?? 0)}</div>
+                    <div className="term-dim">Create</div><div className="term-dim">{Number((taskStats as any)[5] ?? 0)}</div>
+                    <div className="term-dim">Grit</div><div className="term-dim">{Number((taskStats as any)[6] ?? 0)}</div>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {tab === 'gene' && (
@@ -225,6 +247,34 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
               </div>
               <div className="term-line my-3" />
               <MutationSlots mutation1={mutation1} mutation2={mutation2} />
+
+              {/* PK Resume 战斗履历 */}
+              {!useMock && pkStats && (
+                <>
+                  <div className="term-line my-3" />
+                  <div className="term-box" data-title="PK RECORD">
+                    <div className="grid grid-cols-2 gap-1 text-[11px]">
+                      {(() => {
+                        const wins = Number((pkStats as any)[0] ?? (pkStats as any).wins ?? 0);
+                        const losses = Number((pkStats as any)[1] ?? (pkStats as any).losses ?? 0);
+                        const total = wins + losses;
+                        const winRate = total > 0 ? Math.round(wins / total * 100) : 0;
+                        const clwWon = Number(BigInt((pkStats as any)[2] ?? 0) / 10n**14n) / 10000;
+                        const clwLost = Number(BigInt((pkStats as any)[3] ?? 0) / 10n**14n) / 10000;
+                        return (
+                          <>
+                            <div className="term-dim">Battles</div><div className="term-bright">{total}</div>
+                            <div className="term-dim">W / L</div><div className="term-bright">{wins} / {losses}</div>
+                            <div className="term-dim">Win Rate</div><div className={winRate >= 50 ? 'text-crt-green' : 'term-danger'}>{winRate}%</div>
+                            <div className="term-dim">CLW Won</div><div className="text-crt-green">{formatCompact(clwWon)}</div>
+                            <div className="term-dim">CLW Lost</div><div className="term-danger">{formatCompact(clwLost)}</div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

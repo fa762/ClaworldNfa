@@ -58,14 +58,27 @@ async function cmdStatus(tokenId) {
     'function ownerOf(uint256) view returns (address)'
   ], provider);
 
-  const [s, bal, cost, owner] = await Promise.all([
+  const task = new ethers.Contract(CONTRACTS.task, [
+    'function getTaskStats(uint256) view returns (uint32,uint256,uint32,uint32,uint32,uint32,uint32)'
+  ], provider);
+  const pk = new ethers.Contract(CONTRACTS.pk, [
+    'function getPkStats(uint256) view returns (uint32,uint32,uint256,uint256)'
+  ], provider);
+
+  const [s, bal, cost, owner, ts, ps] = await Promise.all([
     router.getLobsterState(tokenId),
     router.clwBalances(tokenId),
     router.getDailyCost(tokenId),
-    nfa.ownerOf(tokenId)
+    nfa.ownerOf(tokenId),
+    task.getTaskStats(tokenId).catch(function() { return [0,0,0,0,0,0,0]; }),
+    pk.getPkStats(tokenId).catch(function() { return [0,0,0,0]; })
   ]);
   const tbnb = await provider.getBalance(owner);
   const rNames = ['Common','Rare','Epic','Legendary','Mythic'];
+
+  const pkTotal = (ts[0] || 0);
+  const pkWins = (ps[0] || 0);
+  const pkLosses = (ps[1] || 0);
 
   console.log(JSON.stringify({
     tokenId: Number(tokenId),
@@ -81,7 +94,19 @@ async function cmdStatus(tokenId) {
     owner,
     tbnb: parseFloat(ethers.utils.formatEther(tbnb)),
     mutation1: s.mutation1 === ethers.constants.HashZero ? null : s.mutation1,
-    mutation2: s.mutation2 === ethers.constants.HashZero ? null : s.mutation2
+    mutation2: s.mutation2 === ethers.constants.HashZero ? null : s.mutation2,
+    taskRecord: {
+      total: Number(ts[0]),
+      clwEarned: parseFloat(ethers.utils.formatEther(ts[1] || 0)),
+      byType: { courage: Number(ts[2]), wisdom: Number(ts[3]), social: Number(ts[4]), create: Number(ts[5]), grit: Number(ts[6]) }
+    },
+    pkRecord: {
+      wins: Number(ps[0]),
+      losses: Number(ps[1]),
+      winRate: (Number(ps[0]) + Number(ps[1])) > 0 ? Math.round(Number(ps[0]) / (Number(ps[0]) + Number(ps[1])) * 100) + '%' : 'N/A',
+      clwWon: parseFloat(ethers.utils.formatEther(ps[2] || 0)),
+      clwLost: parseFloat(ethers.utils.formatEther(ps[3] || 0))
+    }
   }, null, 2));
 }
 

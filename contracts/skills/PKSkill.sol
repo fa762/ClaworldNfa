@@ -558,5 +558,5 @@ contract PKSkill is
     /**
      * @dev Reserved storage gap for future upgrades.
      */
-    uint256[40] private __gap;
+    uint256[36] private __gap;
 }

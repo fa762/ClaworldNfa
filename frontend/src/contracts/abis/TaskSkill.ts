@@ -154,6 +154,31 @@ export const TaskSkillABI = [
     "inputs": [
       {
         "indexed": true,
+        "internalType": "uint256",
+        "name": "nfaId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "totalTasks",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalEarned",
+        "type": "uint256"
+      }
+    ],
+    "name": "TaskStatsUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "address",
         "name": "implementation",
         "type": "address"
@@ -226,6 +251,55 @@ export const TaskSkillABI = [
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "nfaId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getTaskStats",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "total",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "clwEarned",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "courage",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "wisdom",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "social",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "create",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "grit",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "_router",
         "type": "address"
@@ -239,6 +313,38 @@ export const TaskSkillABI = [
     "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "lastTaskTime",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nfa",
+    "outputs": [
+      {
+        "internalType": "contract ITaskNFA",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -271,6 +377,39 @@ export const TaskSkillABI = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "nfaId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "taskType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint32",
+        "name": "xpReward",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "clwReward",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint16",
+        "name": "matchScore",
+        "type": "uint16"
+      }
+    ],
+    "name": "ownerCompleteTypedTask",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -310,6 +449,19 @@ export const TaskSkillABI = [
     "inputs": [
       {
         "internalType": "address",
+        "name": "_nfa",
+        "type": "address"
+      }
+    ],
+    "name": "setNFA",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "operator",
         "type": "address"
       },
@@ -322,6 +474,139 @@ export const TaskSkillABI = [
     "name": "setOperator",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "taskCount",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "taskTypeCount0",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "taskTypeCount1",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "taskTypeCount2",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "taskTypeCount3",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "taskTypeCount4",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "totalClwEarned",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {

@@ -323,6 +323,19 @@ export const PKSkillABI = [
         "type": "uint256"
       }
     ],
+    "name": "cancelCommittedMatch",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchId",
+        "type": "uint256"
+      }
+    ],
     "name": "cancelJoinedMatch",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -373,6 +386,35 @@ export const PKSkillABI = [
       }
     ],
     "name": "createMatch",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "nfaId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "stake",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "commitHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "createMatchWithCommit",
     "outputs": [
       {
         "internalType": "uint256",
@@ -485,6 +527,40 @@ export const PKSkillABI = [
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "nfaId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getPkStats",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "wins",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "losses",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "clwWon",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "clwLost",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint8",
         "name": "strategy",
         "type": "uint8"
@@ -543,6 +619,29 @@ export const PKSkillABI = [
       }
     ],
     "name": "joinMatch",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "nfaId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "commitHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "joinMatchWithCommit",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -653,6 +752,44 @@ export const PKSkillABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "pkLosses",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "pkWins",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "proxiableUUID",
     "outputs": [
@@ -663,6 +800,24 @@ export const PKSkillABI = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "newCommitHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "recommitStrategy",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -732,6 +887,44 @@ export const PKSkillABI = [
     "name": "settle",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "totalPkClwLost",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "totalPkClwWon",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
