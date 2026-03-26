@@ -3,7 +3,6 @@
 import { HeroSection } from '@/components/home/HeroSection';
 import { WorldStateDashboard } from '@/components/home/WorldStateDashboard';
 import { CLWTokenInfo } from '@/components/home/CLWTokenInfo';
-import { SystemLogs } from '@/components/home/SystemLogs';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
 
@@ -27,17 +26,17 @@ export default function Home() {
   const featureList = features[lang];
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full">
       <HeroSection />
 
       {/* Dashboard Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <WorldStateDashboard />
         <CLWTokenInfo />
       </div>
 
       {/* Core Systems */}
-      <div className="term-box" data-title={t('core.title')}>
+      <div className="term-box mt-4" data-title={t('core.title')}>
         <div className="space-y-2">
           {featureList.map((f) => (
             <div key={f.key} className="flex gap-3 text-[11px]">
@@ -51,16 +50,15 @@ export default function Home() {
         </div>
       </div>
 
-      {/* System Logs */}
-      <SystemLogs />
-
-      {/* Quick nav */}
-      <div className="text-[10px] term-dim font-bold uppercase flex flex-wrap gap-2">
-        <span>{t('nav.navigate')}</span>
-        <Link href="/mint" className="term-link">[{t('nav.mint')}]</Link>
-        <Link href="/nfa" className="term-link">[{t('nav.vault')}]</Link>
-        <Link href="/guide" className="term-link">[{t('nav.data')}]</Link>
-        <Link href="/lore" className="term-link">[{t('nav.lore')}]</Link>
+      {/* Quick nav — fills remaining space */}
+      <div className="flex-1 flex items-end pb-2 mt-4">
+        <div className="text-[10px] term-dim font-bold uppercase flex flex-wrap gap-2">
+          <span>{t('nav.navigate')}</span>
+          <Link href="/mint" className="term-link">[{t('nav.mint')}]</Link>
+          <Link href="/nfa" className="term-link">[{t('nav.vault')}]</Link>
+          <Link href="/guide" className="term-link">[{t('nav.data')}]</Link>
+          <Link href="/lore" className="term-link">[{t('nav.lore')}]</Link>
+        </div>
       </div>
     </div>
   );

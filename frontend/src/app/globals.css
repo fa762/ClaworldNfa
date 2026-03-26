@@ -347,6 +347,8 @@
   text-shadow: 0 0 10px rgba(38, 255, 38, 0.7);
   filter: blur(0.3px); /* CRT soft focus */
   padding: 0;
+  /* Subtle phosphor ambient — prevents dead-black bottom */
+  background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(38,255,38,0.015) 0%, transparent 70%);
 }
 
 /* Scrollable main content */
@@ -354,7 +356,7 @@
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  padding: 24px 32px;
+  padding: 20px 28px;
 }
 
 /* ═══════════════════════════════════════════
