@@ -131,7 +131,7 @@ async function cmdBalance(addr) {
 
 // ─── PK Commands ───
 
-async function cmdPkCreate(pin, nfaId, stake) {
+async function cmdPkCreate(pin, nfaId, stake, strategy) {
   const wallet = new ethers.Wallet(decryptKey(pin), provider);
   const pk = new ethers.Contract(CONTRACTS.pk, [
     'function createMatch(uint256,uint256) returns (uint256)'
@@ -139,20 +139,52 @@ async function cmdPkCreate(pin, nfaId, stake) {
   const tx = await pk.createMatch(nfaId, ethers.utils.parseEther(String(stake)), { gasLimit: 300000 });
   console.log('TX: ' + tx.hash);
   const r = await tx.wait();
-  // Parse matchId from MatchCreated event
   const matchId = r.events?.[0]?.args?.[0] || 'check tx';
   console.log('MATCH_CREATED: id=' + matchId + ' block=' + r.blockNumber);
+
+  // Pre-save strategy — will auto-commit when opponent joins
+  if (strategy !== undefined) {
+    const salt = ethers.utils.randomBytes(32);
+    const saltHex = ethers.utils.hexlify(salt);
+    const commitment = ethers.utils.keccak256(
+      ethers.utils.solidityPack(['uint8', 'bytes32', 'address'], [Number(strategy), salt, wallet.address])
+    );
+    const saltFile = home + '/.openclaw/claw-world/pk-salt-' + matchId + '-' + wallet.address.slice(2,8) + '.json';
+    fs.writeFileSync(saltFile, JSON.stringify({
+      matchId: matchId.toString(), strategy: Number(strategy), salt: saltHex, commitment,
+      preCommit: true // flag: needs to be submitted when match enters JOINED phase
+    }));
+    console.log('STRATEGY_SAVED: ' + ['AllAttack','Balanced','AllDefense'][strategy] + ' (will auto-commit when opponent joins)');
+  }
 }
 
-async function cmdPkJoin(pin, matchId, nfaId) {
+async function cmdPkJoin(pin, matchId, nfaId, strategy) {
   const wallet = new ethers.Wallet(decryptKey(pin), provider);
   const pk = new ethers.Contract(CONTRACTS.pk, [
-    'function joinMatch(uint256,uint256)'
+    'function joinMatch(uint256,uint256)',
+    'function commitStrategy(uint256,bytes32)'
   ], wallet);
+
+  // Step 1: Join
   const tx = await pk.joinMatch(matchId, nfaId, { gasLimit: 300000 });
   console.log('TX: ' + tx.hash);
   const r = await tx.wait();
   console.log('JOINED: match=' + matchId + ' block=' + r.blockNumber);
+
+  // Step 2: Auto-commit if strategy provided
+  if (strategy !== undefined) {
+    const salt = ethers.utils.randomBytes(32);
+    const saltHex = ethers.utils.hexlify(salt);
+    const commitment = ethers.utils.keccak256(
+      ethers.utils.solidityPack(['uint8', 'bytes32', 'address'], [Number(strategy), salt, wallet.address])
+    );
+    const saltFile = home + '/.openclaw/claw-world/pk-salt-' + matchId + '-' + wallet.address.slice(2,8) + '.json';
+    fs.writeFileSync(saltFile, JSON.stringify({ matchId, strategy: Number(strategy), salt: saltHex }));
+
+    const commitTx = await pk.commitStrategy(matchId, commitment, { gasLimit: 200000 });
+    await commitTx.wait();
+    console.log('AUTO_COMMITTED: ' + ['AllAttack','Balanced','AllDefense'][strategy]);
+  }
 }
 
 async function cmdPkCommit(pin, matchId, strategy) {
@@ -204,6 +236,73 @@ async function cmdPkSettle(pin, matchId) {
   console.log('TX: ' + tx.hash);
   const r = await tx.wait();
   console.log('SETTLED: match=' + matchId + ' block=' + r.blockNumber);
+}
+
+async function cmdPkStatus(matchId) {
+  const pk = new ethers.Contract(CONTRACTS.pk, [
+    'function matches(uint256) view returns (uint256,uint256,bytes32,bytes32,uint8,uint8,uint256,uint8,uint64,bool,bool,bytes32,bytes32)'
+  ], provider);
+  const m = await pk.matches(matchId);
+  const phases = ['OPEN','JOINED','COMMITTED','REVEALED','SETTLED','CANCELLED'];
+  const strats = ['AllAttack','Balanced','AllDefense'];
+  const phase = m[7];
+  const result = {
+    matchId: Number(matchId),
+    nfaA: m[0].toNumber(),
+    nfaB: m[1].toNumber(),
+    stake: ethers.utils.formatUnits(m[6], 0) + ' CLW',
+    phase: phases[phase] || 'UNKNOWN',
+    revealedA: m[9],
+    revealedB: m[10],
+  };
+  // Only show strategies if revealed/settled
+  if (phase >= 3) {
+    result.strategyA = strats[m[4]] || m[4];
+    result.strategyB = strats[m[5]] || m[5];
+  }
+  if (phase === 4) {
+    result.result = '(check CLW balances to see winner)';
+  }
+  console.log(JSON.stringify(result, null, 2));
+}
+
+async function cmdPkCancel(pin, matchId) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  // Try cancelMatch first (OPEN phase), then cancelJoinedMatch (JOINED phase)
+  try {
+    const pk = new ethers.Contract(CONTRACTS.pk, [
+      'function cancelMatch(uint256)',
+      'function cancelJoinedMatch(uint256)'
+    ], wallet);
+    let tx;
+    try {
+      tx = await pk.cancelMatch(matchId, { gasLimit: 200000 });
+    } catch {
+      tx = await pk.cancelJoinedMatch(matchId, { gasLimit: 200000 });
+    }
+    console.log('TX: ' + tx.hash);
+    const r = await tx.wait();
+    console.log('CANCELLED: match=' + matchId + ' block=' + r.blockNumber);
+  } catch (e) {
+    console.error('CANCEL_FAILED: ' + (e.reason || e.message));
+  }
+}
+
+async function cmdPkSearch() {
+  const pk = new ethers.Contract(CONTRACTS.pk, [
+    'function _matchIdCounter() view returns (uint256)',
+    'function matches(uint256) view returns (uint256,uint256,bytes32,bytes32,uint8,uint8,uint256,uint8,uint64,bool,bool,bytes32,bytes32)'
+  ], provider);
+  const total = await pk._matchIdCounter();
+  const open = [];
+  for (let i = 1; i <= total.toNumber(); i++) {
+    const m = await pk.matches(i);
+    // phase: 0=OPEN, 1=JOINED, 2=COMMITTED, 3=REVEALED, 4=SETTLED, 5=CANCELLED
+    if (m[7] <= 2 && m[7] !== 5) { // active matches
+      open.push({ id: i, nfaA: m[0].toNumber(), nfaB: m[1].toNumber(), stake: ethers.utils.formatUnits(m[6], 0), phase: m[7] });
+    }
+  }
+  console.log(JSON.stringify(open));
 }
 
 // ─── Market Commands ───
@@ -334,11 +433,14 @@ const commands = {
   balance:      () => cmdBalance(args[0]),
   world:        () => cmdWorld(),
   transfer:     () => cmdTransfer(args[0], args[1], args[2]),
-  'pk-create':  () => cmdPkCreate(args[0], args[1], args[2]),
-  'pk-join':    () => cmdPkJoin(args[0], args[1], args[2]),
+  'pk-create':  () => cmdPkCreate(args[0], args[1], args[2], args[3]),
+  'pk-join':    () => cmdPkJoin(args[0], args[1], args[2], args[3]),
   'pk-commit':  () => cmdPkCommit(args[0], args[1], args[2]),
   'pk-reveal':  () => cmdPkReveal(args[0], args[1]),
   'pk-settle':  () => cmdPkSettle(args[0], args[1]),
+  'pk-cancel':  () => cmdPkCancel(args[0], args[1]),
+  'pk-search':  () => cmdPkSearch(),
+  'pk-status':  () => cmdPkStatus(args[0]),
   'market-list':    () => cmdMarketList(args[0], args[1], args[2]),
   'market-auction': () => cmdMarketAuction(args[0], args[1], args[2]),
   'market-buy':     () => cmdMarketBuy(args[0], args[1], args[2]),

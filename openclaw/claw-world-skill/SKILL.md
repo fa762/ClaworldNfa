@@ -168,24 +168,35 @@ Strategies: 0=AllAttack, 1=Balanced, 2=AllDefense
 
 ### PK CLI Commands
 ```bash
-node ~/.openclaw/skills/claw-world/claw pk-create <PIN> <NFA_ID> <STAKE_CLW>
-node ~/.openclaw/skills/claw-world/claw pk-join <PIN> <MATCH_ID> <NFA_ID>
+node ~/.openclaw/skills/claw-world/claw pk-create <PIN> <NFA_ID> <STAKE_CLW> [STRATEGY]
+node ~/.openclaw/skills/claw-world/claw pk-join <PIN> <MATCH_ID> <NFA_ID> [STRATEGY]
 node ~/.openclaw/skills/claw-world/claw pk-commit <PIN> <MATCH_ID> <STRATEGY>
 node ~/.openclaw/skills/claw-world/claw pk-reveal <PIN> <MATCH_ID>
 node ~/.openclaw/skills/claw-world/claw pk-settle <PIN> <MATCH_ID>
+node ~/.openclaw/skills/claw-world/claw pk-status <MATCH_ID>
+node ~/.openclaw/skills/claw-world/claw pk-search
+node ~/.openclaw/skills/claw-world/claw pk-cancel <PIN> <MATCH_ID>
 ```
-- pk-commit saves salt automatically. pk-reveal reads it.
 - STRATEGY: 0=AllAttack, 1=Balanced, 2=AllDefense
+- pk-create with STRATEGY: pre-saves strategy locally, auto-commit when opponent joins
+- pk-join with STRATEGY: join + auto-commit in one step (best UX)
+- pk-status: view match details and result
+- pk-search: list all active matches
+- pk-cancel: cancel stuck/timed-out matches
 
 ### PK Flow
-1. Player says "我想打架" → ask how much CLW to stake
-2. Run `claw pk-create` → get matchId
-3. Wait for opponent to join (or tell player to share matchId)
-4. Suggest strategy based on personality (high STR → AllAttack, high DEF → AllDefense)
-5. Ask PIN → run `claw pk-commit`
-6. Wait for opponent to commit
-7. Run `claw pk-reveal`
-8. Run `claw pk-settle` → show result
+1. Player says "我想打架" → ask how much CLW to stake + suggest strategy
+2. Run `claw pk-create <PIN> <NFA> <STAKE> <STRATEGY>` → match created, strategy saved
+3. Wait for opponent (or show matchId to share)
+4. When opponent joins → run `claw pk-commit` with saved strategy
+5. Both committed → run `claw pk-reveal`
+6. Run `claw pk-settle` → show result with `claw pk-status`
+
+**Joining flow**: When player wants to join existing match:
+1. Run `claw pk-search` to find open matches
+2. Suggest strategy based on personality
+3. Run `claw pk-join <PIN> <MATCH_ID> <NFA> <STRATEGY>` → joins + commits in one step
+4. Wait for creator to commit → then both reveal → settle
 
 # Market System
 
