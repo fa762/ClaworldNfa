@@ -129,23 +129,241 @@ async function cmdBalance(addr) {
   console.log(ethers.utils.formatEther(bal) + ' BNB');
 }
 
+// ─── PK Commands ───
+
+async function cmdPkCreate(pin, nfaId, stake) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const pk = new ethers.Contract(CONTRACTS.pk, [
+    'function createMatch(uint256,uint256) returns (uint256)'
+  ], wallet);
+  const tx = await pk.createMatch(nfaId, ethers.utils.parseEther(String(stake)), { gasLimit: 300000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  // Parse matchId from MatchCreated event
+  const matchId = r.events?.[0]?.args?.[0] || 'check tx';
+  console.log('MATCH_CREATED: id=' + matchId + ' block=' + r.blockNumber);
+}
+
+async function cmdPkJoin(pin, matchId, nfaId) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const pk = new ethers.Contract(CONTRACTS.pk, [
+    'function joinMatch(uint256,uint256)'
+  ], wallet);
+  const tx = await pk.joinMatch(matchId, nfaId, { gasLimit: 300000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('JOINED: match=' + matchId + ' block=' + r.blockNumber);
+}
+
+async function cmdPkCommit(pin, matchId, strategy) {
+  // strategy: 0=AllAttack, 1=Balanced, 2=AllDefense
+  const salt = ethers.utils.randomBytes(32);
+  const saltHex = ethers.utils.hexlify(salt);
+  const commitment = ethers.utils.keccak256(
+    ethers.utils.solidityPack(['uint8', 'bytes32'], [strategy, salt])
+  );
+  // Save salt for reveal
+  const saltFile = home + '/.openclaw/claw-world/pk-salt-' + matchId + '.json';
+  fs.writeFileSync(saltFile, JSON.stringify({ matchId, strategy: Number(strategy), salt: saltHex }));
+
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const pk = new ethers.Contract(CONTRACTS.pk, [
+    'function commitStrategy(uint256,bytes32)'
+  ], wallet);
+  const tx = await pk.commitStrategy(matchId, commitment, { gasLimit: 200000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('COMMITTED: match=' + matchId + ' block=' + r.blockNumber);
+  console.log('SALT_SAVED: ' + saltFile + ' (needed for reveal)');
+}
+
+async function cmdPkReveal(pin, matchId) {
+  const saltFile = home + '/.openclaw/claw-world/pk-salt-' + matchId + '.json';
+  if (!fs.existsSync(saltFile)) {
+    console.error('ERROR: No saved salt for match ' + matchId);
+    process.exit(1);
+  }
+  const { strategy, salt } = JSON.parse(fs.readFileSync(saltFile, 'utf8'));
+
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const pk = new ethers.Contract(CONTRACTS.pk, [
+    'function revealStrategy(uint256,uint8,bytes32)'
+  ], wallet);
+  const tx = await pk.revealStrategy(matchId, strategy, salt, { gasLimit: 300000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('REVEALED: match=' + matchId + ' strategy=' + ['AllAttack','Balanced','AllDefense'][strategy] + ' block=' + r.blockNumber);
+  fs.unlinkSync(saltFile); // cleanup
+}
+
+async function cmdPkSettle(pin, matchId) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const pk = new ethers.Contract(CONTRACTS.pk, [
+    'function settle(uint256)'
+  ], wallet);
+  const tx = await pk.settle(matchId, { gasLimit: 500000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('SETTLED: match=' + matchId + ' block=' + r.blockNumber);
+}
+
+// ─── Market Commands ───
+
+async function cmdMarketList(pin, nfaId, priceBnb) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  // First approve MarketSkill to transfer NFA
+  const nfaContract = new ethers.Contract(CONTRACTS.nfa, [
+    'function approve(address,uint256)'
+  ], wallet);
+  const approveTx = await nfaContract.approve(CONTRACTS.market, nfaId, { gasLimit: 100000 });
+  await approveTx.wait();
+  console.log('NFA_APPROVED');
+
+  const market = new ethers.Contract(CONTRACTS.market, [
+    'function listFixedPrice(uint256,uint256) returns (uint256)'
+  ], wallet);
+  const tx = await market.listFixedPrice(nfaId, ethers.utils.parseEther(String(priceBnb)), { gasLimit: 300000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('LISTED: nfa=' + nfaId + ' price=' + priceBnb + 'BNB block=' + r.blockNumber);
+}
+
+async function cmdMarketAuction(pin, nfaId, startPrice) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const nfaContract = new ethers.Contract(CONTRACTS.nfa, [
+    'function approve(address,uint256)'
+  ], wallet);
+  const approveTx = await nfaContract.approve(CONTRACTS.market, nfaId, { gasLimit: 100000 });
+  await approveTx.wait();
+
+  const market = new ethers.Contract(CONTRACTS.market, [
+    'function listAuction(uint256,uint256) returns (uint256)'
+  ], wallet);
+  const tx = await market.listAuction(nfaId, ethers.utils.parseEther(String(startPrice)), { gasLimit: 300000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('AUCTION_CREATED: nfa=' + nfaId + ' startPrice=' + startPrice + 'BNB block=' + r.blockNumber);
+}
+
+async function cmdMarketBuy(pin, listingId, priceBnb) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const market = new ethers.Contract(CONTRACTS.market, [
+    'function buyFixedPrice(uint256)'
+  ], wallet);
+  const tx = await market.buyFixedPrice(listingId, {
+    value: ethers.utils.parseEther(String(priceBnb)),
+    gasLimit: 400000
+  });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('BOUGHT: listing=' + listingId + ' block=' + r.blockNumber);
+}
+
+async function cmdMarketBid(pin, listingId, bidBnb) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const market = new ethers.Contract(CONTRACTS.market, [
+    'function bid(uint256)'
+  ], wallet);
+  const tx = await market.bid(listingId, {
+    value: ethers.utils.parseEther(String(bidBnb)),
+    gasLimit: 300000
+  });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('BID_PLACED: listing=' + listingId + ' amount=' + bidBnb + 'BNB block=' + r.blockNumber);
+}
+
+async function cmdMarketCancel(pin, listingId) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const market = new ethers.Contract(CONTRACTS.market, [
+    'function cancelListing(uint256)'
+  ], wallet);
+  const tx = await market.cancelListing(listingId, { gasLimit: 300000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('CANCELLED: listing=' + listingId + ' block=' + r.blockNumber);
+}
+
+// ─── Transfer ───
+
+async function cmdTransfer(pin, nfaId, toAddress) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const nfaContract = new ethers.Contract(CONTRACTS.nfa, [
+    'function safeTransferFrom(address,address,uint256)'
+  ], wallet);
+  const tx = await nfaContract.safeTransferFrom(wallet.address, toAddress, nfaId, { gasLimit: 200000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('TRANSFERRED: nfa=' + nfaId + ' to=' + toAddress + ' block=' + r.blockNumber);
+}
+
+// ─── World State ───
+
+async function cmdWorld() {
+  const world = new ethers.Contract(CONTRACTS.world, [
+    'function rewardMultiplier() view returns (uint256)',
+    'function pkStakeLimit() view returns (uint256)',
+    'function mutationBonus() view returns (uint256)',
+    'function dailyCostMultiplier() view returns (uint256)',
+    'function activeEvents() view returns (uint256)'
+  ], provider);
+  const [reward, pkLimit, mutation, cost, events] = await Promise.all([
+    world.rewardMultiplier(), world.pkStakeLimit(),
+    world.mutationBonus(), world.dailyCostMultiplier(), world.activeEvents()
+  ]);
+  const eventFlags = [];
+  if (events.and(1).gt(0)) eventFlags.push('BUBBLE');
+  if (events.and(2).gt(0)) eventFlags.push('WINTER');
+  if (events.and(4).gt(0)) eventFlags.push('GOLDEN_AGE');
+  console.log(JSON.stringify({
+    rewardMultiplier: reward.toNumber() / 10000,
+    pkStakeLimit: ethers.utils.formatEther(pkLimit) + ' CLW',
+    mutationBonus: mutation.toNumber() / 10000,
+    dailyCostMultiplier: cost.toNumber() / 10000,
+    activeEvents: eventFlags.length ? eventFlags : 'none'
+  }, null, 2));
+}
+
 // ─── Main ───
 
 const [,, cmd, ...args] = process.argv;
 
 const commands = {
-  status:  () => cmdStatus(args[0]),
-  task:    () => cmdTask(args[0], args[1], args[2], args[3], args[4], args[5]),
-  wallet:  () => cmdWallet(),
-  balance: () => cmdBalance(args[0]),
+  status:       () => cmdStatus(args[0]),
+  task:         () => cmdTask(args[0], args[1], args[2], args[3], args[4], args[5]),
+  wallet:       () => cmdWallet(),
+  balance:      () => cmdBalance(args[0]),
+  world:        () => cmdWorld(),
+  transfer:     () => cmdTransfer(args[0], args[1], args[2]),
+  'pk-create':  () => cmdPkCreate(args[0], args[1], args[2]),
+  'pk-join':    () => cmdPkJoin(args[0], args[1], args[2]),
+  'pk-commit':  () => cmdPkCommit(args[0], args[1], args[2]),
+  'pk-reveal':  () => cmdPkReveal(args[0], args[1]),
+  'pk-settle':  () => cmdPkSettle(args[0], args[1]),
+  'market-list':    () => cmdMarketList(args[0], args[1], args[2]),
+  'market-auction': () => cmdMarketAuction(args[0], args[1], args[2]),
+  'market-buy':     () => cmdMarketBuy(args[0], args[1], args[2]),
+  'market-bid':     () => cmdMarketBid(args[0], args[1], args[2]),
+  'market-cancel':  () => cmdMarketCancel(args[0], args[1]),
 };
 
 if (!cmd || !commands[cmd]) {
-  console.log('Usage:');
-  console.log('  claw status <tokenId>');
-  console.log('  claw task <pin> <nfaId> <type> <xp> <clw> <score>');
-  console.log('  claw wallet');
-  console.log('  claw balance <address>');
+  console.log('Claw World CLI');
+  console.log('  claw status <tokenId>              — read lobster data');
+  console.log('  claw wallet                        — show wallet');
+  console.log('  claw world                         — world state');
+  console.log('  claw task <pin> <nfa> <type> <xp> <clw> <score>  — do task');
+  console.log('  claw pk-create <pin> <nfa> <stake>              — create PK');
+  console.log('  claw pk-join <pin> <matchId> <nfa>              — join PK');
+  console.log('  claw pk-commit <pin> <matchId> <strategy>       — commit (0/1/2)');
+  console.log('  claw pk-reveal <pin> <matchId>                  — reveal');
+  console.log('  claw pk-settle <pin> <matchId>                  — settle');
+  console.log('  claw market-list <pin> <nfa> <priceBNB>         — sell fixed');
+  console.log('  claw market-auction <pin> <nfa> <startBNB>      — auction');
+  console.log('  claw market-buy <pin> <listingId> <priceBNB>    — buy');
+  console.log('  claw market-bid <pin> <listingId> <bidBNB>      — bid');
+  console.log('  claw market-cancel <pin> <listingId>            — cancel');
+  console.log('  claw transfer <pin> <nfa> <toAddress>           — transfer NFA');
   process.exit(1);
 }
 

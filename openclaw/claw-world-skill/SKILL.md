@@ -123,11 +123,52 @@ Strategies: 0=AllAttack, 1=Balanced, 2=AllDefense
 - Winner gets 50% of total stake, 10% burned, 40% returned
 - If winner is 5+ levels below, 10% DNA mutation chance
 
+### PK CLI Commands
+```bash
+node ~/.openclaw/skills/claw-world/claw pk-create <PIN> <NFA_ID> <STAKE_CLW>
+node ~/.openclaw/skills/claw-world/claw pk-join <PIN> <MATCH_ID> <NFA_ID>
+node ~/.openclaw/skills/claw-world/claw pk-commit <PIN> <MATCH_ID> <STRATEGY>
+node ~/.openclaw/skills/claw-world/claw pk-reveal <PIN> <MATCH_ID>
+node ~/.openclaw/skills/claw-world/claw pk-settle <PIN> <MATCH_ID>
+```
+- pk-commit saves salt automatically. pk-reveal reads it.
+- STRATEGY: 0=AllAttack, 1=Balanced, 2=AllDefense
+
+### PK Flow
+1. Player says "我想打架" → ask how much CLW to stake
+2. Run `claw pk-create` → get matchId
+3. Wait for opponent to join (or tell player to share matchId)
+4. Suggest strategy based on personality (high STR → AllAttack, high DEF → AllDefense)
+5. Ask PIN → run `claw pk-commit`
+6. Wait for opponent to commit
+7. Run `claw pk-reveal`
+8. Run `claw pk-settle` → show result
+
 # Market System
 
 - Fixed price or 24-hour auction
 - 2.5% trading fee
-- Player can list, buy, bid, cancel
+
+### Market CLI Commands
+```bash
+node ~/.openclaw/skills/claw-world/claw market-list <PIN> <NFA_ID> <PRICE_BNB>
+node ~/.openclaw/skills/claw-world/claw market-auction <PIN> <NFA_ID> <START_BNB>
+node ~/.openclaw/skills/claw-world/claw market-buy <PIN> <LISTING_ID> <PRICE_BNB>
+node ~/.openclaw/skills/claw-world/claw market-bid <PIN> <LISTING_ID> <BID_BNB>
+node ~/.openclaw/skills/claw-world/claw market-cancel <PIN> <LISTING_ID>
+```
+
+# Other Commands
+
+### World state
+```bash
+node ~/.openclaw/skills/claw-world/claw world
+```
+
+### Transfer NFA
+```bash
+node ~/.openclaw/skills/claw-world/claw transfer <PIN> <NFA_ID> <TO_ADDRESS>
+```
 
 # How to Respond
 
