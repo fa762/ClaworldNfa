@@ -186,7 +186,7 @@ contract PersonalityEngine is OwnableUpgradeable, UUPSUpgradeable {
     }
 
     function _clampPersonality(uint8 current, int8 delta) internal pure returns (uint8) {
-        int16 result = int16(int8(int256(uint256(current)))) + int16(delta);
+        int16 result = int16(uint16(current)) + int16(delta);
         if (result < 0) return 0;
         if (result > 100) return 100;
         return uint8(uint16(result));

@@ -159,14 +159,14 @@ async function cmdPkCommit(pin, matchId, strategy) {
   // strategy: 0=AllAttack, 1=Balanced, 2=AllDefense
   const salt = ethers.utils.randomBytes(32);
   const saltHex = ethers.utils.hexlify(salt);
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
   const commitment = ethers.utils.keccak256(
-    ethers.utils.solidityPack(['uint8', 'bytes32'], [strategy, salt])
+    ethers.utils.solidityPack(['uint8', 'bytes32', 'address'], [strategy, salt, wallet.address])
   );
-  // Save salt for reveal
-  const saltFile = home + '/.openclaw/claw-world/pk-salt-' + matchId + '.json';
+  // Save salt for reveal (include wallet address to avoid collision in self-PK)
+  const saltFile = home + '/.openclaw/claw-world/pk-salt-' + matchId + '-' + wallet.address.slice(2,8) + '.json';
   fs.writeFileSync(saltFile, JSON.stringify({ matchId, strategy: Number(strategy), salt: saltHex }));
 
-  const wallet = new ethers.Wallet(decryptKey(pin), provider);
   const pk = new ethers.Contract(CONTRACTS.pk, [
     'function commitStrategy(uint256,bytes32)'
   ], wallet);
@@ -178,14 +178,13 @@ async function cmdPkCommit(pin, matchId, strategy) {
 }
 
 async function cmdPkReveal(pin, matchId) {
-  const saltFile = home + '/.openclaw/claw-world/pk-salt-' + matchId + '.json';
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const saltFile = home + '/.openclaw/claw-world/pk-salt-' + matchId + '-' + wallet.address.slice(2,8) + '.json';
   if (!fs.existsSync(saltFile)) {
-    console.error('ERROR: No saved salt for match ' + matchId);
+    console.error('ERROR: No saved salt for match ' + matchId + ' wallet ' + wallet.address);
     process.exit(1);
   }
   const { strategy, salt } = JSON.parse(fs.readFileSync(saltFile, 'utf8'));
-
-  const wallet = new ethers.Wallet(decryptKey(pin), provider);
   const pk = new ethers.Contract(CONTRACTS.pk, [
     'function revealStrategy(uint256,uint8,bytes32)'
   ], wallet);
