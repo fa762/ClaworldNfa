@@ -56,6 +56,7 @@ export default function Home() {
           <span>{t('nav.navigate')}</span>
           <Link href="/mint" className="term-link">[{t('nav.mint')}]</Link>
           <Link href="/nfa" className="term-link">[{t('nav.vault')}]</Link>
+          <Link href="/openclaw" className="term-link">[{t('nav.openclaw')}]</Link>
           <Link href="/guide" className="term-link">[{t('nav.data')}]</Link>
           <Link href="/lore" className="term-link">[{t('nav.lore')}]</Link>
         </div>

@@ -11,6 +11,7 @@ const tabs = [
   { href: '/', labelKey: 'nav.world' as const, key: 'HOME' },
   { href: '/mint', labelKey: 'nav.mint' as const, key: 'MINT' },
   { href: '/nfa', labelKey: 'nav.vault' as const, key: 'NFA' },
+  { href: '/openclaw', labelKey: 'nav.openclaw' as const, key: 'PLAY' },
   { href: '/guide', labelKey: 'nav.data' as const, key: 'GUIDE' },
   { href: '/lore', labelKey: 'nav.lore' as const, key: 'LORE' },
 ];
