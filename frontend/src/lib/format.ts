@@ -10,8 +10,8 @@ export function formatBNB(wei: bigint, decimals = 4): string {
 
 export function formatCLW(wei: bigint, decimals = 2): string {
   const val = Number(formatEther(wei));
-  if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
-  if (val >= 1_000) return `${(val / 1_000).toFixed(1)}K`;
+  if (val >= 1_000_000) return Math.floor(val).toLocaleString();
+  if (val >= 1_000) return Math.floor(val).toLocaleString();
   return val.toFixed(decimals);
 }
 
