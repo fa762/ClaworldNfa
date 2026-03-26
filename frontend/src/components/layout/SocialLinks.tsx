@@ -1,7 +1,7 @@
 const socials = [
-  { label: 'TG', href: '#' },
-  { label: 'X', href: '#' },
-  { label: 'GH', href: '#' },
+  { label: 'X', href: 'https://x.com/ClaworldNfa' },
+  { label: 'TG', href: 'https://t.me/ClaworldNfa' },
+  { label: 'GH', href: 'https://github.com/fa762/clawworld' },
 ];
 
 export function SocialLinks() {

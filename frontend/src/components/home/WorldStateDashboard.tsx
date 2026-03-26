@@ -36,7 +36,7 @@ export function WorldStateDashboard() {
   ];
 
   return (
-    <div className="term-box" data-title={t('world.title')}>
+    <div className="term-box h-full" data-title={t('world.title')}>
       {loading ? (
         <div className="term-dim animate-glow-pulse text-xs">{t('loading')}</div>
       ) : (

@@ -365,10 +365,11 @@
 
 .term-box {
   position: relative;
-  border: 1px solid rgba(38, 255, 38, 0.3);
-  padding: 16px 18px;
+  border: 1px solid rgba(38, 255, 38, 0.25);
+  padding: 14px 16px;
   margin: 0;
-  background: rgba(38, 255, 38, 0.03);
+  background: rgba(38, 255, 38, 0.02);
+  box-shadow: 0 0 8px rgba(38, 255, 38, 0.05), inset 0 0 12px rgba(0, 0, 0, 0.3);
 }
 
 .term-box[data-title]::before {
