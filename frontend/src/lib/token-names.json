@@ -1,0 +1,22 @@
+{
+  "1": {
+    "name": "CW-0608",
+    "rarity": "Common",
+    "imageId": 608
+  },
+  "2": {
+    "name": "CW-0368",
+    "rarity": "Common",
+    "imageId": 368
+  },
+  "3": {
+    "name": "SHELTER-00老人",
+    "rarity": "Rare",
+    "imageId": 28
+  },
+  "4": {
+    "name": "Glitch",
+    "rarity": "Epic",
+    "imageId": 11
+  }
+}

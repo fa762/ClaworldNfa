@@ -133,57 +133,75 @@ async function cmdBalance(addr) {
 
 async function cmdPkCreate(pin, nfaId, stake, strategy) {
   const wallet = new ethers.Wallet(decryptKey(pin), provider);
-  const pk = new ethers.Contract(CONTRACTS.pk, [
-    'function createMatch(uint256,uint256) returns (uint256)'
-  ], wallet);
-  const tx = await pk.createMatch(nfaId, ethers.utils.parseEther(String(stake)), { gasLimit: 300000 });
-  console.log('TX: ' + tx.hash);
-  const r = await tx.wait();
-  const matchId = r.events?.[0]?.args?.[0] || 'check tx';
-  console.log('MATCH_CREATED: id=' + matchId + ' block=' + r.blockNumber);
 
-  // Pre-save strategy — will auto-commit when opponent joins
+  // Arena mode: create + commit in one tx
   if (strategy !== undefined) {
     const salt = ethers.utils.randomBytes(32);
     const saltHex = ethers.utils.hexlify(salt);
     const commitment = ethers.utils.keccak256(
       ethers.utils.solidityPack(['uint8', 'bytes32', 'address'], [Number(strategy), salt, wallet.address])
     );
+    const pk = new ethers.Contract(CONTRACTS.pk, [
+      'function createMatchWithCommit(uint256,uint256,bytes32) returns (uint256)'
+    ], wallet);
+    const tx = await pk.createMatchWithCommit(nfaId, ethers.utils.parseEther(String(stake)), commitment, { gasLimit: 400000 });
+    console.log('TX: ' + tx.hash);
+    const r = await tx.wait();
+    const matchId = r.events?.[0]?.args?.[0] || 'check tx';
+    console.log('MATCH_CREATED: id=' + matchId + ' block=' + r.blockNumber);
+
+    // Save salt for reveal
     const saltFile = home + '/.openclaw/claw-world/pk-salt-' + matchId + '-' + wallet.address.slice(2,8) + '.json';
     fs.writeFileSync(saltFile, JSON.stringify({
-      matchId: matchId.toString(), strategy: Number(strategy), salt: saltHex, commitment,
-      preCommit: true // flag: needs to be submitted when match enters JOINED phase
+      matchId: matchId.toString(), strategy: Number(strategy), salt: saltHex
     }));
-    console.log('STRATEGY_SAVED: ' + ['AllAttack','Balanced','AllDefense'][strategy] + ' (will auto-commit when opponent joins)');
+    console.log('ARENA_MODE: strategy=' + ['AllAttack','Balanced','AllDefense'][strategy] + ' committed on-chain in one tx');
+  } else {
+    // Legacy: create without commit
+    const pk = new ethers.Contract(CONTRACTS.pk, [
+      'function createMatch(uint256,uint256) returns (uint256)'
+    ], wallet);
+    const tx = await pk.createMatch(nfaId, ethers.utils.parseEther(String(stake)), { gasLimit: 300000 });
+    console.log('TX: ' + tx.hash);
+    const r = await tx.wait();
+    const matchId = r.events?.[0]?.args?.[0] || 'check tx';
+    console.log('MATCH_CREATED: id=' + matchId + ' block=' + r.blockNumber);
+    console.log('LEGACY_MODE: no strategy committed yet, use pk-commit later');
   }
 }
 
 async function cmdPkJoin(pin, matchId, nfaId, strategy) {
   const wallet = new ethers.Wallet(decryptKey(pin), provider);
-  const pk = new ethers.Contract(CONTRACTS.pk, [
-    'function joinMatch(uint256,uint256)',
-    'function commitStrategy(uint256,bytes32)'
-  ], wallet);
 
-  // Step 1: Join
-  const tx = await pk.joinMatch(matchId, nfaId, { gasLimit: 300000 });
-  console.log('TX: ' + tx.hash);
-  const r = await tx.wait();
-  console.log('JOINED: match=' + matchId + ' block=' + r.blockNumber);
-
-  // Step 2: Auto-commit if strategy provided
+  // Arena mode: join + commit in one tx
   if (strategy !== undefined) {
     const salt = ethers.utils.randomBytes(32);
     const saltHex = ethers.utils.hexlify(salt);
     const commitment = ethers.utils.keccak256(
       ethers.utils.solidityPack(['uint8', 'bytes32', 'address'], [Number(strategy), salt, wallet.address])
     );
-    const saltFile = home + '/.openclaw/claw-world/pk-salt-' + matchId + '-' + wallet.address.slice(2,8) + '.json';
-    fs.writeFileSync(saltFile, JSON.stringify({ matchId, strategy: Number(strategy), salt: saltHex }));
+    const pk = new ethers.Contract(CONTRACTS.pk, [
+      'function joinMatchWithCommit(uint256,uint256,bytes32)'
+    ], wallet);
+    const tx = await pk.joinMatchWithCommit(matchId, nfaId, commitment, { gasLimit: 400000 });
+    console.log('TX: ' + tx.hash);
+    const r = await tx.wait();
+    console.log('JOINED+COMMITTED: match=' + matchId + ' block=' + r.blockNumber);
 
-    const commitTx = await pk.commitStrategy(matchId, commitment, { gasLimit: 200000 });
-    await commitTx.wait();
-    console.log('AUTO_COMMITTED: ' + ['AllAttack','Balanced','AllDefense'][strategy]);
+    // Save salt for reveal
+    const saltFile = home + '/.openclaw/claw-world/pk-salt-' + matchId + '-' + wallet.address.slice(2,8) + '.json';
+    fs.writeFileSync(saltFile, JSON.stringify({ matchId: String(matchId), strategy: Number(strategy), salt: saltHex }));
+    console.log('ARENA_MODE: strategy=' + ['AllAttack','Balanced','AllDefense'][strategy] + ' → ready for reveal');
+  } else {
+    // Legacy: join without commit
+    const pk = new ethers.Contract(CONTRACTS.pk, [
+      'function joinMatch(uint256,uint256)'
+    ], wallet);
+    const tx = await pk.joinMatch(matchId, nfaId, { gasLimit: 300000 });
+    console.log('TX: ' + tx.hash);
+    const r = await tx.wait();
+    console.log('JOINED: match=' + matchId + ' block=' + r.blockNumber);
+    console.log('LEGACY_MODE: use pk-commit to submit strategy');
   }
 }
 
@@ -268,24 +286,63 @@ async function cmdPkStatus(matchId) {
 
 async function cmdPkCancel(pin, matchId) {
   const wallet = new ethers.Wallet(decryptKey(pin), provider);
-  // Try cancelMatch first (OPEN phase), then cancelJoinedMatch (JOINED phase)
-  try {
-    const pk = new ethers.Contract(CONTRACTS.pk, [
-      'function cancelMatch(uint256)',
-      'function cancelJoinedMatch(uint256)'
-    ], wallet);
-    let tx;
+  const pk = new ethers.Contract(CONTRACTS.pk, [
+    'function cancelMatch(uint256)',
+    'function cancelJoinedMatch(uint256)',
+    'function cancelCommittedMatch(uint256)'
+  ], wallet);
+  // Try all cancel methods in order
+  const methods = ['cancelMatch', 'cancelJoinedMatch', 'cancelCommittedMatch'];
+  for (const method of methods) {
     try {
-      tx = await pk.cancelMatch(matchId, { gasLimit: 200000 });
-    } catch {
-      tx = await pk.cancelJoinedMatch(matchId, { gasLimit: 200000 });
-    }
-    console.log('TX: ' + tx.hash);
-    const r = await tx.wait();
-    console.log('CANCELLED: match=' + matchId + ' block=' + r.blockNumber);
-  } catch (e) {
-    console.error('CANCEL_FAILED: ' + (e.reason || e.message));
+      const tx = await pk[method](matchId, { gasLimit: 200000 });
+      console.log('TX: ' + tx.hash);
+      const r = await tx.wait();
+      console.log('CANCELLED: match=' + matchId + ' via=' + method + ' block=' + r.blockNumber);
+      return;
+    } catch {}
   }
+  console.error('CANCEL_FAILED: no cancel method worked (check phase/timeout)');
+}
+
+// Auto reveal+settle: after both committed, reveal both sides and settle
+async function cmdPkAutoSettle(pin, matchId, pin2) {
+  const wallet1 = new ethers.Wallet(decryptKey(pin), provider);
+  const pk = new ethers.Contract(CONTRACTS.pk, [
+    'function revealStrategy(uint256,uint8,bytes32)',
+    'function settle(uint256)'
+  ], wallet1);
+
+  // Reveal wallet 1
+  const saltFile1 = home + '/.openclaw/claw-world/pk-salt-' + matchId + '-' + wallet1.address.slice(2,8) + '.json';
+  if (fs.existsSync(saltFile1)) {
+    const d1 = JSON.parse(fs.readFileSync(saltFile1, 'utf8'));
+    const tx = await pk.revealStrategy(matchId, d1.strategy, d1.salt, { gasLimit: 300000 });
+    await tx.wait();
+    console.log('REVEALED_1: ' + ['AllAttack','Balanced','AllDefense'][d1.strategy]);
+    fs.unlinkSync(saltFile1);
+  }
+
+  // Reveal wallet 2 (if pin2 provided, for self-PK testing)
+  if (pin2) {
+    const wallet2 = new ethers.Wallet(decryptKey(pin2), provider);
+    const pk2 = new ethers.Contract(CONTRACTS.pk, [
+      'function revealStrategy(uint256,uint8,bytes32)'
+    ], wallet2);
+    const saltFile2 = home + '/.openclaw/claw-world/pk-salt-' + matchId + '-' + wallet2.address.slice(2,8) + '.json';
+    if (fs.existsSync(saltFile2)) {
+      const d2 = JSON.parse(fs.readFileSync(saltFile2, 'utf8'));
+      const tx = await pk2.revealStrategy(matchId, d2.strategy, d2.salt, { gasLimit: 300000 });
+      await tx.wait();
+      console.log('REVEALED_2: ' + ['AllAttack','Balanced','AllDefense'][d2.strategy]);
+      fs.unlinkSync(saltFile2);
+    }
+  }
+
+  // Settle
+  const settleTx = await pk.settle(matchId, { gasLimit: 500000 });
+  await settleTx.wait();
+  console.log('SETTLED: match=' + matchId);
 }
 
 async function cmdPkSearch() {
@@ -439,6 +496,7 @@ const commands = {
   'pk-reveal':  () => cmdPkReveal(args[0], args[1]),
   'pk-settle':  () => cmdPkSettle(args[0], args[1]),
   'pk-cancel':  () => cmdPkCancel(args[0], args[1]),
+  'pk-auto-settle': () => cmdPkAutoSettle(args[0], args[1], args[2]),
   'pk-search':  () => cmdPkSearch(),
   'pk-status':  () => cmdPkStatus(args[0]),
   'market-list':    () => cmdMarketList(args[0], args[1], args[2]),
@@ -454,11 +512,12 @@ if (!cmd || !commands[cmd]) {
   console.log('  claw wallet                        — show wallet');
   console.log('  claw world                         — world state');
   console.log('  claw task <pin> <nfa> <type> <xp> <clw> <score>  — do task');
-  console.log('  claw pk-create <pin> <nfa> <stake>              — create PK');
-  console.log('  claw pk-join <pin> <matchId> <nfa>              — join PK');
-  console.log('  claw pk-commit <pin> <matchId> <strategy>       — commit (0/1/2)');
-  console.log('  claw pk-reveal <pin> <matchId>                  — reveal');
-  console.log('  claw pk-settle <pin> <matchId>                  — settle');
+  console.log('  claw pk-create <pin> <nfa> <stake> [strategy]   — create PK (arena: +strategy)');
+  console.log('  claw pk-join <pin> <matchId> <nfa> [strategy]   — join PK (arena: +strategy)');
+  console.log('  claw pk-auto-settle <pin> <matchId> [pin2]      — reveal+settle (auto)');
+  console.log('  claw pk-commit <pin> <matchId> <strategy>       — commit (0/1/2) [legacy]');
+  console.log('  claw pk-reveal <pin> <matchId>                  — reveal [legacy]');
+  console.log('  claw pk-settle <pin> <matchId>                  — settle [legacy]');
   console.log('  claw market-list <pin> <nfa> <priceBNB>         — sell fixed');
   console.log('  claw market-auction <pin> <nfa> <startBNB>      — auction');
   console.log('  claw market-buy <pin> <listingId> <priceBNB>    — buy');

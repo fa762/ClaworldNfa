@@ -97,13 +97,44 @@ async function main() {
     fs.writeFileSync(outputFile, JSON.stringify(assignments, null, 2));
   }
 
+  // Generate token-names.json from assignments + image-names.json
+  const imageNamesFile = path.join(__dirname, 'output', 'image-names.json');
+  const tokenNamesFile = path.join(__dirname, 'output', 'token-names.json');
+  const frontendNamesFile = path.join(__dirname, '..', 'frontend', 'src', 'lib', 'token-names.json');
+
+  if (fs.existsSync(imageNamesFile)) {
+    const imageNames: Record<string, { name: string; rarity: string }> = JSON.parse(
+      fs.readFileSync(imageNamesFile, 'utf8')
+    );
+    const tokenNames: Record<string, { name: string; rarity: string; imageId: number }> = {};
+
+    for (const [tokenId, imageId] of Object.entries(assignments)) {
+      const imgInfo = imageNames[String(imageId)];
+      if (imgInfo) {
+        // Clean up common names: "居民-S01-combat-male" → "CW-0029"
+        let displayName = imgInfo.name;
+        if (displayName.startsWith('居民-')) {
+          displayName = `CW-${String(imageId).padStart(4, '0')}`;
+        }
+        tokenNames[tokenId] = { name: displayName, rarity: imgInfo.rarity, imageId };
+      }
+    }
+
+    fs.writeFileSync(tokenNamesFile, JSON.stringify(tokenNames, null, 2));
+    // Also copy to frontend for import
+    fs.writeFileSync(frontendNamesFile, JSON.stringify(tokenNames, null, 2));
+    console.log(`\n✅ token-names.json generated (${Object.keys(tokenNames).length} entries)`);
+    console.log(`   → ${tokenNamesFile}`);
+    console.log(`   → ${frontendNamesFile} (frontend copy)`);
+  } else {
+    console.log(`\n⚠️ image-names.json not found — run: python scripts/extract-image-names.py`);
+  }
+
   console.log(`\nDone! ${newAssignments} new assignments. Total: ${Object.keys(assignments).length}`);
   console.log(`Saved to: ${outputFile}`);
   console.log(`\nNext steps:`);
-  console.log(`  1. Generate images: python imgclaw/gen_images.py`);
-  console.log(`  2. Upload to IPFS: PINATA_JWT=xxx npx ts-node scripts/upload-ipfs.ts ./imgclaw/claw_nft_images/`);
-  console.log(`  3. Set tokenURIs: npx hardhat run scripts/set-token-uris.ts --network bscTestnet`);
-  console.log(`     (set-token-uris.ts will use token-image-map.json to map tokenId → correct image CID)`);
+  console.log(`  1. Upload to IPFS: PINATA_JWT=xxx npx ts-node scripts/upload-ipfs.ts ./imgclaw/claw_nft_images/`);
+  console.log(`  2. Set tokenURIs: npx hardhat run scripts/set-token-uris.ts --network bscTestnet`);
 }
 
 main().catch(console.error);

@@ -7,3 +7,5 @@ coverage/
 coverage.json
 .env
 *.log
+imgclaw/claw_nft_images/
+.claude/

@@ -5,7 +5,6 @@ import { PipBoyStatusBar } from "@/components/layout/PipBoyStatusBar";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { KeyboardNav } from "@/components/layout/KeyboardNav";
-import { CRTPositioner } from "@/components/layout/CRTPositioner";
 import { I18nProvider } from "@/lib/i18n";
 
 export const viewport: Viewport = {
@@ -48,40 +47,54 @@ export default function RootLayout({
       <body>
         <WalletProvider>
         <I18nProvider>
-          {/* Terminal background image */}
+          {/* PipBoy Terminal — Pure CSS frame */}
           <div className="terminal-backdrop">
-            <img
-              src="/terminal-bg.png"
-              alt=""
-              className="terminal-bg-img"
-              draggable={false}
-            />
+            {/* Hardware frame */}
+            <div className="hw-frame">
+              {/* Top bezel — model label + indicator LEDs */}
+              <div className="hw-top-bezel">
+                <div className="hw-screw-dot" />
+                <div className="hw-model-label">CLAW TERMINAL — MODEL NFA-578</div>
+                <div className="hw-leds">
+                  <span className="hw-led hw-led-green" />
+                  <span className="hw-led hw-led-amber" />
+                </div>
+                <div className="hw-screw-dot" />
+              </div>
 
-            {/* CRT screen area — positioned over the screen in the image */}
-            <div className="crt-viewport">
-              {/* CRT convex distortion wrapper */}
-              <div className="crt-barrel">
-                {/* CRT Effects layers */}
-                <div className="crt-glow-overlay" />
-                <div className="crt-scanlines" />
-                <div className="crt-glass" />
-
-                {/* Screen surface */}
-                <div className="crt-screen">
-                  <div className="crt-content">
-                    <PipBoyNav />
-                    <main className="flex-1 overflow-y-auto min-h-0">
-                      <ErrorBoundary>{children}</ErrorBoundary>
-                    </main>
-                    <PipBoyStatusBar />
+              {/* CRT screen area */}
+              <div className="hw-screen-housing">
+                <div className="crt-viewport">
+                  <div className="crt-barrel">
+                    <div className="crt-glow-overlay" />
+                    <div className="crt-scanlines" />
+                    <div className="crt-glass" />
+                    <div className="crt-screen">
+                      <div className="crt-content">
+                        <PipBoyNav />
+                        <main className="flex-1 overflow-y-auto min-h-0">
+                          <ErrorBoundary>{children}</ErrorBoundary>
+                        </main>
+                        <PipBoyStatusBar />
+                      </div>
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Bottom bezel — vents + serial */}
+              <div className="hw-bottom-bezel">
+                <div className="hw-screw-dot" />
+                <div className="hw-vents">
+                  <span /><span /><span /><span /><span /><span /><span /><span />
+                </div>
+                <div className="hw-serial">SN:CCU-2026-888</div>
+                <div className="hw-screw-dot" />
               </div>
             </div>
           </div>
 
           <KeyboardNav />
-          <CRTPositioner />
         </I18nProvider>
         </WalletProvider>
       </body>

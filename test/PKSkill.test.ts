@@ -364,6 +364,139 @@ describe("PKSkill", function () {
     });
   });
 
+  describe("Arena Mode (create+commit / join+commit)", function () {
+    it("should complete full arena flow in fewer steps", async function () {
+      const stake = ethers.utils.parseEther("100");
+      const saltA = ethers.utils.formatBytes32String("arenaA");
+      const saltB = ethers.utils.formatBytes32String("arenaB");
+      const hashA = strategyHash(0, saltA, playerA.address);  // AllAttack
+      const hashB = strategyHash(2, saltB, playerB.address);  // AllDefense
+
+      // Step 1: Create + commit in one tx
+      await pk.connect(playerA).createMatchWithCommit(tokenA, stake, hashA);
+      const matchId = 1;
+      let m = await pk.getMatch(matchId);
+      expect(m.phase).to.equal(0); // OPEN (waiting for challenger)
+      expect(m.commitA).to.equal(hashA);
+
+      // Step 2: Join + commit in one tx → goes directly to COMMITTED
+      await pk.connect(playerB).joinMatchWithCommit(matchId, tokenB, hashB);
+      m = await pk.getMatch(matchId);
+      expect(m.phase).to.equal(2); // COMMITTED (skipped JOINED!)
+      expect(m.commitB).to.equal(hashB);
+
+      // Step 3: Both reveal
+      await pk.connect(playerA).revealStrategy(matchId, 0, saltA);
+      await pk.connect(playerB).revealStrategy(matchId, 2, saltB);
+
+      // Step 4: Settle
+      await pk.settle(matchId);
+      m = await pk.getMatch(matchId);
+      expect(m.phase).to.equal(4); // SETTLED
+    });
+
+    it("should allow creator to recommit before anyone joins", async function () {
+      const stake = ethers.utils.parseEther("100");
+      const salt1 = ethers.utils.formatBytes32String("salt1");
+      const salt2 = ethers.utils.formatBytes32String("salt2");
+      const hash1 = strategyHash(0, salt1, playerA.address);
+      const hash2 = strategyHash(2, salt2, playerA.address);
+
+      await pk.connect(playerA).createMatchWithCommit(tokenA, stake, hash1);
+      let m = await pk.getMatch(1);
+      expect(m.commitA).to.equal(hash1);
+
+      // Change strategy
+      await pk.connect(playerA).recommitStrategy(1, hash2);
+      m = await pk.getMatch(1);
+      expect(m.commitA).to.equal(hash2);
+    });
+
+    it("should reject recommit after someone joined", async function () {
+      const stake = ethers.utils.parseEther("100");
+      const saltA = ethers.utils.formatBytes32String("sA");
+      const saltB = ethers.utils.formatBytes32String("sB");
+      const hashA = strategyHash(0, saltA, playerA.address);
+      const hashB = strategyHash(1, saltB, playerB.address);
+
+      await pk.connect(playerA).createMatchWithCommit(tokenA, stake, hashA);
+      await pk.connect(playerB).joinMatchWithCommit(1, tokenB, hashB);
+
+      // Can't recommit — phase is COMMITTED now
+      await expect(
+        pk.connect(playerA).recommitStrategy(1, hashA)
+      ).to.be.revertedWith("Not open");
+    });
+
+    it("should reject non-creator from recommitting", async function () {
+      const stake = ethers.utils.parseEther("100");
+      const hashA = strategyHash(0, ethers.utils.formatBytes32String("s"), playerA.address);
+
+      await pk.connect(playerA).createMatchWithCommit(tokenA, stake, hashA);
+
+      await expect(
+        pk.connect(playerB).recommitStrategy(1, hashA)
+      ).to.be.revertedWith("Not creator");
+    });
+
+    it("should work with legacy join on arena-created match", async function () {
+      const stake = ethers.utils.parseEther("100");
+      const saltA = ethers.utils.formatBytes32String("sA");
+      const saltB = ethers.utils.formatBytes32String("sB");
+      const hashA = strategyHash(1, saltA, playerA.address);
+      const hashB = strategyHash(1, saltB, playerB.address);
+
+      // Arena create (with commit)
+      await pk.connect(playerA).createMatchWithCommit(tokenA, stake, hashA);
+
+      // Legacy join (without commit)
+      await pk.connect(playerB).joinMatch(1, tokenB);
+      let m = await pk.getMatch(1);
+      expect(m.phase).to.equal(1); // JOINED (not COMMITTED, B hasn't committed)
+
+      // B commits separately
+      await pk.connect(playerB).commitStrategy(1, hashB);
+      m = await pk.getMatch(1);
+      expect(m.phase).to.equal(2); // COMMITTED
+
+      // Reveal + settle
+      await pk.connect(playerA).revealStrategy(1, 1, saltA);
+      await pk.connect(playerB).revealStrategy(1, 1, saltB);
+      await pk.settle(1);
+      m = await pk.getMatch(1);
+      expect(m.phase).to.equal(4); // SETTLED
+    });
+  });
+
+  describe("Cancel Committed Match", function () {
+    it("should cancel committed match when neither revealed after timeout", async function () {
+      const stake = ethers.utils.parseEther("100");
+      const saltA = ethers.utils.formatBytes32String("sA");
+      const saltB = ethers.utils.formatBytes32String("sB");
+      const hashA = strategyHash(0, saltA, playerA.address);
+      const hashB = strategyHash(1, saltB, playerB.address);
+
+      const balA0 = await router.clwBalances(tokenA);
+      const balB0 = await router.clwBalances(tokenB);
+
+      await pk.connect(playerA).createMatchWithCommit(tokenA, stake, hashA);
+      await pk.connect(playerB).joinMatchWithCommit(1, tokenB, hashB);
+
+      // Can't cancel yet
+      await expect(pk.cancelCommittedMatch(1)).to.be.revertedWith("Reveal window still open");
+
+      await increaseTime(31 * 60); // 31 min
+
+      await pk.cancelCommittedMatch(1);
+      const m = await pk.getMatch(1);
+      expect(m.phase).to.equal(5); // CANCELLED
+
+      // Both get stakes back
+      expect(await router.clwBalances(tokenA)).to.equal(balA0);
+      expect(await router.clwBalances(tokenB)).to.equal(balB0);
+    });
+  });
+
   describe("View Functions", function () {
     it("should return match state", async function () {
       const stake = ethers.utils.parseEther("100");

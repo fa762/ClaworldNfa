@@ -1,0 +1,3554 @@
+{
+  "1": {
+    "name": "ZERO",
+    "rarity": "Mythic"
+  },
+  "2": {
+    "name": "楚门",
+    "rarity": "Legendary"
+  },
+  "3": {
+    "name": "Dr.Null",
+    "rarity": "Legendary"
+  },
+  "4": {
+    "name": "文斯顿",
+    "rarity": "Legendary"
+  },
+  "5": {
+    "name": "欧布莱恩",
+    "rarity": "Legendary"
+  },
+  "6": {
+    "name": "Byte",
+    "rarity": "Epic"
+  },
+  "7": {
+    "name": "Kira",
+    "rarity": "Epic"
+  },
+  "8": {
+    "name": "Ross",
+    "rarity": "Epic"
+  },
+  "9": {
+    "name": "Old Chen",
+    "rarity": "Epic"
+  },
+  "10": {
+    "name": "Turing",
+    "rarity": "Epic"
+  },
+  "11": {
+    "name": "Glitch",
+    "rarity": "Epic"
+  },
+  "12": {
+    "name": "Melo",
+    "rarity": "Rare"
+  },
+  "13": {
+    "name": "Sable",
+    "rarity": "Rare"
+  },
+  "14": {
+    "name": "Echo",
+    "rarity": "Rare"
+  },
+  "15": {
+    "name": "Phantom",
+    "rarity": "Rare"
+  },
+  "16": {
+    "name": "保罗",
+    "rarity": "Rare"
+  },
+  "17": {
+    "name": "科摩",
+    "rarity": "Rare"
+  },
+  "18": {
+    "name": "卡珊",
+    "rarity": "Rare"
+  },
+  "19": {
+    "name": "Dime",
+    "rarity": "Rare"
+  },
+  "20": {
+    "name": "斯巴",
+    "rarity": "Rare"
+  },
+  "21": {
+    "name": "阿俊",
+    "rarity": "Rare"
+  },
+  "22": {
+    "name": "Ledger",
+    "rarity": "Rare"
+  },
+  "23": {
+    "name": "Mint",
+    "rarity": "Rare"
+  },
+  "24": {
+    "name": "Forge",
+    "rarity": "Rare"
+  },
+  "25": {
+    "name": "Glass",
+    "rarity": "Rare"
+  },
+  "26": {
+    "name": "Veil",
+    "rarity": "Rare"
+  },
+  "27": {
+    "name": "Seed",
+    "rarity": "Rare"
+  },
+  "28": {
+    "name": "SHELTER-00老人",
+    "rarity": "Rare"
+  },
+  "29": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "30": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "31": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "32": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "33": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "34": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "35": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "36": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "37": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "38": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "39": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "40": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "41": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "42": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "43": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "44": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "45": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "46": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "47": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "48": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "49": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "50": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "51": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "52": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "53": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "54": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "55": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "56": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "57": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "58": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "59": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "60": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "61": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "62": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "63": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "64": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "65": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "66": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "67": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "68": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "69": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "70": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "71": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "72": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "73": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "74": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "75": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "76": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "77": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "78": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "79": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "80": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "81": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "82": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "83": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "84": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "85": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "86": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "87": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "88": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "89": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "90": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "91": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "92": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "93": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "94": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "95": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "96": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "97": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "98": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "99": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "100": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "101": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "102": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "103": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "104": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "105": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "106": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "107": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "108": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "109": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "110": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "111": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "112": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "113": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "114": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "115": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "116": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "117": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "118": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "119": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "120": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "121": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "122": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "123": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "124": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "125": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "126": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "127": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "128": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "129": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "130": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "131": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "132": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "133": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "134": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "135": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "136": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "137": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "138": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "139": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "140": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "141": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "142": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "143": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "144": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "145": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "146": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "147": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "148": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "149": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "150": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "151": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "152": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "153": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "154": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "155": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "156": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "157": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "158": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "159": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "160": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "161": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "162": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "163": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "164": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "165": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "166": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "167": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "168": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "169": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "170": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "171": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "172": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "173": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "174": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "175": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "176": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "177": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "178": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "179": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "180": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "181": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "182": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "183": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "184": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "185": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "186": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "187": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "188": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "189": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "190": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "191": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "192": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "193": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "194": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "195": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "196": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "197": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "198": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "199": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "200": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "201": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "202": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "203": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "204": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "205": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "206": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "207": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "208": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "209": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "210": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "211": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "212": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "213": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "214": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "215": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "216": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "217": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "218": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "219": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "220": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "221": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "222": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "223": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "224": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "225": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "226": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "227": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "228": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "229": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "230": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "231": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "232": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "233": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "234": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "235": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "236": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "237": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "238": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "239": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "240": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "241": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "242": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "243": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "244": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "245": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "246": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "247": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "248": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "249": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "250": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "251": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "252": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "253": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "254": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "255": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "256": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "257": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "258": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "259": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "260": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "261": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "262": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "263": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "264": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "265": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "266": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "267": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "268": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "269": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "270": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "271": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "272": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "273": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "274": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "275": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "276": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "277": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "278": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "279": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "280": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "281": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "282": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "283": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "284": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "285": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "286": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "287": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "288": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "289": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "290": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "291": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "292": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "293": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "294": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "295": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "296": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "297": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "298": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "299": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "300": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "301": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "302": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "303": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "304": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "305": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "306": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "307": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "308": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "309": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "310": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "311": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "312": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "313": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "314": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "315": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "316": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "317": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "318": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "319": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "320": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "321": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "322": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "323": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "324": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "325": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "326": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "327": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "328": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "329": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "330": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "331": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "332": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "333": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "334": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "335": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "336": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "337": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "338": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "339": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "340": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "341": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "342": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "343": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "344": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "345": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "346": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "347": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "348": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "349": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "350": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "351": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "352": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "353": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "354": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "355": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "356": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "357": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "358": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "359": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "360": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "361": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "362": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "363": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "364": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "365": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "366": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "367": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "368": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "369": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "370": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "371": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "372": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "373": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "374": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "375": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "376": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "377": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "378": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "379": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "380": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "381": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "382": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "383": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "384": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "385": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "386": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "387": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "388": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "389": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "390": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "391": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "392": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "393": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "394": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "395": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "396": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "397": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "398": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "399": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "400": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "401": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "402": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "403": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "404": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "405": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "406": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "407": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "408": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "409": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "410": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "411": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "412": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "413": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "414": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "415": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "416": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "417": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "418": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "419": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "420": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "421": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "422": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "423": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "424": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "425": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "426": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "427": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "428": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "429": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "430": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "431": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "432": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "433": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "434": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "435": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "436": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "437": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "438": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "439": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "440": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "441": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "442": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "443": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "444": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "445": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "446": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "447": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "448": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "449": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "450": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "451": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "452": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "453": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "454": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "455": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "456": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "457": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "458": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "459": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "460": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "461": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "462": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "463": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "464": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "465": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "466": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "467": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "468": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "469": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "470": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "471": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "472": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "473": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "474": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "475": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "476": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "477": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "478": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "479": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "480": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "481": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "482": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "483": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "484": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "485": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "486": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "487": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "488": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "489": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "490": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "491": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "492": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "493": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "494": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "495": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "496": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "497": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "498": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "499": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "500": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "501": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "502": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "503": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "504": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "505": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "506": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "507": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "508": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "509": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "510": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "511": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "512": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "513": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "514": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "515": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "516": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "517": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "518": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "519": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "520": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "521": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "522": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "523": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "524": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "525": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "526": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "527": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "528": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "529": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "530": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "531": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "532": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "533": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "534": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "535": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "536": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "537": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "538": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "539": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "540": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "541": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "542": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "543": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "544": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "545": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "546": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "547": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "548": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "549": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "550": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "551": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "552": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "553": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "554": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "555": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "556": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "557": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "558": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "559": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "560": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "561": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "562": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "563": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "564": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "565": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "566": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "567": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "568": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "569": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "570": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "571": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "572": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "573": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "574": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "575": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "576": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "577": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "578": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "579": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "580": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "581": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "582": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "583": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "584": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "585": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "586": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "587": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "588": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "589": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "590": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "591": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "592": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "593": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "594": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "595": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "596": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "597": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "598": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "599": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "600": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "601": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "602": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "603": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "604": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "605": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "606": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "607": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "608": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "609": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "610": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "611": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "612": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "613": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "614": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "615": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "616": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "617": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "618": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "619": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "620": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "621": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "622": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "623": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "624": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "625": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "626": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "627": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "628": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "629": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "630": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "631": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "632": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "633": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "634": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "635": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "636": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "637": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "638": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "639": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "640": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "641": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "642": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "643": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "644": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "645": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "646": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "647": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "648": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "649": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "650": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "651": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "652": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "653": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "654": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "655": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "656": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "657": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "658": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "659": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "660": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "661": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "662": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "663": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "664": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "665": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "666": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "667": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "668": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "669": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "670": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "671": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "672": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "673": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "674": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "675": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "676": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "677": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "678": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "679": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "680": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "681": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "682": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "683": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "684": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "685": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "686": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "687": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "688": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "689": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "690": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "691": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "692": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "693": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "694": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "695": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "696": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "697": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "698": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "699": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "700": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "701": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "702": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "703": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "704": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "705": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "706": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "707": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "708": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "709": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "710": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "711": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "712": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "713": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "714": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "715": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "716": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "717": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "718": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "719": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "720": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "721": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "722": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "723": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "724": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "725": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "726": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "727": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "728": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "729": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "730": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "731": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "732": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "733": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "734": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "735": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "736": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "737": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "738": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "739": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "740": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "741": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "742": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "743": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "744": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "745": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "746": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "747": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "748": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "749": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "750": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "751": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "752": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "753": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "754": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "755": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "756": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "757": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "758": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "759": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "760": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "761": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "762": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "763": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "764": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "765": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "766": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "767": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "768": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "769": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "770": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "771": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "772": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "773": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "774": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "775": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "776": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "777": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "778": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "779": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "780": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "781": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "782": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "783": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "784": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "785": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "786": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "787": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "788": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "789": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "790": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "791": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "792": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "793": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "794": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "795": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "796": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "797": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "798": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "799": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "800": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "801": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "802": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "803": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "804": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "805": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "806": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "807": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "808": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "809": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "810": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "811": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "812": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "813": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "814": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "815": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "816": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "817": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "818": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "819": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "820": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "821": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "822": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "823": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "824": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "825": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "826": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "827": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "828": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "829": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "830": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "831": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "832": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "833": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "834": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "835": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "836": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "837": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "838": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "839": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "840": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "841": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "842": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "843": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "844": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "845": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "846": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "847": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "848": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "849": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "850": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "851": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "852": {
+    "name": "居民-S02-resource-female",
+    "rarity": "Common"
+  },
+  "853": {
+    "name": "居民-S03-resource-male",
+    "rarity": "Common"
+  },
+  "854": {
+    "name": "居民-S03-research-female",
+    "rarity": "Common"
+  },
+  "855": {
+    "name": "居民-S04-combat-male",
+    "rarity": "Common"
+  },
+  "856": {
+    "name": "居民-S04-logistics-female",
+    "rarity": "Common"
+  },
+  "857": {
+    "name": "居民-S04-intel-male",
+    "rarity": "Common"
+  },
+  "858": {
+    "name": "居民-S05-resource-female",
+    "rarity": "Common"
+  },
+  "859": {
+    "name": "居民-S05-research-male",
+    "rarity": "Common"
+  },
+  "860": {
+    "name": "居民-S06-combat-female",
+    "rarity": "Common"
+  },
+  "861": {
+    "name": "居民-S06-logistics-male",
+    "rarity": "Common"
+  },
+  "862": {
+    "name": "居民-S06-intel-female",
+    "rarity": "Common"
+  },
+  "863": {
+    "name": "居民-WL-resource-male",
+    "rarity": "Common"
+  },
+  "864": {
+    "name": "居民-WL-research-female",
+    "rarity": "Common"
+  },
+  "865": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "866": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "867": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "868": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "869": {
+    "name": "居民-S02-intel-male",
+    "rarity": "Common"
+  },
+  "870": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  },
+  "871": {
+    "name": "居民-S02-resource-male",
+    "rarity": "Common"
+  },
+  "872": {
+    "name": "居民-S03-resource-female",
+    "rarity": "Common"
+  },
+  "873": {
+    "name": "居民-S03-research-male",
+    "rarity": "Common"
+  },
+  "874": {
+    "name": "居民-S04-combat-female",
+    "rarity": "Common"
+  },
+  "875": {
+    "name": "居民-S04-logistics-male",
+    "rarity": "Common"
+  },
+  "876": {
+    "name": "居民-S04-intel-female",
+    "rarity": "Common"
+  },
+  "877": {
+    "name": "居民-S05-resource-male",
+    "rarity": "Common"
+  },
+  "878": {
+    "name": "居民-S05-research-female",
+    "rarity": "Common"
+  },
+  "879": {
+    "name": "居民-S06-combat-male",
+    "rarity": "Common"
+  },
+  "880": {
+    "name": "居民-S06-logistics-female",
+    "rarity": "Common"
+  },
+  "881": {
+    "name": "居民-S06-intel-male",
+    "rarity": "Common"
+  },
+  "882": {
+    "name": "居民-WL-resource-female",
+    "rarity": "Common"
+  },
+  "883": {
+    "name": "居民-WL-research-male",
+    "rarity": "Common"
+  },
+  "884": {
+    "name": "居民-S01-combat-female",
+    "rarity": "Common"
+  },
+  "885": {
+    "name": "居民-S01-combat-male",
+    "rarity": "Common"
+  },
+  "886": {
+    "name": "居民-S01-logistics-female",
+    "rarity": "Common"
+  },
+  "887": {
+    "name": "居民-S01-logistics-male",
+    "rarity": "Common"
+  },
+  "888": {
+    "name": "居民-S02-intel-female",
+    "rarity": "Common"
+  }
+}

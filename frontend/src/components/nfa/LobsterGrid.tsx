@@ -8,8 +8,9 @@ import { addresses } from '@/contracts/addresses';
 import { LobsterCard, type LobsterCardData } from './LobsterCard';
 import { FilterBar, type Filters } from './FilterBar';
 import { useTokensOfOwner, useTotalSupply } from '@/contracts/hooks/useClawNFA';
-import { isDemoMode } from '@/lib/env';
-import { generateMockLobsters, getMockLobsterName } from '@/lib/mockData';
+import { isDemoMode, isTestnet } from '@/lib/env';
+import { generateMockLobsters, getLobsterName } from '@/lib/mockData';
+import { ClawNFAABI as NFAAbi } from '@/contracts/abis/ClawNFA';
 import { getRarityName, getRarityClass, getRarityStars } from '@/lib/rarity';
 import { getShelterName } from '@/lib/shelter';
 import { TerminalBox } from '@/components/terminal/TerminalBox';
@@ -60,29 +61,62 @@ export function LobsterGrid() {
       for (let start = 1; start <= count; start += BATCH_SIZE) {
         const end = Math.min(start + BATCH_SIZE - 1, count);
         const ids = Array.from({ length: end - start + 1 }, (_, i) => BigInt(start + i));
+        const CALLS_PER_NFA = 5;
         const calls = ids.flatMap((id) => [
           { address: addresses.clawNFA, abi: ClawNFAABI, functionName: 'getAgentState' as const, args: [id] as const },
           { address: addresses.clawNFA, abi: ClawNFAABI, functionName: 'getAgentMetadata' as const, args: [id] as const },
           { address: addresses.clawRouter, abi: ClawRouterABI, functionName: 'getLobsterState' as const, args: [id] as const },
+          { address: addresses.clawRouter, abi: ClawRouterABI, functionName: 'clwBalances' as const, args: [id] as const },
+          { address: addresses.clawNFA, abi: ClawNFAABI, functionName: 'ownerOf' as const, args: [id] as const },
         ]);
         try {
           const results = await publicClient!.multicall({ contracts: calls });
+
+          // Collect unique owner addresses to batch-fetch BNB balances
+          const ownerMap: Record<number, string> = {};
           for (let i = 0; i < ids.length; i++) {
-            const agentState = results[i * 3];
-            const agentMeta = results[i * 3 + 1];
-            const lobsterState = results[i * 3 + 2];
+            const ownerRes = results[i * CALLS_PER_NFA + 4];
+            if (ownerRes.status === 'success') {
+              ownerMap[Number(ids[i])] = ownerRes.result as string;
+            }
+          }
+          // Fetch BNB balances for unique owners
+          const uniqueOwners = [...new Set(Object.values(ownerMap))];
+          const bnbBalances: Record<string, bigint> = {};
+          await Promise.all(uniqueOwners.map(async (addr) => {
+            try {
+              bnbBalances[addr] = await publicClient!.getBalance({ address: addr as `0x${string}` });
+            } catch { bnbBalances[addr] = 0n; }
+          }));
+
+          for (let i = 0; i < ids.length; i++) {
+            const agentState = results[i * CALLS_PER_NFA];
+            const agentMeta = results[i * CALLS_PER_NFA + 1];
+            const lobsterState = results[i * CALLS_PER_NFA + 2];
+            const clwRes = results[i * CALLS_PER_NFA + 3];
             if (agentState.status !== 'success' || lobsterState.status !== 'success') continue;
             const state = agentState.result as any;
             const meta = agentMeta.status === 'success' ? (agentMeta.result as any) : null;
             const lobster = lobsterState.result as any;
+            const clwRaw = clwRes.status === 'success' ? (clwRes.result as bigint) : 0n;
+            const tokenId = Number(ids[i]);
+            const ownerAddr = ownerMap[tokenId] || '';
+            const ownerBnbRaw = ownerAddr ? (bnbBalances[ownerAddr] || 0n) : 0n;
+
+            // Format: CLW with commas, BNB to 4 decimals
+            const clwFormatted = Number(clwRaw / 10n**14n) / 10000;  // 18 decimals → 4 dp
+            const bnbFormatted = Number(ownerBnbRaw / 10n**14n) / 10000;
+
             allLobsters.push({
-              tokenId: Number(ids[i]),
+              tokenId,
               rarity: Number(lobster.rarity ?? lobster[0] ?? 0),
               shelter: Number(lobster.shelter ?? lobster[1] ?? 0),
               level: Number(lobster.level ?? lobster[11] ?? 0),
               active: Boolean(state.active ?? state[1]),
               vaultURI: meta?.vaultURI ?? meta?.[4] ?? '',
               isOwned: false,
+              clwBalance: clwFormatted > 0 ? clwFormatted.toLocaleString('en', { maximumFractionDigits: 0 }) : undefined,
+              ownerBnb: bnbFormatted > 0 ? bnbFormatted.toFixed(4) : undefined,
             });
           }
         } catch (err) {
@@ -171,6 +205,8 @@ export function LobsterGrid() {
                     <th>{t('th.level')}</th>
                     <th>{t('th.rarity')}</th>
                     <th className="hidden sm:table-cell">{t('th.shelter')}</th>
+                    <th className="hidden md:table-cell">CLW</th>
+                    <th className="hidden md:table-cell">{isTestnet ? 'tBNB' : 'BNB'}</th>
                     <th>{t('th.status')}</th>
                     <th className="hidden sm:table-cell"></th>
                   </tr>
@@ -184,7 +220,7 @@ export function LobsterGrid() {
                         </Link>
                       </td>
                       <td>
-                        <span className="term-bright">{getMockLobsterName(l.tokenId)}</span>
+                        <span className="term-bright">{getLobsterName(l.tokenId)}</span>
                         {l.isOwned && <span className="ml-1 text-crt-bright glow-strong text-[10px]">[{t('nfa.mine')}]</span>}
                       </td>
                       <td className="term-dim">Lv.{l.level}</td>
@@ -194,6 +230,8 @@ export function LobsterGrid() {
                         </span>
                       </td>
                       <td className="term-dim hidden sm:table-cell">{getShelterName(l.shelter)}</td>
+                      <td className="term-dim hidden md:table-cell">{l.clwBalance ? `${l.clwBalance}` : '-'}</td>
+                      <td className="term-dim hidden md:table-cell">{l.ownerBnb ? `${l.ownerBnb}` : '-'}</td>
                       <td>
                         <span className={l.active ? 'status-alive' : 'status-dormant'}>
                           {l.active ? '●' : '○'}

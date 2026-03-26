@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { RarityBadge } from './RarityBadge';
 import { ShelterTag } from './ShelterTag';
 import { resolveIpfsUrl } from '@/lib/ipfs';
-import { getMockLobsterName } from '@/lib/mockData';
+import { getLobsterName } from '@/lib/mockData';
 import { useI18n } from '@/lib/i18n';
+import { isTestnet } from '@/lib/env';
 
 export interface LobsterCardData {
   tokenId: number;
@@ -15,12 +16,15 @@ export interface LobsterCardData {
   active: boolean;
   vaultURI: string;
   isOwned: boolean;
+  clwBalance?: string;     // formatted CLW
+  ownerBnb?: string;       // formatted BNB/tBNB
 }
 
 export function LobsterCard({ data }: { data: LobsterCardData }) {
   const imageUrl = resolveIpfsUrl(data.vaultURI);
-  const name = getMockLobsterName(data.tokenId);
+  const name = getLobsterName(data.tokenId);
   const { t } = useI18n();
+  const gasSymbol = isTestnet ? 'tBNB' : 'BNB';
 
   return (
     <Link href={`/nfa/${data.tokenId}`}>
@@ -50,6 +54,13 @@ export function LobsterCard({ data }: { data: LobsterCardData }) {
             <RarityBadge rarity={data.rarity} />
             <ShelterTag shelter={data.shelter} />
           </div>
+          {/* Assets */}
+          {(data.clwBalance || data.ownerBnb) && (
+            <div className="flex justify-between term-dim">
+              {data.clwBalance && <span>💰 {data.clwBalance} CLW</span>}
+              {data.ownerBnb && <span>⛽ {data.ownerBnb} {gasSymbol}</span>}
+            </div>
+          )}
           <div className={data.active ? 'status-alive' : 'status-dormant'}>
             {data.active ? t('status.alive') : t('status.dormant')}
           </div>

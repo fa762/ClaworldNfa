@@ -76,10 +76,7 @@
 ::-webkit-scrollbar-thumb:hover { background: var(--color-crt-dim); }
 
 /* ═══════════════════════════════════════════
-   TERMINAL IMAGE BACKDROP
-   The terminal hardware is a real image.
-   We position the CRT content over the
-   transparent screen area in the image.
+   TERMINAL HARDWARE FRAME — Pure CSS PipBoy
    ═══════════════════════════════════════════ */
 
 .terminal-backdrop {
@@ -90,60 +87,146 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #0a0a05;
+  background: #080808;
 }
 
-/* The terminal hardware image — fills the viewport, no black bars */
-.terminal-bg-img {
-  position: absolute;
-  inset: 0;
+/* Main hardware frame — the "device" */
+.hw-frame {
+  display: flex;
+  flex-direction: column;
+  width: min(92vw, 1200px);
+  height: min(94vh, 820px);
+  background: linear-gradient(165deg, #3d3d2a 0%, #2a2a1a 40%, #1e1e12 100%);
+  border: 2px solid #4a4a32;
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 1px #1a1a10,
+    0 0 0 4px #2d2d1e,
+    0 0 0 5px #1a1a10,
+    0 8px 32px rgba(0,0,0,0.8),
+    0 2px 8px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  padding: 0;
+  position: relative;
+}
+
+/* Top bezel */
+.hw-top-bezel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(0,0,0,0.4);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+  border-radius: 14px 14px 0 0;
+}
+
+/* Screw dots */
+.hw-screw-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #5a5a3e, #2a2a1a);
+  border: 1px solid #1a1a10;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.6), 0 0 2px rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+
+/* Model label */
+.hw-model-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: rgba(38, 255, 38, 0.25);
+  text-transform: uppercase;
+  text-shadow: 0 0 4px rgba(38, 255, 38, 0.1);
+}
+
+/* LED indicators */
+.hw-leds {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.hw-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.5);
+}
+.hw-led-green {
+  background: #26ff26;
+  box-shadow: 0 0 6px rgba(38,255,38,0.8), 0 0 12px rgba(38,255,38,0.3);
+  animation: led-pulse 3s ease-in-out infinite;
+}
+.hw-led-amber {
+  background: #cc8800;
+  box-shadow: 0 0 4px rgba(204,136,0,0.5);
+}
+@keyframes led-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Screen housing — the recessed area around the CRT */
+.hw-screen-housing {
+  flex: 1;
+  margin: 0 12px;
+  border-radius: 12px;
+  background: #0a0a05;
+  border: 2px solid #1a1a10;
+  box-shadow:
+    inset 0 2px 8px rgba(0,0,0,0.8),
+    inset 0 0 20px rgba(0,0,0,0.5),
+    0 1px 0 rgba(255,255,255,0.03);
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+/* CRT viewport — now fills the screen housing */
+.crt-viewport {
+  position: relative;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
-  z-index: 2;
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/*
- * CRT viewport — positioned exactly over the transparent screen cutout.
- *
- * Transparent region detected from terminal-bg.png alpha channel:
- *   Image:  2773 × 1512
- *   Screen: x 670..2026, y 214..1281  (1357 × 1068 px)
- *   left: 24.16%   top: 14.15%   width: 48.94%   height: 70.63%
- *
- * JS (CRTPositioner.tsx) sets pixel-perfect position on mount/resize.
- * CSS below provides a pre-hydration fallback to prevent layout jump.
- */
-
-.crt-viewport {
-  position: absolute;
-  z-index: 1; /* Behind the image frame (z-index: 2) so bezels cover edges */
   overflow: hidden;
-  border-radius: 24px; /* Match the CRT glass curve so content doesn't poke into bezel corners */
+  border-radius: 10px;
 }
 
-/* CSS fallback: wide viewport (image scales by width, crops top/bottom) */
-@media (min-aspect-ratio: 2773/1512) {
-  .crt-viewport {
-    left: calc(100vw * 0.2416);
-    top: calc((100vh - 100vw / (2773 / 1512)) / 2 + 100vw / (2773 / 1512) * 0.1415);
-    width: calc(100vw * 0.4894);
-    height: calc(100vw / (2773 / 1512) * 0.7063);
-  }
+/* Bottom bezel */
+.hw-bottom-bezel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(0,0,0,0.4);
+  background: linear-gradient(0deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+  border-radius: 0 0 14px 14px;
 }
 
-/* CSS fallback: tall viewport (image scales by height, crops left/right) */
-@media (max-aspect-ratio: 2773/1512) {
-  .crt-viewport {
-    left: calc((100vw - 100vh * (2773 / 1512)) / 2 + 100vh * (2773 / 1512) * 0.2416);
-    top: calc(100vh * 0.1415);
-    width: calc(100vh * (2773 / 1512) * 0.4894);
-    height: calc(100vh * 0.7063);
-  }
+/* Ventilation slits */
+.hw-vents {
+  display: flex;
+  gap: 4px;
+}
+.hw-vents span {
+  width: 20px;
+  height: 3px;
+  background: linear-gradient(180deg, #1a1a10, #2a2a1a);
+  border-radius: 1px;
+  box-shadow: inset 0 1px 1px rgba(0,0,0,0.6);
+}
+
+/* Serial number */
+.hw-serial {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.08);
 }
 
 /* ═══════════════════════════════════════════
@@ -873,21 +956,30 @@
    ═══════════════════════════════════════════ */
 
 @media (max-width: 768px) {
-  /* On mobile, hide the terminal image and go fullscreen CRT */
-  .terminal-bg-img {
+  /* On mobile, hide hardware frame and go fullscreen CRT */
+  .hw-frame {
+    width: 100vw;
+    height: 100vh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: #0a0a05;
+  }
+
+  .hw-top-bezel,
+  .hw-bottom-bezel {
     display: none;
   }
 
-  .terminal-backdrop {
-    background: #000;
+  .hw-screen-housing {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .crt-viewport {
-    position: relative !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
+    border-radius: 0;
   }
 
   .crt-barrel {

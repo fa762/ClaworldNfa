@@ -103,7 +103,89 @@ contract PKSkill is
     }
 
     // ============================================
-    // PK FLOW
+    // PK FLOW — ARENA MODE (create+commit / join+commit)
+    // ============================================
+
+    /**
+     * @dev Arena mode: create match AND commit strategy in one tx.
+     *      Creator picks strategy upfront, waits for challenger.
+     */
+    function createMatchWithCommit(uint256 nfaId, uint256 stake, bytes32 commitHash) external returns (uint256) {
+        require(nfa.ownerOf(nfaId) == msg.sender, "Not NFA owner");
+        require(stake > 0, "Zero stake");
+        require(commitHash != bytes32(0), "Empty commit");
+        require(router.clwBalances(nfaId) >= stake, "Insufficient CLW");
+        if (address(worldState) != address(0)) {
+            require(stake <= worldState.pkStakeLimit(), "Exceeds stake limit");
+        }
+
+        router.spendCLW(nfaId, stake);
+
+        uint256 matchId = ++_matchIdCounter;
+        matches[matchId] = PKMatch({
+            nfaA: nfaId,
+            nfaB: 0,
+            commitA: commitHash,
+            commitB: bytes32(0),
+            strategyA: 0,
+            strategyB: 0,
+            stake: stake,
+            phase: Phase.OPEN,
+            phaseTimestamp: uint64(block.timestamp),
+            revealedA: false,
+            revealedB: false,
+            saltA: bytes32(0),
+            saltB: bytes32(0)
+        });
+
+        emit MatchCreated(matchId, nfaId, stake);
+        emit StrategyCommitted(matchId, nfaId);
+        return matchId;
+    }
+
+    /**
+     * @dev Arena mode: join match AND commit strategy in one tx.
+     *      If creator already committed (arena mode), goes directly to COMMITTED phase.
+     */
+    function joinMatchWithCommit(uint256 matchId, uint256 nfaId, bytes32 commitHash) external {
+        PKMatch storage m = matches[matchId];
+        require(m.phase == Phase.OPEN, "Not open");
+        require(nfa.ownerOf(nfaId) == msg.sender, "Not NFA owner");
+        require(nfaId != m.nfaA, "Cannot fight self");
+        require(commitHash != bytes32(0), "Empty commit");
+        require(router.clwBalances(nfaId) >= m.stake, "Insufficient CLW");
+
+        router.spendCLW(nfaId, m.stake);
+        m.nfaB = nfaId;
+        m.commitB = commitHash;
+
+        emit MatchJoined(matchId, nfaId);
+        emit StrategyCommitted(matchId, nfaId);
+
+        // If creator already committed (arena mode), skip JOINED → go to COMMITTED
+        if (m.commitA != bytes32(0)) {
+            m.phase = Phase.COMMITTED;
+        } else {
+            m.phase = Phase.JOINED;
+        }
+        m.phaseTimestamp = uint64(block.timestamp);
+    }
+
+    /**
+     * @dev Creator can change strategy before anyone joins (arena mode only).
+     */
+    function recommitStrategy(uint256 matchId, bytes32 newCommitHash) external {
+        PKMatch storage m = matches[matchId];
+        require(m.phase == Phase.OPEN, "Not open");
+        require(nfa.ownerOf(m.nfaA) == msg.sender, "Not creator");
+        require(newCommitHash != bytes32(0), "Empty commit");
+
+        m.commitA = newCommitHash;
+        emit StrategyCommitted(matchId, m.nfaA);
+    }
+
+    // ============================================
+    // PK FLOW — LEGACY (step-by-step, backward compatible)
     // ============================================
 
     function createMatch(uint256 nfaId, uint256 stake) external returns (uint256) {
@@ -261,6 +343,29 @@ contract PKSkill is
         router.addCLW(m.nfaB, m.stake);
 
         emit MatchCancelled(matchId);
+    }
+
+    /**
+     * @dev Cancel a match stuck in COMMITTED phase when neither revealed in time.
+     *      Handled by settle() timeout path, but this is a convenience alias.
+     */
+    function cancelCommittedMatch(uint256 matchId) external {
+        PKMatch storage m = matches[matchId];
+        require(m.phase == Phase.COMMITTED, "Not in committed phase");
+        require(
+            block.timestamp > m.phaseTimestamp + REVEAL_TIMEOUT,
+            "Reveal window still open"
+        );
+        // If neither revealed, return stakes
+        if (!m.revealedA && !m.revealedB) {
+            router.addCLW(m.nfaA, m.stake);
+            router.addCLW(m.nfaB, m.stake);
+            m.phase = Phase.CANCELLED;
+            emit MatchCancelled(matchId);
+        } else {
+            // At least one revealed — use settle logic
+            revert("Use settle() when one side revealed");
+        }
     }
 
     // ============================================
