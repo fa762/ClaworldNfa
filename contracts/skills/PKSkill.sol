@@ -76,6 +76,12 @@ contract PKSkill is
     /// @dev Global entropy nonce, incremented on each mutation check for unpredictability
     uint256 public entropyNonce;
 
+    // ─── NFA PK Stats (履历) ───
+    mapping(uint256 => uint32) public pkWins;
+    mapping(uint256 => uint32) public pkLosses;
+    mapping(uint256 => uint256) public totalPkClwWon;
+    mapping(uint256 => uint256) public totalPkClwLost;
+
     event MatchCreated(uint256 indexed matchId, uint256 indexed nfaA, uint256 stake);
     event MatchJoined(uint256 indexed matchId, uint256 indexed nfaB);
     event StrategyCommitted(uint256 indexed matchId, uint256 indexed nfaId);
@@ -425,6 +431,12 @@ contract PKSkill is
 
         m.phase = Phase.SETTLED;
 
+        // Track PK stats (履历)
+        pkWins[winner]++;
+        pkLosses[loser]++;
+        totalPkClwWon[winner] += winnerReward;
+        totalPkClwLost[loser] += m.stake;
+
         emit MatchSettled(matchId, winner, loser, winnerReward, burned);
 
         // Mutation check: if winner beat someone 5+ levels higher
@@ -530,6 +542,15 @@ contract PKSkill is
 
     function getStrategyHash(uint8 strategy, bytes32 salt, address sender) external pure returns (bytes32) {
         return keccak256(abi.encodePacked(strategy, salt, sender));
+    }
+
+    /**
+     * @dev View NFA PK stats (履历)
+     */
+    function getPkStats(uint256 nfaId) external view returns (
+        uint32 wins, uint32 losses, uint256 clwWon, uint256 clwLost
+    ) {
+        return (pkWins[nfaId], pkLosses[nfaId], totalPkClwWon[nfaId], totalPkClwLost[nfaId]);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}

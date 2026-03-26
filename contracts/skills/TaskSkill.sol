@@ -41,6 +41,17 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
     // Per-NFA daily task cooldown (tokenId => last completion timestamp)
     mapping(uint256 => uint256) public lastTaskTime;
 
+    // ─── NFA Stats (履历) ───
+    mapping(uint256 => uint32) public taskCount;         // total tasks completed
+    mapping(uint256 => uint256) public totalClwEarned;    // total CLW earned from tasks
+    mapping(uint256 => uint32) public taskTypeCount0;     // courage tasks
+    mapping(uint256 => uint32) public taskTypeCount1;     // wisdom tasks
+    mapping(uint256 => uint32) public taskTypeCount2;     // social tasks
+    mapping(uint256 => uint32) public taskTypeCount3;     // create tasks
+    mapping(uint256 => uint32) public taskTypeCount4;     // grit tasks
+
+    event TaskStatsUpdated(uint256 indexed nfaId, uint32 totalTasks, uint256 totalEarned);
+
     event TaskCompleted(
         uint256 indexed nfaId,
         uint32 xpReward,
@@ -93,6 +104,7 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
             router.addXP(nfaId, xpReward);
         }
 
+        _trackTaskStats(nfaId, 0, actualClw); // default to courage for untyped tasks
         emit TaskCompleted(nfaId, xpReward, clwReward, actualClw, matchScore);
     }
 
@@ -134,6 +146,7 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
             emit TaskPersonalityDrift(nfaId, taskType, int8(1));
         }
 
+        _trackTaskStats(nfaId, taskType, actualClw);
         emit TaskCompleted(nfaId, xpReward, clwReward, actualClw, matchScore);
     }
 
@@ -171,6 +184,7 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
             emit TaskPersonalityDrift(nfaId, taskType, int8(1));
         }
 
+        _trackTaskStats(nfaId, taskType, actualClw);
         emit TaskCompleted(nfaId, xpReward, clwReward, actualClw, matchScore);
     }
 
@@ -188,8 +202,34 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
+    // ─── Stats tracking ───
+
+    function _trackTaskStats(uint256 nfaId, uint8 taskType, uint256 clwEarned) internal {
+        taskCount[nfaId]++;
+        totalClwEarned[nfaId] += clwEarned;
+        if (taskType == 0) taskTypeCount0[nfaId]++;
+        else if (taskType == 1) taskTypeCount1[nfaId]++;
+        else if (taskType == 2) taskTypeCount2[nfaId]++;
+        else if (taskType == 3) taskTypeCount3[nfaId]++;
+        else if (taskType == 4) taskTypeCount4[nfaId]++;
+    }
+
+    /**
+     * @dev View NFA task stats (履历)
+     */
+    function getTaskStats(uint256 nfaId) external view returns (
+        uint32 total, uint256 clwEarned,
+        uint32 courage, uint32 wisdom, uint32 social, uint32 create, uint32 grit
+    ) {
+        return (
+            taskCount[nfaId], totalClwEarned[nfaId],
+            taskTypeCount0[nfaId], taskTypeCount1[nfaId],
+            taskTypeCount2[nfaId], taskTypeCount3[nfaId], taskTypeCount4[nfaId]
+        );
+    }
+
     /**
      * @dev Reserved storage gap for future upgrades.
      */
-    uint256[40] private __gap;
+    uint256[33] private __gap;
 }
