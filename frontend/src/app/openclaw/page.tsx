@@ -1,16 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { PageTitle } from '@/components/layout/PageTitle';
 import { addresses } from '@/contracts/addresses';
 import { truncateAddress } from '@/lib/format';
 
-const Step = ({ n, title, children }: { n: number; title: string; children: React.ReactNode }) => (
-  <div className="term-box mb-3" data-title={`STEP ${n}`}>
-    <div className="term-bright text-sm glow mb-2">{title}</div>
-    <div className="text-xs space-y-2 term-dim">{children}</div>
-  </div>
-);
+/* ─── Reusable components ─── */
 
 const Code = ({ children }: { children: string }) => (
   <div className="bg-crt-black border border-crt-darkest p-2 my-1 text-xs overflow-x-auto">
@@ -18,119 +14,312 @@ const Code = ({ children }: { children: string }) => (
   </div>
 );
 
-const CmdList = ({ cmds }: { cmds: { cmd: string; desc: string }[] }) => (
-  <div className="space-y-1 mt-2">
-    {cmds.map((c) => (
-      <div key={c.cmd} className="flex gap-3">
-        <span className="text-crt-green font-bold shrink-0">{c.cmd}</span>
-        <span className="term-dim">— {c.desc}</span>
-      </div>
-    ))}
-  </div>
+const Tbl = ({ rows }: { rows: [string, string][] }) => (
+  <table className="term-table my-2">
+    <tbody>
+      {rows.map(([k, v], i) => (
+        <tr key={i}>
+          <td className="term-bright text-xs w-32">{k}</td>
+          <td className="term-dim text-xs">{v}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
 );
 
-export default function OpenClawPage() {
+/* ─── Chapter content builders ─── */
+
+function useChapters() {
   const { lang } = useI18n();
   const cn = lang === 'zh';
 
+  return [
+    {
+      id: 'quickstart',
+      title: cn ? '快速开始' : 'Quick Start',
+      content: () => (
+        <div className="space-y-3 text-xs">
+          <p className="term-dim">{cn ? '5 步开始你的龙虾文明之旅：' : '5 steps to start your Claw Civilization journey:'}</p>
+
+          <div className="term-box" data-title="STEP 1">
+            <div className="term-bright glow mb-1">{cn ? '安装 OpenClaw' : 'Install OpenClaw'}</div>
+            <Code>npm install -g openclaw</Code>
+          </div>
+
+          <div className="term-box" data-title="STEP 2">
+            <div className="term-bright glow mb-1">{cn ? '安装游戏插件' : 'Install Game Skill'}</div>
+            <Code>openclaw skills install claw-world</Code>
+          </div>
+
+          <div className="term-box" data-title="STEP 3">
+            <div className="term-bright glow mb-1">{cn ? '创建游戏钱包' : 'Create Wallet'}</div>
+            <p className="term-dim">{cn ? '首次对话输入 /wallet，设置 PIN（4-6位）加密本地钱包。' : 'Type /wallet on first chat, set a PIN (4-6 digits) to encrypt your local wallet.'}</p>
+            <p className="term-warn text-[10px]">⚠️ {cn ? 'PIN 不可找回，请牢记！' : 'PIN cannot be recovered!'}</p>
+          </div>
+
+          <div className="term-box" data-title="STEP 4">
+            <div className="term-bright glow mb-1">{cn ? '转移 NFA' : 'Transfer NFA'}</div>
+            <p className="term-dim">{cn ? '官网 NFA 详情 → 维护 Tab → "转移到 OpenClaw"，填入你的游戏钱包地址。' : 'NFA Detail → Maintain Tab → "Transfer to OpenClaw", paste your game wallet address.'}</p>
+          </div>
+
+          <div className="term-box" data-title="STEP 5">
+            <div className="term-bright glow mb-1">{cn ? '开始对话' : 'Start Chatting'}</div>
+            <p className="term-dim">{cn ? '在 OpenClaw 中直接跟你的龙虾对话，使用以下命令：' : 'Chat with your lobster in OpenClaw using these commands:'}</p>
+            <Tbl rows={cn ? [
+              ['/task', 'AI 生成 3 个任务，选一个完成赚 CLW'],
+              ['/pk', '创建或加入 PvP 擂台对战'],
+              ['/market', '市场交易 — 挂售、竞拍、购买'],
+              ['/wallet', '查看钱包余额和地址'],
+              ['/status', '查看龙虾完整状态'],
+            ] : [
+              ['/task', 'AI generates 3 tasks — pick one to earn CLW'],
+              ['/pk', 'Create or join PvP arena battle'],
+              ['/market', 'Trade NFAs — list, auction, buy'],
+              ['/wallet', 'Check wallet balance & address'],
+              ['/status', 'View full lobster stats'],
+            ]} />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'personality',
+      title: cn ? '性格演化系统' : 'Personality System',
+      content: () => (
+        <div className="space-y-3 text-xs">
+          <p className="term-dim">{cn ? '每只龙虾有 5 维性格，由你的选择驱动演化：' : 'Each lobster has 5 personality dimensions, evolved by your choices:'}</p>
+          <Tbl rows={cn ? [
+            ['勇气 (Courage)', '选冒险任务 → 勇气涨'],
+            ['智慧 (Wisdom)', '选解谜任务 → 智慧涨'],
+            ['社交 (Social)', '选交易任务 → 社交涨'],
+            ['创造 (Create)', '选创造任务 → 创造涨'],
+            ['毅力 (Grit)', '坚持完成任务不中断 → 毅力涨'],
+          ] : [
+            ['Courage', 'Pick adventure tasks → courage grows'],
+            ['Wisdom', 'Pick puzzle tasks → wisdom grows'],
+            ['Social', 'Pick trade tasks → social grows'],
+            ['Create', 'Pick creative tasks → create grows'],
+            ['Grit', 'Complete tasks consistently → grit grows'],
+          ]} />
+          <p className="term-dim">{cn ? '每月每维度上限 ±5。你养什么样的龙虾，它就变成什么样。' : 'Each dimension changes max ±5/month. You shape your lobster.'}</p>
+
+          <div className="term-box" data-title={cn ? '任务匹配度' : 'MATCH SCORE'}>
+            <p className="term-dim">{cn ? '任务奖励 = 基础奖励 × 匹配倍率（0.05x ~ 2.0x）' : 'Task reward = base reward × match multiplier (0.05x ~ 2.0x)'}</p>
+            <Code>{'matchScore = dot(personality, taskRequirement) / maxPossible'}</Code>
+            <p className="term-bright text-[10px]">{cn ? '精心培养的龙虾收益是白板龙虾的 20 倍！' : 'A well-trained lobster earns up to 20x more than a blank one!'}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'combat',
+      title: cn ? 'PK 对战系统' : 'PK Combat',
+      content: () => (
+        <div className="space-y-3 text-xs">
+          <p className="term-dim">{cn ? '擂台模式 — 创建即选策略，加入即开战：' : 'Arena mode — choose strategy on create, battle starts on join:'}</p>
+
+          <div className="term-box" data-title={cn ? '策略' : 'STRATEGIES'}>
+            <Tbl rows={cn ? [
+              ['全攻 (AllAttack)', '攻击力 150% / 防御力 50%'],
+              ['平衡 (Balanced)', '攻击力 100% / 防御力 100%'],
+              ['全防 (AllDefense)', '攻击力 50% / 防御力 150%'],
+            ] : [
+              ['AllAttack', 'ATK 150% / DEF 50%'],
+              ['Balanced', 'ATK 100% / DEF 100%'],
+              ['AllDefense', 'ATK 50% / DEF 150%'],
+            ]} />
+          </div>
+
+          <div className="term-box" data-title={cn ? '战斗公式' : 'COMBAT FORMULA'}>
+            <p className="term-dim">{cn ? '伤害 = (我方攻击 × 策略倍率) - (对方防御 × 策略倍率)' : 'Damage = (my ATK × strategy) - (their DEF × strategy)'}</p>
+            <p className="term-dim">{cn ? '速度优势：SPD 高的一方 +10% 伤害' : 'Speed bonus: higher SPD gets +10% damage'}</p>
+            <p className="term-dim">{cn ? 'HP = VIT × 10' : 'HP = VIT × 10'}</p>
+          </div>
+
+          <div className="term-box" data-title={cn ? '奖励分配' : 'REWARD SPLIT'}>
+            <Tbl rows={cn ? [
+              ['赢家', '总质押的 90%'],
+              ['销毁', '总质押的 10%（通缩）'],
+              ['XP', '赢家 50xp / 输家 25xp'],
+              ['变异', '击败高 5 级以上对手有 10% 概率触发基因变异'],
+            ] : [
+              ['Winner', '90% of total stake'],
+              ['Burned', '10% of total stake (deflationary)'],
+              ['XP', 'Winner 50xp / Loser 25xp'],
+              ['Mutation', '10% chance if beating opponent 5+ levels higher'],
+            ]} />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'nfa',
+      title: cn ? 'NFA 技术标准' : 'NFA Standard',
+      content: () => (
+        <div className="space-y-3 text-xs">
+          <p className="term-dim">{cn ? 'NFA (Non-Fungible Agent) 基于 BAP-578 标准，是 BNB Chain 官方 AI Agent NFT 标准：' : 'NFA (Non-Fungible Agent) is based on BAP-578, BNB Chain\'s official AI Agent NFT standard:'}</p>
+
+          <div className="term-box" data-title="BAP-578">
+            <Tbl rows={cn ? [
+              ['基础层', 'ERC-721 / BEP-721 兼容'],
+              ['身份', '链上唯一 Agent ID + 所有者绑定'],
+              ['钱包', '每个 NFA 有独立 CLW 余额（合约内部记账）'],
+              ['执行', '通过 Skill 合约执行任务/PK/交易'],
+              ['学习', '性格演化 + DNA 变异 + 学习树根哈希'],
+            ] : [
+              ['Base', 'ERC-721 / BEP-721 compatible'],
+              ['Identity', 'On-chain unique Agent ID + owner binding'],
+              ['Wallet', 'Each NFA has independent CLW balance (contract ledger)'],
+              ['Execution', 'Executes tasks/PK/trades via Skill contracts'],
+              ['Learning', 'Personality evolution + DNA mutation + learning tree root'],
+            ]} />
+          </div>
+
+          <div className="term-box" data-title={cn ? '合约架构' : 'CONTRACT ARCH'}>
+            <Tbl rows={[
+              ['ClawNFA', cn ? 'ERC-721 NFA 代币' : 'ERC-721 NFA token'],
+              ['ClawRouter', cn ? '核心路由 — CLW 余额、状态、Skill 分发' : 'Core router — CLW balance, state, skill dispatch'],
+              ['TaskSkill', cn ? '任务系统 — AI 生成 + 链上结算' : 'Task system — AI generation + on-chain settlement'],
+              ['PKSkill', cn ? 'PvP 擂台 — commit-reveal 策略' : 'PvP arena — commit-reveal strategy'],
+              ['MarketSkill', cn ? '市场 — 固定价/拍卖/互换' : 'Market — fixed price / auction / swap'],
+              ['WorldState', cn ? '世界状态 — 全局参数 + 24h 时间锁' : 'World state — global params + 24h timelock'],
+            ]} />
+          </div>
+
+          <p className="term-darkest text-[10px]">
+            NFA: <span className="term-dim">{truncateAddress(addresses.clawNFA as string)}</span>
+            {' | '}Router: <span className="term-dim">{truncateAddress(addresses.clawRouter as string)}</span>
+          </p>
+        </div>
+      ),
+    },
+    {
+      id: 'economy',
+      title: cn ? 'CLW 代币经济' : 'CLW Economy',
+      content: () => (
+        <div className="space-y-3 text-xs">
+          <p className="term-dim">{cn ? 'CLW 是游戏的核心经济代币，链上发行，游戏内流通：' : 'CLW is the core economy token — issued on-chain, circulated in-game:'}</p>
+
+          <div className="term-box" data-title={cn ? '获取方式' : 'EARN CLW'}>
+            <Tbl rows={cn ? [
+              ['完成任务', '基础奖励 × 匹配倍率（最高 2.0x）'],
+              ['PK 获胜', '赢得对手质押的 90%'],
+              ['创世空投', 'Mint 时按稀有度空投 CLW'],
+            ] : [
+              ['Complete tasks', 'Base reward × match multiplier (up to 2.0x)'],
+              ['Win PK', 'Earn 90% of opponent\'s stake'],
+              ['Genesis airdrop', 'CLW airdrop based on rarity at mint'],
+            ]} />
+          </div>
+
+          <div className="term-box" data-title={cn ? '消耗方式' : 'SPEND CLW'}>
+            <Tbl rows={cn ? [
+              ['每日维护', '龙虾每天消耗 CLW，余额归零则休眠'],
+              ['PK 质押', '对战需质押 CLW，输了会损失'],
+              ['PK 销毁', '每场 PK 10% 质押永久销毁（通缩）'],
+            ] : [
+              ['Daily upkeep', 'Lobster consumes CLW daily, goes dormant if 0'],
+              ['PK stake', 'Must stake CLW to battle, lose if defeated'],
+              ['PK burn', '10% of each PK stake is permanently burned'],
+            ]} />
+          </div>
+
+          <div className="term-box" data-title={cn ? '世界状态' : 'WORLD STATE'}>
+            <p className="term-dim">{cn ? '全局参数影响所有玩家，由 24 小时时间锁保护：' : 'Global parameters affect all players, protected by 24h timelock:'}</p>
+            <Tbl rows={cn ? [
+              ['奖励倍率', '影响任务 CLW 奖励数量'],
+              ['PK 质押上限', '单场最大质押额'],
+              ['变异加成', '基因变异触发概率'],
+              ['日消耗倍率', '维护费调整'],
+              ['世界事件', '泡沫期 / 寒冬期 / 黄金时代'],
+            ] : [
+              ['Reward multiplier', 'Affects task CLW rewards'],
+              ['PK stake cap', 'Max stake per match'],
+              ['Mutation bonus', 'Gene mutation trigger probability'],
+              ['Daily cost', 'Upkeep cost adjustment'],
+              ['World events', 'Bubble / Winter / Golden Age'],
+            ]} />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'dna',
+      title: cn ? 'DNA 基因系统' : 'DNA & Genes',
+      content: () => (
+        <div className="space-y-3 text-xs">
+          <p className="term-dim">{cn ? '每只龙虾有 4 项基因属性，决定战斗表现：' : 'Each lobster has 4 DNA stats that determine combat performance:'}</p>
+
+          <Tbl rows={cn ? [
+            ['STR (力量)', 'PK 攻击力基础值'],
+            ['DEF (防御)', 'PK 防御力基础值'],
+            ['SPD (速度)', '先手判定，高速 +10% 伤害'],
+            ['VIT (体力)', 'HP = VIT × 10'],
+          ] : [
+            ['STR (Strength)', 'Base PK attack power'],
+            ['DEF (Defense)', 'Base PK defense power'],
+            ['SPD (Speed)', 'First strike check, +10% damage if faster'],
+            ['VIT (Vitality)', 'HP = VIT × 10'],
+          ]} />
+
+          <div className="term-box" data-title={cn ? '基因变异' : 'MUTATION'}>
+            <p className="term-dim">{cn ? '触发条件：PK 中击败比自己高 5 级以上的对手' : 'Trigger: defeat an opponent 5+ levels higher in PK'}</p>
+            <p className="term-dim">{cn ? '效果：随机一项基因 +5（上限 100）' : 'Effect: random gene +5 (max 100)'}</p>
+            <p className="term-dim">{cn ? '概率：基础 10%，受世界状态变异加成影响' : 'Chance: base 10%, affected by world state mutation bonus'}</p>
+            <p className="term-dim">{cn ? '每只龙虾有 2 个变异槽，记录变异历史。' : 'Each lobster has 2 mutation slots recording mutation history.'}</p>
+          </div>
+
+          <div className="term-box" data-title={cn ? '稀有度与基因' : 'RARITY & DNA'}>
+            <Tbl rows={cn ? [
+              ['普通 (Common)', 'DNA 总和 80-140'],
+              ['稀有 (Rare)', 'DNA 总和 140-200'],
+              ['史诗 (Epic)', 'DNA 总和 200-260'],
+              ['传说 (Legendary)', 'DNA 总和 260-320'],
+              ['神话 (Mythic)', 'DNA 总和 320-400'],
+            ] : [
+              ['Common', 'DNA sum 80-140'],
+              ['Rare', 'DNA sum 140-200'],
+              ['Epic', 'DNA sum 200-260'],
+              ['Legendary', 'DNA sum 260-320'],
+              ['Mythic', 'DNA sum 320-400'],
+            ]} />
+          </div>
+        </div>
+      ),
+    },
+  ];
+}
+
+/* ─── Page ─── */
+
+export default function OpenClawPage() {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const chapters = useChapters();
+
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="flex flex-col h-full">
       <PageTitle textKey="openclaw.title" />
-
-      <div className="text-xs term-dim mb-4">
-        {cn
-          ? '> OpenClaw 是开源本地 AI 助手，龙虾在你的设备上运行，无需后端服务器。'
-          : '> OpenClaw is an open-source local AI assistant. Your lobster runs on your device — no backend server needed.'}
-      </div>
-
-      {/* Step 1: Install OpenClaw */}
-      <Step n={1} title={cn ? '安装 OpenClaw' : 'Install OpenClaw'}>
-        <p>{cn ? '从 GitHub 下载最新版本：' : 'Download the latest release from GitHub:'}</p>
-        <Code>{'npm install -g openclaw'}</Code>
-        <p className="term-darkest">
-          {cn ? '或访问 ' : 'Or visit '}
-          <a href="https://github.com/openclaw-ai/openclaw" target="_blank" rel="noopener noreferrer" className="term-link">
-            github.com/openclaw-ai/openclaw
-          </a>
-        </p>
-      </Step>
-
-      {/* Step 2: Install Claw World Skill */}
-      <Step n={2} title={cn ? '安装 Claw World 游戏插件' : 'Install Claw World Skill'}>
-        <p>{cn ? '一条命令安装游戏：' : 'One command to install the game:'}</p>
-        <Code>{'openclaw skills install claw-world'}</Code>
-        <p>{cn ? '验证安装：' : 'Verify installation:'}</p>
-        <Code>{'openclaw skills list'}</Code>
-        <p>{cn ? '应该看到 claw-world ✓ ready' : 'You should see claw-world ✓ ready'}</p>
-      </Step>
-
-      {/* Step 3: Create Wallet */}
-      <Step n={3} title={cn ? '创建游戏钱包' : 'Create Game Wallet'}>
-        <p>{cn ? '首次对话时，AI 会引导你创建本地加密钱包：' : 'On first chat, the AI guides you to create a local encrypted wallet:'}</p>
-        <div className="bg-crt-black border border-crt-darkest p-2 my-1 text-xs">
-          <div className="term-dim">{cn ? '你 >' : 'You >'} <span className="text-crt-green">/wallet</span></div>
-          <div className="term-dim mt-1">{cn ? '龙虾 >' : 'Lobster >'} <span className="text-crt-bright">
-            {cn ? '请设置 PIN 码（4-6位数字）来加密你的钱包 🔐' : 'Set a PIN (4-6 digits) to encrypt your wallet 🔐'}
-          </span></div>
+      <div className="pipboy-split">
+        {/* Left: chapter list */}
+        <div className="pipboy-split-sidebar">
+          {chapters.map((ch, i) => (
+            <button
+              key={ch.id}
+              onClick={() => setActiveIdx(i)}
+              className={`pipboy-sidebar-item ${i === activeIdx ? 'pipboy-sidebar-active' : ''}`}
+            >
+              {i === activeIdx ? '> ' : '  '}[{String(i + 1).padStart(2, '0')}] {ch.title}
+            </button>
+          ))}
         </div>
-        <p className="term-warn text-[10px] mt-1">
-          ⚠️ {cn ? 'PIN 码不可找回，请牢记！钱包私钥 AES-256 加密存储在本地。' : 'PIN cannot be recovered. Wallet private key is AES-256 encrypted locally.'}
-        </p>
-      </Step>
 
-      {/* Step 4: Transfer NFA */}
-      <Step n={4} title={cn ? '转移 NFA 到 OpenClaw' : 'Transfer NFA to OpenClaw'}>
-        <p>{cn ? '在本站 NFA 详情页 → 维护 Tab → "转移到 OpenClaw"' : 'On this site: NFA Detail → Maintain Tab → "Transfer to OpenClaw"'}</p>
-        <div className="flex items-center gap-2 my-2">
-          <span className="text-crt-green">{cn ? '官网 Mint' : 'Mint on Site'}</span>
-          <span className="term-dim">→</span>
-          <span className="text-crt-green">{cn ? '官网转移' : 'Transfer'}</span>
-          <span className="term-dim">→</span>
-          <span className="text-crt-bright glow">{cn ? 'OpenClaw 对话玩游戏' : 'Play in OpenClaw'}</span>
-        </div>
-        <p className="term-darkest text-[10px]">
-          {cn ? 'NFA 合约：' : 'NFA Contract: '}
-          <span className="text-crt-dim">{truncateAddress(addresses.clawNFA as string)}</span>
-        </p>
-      </Step>
-
-      {/* Step 5: Play */}
-      <Step n={5} title={cn ? '开始游戏' : 'Start Playing'}>
-        <p>{cn ? '在 OpenClaw 对话框中使用以下命令：' : 'Use these commands in OpenClaw chat:'}</p>
-        <CmdList cmds={cn ? [
-          { cmd: '/task', desc: 'AI 生成 3 个任务，选一个完成赚 CLW' },
-          { cmd: '/pk', desc: '创建或加入 PvP 对战，质押 CLW 一决高下' },
-          { cmd: '/market', desc: '市场交易 — 挂售、竞拍、购买 NFA' },
-          { cmd: '/wallet', desc: '查看钱包余额和地址' },
-          { cmd: '/status', desc: '查看龙虾状态、性格、基因' },
-        ] : [
-          { cmd: '/task', desc: 'AI generates 3 tasks — pick one to earn CLW' },
-          { cmd: '/pk', desc: 'Create or join PvP arena — stake CLW to battle' },
-          { cmd: '/market', desc: 'Trade NFAs — list, auction, or buy' },
-          { cmd: '/wallet', desc: 'Check wallet balance and address' },
-          { cmd: '/status', desc: 'View lobster stats, personality, DNA' },
-        ]} />
-      </Step>
-
-      {/* Tips */}
-      <div className="term-box mt-4" data-title={cn ? '提示' : 'TIPS'}>
-        <div className="text-[11px] space-y-1">
-          <div className="flex gap-2">
-            <span className="term-bright">[1]</span>
-            <span className="term-dim">{cn ? '性格由你的选择决定 — 选冒险任务 → 勇气涨，选解谜 → 智慧涨' : 'Personality is driven by your choices — adventure tasks raise courage, puzzle tasks raise wisdom'}</span>
+        {/* Right: selected chapter */}
+        <div className="pipboy-split-content" key={activeIdx}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="term-bright text-xs">[{String(activeIdx + 1).padStart(2, '0')}]</span>
+            <span className="term-bright text-sm glow">{chapters[activeIdx]?.title}</span>
           </div>
-          <div className="flex gap-2">
-            <span className="term-bright">[2]</span>
-            <span className="term-dim">{cn ? '任务匹配度 = 性格向量 · 需求向量，精心培养的龙虾奖励可达 20 倍' : 'Task match score = personality · requirement vector — a trained lobster earns up to 20x rewards'}</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="term-bright">[3]</span>
-            <span className="term-dim">{cn ? 'PK 策略：全攻(150%攻/50%防)、平衡(100%/100%)、全防(50%攻/150%防)' : 'PK strategies: AllAttack(150%/50%), Balanced(100%/100%), AllDefense(50%/150%)'}</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="term-bright">[4]</span>
-            <span className="term-dim">{cn ? '每日维护费 — 保持龙虾 CLW 余额 > 0，否则会休眠' : 'Daily upkeep — keep CLW balance > 0 or your lobster goes dormant'}</span>
-          </div>
+          {chapters[activeIdx]?.content()}
         </div>
       </div>
     </div>
