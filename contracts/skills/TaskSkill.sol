@@ -82,7 +82,7 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
         // Calculate actual CLW reward:
         // actualCLW = clwReward × matchScore/10000 × worldState.rewardMultiplier/10000
         uint256 worldMul = worldState.rewardMultiplier();
-        uint256 actualClw = clwReward * uint256(matchScore) / 10000 * worldMul / 10000;
+        uint256 actualClw = (clwReward * uint256(matchScore) * worldMul) / (10000 * 10000);
 
         if (actualClw > 0) {
             router.addCLW(nfaId, actualClw);
@@ -116,7 +116,7 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
 
         // Calculate rewards (same formula)
         uint256 worldMul = worldState.rewardMultiplier();
-        uint256 actualClw = clwReward * uint256(matchScore) / 10000 * worldMul / 10000;
+        uint256 actualClw = (clwReward * uint256(matchScore) * worldMul) / (10000 * 10000);
 
         if (actualClw > 0) {
             router.addCLW(nfaId, actualClw);
@@ -157,7 +157,7 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
         lastTaskTime[nfaId] = block.timestamp;
 
         uint256 worldMul = worldState.rewardMultiplier();
-        uint256 actualClw = clwReward * uint256(matchScore) / 10000 * worldMul / 10000;
+        uint256 actualClw = (clwReward * uint256(matchScore) * worldMul) / (10000 * 10000);
 
         if (actualClw > 0) {
             router.addCLW(nfaId, actualClw);

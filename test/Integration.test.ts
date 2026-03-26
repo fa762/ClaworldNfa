@@ -73,6 +73,11 @@ describe("Integration Tests", function () {
     mockFlap = await MockFlapPortal.deploy(clw.address, ethers.utils.parseEther("2000"));
     await mockFlap.deployed();
 
+    // Deploy PersonalityEngine
+    const PE = await ethers.getContractFactory("PersonalityEngine");
+    const pe = await upgrades.deployProxy(PE, [router.address, nfa.address], { kind: "uups" });
+    await pe.deployed();
+
     // Configure roles
     await nfa.setDefaultLogicAddress(router.address);
     await nfa.setMinter(vault.address);
@@ -81,6 +86,8 @@ describe("Integration Tests", function () {
     await router.authorizeSkill(taskSkill.address, true);
     await router.authorizeSkill(pkSkill.address, true);
     await router.setWorldState(worldState.address);
+    await router.setPersonalityEngine(pe.address);
+    await pe.setAuthorizedCaller(router.address, true);
     await router.setFlapPortal(mockFlap.address);
     await router.setPancakeRouter(mockPR.address);
     await pkSkill.setWorldState(worldState.address);

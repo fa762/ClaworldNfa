@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { ClawNFA, ClawRouter, MockCLW, MockPancakeRouter, MockFlapPortal } from "../typechain-types";
+import { ClawNFA, ClawRouter, MockCLW, MockPancakeRouter, MockFlapPortal, PersonalityEngine } from "../typechain-types";
 // Time helper using ethers provider
 async function increaseTime(seconds: number) {
   await ethers.provider.send("evm_increaseTime", [seconds]);
@@ -12,6 +12,7 @@ describe("ClawRouter", function () {
   let nfa: ClawNFA;
   let router: ClawRouter;
   let clw: MockCLW;
+  let personalityEngine: PersonalityEngine;
   let owner: SignerWithAddress;
   let minter: SignerWithAddress;
   let treasury: SignerWithAddress;
@@ -83,10 +84,17 @@ describe("ClawRouter", function () {
     )) as ClawRouter;
     await router.deployed();
 
+    // Deploy PersonalityEngine
+    const PE = await ethers.getContractFactory("PersonalityEngine");
+    personalityEngine = (await upgrades.deployProxy(PE, [router.address, nfa.address], { kind: "uups" })) as PersonalityEngine;
+    await personalityEngine.deployed();
+
     // Configure roles
     await nfa.setMinter(minter.address);
     await router.setMinter(minter.address);
     await router.authorizeSkill(skill.address, true);
+    await router.setPersonalityEngine(personalityEngine.address);
+    await personalityEngine.setAuthorizedCaller(router.address, true);
 
     // Mint CLW to users for testing
     await clw.mint(user1.address, ethers.utils.parseEther("10000"));
@@ -550,7 +558,7 @@ describe("ClawRouter", function () {
 
     it("should emit PersonalityEvolved event", async function () {
       await expect(router.connect(skill).evolvePersonality(tokenId, 0, 3))
-        .to.emit(router, "PersonalityEvolved")
+        .to.emit(personalityEngine, "PersonalityEvolved")
         .withArgs(tokenId, 0, 50, 53);
     });
   });

@@ -46,6 +46,7 @@ interface IWorldStateReader {
 
 interface IPersonalityEngineInternal {
     function evolvePersonality(uint256 nfaId, uint8 dimension, int8 delta) external;
+    function getJobClass(uint256 nfaId) external view returns (uint8 jobClass, string memory jobName);
 }
 
 /**
@@ -471,31 +472,23 @@ contract ClawRouter is
     // ============================================
 
     /**
-     * @dev Facade: delegates to PersonalityEngine if set, otherwise runs inline.
-     *      Maintains backward compatibility with existing skill contracts (TaskSkill, etc.).
+     * @dev Delegates personality evolution to PersonalityEngine.
+     *      PersonalityEngine must be set before calling.
      */
     function evolvePersonality(
         uint256 nfaId,
         uint8 dimension,
         int8 delta
     ) external onlySkill lobsterExists(nfaId) {
-        if (personalityEngine != address(0)) {
-            // Read old value before delegation
-            LobsterState memory lobBefore = lobsters[nfaId];
-            uint8 oldValue = _getPersonalityDimension(lobBefore, dimension);
+        require(personalityEngine != address(0), "PersonalityEngine not set");
 
-            // Delegate to PersonalityEngine (updates state via setPersonalityByEngine)
-            IPersonalityEngineInternal(personalityEngine).evolvePersonality(nfaId, dimension, delta);
+        LobsterState memory lobBefore = lobsters[nfaId];
+        uint8 oldValue = _getPersonalityDimension(lobBefore, dimension);
 
-            // Read new value after delegation
-            uint8 newValue = _getPersonalityDimension(lobsters[nfaId], dimension);
+        IPersonalityEngineInternal(personalityEngine).evolvePersonality(nfaId, dimension, delta);
 
-            // Update learning tree (only router has permission)
-            _updateLearningTree(nfaId, keccak256(abi.encodePacked("personality", dimension, oldValue, newValue)));
-        } else {
-            // Inline fallback (pre-migration)
-            _evolvePersonalityInline(nfaId, dimension, delta);
-        }
+        uint8 newValue = _getPersonalityDimension(lobsters[nfaId], dimension);
+        _updateLearningTree(nfaId, keccak256(abi.encodePacked("personality", dimension, oldValue, newValue)));
     }
 
     /**
@@ -516,107 +509,11 @@ contract ClawRouter is
     }
 
     /**
-     * @dev Inline personality evolution (used before PersonalityEngine migration).
-     */
-    function _evolvePersonalityInline(uint256 nfaId, uint8 dimension, int8 delta) internal {
-        require(dimension <= 4, "Invalid dimension");
-        require(delta != 0, "Zero delta");
-
-        _resetMonthlyCounterIfNeeded(nfaId);
-
-        int8 currentChange = personalityChangesThisMonth[nfaId][dimension];
-        int8 newChange = currentChange + delta;
-        require(newChange >= -5 && newChange <= 5, "Monthly cap exceeded");
-        personalityChangesThisMonth[nfaId][dimension] = newChange;
-
-        LobsterState storage lob = lobsters[nfaId];
-        uint8 oldValue;
-        uint8 newValue;
-
-        if (dimension == 0) {
-            oldValue = lob.courage;
-            newValue = _clampPersonality(lob.courage, delta);
-            lob.courage = newValue;
-        } else if (dimension == 1) {
-            oldValue = lob.wisdom;
-            newValue = _clampPersonality(lob.wisdom, delta);
-            lob.wisdom = newValue;
-        } else if (dimension == 2) {
-            oldValue = lob.social;
-            newValue = _clampPersonality(lob.social, delta);
-            lob.social = newValue;
-        } else if (dimension == 3) {
-            oldValue = lob.create;
-            newValue = _clampPersonality(lob.create, delta);
-            lob.create = newValue;
-        } else {
-            oldValue = lob.grit;
-            newValue = _clampPersonality(lob.grit, delta);
-            lob.grit = newValue;
-        }
-
-        emit PersonalityEvolved(nfaId, dimension, oldValue, newValue);
-        _updateLearningTree(nfaId, keccak256(abi.encodePacked("personality", dimension, oldValue, newValue)));
-    }
-
-    function _clampPersonality(uint8 current, int8 delta) internal pure returns (uint8) {
-        int16 result = int16(int8(int256(uint256(current)))) + int16(delta);
-        if (result < 0) return 0;
-        if (result > 100) return 100;
-        return uint8(uint16(result));
-    }
-
-    function _resetMonthlyCounterIfNeeded(uint256 nfaId) internal {
-        uint64 monthStart = personalityMonthStart[nfaId];
-        if (monthStart == 0 || block.timestamp >= monthStart + 30 days) {
-            personalityMonthStart[nfaId] = uint64(block.timestamp);
-            for (uint8 i = 0; i < 5; i++) {
-                personalityChangesThisMonth[nfaId][i] = 0;
-            }
-        }
-    }
-
-    // ============================================
-    // JOB CLASS DERIVATION (also available via PersonalityEngine)
-    // ============================================
-
-    /**
-     * @dev Derive job class from top 2 personality dimensions.
+     * @dev Derive job class — delegates to PersonalityEngine for logic, kept here for API compatibility.
      */
     function getJobClass(uint256 nfaId) external view returns (uint8 jobClass, string memory jobName) {
-        LobsterState memory lob = lobsters[nfaId];
-
-        uint8[5] memory dims = [lob.courage, lob.wisdom, lob.social, lob.create, lob.grit];
-        uint8 top1Idx = 0;
-        uint8 top2Idx = 1;
-
-        if (dims[top2Idx] > dims[top1Idx]) {
-            (top1Idx, top2Idx) = (top2Idx, top1Idx);
-        }
-
-        for (uint8 i = 2; i < 5; i++) {
-            if (dims[i] > dims[top1Idx]) {
-                top2Idx = top1Idx;
-                top1Idx = i;
-            } else if (dims[i] > dims[top2Idx]) {
-                top2Idx = i;
-            }
-        }
-
-        uint8 lo = top1Idx < top2Idx ? top1Idx : top2Idx;
-        uint8 hi = top1Idx < top2Idx ? top2Idx : top1Idx;
-
-        if (lo == 0 && hi == 1) return (0, "Explorer");
-        if (lo == 1 && hi == 2) return (1, "Diplomat");
-        if (lo == 2 && hi == 3) return (2, "Creator");
-        if (lo == 0 && hi == 4) return (3, "Guardian");
-        if (lo == 1 && hi == 3) return (4, "Scholar");
-        if (lo == 0 && hi == 3) return (5, "Pioneer");
-        if (top1Idx == 0) return (0, "Explorer");
-        if (top1Idx == 1) return (4, "Scholar");
-        if (top1Idx == 2) return (1, "Diplomat");
-        if (top1Idx == 3) return (2, "Creator");
-        return (3, "Guardian");
+        require(personalityEngine != address(0), "PersonalityEngine not set");
+        return IPersonalityEngineInternal(personalityEngine).getJobClass(nfaId);
     }
 
     // ============================================
@@ -733,4 +630,9 @@ contract ClawRouter is
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    /**
+     * @dev Reserved storage gap for future upgrades.
+     */
+    uint256[40] private __gap;
 }

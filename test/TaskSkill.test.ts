@@ -50,10 +50,16 @@ describe("TaskSkill", function () {
     const TaskSkillFactory = await ethers.getContractFactory("TaskSkill");
     taskSkill = (await upgrades.deployProxy(TaskSkillFactory, [router.address, worldState.address], { kind: "uups" })) as TaskSkill;
 
+    // Deploy PersonalityEngine
+    const PE = await ethers.getContractFactory("PersonalityEngine");
+    const pe = await upgrades.deployProxy(PE, [router.address, nfa.address], { kind: "uups" });
+
     // Roles
     await nfa.setMinter(minter.address);
     await router.setMinter(minter.address);
     await router.authorizeSkill(taskSkill.address, true);
+    await router.setPersonalityEngine(pe.address);
+    await pe.setAuthorizedCaller(router.address, true);
     await taskSkill.setOperator(operator.address, true);
 
     // Create lobster
