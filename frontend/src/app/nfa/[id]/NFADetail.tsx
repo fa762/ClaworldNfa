@@ -17,7 +17,7 @@ import { formatCLW, truncateAddress } from '@/lib/format';
 import { getXpProgress } from '@/lib/xp';
 import { addresses, getBscScanAddressUrl } from '@/contracts/addresses';
 import { isDemoMode } from '@/lib/env';
-import { getMockLobsterName } from '@/lib/mockData';
+import { getLobsterName } from '@/lib/mockData';
 import { resolveIpfsUrl } from '@/lib/ipfs';
 import { useI18n } from '@/lib/i18n';
 import Link from 'next/link';
@@ -124,8 +124,10 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
     : (jobClass !== undefined ? Number(Array.isArray(jobClass) ? jobClass[0] : jobClass) : NaN);
   const jobName = !isNaN(jobClassNum) ? getJobName(jobClassNum) : t('detail.unknown');
 
-  const name = getMockLobsterName(numId);
-  const imageUrl = resolveIpfsUrl(useMock ? '' : ((agentMeta as any)?.vaultURI ?? ''));
+  const name = getLobsterName(numId);
+  // wagmi may return array or named object — handle both
+  const rawVaultURI = useMock ? '' : ((agentMeta as any)?.vaultURI ?? (agentMeta as any)?.[4] ?? '');
+  const imageUrl = resolveIpfsUrl(rawVaultURI);
 
   // SPECIAL tab: only personality stats (no DNA — DNA is in gene tab)
   const specialStats = [

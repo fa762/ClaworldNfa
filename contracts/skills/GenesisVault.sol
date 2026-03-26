@@ -108,6 +108,10 @@ contract GenesisVault is
     // Pull-over-push: pending refunds for failed BNB transfers
     mapping(address => uint256) public pendingRefunds;
 
+    // Image pool: rarity → array of IPFS CIDs, assigned in order during mint
+    mapping(uint8 => string[]) public imagePool;
+    mapping(uint8 => uint256) public imagePoolIndex; // next image to assign per rarity
+
     struct Commitment {
         bytes32 hash;
         uint256 value;      // BNB sent with commit
@@ -232,14 +236,24 @@ contract GenesisVault is
 
         (uint8 shelter, uint8[5] memory personality, uint8[4] memory dna) = _generateAttributes(seed, rarity);
 
+        // Auto-assign image from pool if available
+        string memory assignedURI = "";
+        bytes32 assignedHash = bytes32(0);
+        uint256 imgIdx = imagePoolIndex[rarity];
+        if (imgIdx < imagePool[rarity].length) {
+            assignedURI = imagePool[rarity][imgIdx];
+            assignedHash = keccak256(bytes(assignedURI));
+            imagePoolIndex[rarity] = imgIdx + 1;
+        }
+
         // Mint NFA to recipient (can be msg.sender or a game wallet)
         IGenesisNFA.AgentMetadata memory meta = IGenesisNFA.AgentMetadata({
             persona: "",
             experience: "",
             voiceHash: "",
             animationURI: "",
-            vaultURI: "",
-            vaultHash: bytes32(0)
+            vaultURI: assignedURI,
+            vaultHash: assignedHash
         });
 
         uint256 nfaId = nfa.mintTo(recipient, address(router), "", meta);
@@ -469,6 +483,26 @@ contract GenesisVault is
 
     function setMintingActive(bool active) external onlyOwner {
         mintingActive = active;
+    }
+
+    /**
+     * @dev Owner batch-loads IPFS CIDs for a rarity tier.
+     *      Call once per rarity before minting starts.
+     *      Images are assigned sequentially during reveal.
+     */
+    function loadImagePool(uint8 rarity, string[] calldata cids) external onlyOwner {
+        require(rarity <= 4, "Invalid rarity");
+        for (uint256 i = 0; i < cids.length; i++) {
+            imagePool[rarity].push(cids[i]);
+        }
+    }
+
+    /**
+     * @dev View: how many images loaded vs used per rarity
+     */
+    function getImagePoolStatus(uint8 rarity) external view returns (uint256 loaded, uint256 used) {
+        loaded = imagePool[rarity].length;
+        used = imagePoolIndex[rarity];
     }
 
     function withdraw() external onlyOwner {
