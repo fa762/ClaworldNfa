@@ -199,6 +199,7 @@ contract WorldState is OwnableUpgradeable, UUPSUpgradeable {
             rewardMultiplier = 8000;      // 0.8x rewards
             dailyCostMultiplier = 12000;  // 1.2x costs
             mutationBonus = 15000;        // 1.5x mutation rate
+            pkStakeLimit = 1000 ether;    // Reset stake limit from winter
             activeEvents = EVENT_BUBBLE;
         } else if (price <= priceThresholdLow) {
             // Austerity / winter mode: increase rewards, reduce costs

@@ -367,6 +367,19 @@ contract GenesisVault is
         for (uint256 i = 0; i < 4; i++) {
             dna[i] = segments[i] > 100 ? 100 : uint8(segments[i]);
         }
+
+        // Redistribute excess to non-maxed genes
+        uint16 actualSum = 0;
+        for (uint256 i = 0; i < 4; i++) actualSum += dna[i];
+        uint16 remaining = total > actualSum ? total - actualSum : 0;
+        for (uint256 i = 0; i < 4 && remaining > 0; i++) {
+            if (dna[i] < 100) {
+                uint8 canAdd = 100 - dna[i];
+                uint8 toAdd = remaining > canAdd ? canAdd : uint8(remaining);
+                dna[i] += toAdd;
+                remaining -= toAdd;
+            }
+        }
     }
 
     function _weightedRandom(bytes32 seed, uint8[8] memory weights)

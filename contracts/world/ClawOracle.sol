@@ -77,6 +77,7 @@ contract ClawOracle is OwnableUpgradeable, UUPSUpgradeable {
         require(fulfillers[msg.sender], "Not authorized fulfiller");
         OracleRequest storage req = requests[requestId];
         require(req.status == RequestStatus.PENDING, "Not pending");
+        require(block.timestamp <= req.timestamp + REQUEST_TIMEOUT, "Request expired");
         require(choice < req.numOfChoices, "Invalid choice");
 
         req.choice = choice;
@@ -84,6 +85,13 @@ contract ClawOracle is OwnableUpgradeable, UUPSUpgradeable {
         req.status = RequestStatus.FULFILLED;
 
         emit ReasoningFulfilled(requestId, choice, reasoningCid);
+    }
+
+    function expireRequest(uint256 requestId) external {
+        OracleRequest storage req = requests[requestId];
+        require(req.status == RequestStatus.PENDING, "Not pending");
+        require(block.timestamp > req.timestamp + REQUEST_TIMEOUT, "Not expired");
+        req.status = RequestStatus.EXPIRED;
     }
 
     function setFulfiller(address fulfiller, bool authorized) external onlyOwner {
