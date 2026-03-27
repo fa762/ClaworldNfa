@@ -84,7 +84,7 @@ export function CLWTokenInfo() {
 
   const purchaseLink = isGraduated
     ? `https://pancakeswap.finance/swap?outputCurrency=${CLW_TOKEN_ADDRESS}`
-    : `https://app.flap.sh/trade/${CLW_TOKEN_ADDRESS}`;
+    : `https://flap.sh/bnb/${CLW_TOKEN_ADDRESS}`;
 
   return (
     <div className="term-box" data-title={t('token.title')}>
