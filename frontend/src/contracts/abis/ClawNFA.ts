@@ -204,6 +204,19 @@ export const ClawNFAABI = [
     "inputs": [
       {
         "indexed": false,
+        "internalType": "address",
+        "name": "newLogic",
+        "type": "address"
+      }
+    ],
+    "name": "DefaultLogicAddressChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
         "internalType": "uint8",
         "name": "version",
         "type": "uint8"
@@ -318,6 +331,32 @@ export const ClawNFAABI = [
     "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "paused",
+        "type": "bool"
+      }
+    ],
+    "name": "PausedChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      }
+    ],
+    "name": "PostGenesisMintChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": true,
         "internalType": "address",
         "name": "from",
@@ -337,6 +376,25 @@ export const ClawNFAABI = [
       }
     ],
     "name": "Transfer",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "oldTreasury",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newTreasury",
+        "type": "address"
+      }
+    ],
+    "name": "TreasuryChanged",
     "type": "event"
   },
   {
@@ -1195,6 +1253,29 @@ export const ClawNFAABI = [
       }
     ],
     "name": "setTreasury",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "vaultURI",
+        "type": "string"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "vaultHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "setVaultURI",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

@@ -143,6 +143,44 @@ export const GenesisVaultABI = [
       {
         "indexed": true,
         "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "RefundClaimed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "RefundPending",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "implementation",
         "type": "address"
       }
@@ -428,6 +466,13 @@ export const GenesisVaultABI = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "claimRefund",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "bytes32",
@@ -511,6 +556,30 @@ export const GenesisVaultABI = [
         "type": "uint8"
       }
     ],
+    "name": "getImagePoolStatus",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "loaded",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "used",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "rarity",
+        "type": "uint8"
+      }
+    ],
     "name": "getPrice",
     "outputs": [
       {
@@ -538,6 +607,49 @@ export const GenesisVaultABI = [
   {
     "inputs": [
       {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "imagePool",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "name": "imagePoolIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "_nfa",
         "type": "address"
@@ -549,6 +661,24 @@ export const GenesisVaultABI = [
       }
     ],
     "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "rarity",
+        "type": "uint8"
+      },
+      {
+        "internalType": "string[]",
+        "name": "cids",
+        "type": "string[]"
+      }
+    ],
+    "name": "loadImagePool",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -600,6 +730,43 @@ export const GenesisVaultABI = [
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "rarity",
+        "type": "uint8"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      }
+    ],
+    "name": "ownerMint",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "pendingRefunds",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -665,6 +832,29 @@ export const GenesisVaultABI = [
       }
     ],
     "name": "reveal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "rarity",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "salt",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      }
+    ],
+    "name": "revealTo",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -737,47 +927,6 @@ export const GenesisVaultABI = [
     "name": "upgradeToAndCall",
     "outputs": [],
     "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint8",
-        "name": "rarity",
-        "type": "uint8"
-      },
-      {
-        "internalType": "address",
-        "name": "recipient",
-        "type": "address"
-      }
-    ],
-    "name": "ownerMint",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint8",
-        "name": "rarity",
-        "type": "uint8"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "salt",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "recipient",
-        "type": "address"
-      }
-    ],
-    "name": "revealTo",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

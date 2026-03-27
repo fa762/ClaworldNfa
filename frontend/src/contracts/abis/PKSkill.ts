@@ -525,6 +525,19 @@ export const PKSkillABI = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "getMatchCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",

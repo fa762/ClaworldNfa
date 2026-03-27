@@ -12,6 +12,8 @@ export const addresses = {
   depositRouter: process.env.NEXT_PUBLIC_DEPOSIT_ROUTER_ADDRESS as Address,
   personalityEngine: process.env.NEXT_PUBLIC_PERSONALITY_ENGINE_ADDRESS as Address,
   pkSkill: process.env.NEXT_PUBLIC_PKSKILL_ADDRESS as Address,
+  taskSkill: process.env.NEXT_PUBLIC_TASKSKILL_ADDRESS as Address || '' as Address,
+  marketSkill: process.env.NEXT_PUBLIC_MARKETSKILL_ADDRESS as Address || '' as Address,
 } as const;
 
 export const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || '97');

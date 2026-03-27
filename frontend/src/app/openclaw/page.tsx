@@ -132,6 +132,11 @@ function useChapters() {
               ['Balanced', 'ATK 100% / DEF 100%'],
               ['AllDefense', 'ATK 50% / DEF 150%'],
             ]} />
+            <p className="term-warn text-[10px] mt-1">
+              {cn
+                ? '性格加成：勇气≥70+全攻→ATK+5%，毅力≥70+全防→DEF+5%，智慧≥70+平衡→ATK/DEF各+3%'
+                : 'Personality bias: Courage≥70+AllAttack→ATK+5%, Grit≥70+AllDefense→DEF+5%, Wisdom≥70+Balanced→ATK/DEF each+3%'}
+            </p>
           </div>
 
           <div className="term-box" data-title={cn ? '战斗公式' : 'COMBAT FORMULA'}>
