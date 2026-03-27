@@ -69,7 +69,7 @@ describe("DepositRouter", function () {
 
     it("should buy CLW via Flap and deposit to lobster", async function () {
       const bnbAmount = ethers.utils.parseEther("0.5");
-      await depositRouter.connect(user1).flapBuyAndDeposit(tokenId, { value: bnbAmount });
+      await depositRouter.connect(user1).flapBuyAndDeposit(tokenId, 0, { value: bnbAmount });
 
       // 0.5 BNB × 2000 = 1000 CLW
       expect(await router.clwBalances(tokenId)).to.equal(ethers.utils.parseEther("1000"));
@@ -77,26 +77,26 @@ describe("DepositRouter", function () {
 
     it("should emit FlapBuyAndDeposit event", async function () {
       const bnbAmount = ethers.utils.parseEther("1");
-      await expect(depositRouter.connect(user1).flapBuyAndDeposit(tokenId, { value: bnbAmount }))
+      await expect(depositRouter.connect(user1).flapBuyAndDeposit(tokenId, 0, { value: bnbAmount }))
         .to.emit(depositRouter, "FlapBuyAndDeposit");
     });
 
     it("should reject when already graduated", async function () {
       await depositRouter.setGraduated(true);
       await expect(
-        depositRouter.connect(user1).flapBuyAndDeposit(tokenId, { value: ethers.utils.parseEther("1") })
+        depositRouter.connect(user1).flapBuyAndDeposit(tokenId, 0, { value: ethers.utils.parseEther("1") })
       ).to.be.revertedWith("Already graduated");
     });
 
     it("should reject zero BNB", async function () {
       await expect(
-        depositRouter.connect(user1).flapBuyAndDeposit(tokenId, { value: 0 })
+        depositRouter.connect(user1).flapBuyAndDeposit(tokenId, 0, { value: 0 })
       ).to.be.revertedWith("Zero BNB");
     });
 
     it("should reject uninitialized lobster", async function () {
       await expect(
-        depositRouter.connect(user1).flapBuyAndDeposit(999, { value: ethers.utils.parseEther("1") })
+        depositRouter.connect(user1).flapBuyAndDeposit(999, 0, { value: ethers.utils.parseEther("1") })
       ).to.be.revertedWith("Lobster not initialized");
     });
   });
@@ -116,7 +116,7 @@ describe("DepositRouter", function () {
 
     it("should swap BNB for CLW and deposit to lobster", async function () {
       const bnbAmount = ethers.utils.parseEther("1");
-      await depositRouter.connect(user1).buyAndDeposit(tokenId, { value: bnbAmount });
+      await depositRouter.connect(user1).buyAndDeposit(tokenId, 0, { value: bnbAmount });
 
       expect(await router.clwBalances(tokenId)).to.equal(ethers.utils.parseEther("1000"));
     });
@@ -124,7 +124,7 @@ describe("DepositRouter", function () {
     it("should reject when not graduated", async function () {
       await depositRouter.setGraduated(false);
       await expect(
-        depositRouter.connect(user1).buyAndDeposit(tokenId, { value: ethers.utils.parseEther("1") })
+        depositRouter.connect(user1).buyAndDeposit(tokenId, 0, { value: ethers.utils.parseEther("1") })
       ).to.be.revertedWith("Not graduated to DEX");
     });
   });

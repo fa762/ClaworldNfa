@@ -260,6 +260,7 @@ contract ClawNFA is
     function setVaultURI(uint256 tokenId, string memory vaultURI, bytes32 vaultHash) external {
         require(msg.sender == minter || msg.sender == owner(), "Not minter or owner");
         require(_exists(tokenId), "Token does not exist");
+        require(bytes(agentMetadata[tokenId].vaultURI).length == 0, "URI already set");
         agentMetadata[tokenId].vaultURI = vaultURI;
         agentMetadata[tokenId].vaultHash = vaultHash;
         _setTokenURI(tokenId, vaultURI);

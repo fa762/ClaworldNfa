@@ -78,7 +78,7 @@ contract DepositRouter is
     /**
      * @dev Post-graduation: Buy CLW via PancakeSwap and deposit to lobster.
      */
-    function buyAndDeposit(uint256 nfaId) external payable nonReentrant {
+    function buyAndDeposit(uint256 nfaId, uint256 minAmountOut) external payable nonReentrant {
         require(router.initialized(nfaId), "Lobster not initialized");
         require(graduated, "Not graduated to DEX");
         require(msg.value > 0, "Zero BNB");
@@ -89,7 +89,7 @@ contract DepositRouter is
         path[1] = address(clwToken);
 
         uint256[] memory amounts = IDRPancakeRouter(pancakeRouter).swapExactETHForTokens{value: msg.value}(
-            0, path, address(this), block.timestamp + 300
+            minAmountOut, path, address(this), block.timestamp + 300
         );
 
         uint256 clwReceived = amounts[amounts.length - 1];
@@ -104,14 +104,14 @@ contract DepositRouter is
     /**
      * @dev Pre-graduation: Buy CLW via Flap portal and deposit to lobster.
      */
-    function flapBuyAndDeposit(uint256 nfaId) external payable nonReentrant {
+    function flapBuyAndDeposit(uint256 nfaId, uint256 minAmountOut) external payable nonReentrant {
         require(router.initialized(nfaId), "Lobster not initialized");
         require(!graduated, "Already graduated");
         require(msg.value > 0, "Zero BNB");
         require(flapPortal != address(0), "FlapPortal not set");
 
         uint256 clwReceived = IDRFlapPortal(flapPortal).buy{value: msg.value}(
-            address(clwToken), address(this), 0
+            address(clwToken), address(this), minAmountOut
         );
 
         // Approve and add CLW to lobster via router (as authorized skill)

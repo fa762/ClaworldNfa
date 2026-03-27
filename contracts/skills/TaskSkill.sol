@@ -90,6 +90,8 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
     ) external {
         require(operators[msg.sender], "Not authorized operator");
         require(matchScore <= 20000, "Score too high"); // Allow up to 2x
+        require(clwReward <= 10000 * 1e18, "CLW cap exceeded");
+        require(xpReward <= 500, "XP cap exceeded");
 
         // Calculate actual CLW reward:
         // actualCLW = clwReward × matchScore/10000 × worldState.rewardMultiplier/10000

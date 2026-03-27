@@ -183,6 +183,7 @@ contract PKSkill is
     function recommitStrategy(uint256 matchId, bytes32 newCommitHash) external {
         PKMatch storage m = matches[matchId];
         require(m.phase == Phase.OPEN, "Not open");
+        require(m.nfaB == 0, "Challenger already joined");
         require(nfa.ownerOf(m.nfaA) == msg.sender, "Not creator");
         require(newCommitHash != bytes32(0), "Empty commit");
 
