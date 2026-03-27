@@ -90,10 +90,12 @@ export function CLWTokenInfo() {
     <div className="term-box" data-title={t('token.title')}>
       <div className="flex flex-col justify-between h-full">
         <div>
-          {/* Price display */}
-          <div className="text-3xl sm:text-4xl font-extrabold tracking-tighter mb-1 glow-strong">
-            {priceDisplay}
-          </div>
+          {/* Price — link to Flap for real-time bonding curve price */}
+          <a href={`https://flap.sh/bnb/${CLW_TOKEN_ADDRESS}`} target="_blank" rel="noopener noreferrer" className="block hover:opacity-80">
+            <div className="text-2xl sm:text-3xl font-extrabold tracking-tighter mb-1 glow-strong term-link">
+              {t('token.viewPrice')}
+            </div>
+          </a>
           <div className="text-[8px] opacity-30 break-all">
             {truncateAddress(CLW_TOKEN_ADDRESS)}
           </div>
