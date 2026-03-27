@@ -149,6 +149,9 @@ contract ClawRouter is
     /// @dev PersonalityEngine contract address (for facade delegation)
     address public personalityEngine;
 
+    /// @dev Total game CLW across all lobsters (for vault rate calculation)
+    uint256 public totalGameCLW;
+
     // ============================================
     // EVENTS
     // ============================================
@@ -168,6 +171,8 @@ contract ClawRouter is
     event PersonalityEvolved(uint256 indexed nfaId, uint8 dimension, uint8 oldValue, uint8 newValue);
     event BuyAndDeposit(uint256 indexed nfaId, uint256 bnbSpent, uint256 clwReceived);
     event FlapBuyAndDeposit(uint256 indexed nfaId, uint256 bnbSpent, uint256 clwReceived);
+    event VaultDeposit(address indexed depositor, uint256 amount);
+    event CLWWithdrawn(uint256 indexed nfaId, uint256 gameAmount, uint256 realAmount, uint256 rate);
 
     // ============================================
     // MODIFIERS
@@ -245,6 +250,7 @@ contract ClawRouter is
         require(amount > 0, "Zero amount");
         clwToken.safeTransferFrom(msg.sender, address(this), amount);
         clwBalances[nfaId] += amount;
+        totalGameCLW += amount;
 
         // Auto-revive if dormant and balance sufficient
         _checkRevival(nfaId);
@@ -265,6 +271,7 @@ contract ClawRouter is
 
         // Lock the amount
         clwBalances[nfaId] -= amount;
+        totalGameCLW -= amount;
         withdrawRequests[nfaId] = WithdrawRequest({
             amount: amount,
             requestTime: uint64(block.timestamp)
@@ -296,6 +303,7 @@ contract ClawRouter is
 
         // Return CLW to lobster balance
         clwBalances[nfaId] += req.amount;
+        totalGameCLW += req.amount;
         delete withdrawRequests[nfaId];
     }
 
@@ -319,6 +327,7 @@ contract ClawRouter is
 
         if (clwBalances[nfaId] >= totalCost) {
             clwBalances[nfaId] -= totalCost;
+            totalGameCLW -= totalCost;
             lob.lastUpkeepTime += uint64(daysElapsed * 1 days);
 
             // Track zero balance for dormancy
@@ -327,7 +336,9 @@ contract ClawRouter is
             }
         } else {
             // Consume what's available
+            uint256 remaining = clwBalances[nfaId];
             clwBalances[nfaId] = 0;
+            totalGameCLW -= remaining;
             lob.lastUpkeepTime = uint64(block.timestamp);
 
             if (zeroBalanceTimestamp[nfaId] == 0) {
@@ -388,6 +399,7 @@ contract ClawRouter is
 
     function addCLW(uint256 nfaId, uint256 amount) external onlySkill lobsterExists(nfaId) {
         clwBalances[nfaId] += amount;
+        totalGameCLW += amount;
         _checkRevival(nfaId);
         emit CLWRewarded(nfaId, amount, msg.sender);
     }
@@ -395,6 +407,7 @@ contract ClawRouter is
     function spendCLW(uint256 nfaId, uint256 amount) external onlySkill lobsterExists(nfaId) {
         require(clwBalances[nfaId] >= amount, "Insufficient CLW");
         clwBalances[nfaId] -= amount;
+        totalGameCLW -= amount;
 
         if (clwBalances[nfaId] == 0 && zeroBalanceTimestamp[nfaId] == 0) {
             zeroBalanceTimestamp[nfaId] = uint64(block.timestamp);
@@ -537,6 +550,50 @@ contract ClawRouter is
     }
 
     // ============================================
+    // VAULT RATE WITHDRAWAL
+    // ============================================
+
+    /// @notice Owner deposits real CLW tokens into vault
+    function depositVault(uint256 amount) external onlyOwner {
+        require(address(clwToken) != address(0), "CLW not set");
+        IERC20(clwToken).transferFrom(msg.sender, address(this), amount);
+        emit VaultDeposit(msg.sender, amount);
+    }
+
+    /// @notice Get current withdrawal rate (basis points, 10000 = 1:1)
+    function getVaultRate() public view returns (uint256) {
+        if (totalGameCLW == 0) return 10000;
+        uint256 vaultBalance = IERC20(clwToken).balanceOf(address(this));
+        uint256 rate = (vaultBalance * 10000) / totalGameCLW;
+        return rate > 10000 ? 10000 : rate; // cap at 1:1
+    }
+
+    /// @notice Get vault real CLW balance
+    function getVaultBalance() external view returns (uint256) {
+        if (address(clwToken) == address(0)) return 0;
+        return IERC20(clwToken).balanceOf(address(this));
+    }
+
+    /// @notice Player withdraws game CLW as real CLW tokens (rate-adjusted)
+    function withdrawCLW(uint256 nfaId, uint256 amount) external nonReentrant {
+        require(nfa.ownerOf(nfaId) == msg.sender, "Not owner");
+        require(clwBalances[nfaId] >= amount, "Insufficient game CLW");
+        require(address(clwToken) != address(0), "CLW not set");
+
+        uint256 rate = getVaultRate();
+        uint256 realAmount = (amount * rate) / 10000;
+
+        clwBalances[nfaId] -= amount;
+        totalGameCLW -= amount;
+
+        if (realAmount > 0) {
+            IERC20(clwToken).transfer(msg.sender, realAmount);
+        }
+
+        emit CLWWithdrawn(nfaId, amount, realAmount, rate);
+    }
+
+    // ============================================
     // ADMIN
     // ============================================
 
@@ -634,5 +691,5 @@ contract ClawRouter is
     /**
      * @dev Reserved storage gap for future upgrades.
      */
-    uint256[40] private __gap;
+    uint256[39] private __gap;
 }
