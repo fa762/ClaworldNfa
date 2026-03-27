@@ -504,6 +504,92 @@ async function cmdWorld() {
   }, null, 2));
 }
 
+// ─── Deposit CLW/BNB ───
+
+async function cmdDeposit(pin, nfaId, amount) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const clw = new ethers.Contract(CONTRACTS.clw, [
+    'function approve(address,uint256)',
+    'function balanceOf(address) view returns (uint256)'
+  ], wallet);
+  const router = new ethers.Contract(CONTRACTS.router, [
+    'function depositCLW(uint256,uint256)'
+  ], wallet);
+  const wei = ethers.utils.parseEther(String(amount));
+  // Check balance
+  const bal = await clw.balanceOf(wallet.address);
+  if (bal.lt(wei)) {
+    console.log('INSUFFICIENT_CLW: have=' + ethers.utils.formatEther(bal) + ' need=' + amount);
+    return;
+  }
+  // Approve + deposit
+  const approveTx = await clw.approve(CONTRACTS.router, wei, { gasLimit: 100000 });
+  await approveTx.wait();
+  const tx = await router.depositCLW(nfaId, wei, { gasLimit: 200000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('DEPOSITED: ' + amount + ' CLW to NFA #' + nfaId);
+}
+
+async function cmdFundBnb(pin, nfaId, bnbAmount) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const nfaContract = new ethers.Contract(CONTRACTS.nfa, [
+    'function fundAgent(uint256)'
+  ], wallet);
+  const tx = await nfaContract.fundAgent(nfaId, {
+    value: ethers.utils.parseEther(String(bnbAmount)),
+    gasLimit: 100000
+  });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('FUNDED: ' + bnbAmount + ' BNB to NFA #' + nfaId);
+}
+
+// ─── Upkeep ───
+
+async function cmdUpkeep(pin, nfaId) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const router = new ethers.Contract(CONTRACTS.router, [
+    'function processUpkeep(uint256)'
+  ], wallet);
+  try {
+    const tx = await router.processUpkeep(nfaId, { gasLimit: 200000 });
+    console.log('TX: ' + tx.hash);
+    await tx.wait();
+    console.log('UPKEEP_OK: daily cost deducted for NFA #' + nfaId);
+  } catch (e) {
+    console.log('UPKEEP_SKIPPED: ' + (e.reason || 'already processed or not needed'));
+  }
+}
+
+// ─── Market Search ───
+
+async function cmdMarketSearch() {
+  const market = new ethers.Contract(CONTRACTS.market, [
+    'function listingCount() view returns (uint256)',
+    'function listings(uint256) view returns (uint256,address,uint8,uint256,uint256,uint256,address,uint64,uint8)'
+  ], provider);
+  var total;
+  try { total = await market.listingCount(); } catch { total = ethers.BigNumber.from(0); }
+  const active = [];
+  for (var i = 1; i <= total.toNumber() && i <= 100; i++) {
+    try {
+      var l = await market.listings(i);
+      // status: 0=ACTIVE
+      if (l[8] === 0) {
+        active.push({
+          listingId: i,
+          nfaId: l[0].toNumber(),
+          seller: l[1],
+          listingType: ['FixedPrice','Auction','Swap'][l[2]] || l[2],
+          price: ethers.utils.formatEther(l[3]) + ' BNB',
+        });
+      }
+    } catch {}
+  }
+  console.log(JSON.stringify(active, null, 2));
+}
+
 // ─── Withdraw CLW ───
 
 async function cmdWithdrawRequest(pin, nfaId, amount) {
@@ -701,6 +787,10 @@ const [,, cmd, ...args] = process.argv;
 const commands = {
   boot:         () => cmdBoot(),
   status:       () => cmdStatus(args[0]),
+  deposit:      () => cmdDeposit(args[0], args[1], args[2]),
+  'fund-bnb':   () => cmdFundBnb(args[0], args[1], args[2]),
+  upkeep:       () => cmdUpkeep(args[0], args[1]),
+  'market-search': () => cmdMarketSearch(),
   task:         () => cmdTask(args[0], args[1], args[2], args[3], args[4], args[5]),
   wallet:       () => cmdWallet(),
   balance:      () => cmdBalance(args[0]),
@@ -732,6 +822,10 @@ if (!cmd || !commands[cmd]) {
   console.log('  claw status <tokenId>              — read lobster data');
   console.log('  claw wallet                        — show wallet');
   console.log('  claw world                         — world state');
+  console.log('  claw deposit <pin> <nfa> <clwAmount>           — deposit CLW');
+  console.log('  claw fund-bnb <pin> <nfa> <bnbAmount>          — fund BNB');
+  console.log('  claw upkeep <pin> <nfa>                        — process daily upkeep');
+  console.log('  claw market-search                             — browse active listings');
   console.log('  claw task <pin> <nfa> <type> <xp> <clw> <score>  — do task');
   console.log('  claw pk-create <pin> <nfa> <stake> [strategy]   — create PK (arena: +strategy)');
   console.log('  claw pk-join <pin> <matchId> <nfa> [strategy]   — join PK (arena: +strategy)');

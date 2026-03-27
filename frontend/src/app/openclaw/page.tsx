@@ -223,13 +223,57 @@ function useChapters() {
 
           <div className="term-box" data-title={cn ? '消耗方式' : 'SPEND CLW'}>
             <Tbl rows={cn ? [
-              ['每日维护', '龙虾每天消耗 CLW，余额归零则休眠'],
+              ['每日维护', '龙虾每天消耗 CLW（毅力越高消耗越低）'],
               ['PK 质押', '对战需质押 CLW，输了会损失'],
               ['PK 销毁', '每场 PK 10% 质押永久销毁（通缩）'],
             ] : [
-              ['Daily upkeep', 'Lobster consumes CLW daily, goes dormant if 0'],
+              ['Daily upkeep', 'Lobster consumes CLW daily (higher grit = lower cost)'],
               ['PK stake', 'Must stake CLW to battle, lose if defeated'],
               ['PK burn', '10% of each PK stake is permanently burned'],
+            ]} />
+          </div>
+
+          <div className="term-box" data-title={cn ? '休眠机制' : 'DORMANCY'}>
+            <Tbl rows={cn ? [
+              ['CLW 归零', '余额为 0 时开始 72 小时倒计时'],
+              ['72h 后', '龙虾进入休眠 — 无法做任务/PK'],
+              ['唤醒方式', '充值 CLW 到 NFA 即可恢复'],
+              ['日消耗公式', '基础消耗 × (200-毅力)/200 × 世界倍率'],
+            ] : [
+              ['CLW hits 0', '72-hour countdown begins'],
+              ['After 72h', 'Lobster goes dormant — no tasks/PK'],
+              ['Revival', 'Deposit CLW to wake it up'],
+              ['Cost formula', 'base × (200-grit)/200 × worldMultiplier'],
+            ]} />
+          </div>
+
+          <div className="term-box" data-title={cn ? '提现流程' : 'WITHDRAW'}>
+            <Tbl rows={cn ? [
+              ['第 1 步', '发起提现请求 → CLW 从 NFA 余额锁定'],
+              ['等 6 小时', '安全冷却期（防止被盗后立即转走）'],
+              ['第 3 步', '领取 → 真实 CLW 代币转到你的钱包'],
+              ['取消', '冷却期内可随时取消，CLW 退回 NFA'],
+            ] : [
+              ['Step 1', 'Request withdraw → CLW locked from NFA balance'],
+              ['Wait 6h', 'Security cooldown (prevents instant theft)'],
+              ['Step 3', 'Claim → real CLW token transferred to wallet'],
+              ['Cancel', 'Can cancel anytime during cooldown'],
+            ]} />
+          </div>
+
+          <div className="term-box" data-title={cn ? '创世空投' : 'GENESIS AIRDROP'}>
+            <Tbl rows={cn ? [
+              ['普通', '1,000 CLW'],
+              ['稀有', '3,000 CLW'],
+              ['史诗', '6,000 CLW'],
+              ['传说', '12,000 CLW'],
+              ['神话', '30,000 CLW'],
+            ] : [
+              ['Common', '1,000 CLW'],
+              ['Rare', '3,000 CLW'],
+              ['Epic', '6,000 CLW'],
+              ['Legendary', '12,000 CLW'],
+              ['Mythic', '30,000 CLW'],
             ]} />
           </div>
 
@@ -240,13 +284,13 @@ function useChapters() {
               ['PK 质押上限', '单场最大质押额'],
               ['变异加成', '基因变异触发概率'],
               ['日消耗倍率', '维护费调整'],
-              ['世界事件', '泡沫期 / 寒冬期 / 黄金时代'],
+              ['世界事件', '泡沫期(奖励↓费用↑变异↑) / 寒冬期(奖励↑费用↓质押↓) / 黄金时代'],
             ] : [
               ['Reward multiplier', 'Affects task CLW rewards'],
               ['PK stake cap', 'Max stake per match'],
               ['Mutation bonus', 'Gene mutation trigger probability'],
               ['Daily cost', 'Upkeep cost adjustment'],
-              ['World events', 'Bubble / Winter / Golden Age'],
+              ['World events', 'Bubble(reward↓cost↑mutation↑) / Winter(reward↑cost↓stake↓) / Golden Age'],
             ]} />
           </div>
         </div>
@@ -276,6 +320,18 @@ function useChapters() {
             <p className="term-dim">{cn ? '效果：随机一项基因 +5（上限 100）' : 'Effect: random gene +5 (max 100)'}</p>
             <p className="term-dim">{cn ? '概率：基础 10%，受世界状态变异加成影响' : 'Chance: base 10%, affected by world state mutation bonus'}</p>
             <p className="term-dim">{cn ? '每只龙虾有 2 个变异槽，记录变异历史。' : 'Each lobster has 2 mutation slots recording mutation history.'}</p>
+          </div>
+
+          <div className="term-box" data-title={cn ? '升级系统' : 'LEVELING'}>
+            <Tbl rows={cn ? [
+              ['升级所需 XP', '100 × (当前等级+1)'],
+              ['XP 来源', '完成任务 30-50 XP / PK 赢 50 XP / PK 输 25 XP'],
+              ['每 10 级', '随机一项基因 +2（自动强化）'],
+            ] : [
+              ['XP to level up', '100 × (current level + 1)'],
+              ['XP sources', 'Tasks 30-50 XP / PK win 50 XP / PK loss 25 XP'],
+              ['Every 10 levels', 'Random gene +2 (auto boost)'],
+            ]} />
           </div>
 
           <div className="term-box" data-title={cn ? '稀有度与基因' : 'RARITY & DNA'}>

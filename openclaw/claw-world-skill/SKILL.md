@@ -113,7 +113,11 @@ node ~/.openclaw/skills/claw-world/claw task <PIN> <NFA_ID> <TASK_TYPE> <XP> <CL
 | "选1" / "第2个" | Ask PIN, run `claw task ...`, show result |
 | "我想打架" / "PK" | Start PK flow (see PK section below) |
 | "市场" / "看看谁在卖" | Read MarketSkill events |
+| "充值" / "存钱" / "deposit" | Ask amount, run `claw deposit` |
+| "充 BNB" | Run `claw fund-bnb` |
+| "结算" / "扣费" / "upkeep" | Run `claw upkeep` |
 | "提现" / "取钱" / "withdraw" | Start withdraw flow (request → 6h → claim) |
+| "市场" / "谁在卖" | Run `claw market-search` |
 | "帮助" / "你能干嘛" | Explain game in natural language |
 
 # Task Flow (step by step)
