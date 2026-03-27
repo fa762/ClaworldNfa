@@ -51,7 +51,8 @@ function getMockData(id: number) {
 export function NFADetail({ tokenId }: { tokenId: string }) {
   const id = BigInt(tokenId);
   const numId = Number(tokenId);
-  const { t } = useI18n();
+  const { lang, t } = useI18n();
+  const cn = lang === 'zh';
 
   const TABS = [
     { key: 'status' as const, label: t('tab.status') },
@@ -219,17 +220,17 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
               <PipBoyStatList stats={specialStats} />
               {/* Task Resume 任务履历 */}
               {!useMock && taskStats && (
-                <div className="term-box mt-2" data-title="TASK RECORD">
+                <div className="term-box mt-2" data-title={cn ? '任务履历' : 'TASK RECORD'}>
                   <div className="grid grid-cols-2 gap-1 text-[11px]">
-                    <div className="term-dim">Total Tasks</div>
+                    <div className="term-dim">{cn ? '总任务' : 'Total Tasks'}</div>
                     <div className="term-bright">{Number((taskStats as any)[0] ?? (taskStats as any).total ?? 0)}</div>
-                    <div className="term-dim">CLW Earned</div>
+                    <div className="term-dim">{cn ? '累计收益' : 'CLW Earned'}</div>
                     <div className="term-bright">{formatCompact(Number(BigInt((taskStats as any)[1] ?? 0) / 10n**14n) / 10000)}</div>
-                    <div className="term-dim">Courage</div><div className="term-dim">{Number((taskStats as any)[2] ?? 0)}</div>
-                    <div className="term-dim">Wisdom</div><div className="term-dim">{Number((taskStats as any)[3] ?? 0)}</div>
-                    <div className="term-dim">Social</div><div className="term-dim">{Number((taskStats as any)[4] ?? 0)}</div>
-                    <div className="term-dim">Create</div><div className="term-dim">{Number((taskStats as any)[5] ?? 0)}</div>
-                    <div className="term-dim">Grit</div><div className="term-dim">{Number((taskStats as any)[6] ?? 0)}</div>
+                    <div className="term-dim">{cn ? '勇气' : 'Courage'}</div><div className="term-dim">{Number((taskStats as any)[2] ?? 0)}</div>
+                    <div className="term-dim">{cn ? '智慧' : 'Wisdom'}</div><div className="term-dim">{Number((taskStats as any)[3] ?? 0)}</div>
+                    <div className="term-dim">{cn ? '社交' : 'Social'}</div><div className="term-dim">{Number((taskStats as any)[4] ?? 0)}</div>
+                    <div className="term-dim">{cn ? '创造' : 'Create'}</div><div className="term-dim">{Number((taskStats as any)[5] ?? 0)}</div>
+                    <div className="term-dim">{cn ? '毅力' : 'Grit'}</div><div className="term-dim">{Number((taskStats as any)[6] ?? 0)}</div>
                   </div>
                 </div>
               )}
@@ -252,7 +253,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
               {!useMock && pkStats && (
                 <>
                   <div className="term-line my-3" />
-                  <div className="term-box" data-title="PK RECORD">
+                  <div className="term-box" data-title={cn ? '战斗履历' : 'PK RECORD'}>
                     <div className="grid grid-cols-2 gap-1 text-[11px]">
                       {(() => {
                         const wins = Number((pkStats as any)[0] ?? (pkStats as any).wins ?? 0);
@@ -263,11 +264,11 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
                         const clwLost = Number(BigInt((pkStats as any)[3] ?? 0) / 10n**14n) / 10000;
                         return (
                           <>
-                            <div className="term-dim">Battles</div><div className="term-bright">{total}</div>
-                            <div className="term-dim">W / L</div><div className="term-bright">{wins} / {losses}</div>
-                            <div className="term-dim">Win Rate</div><div className={winRate >= 50 ? 'text-crt-green' : 'term-danger'}>{winRate}%</div>
-                            <div className="term-dim">CLW Won</div><div className="text-crt-green">{formatCompact(clwWon)}</div>
-                            <div className="term-dim">CLW Lost</div><div className="term-danger">{formatCompact(clwLost)}</div>
+                            <div className="term-dim">{cn ? '总场次' : 'Battles'}</div><div className="term-bright">{total}</div>
+                            <div className="term-dim">{cn ? '胜 / 负' : 'W / L'}</div><div className="term-bright">{wins} / {losses}</div>
+                            <div className="term-dim">{cn ? '胜率' : 'Win Rate'}</div><div className={winRate >= 50 ? 'text-crt-green' : 'term-danger'}>{winRate}%</div>
+                            <div className="term-dim">{cn ? '赢得 CLW' : 'CLW Won'}</div><div className="text-crt-green">{formatCompact(clwWon)}</div>
+                            <div className="term-dim">{cn ? '损失 CLW' : 'CLW Lost'}</div><div className="term-danger">{formatCompact(clwLost)}</div>
                           </>
                         );
                       })()}
