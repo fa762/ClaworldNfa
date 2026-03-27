@@ -372,10 +372,10 @@ async function cmdPkAutoSettle(pin, matchId, pin2) {
 
 async function cmdPkSearch() {
   const pk = new ethers.Contract(CONTRACTS.pk, [
-    'function _matchIdCounter() view returns (uint256)',
+    'function getMatchCount() view returns (uint256)',
     'function matches(uint256) view returns (uint256,uint256,bytes32,bytes32,uint8,uint8,uint256,uint8,uint64,bool,bool,bytes32,bytes32)'
   ], provider);
-  const total = await pk._matchIdCounter();
+  const total = await pk.getMatchCount();
   const open = [];
   for (let i = 1; i <= total.toNumber(); i++) {
     const m = await pk.matches(i);

@@ -30,13 +30,13 @@ export default function Home() {
       <HeroSection />
 
       {/* Dashboard Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
         <WorldStateDashboard />
         <CLWTokenInfo />
       </div>
 
       {/* Core Systems */}
-      <div className="term-box mt-4" data-title={t('core.title')}>
+      <div className="term-box mt-3" data-title={t('core.title')}>
         <div className="space-y-2">
           {featureList.map((f) => (
             <div key={f.key} className="flex gap-3 text-[11px]">

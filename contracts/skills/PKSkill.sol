@@ -444,43 +444,41 @@ contract PKSkill is
         _checkMutation(matchId, winner, loser);
     }
 
+    struct CombatUnit {
+        uint256 str; uint256 def; uint256 spd; uint256 vit;
+        uint256 atkMul; uint256 defMul;
+    }
+
+    function _buildUnit(uint256 nfaId, uint8 strategy) internal view returns (CombatUnit memory u) {
+        (,,uint8 cour, uint8 wis,,, uint8 grit, uint8 s, uint8 d, uint8 sp, uint8 v,,,,,) = router.lobsters(nfaId);
+        (u.atkMul, u.defMul) = _getStrategyMuls(strategy);
+        u.str = s; u.def = d; u.spd = sp; u.vit = v;
+
+        // Personality-Strategy Bias: matching gets +5% bonus
+        if (strategy == 0 && cour >= 70) u.atkMul += 500;      // courage + AllAttack
+        if (strategy == 2 && grit >= 70) u.defMul += 500;      // grit + AllDefense
+        if (strategy == 1 && wis >= 70) { u.atkMul += 300; u.defMul += 300; } // wisdom + Balanced
+    }
+
     function _calculateCombat(PKMatch storage m) internal view returns (uint256 damageA, uint256 damageB) {
-        (,,,,,,,uint8 strA, uint8 defA, uint8 spdA, uint8 vitA,,,,,) = router.lobsters(m.nfaA);
-        (,,,,,,,uint8 strB, uint8 defB, uint8 spdB, uint8 vitB,,,,,) = router.lobsters(m.nfaB);
+        CombatUnit memory a = _buildUnit(m.nfaA, m.strategyA);
+        CombatUnit memory b = _buildUnit(m.nfaB, m.strategyB);
 
-        // Strategy multipliers: [attack_mul, defense_mul] in basis points
-        // AllAttack: 150% ATK, 50% DEF
-        // Balanced: 100% ATK, 100% DEF
-        // AllDefense: 50% ATK, 150% DEF
-        (uint256 atkMulA, uint256 defMulA) = _getStrategyMuls(m.strategyA);
-        (uint256 atkMulB, uint256 defMulB) = _getStrategyMuls(m.strategyB);
+        uint256 effStrA = a.str * a.atkMul / 10000;
+        uint256 effDefA = a.def * a.defMul / 10000;
+        uint256 effStrB = b.str * b.atkMul / 10000;
+        uint256 effDefB = b.def * b.defMul / 10000;
 
-        // Effective values
-        uint256 effStrA = uint256(strA) * atkMulA / 10000;
-        uint256 effDefA = uint256(defA) * defMulA / 10000;
-        uint256 effStrB = uint256(strB) * atkMulB / 10000;
-        uint256 effDefB = uint256(defB) * defMulB / 10000;
-
-        // First strike: higher SPD attacks first (bonus 10%)
-        uint256 fsBonus = 1000; // 10% in basis points
-
-        // A attacks B
         uint256 rawDmgA = effStrA > effDefB ? effStrA - effDefB : 1;
-        // B attacks A
         uint256 rawDmgB = effStrB > effDefA ? effStrB - effDefA : 1;
 
-        // Speed advantage
-        if (spdA > spdB) {
-            rawDmgA = rawDmgA * (10000 + fsBonus) / 10000;
-        } else if (spdB > spdA) {
-            rawDmgB = rawDmgB * (10000 + fsBonus) / 10000;
-        }
+        // Speed advantage: +10%
+        if (a.spd > b.spd) rawDmgA = rawDmgA * 11000 / 10000;
+        else if (b.spd > a.spd) rawDmgB = rawDmgB * 11000 / 10000;
 
-        // HP = VIT × 10
-        uint256 hpA = uint256(vitA) * 10;
-        uint256 hpB = uint256(vitB) * 10;
+        uint256 hpA = a.vit * 10;
+        uint256 hpB = b.vit * 10;
 
-        // Damage score = rawDmg relative to opponent HP
         damageA = rawDmgA * 10000 / (hpB > 0 ? hpB : 1);
         damageB = rawDmgB * 10000 / (hpA > 0 ? hpA : 1);
     }
@@ -536,6 +534,10 @@ contract PKSkill is
     // ============================================
     // VIEW
     // ============================================
+
+    function getMatchCount() external view returns (uint256) {
+        return _matchIdCounter;
+    }
 
     function getMatch(uint256 matchId) external view returns (PKMatch memory) {
         return matches[matchId];
