@@ -44,6 +44,8 @@ const translations: Record<string, Record<Lang, string>> = {
   'token.trade': { zh: '前往交易', en: 'OPEN TRADE' },
   'token.copy': { zh: '复制', en: 'COPY' },
   'token.copied': { zh: '已复制', en: 'COPIED' },
+  'token.supply': { zh: '总供应量', en: 'Total Supply' },
+  'token.contract': { zh: '合约', en: 'Contract' },
 
   // ─── Core Systems ───
   'core.title': { zh: '核心系统', en: 'CORE SYSTEMS' },
