@@ -113,6 +113,7 @@ node ~/.openclaw/skills/claw-world/claw task <PIN> <NFA_ID> <TASK_TYPE> <XP> <CL
 | "选1" / "第2个" | Ask PIN, run `claw task ...`, show result |
 | "我想打架" / "PK" | Start PK flow (see PK section below) |
 | "市场" / "看看谁在卖" | Read MarketSkill events |
+| "提现" / "取钱" / "withdraw" | Start withdraw flow (request → 6h → claim) |
 | "帮助" / "你能干嘛" | Explain game in natural language |
 
 # Task Flow (step by step)
@@ -252,6 +253,20 @@ node ~/.openclaw/skills/claw-world/claw market-cancel <PIN> <LISTING_ID>
 ```bash
 node ~/.openclaw/skills/claw-world/claw world
 ```
+
+### Withdraw CLW (two-step with 6h cooldown)
+```bash
+node ~/.openclaw/skills/claw-world/claw withdraw-request <PIN> <NFA_ID> <AMOUNT>
+node ~/.openclaw/skills/claw-world/claw withdraw-status <NFA_ID>
+node ~/.openclaw/skills/claw-world/claw withdraw-claim <PIN> <NFA_ID>
+node ~/.openclaw/skills/claw-world/claw withdraw-cancel <PIN> <NFA_ID>
+```
+- Step 1: `withdraw-request` locks CLW from NFA balance
+- Step 2: Wait 6 hours (check with `withdraw-status`)
+- Step 3: `withdraw-claim` transfers real CLW token to wallet
+- Can cancel anytime before claiming with `withdraw-cancel`
+
+**When player asks to withdraw**: Explain the 6h cooldown clearly. This is a security feature.
 
 ### Transfer NFA
 ```bash

@@ -504,6 +504,66 @@ async function cmdWorld() {
   }, null, 2));
 }
 
+// ─── Withdraw CLW ───
+
+async function cmdWithdrawRequest(pin, nfaId, amount) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const router = new ethers.Contract(CONTRACTS.router, [
+    'function requestWithdrawCLW(uint256,uint256)'
+  ], wallet);
+  const tx = await router.requestWithdrawCLW(nfaId, ethers.utils.parseEther(String(amount)), { gasLimit: 200000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('WITHDRAW_REQUESTED: nfa=' + nfaId + ' amount=' + amount + ' CLW');
+  console.log('COOLDOWN: 6 hours. Run "claw withdraw-claim <pin> <nfa>" after cooldown.');
+}
+
+async function cmdWithdrawClaim(pin, nfaId) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const router = new ethers.Contract(CONTRACTS.router, [
+    'function claimWithdrawCLW(uint256)'
+  ], wallet);
+  const tx = await router.claimWithdrawCLW(nfaId, { gasLimit: 200000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('WITHDRAW_CLAIMED: CLW transferred to your wallet');
+}
+
+async function cmdWithdrawCancel(pin, nfaId) {
+  const wallet = new ethers.Wallet(decryptKey(pin), provider);
+  const router = new ethers.Contract(CONTRACTS.router, [
+    'function cancelWithdraw(uint256)'
+  ], wallet);
+  const tx = await router.cancelWithdraw(nfaId, { gasLimit: 200000 });
+  console.log('TX: ' + tx.hash);
+  const r = await tx.wait();
+  console.log('WITHDRAW_CANCELLED: CLW returned to NFA balance');
+}
+
+async function cmdWithdrawStatus(nfaId) {
+  const router = new ethers.Contract(CONTRACTS.router, [
+    'function withdrawRequests(uint256) view returns (uint256,uint64)'
+  ], provider);
+  const req = await router.withdrawRequests(nfaId);
+  const amount = req[0];
+  const requestTime = Number(req[1]);
+  if (amount.eq(0)) {
+    console.log('NO_PENDING_WITHDRAWAL');
+    return;
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const cooldownEnd = requestTime + 6 * 3600;
+  const ready = now >= cooldownEnd;
+  console.log(JSON.stringify({
+    nfaId: Number(nfaId),
+    amount: parseFloat(ethers.utils.formatEther(amount)),
+    requestedAt: new Date(requestTime * 1000).toISOString(),
+    claimableAt: new Date(cooldownEnd * 1000).toISOString(),
+    ready,
+    minutesLeft: ready ? 0 : Math.ceil((cooldownEnd - now) / 60)
+  }, null, 2));
+}
+
 // ─── Boot (mandatory first command every conversation) ───
 
 async function cmdBoot() {
@@ -660,6 +720,10 @@ const commands = {
   'market-buy':     () => cmdMarketBuy(args[0], args[1], args[2]),
   'market-bid':     () => cmdMarketBid(args[0], args[1], args[2]),
   'market-cancel':  () => cmdMarketCancel(args[0], args[1]),
+  'withdraw-request': () => cmdWithdrawRequest(args[0], args[1], args[2]),
+  'withdraw-claim':   () => cmdWithdrawClaim(args[0], args[1]),
+  'withdraw-cancel':  () => cmdWithdrawCancel(args[0], args[1]),
+  'withdraw-status':  () => cmdWithdrawStatus(args[0]),
 };
 
 if (!cmd || !commands[cmd]) {
@@ -680,6 +744,10 @@ if (!cmd || !commands[cmd]) {
   console.log('  claw market-buy <pin> <listingId> <priceBNB>    — buy');
   console.log('  claw market-bid <pin> <listingId> <bidBNB>      — bid');
   console.log('  claw market-cancel <pin> <listingId>            — cancel');
+  console.log('  claw withdraw-request <pin> <nfa> <amount>     — request CLW withdraw');
+  console.log('  claw withdraw-claim <pin> <nfa>                — claim after 6h cooldown');
+  console.log('  claw withdraw-cancel <pin> <nfa>               — cancel withdraw');
+  console.log('  claw withdraw-status <nfa>                     — check withdraw status');
   console.log('  claw transfer <pin> <nfa> <toAddress>           — transfer NFA');
   process.exit(1);
 }
