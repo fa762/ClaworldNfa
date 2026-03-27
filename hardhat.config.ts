@@ -12,10 +12,14 @@ dotenv.config();
 
 // Proxy support for BSC testnet/mainnet deployments
 // Set HTTP_PROXY=http://127.0.0.1:59527 in .env to enable
+let proxyAgent: any = undefined;
 if (process.env.HTTP_PROXY) {
-  const HttpsProxyAgent = require("https-proxy-agent");
+  const { HttpsProxyAgent } = require("https-proxy-agent");
+  const http = require("http");
   const https = require("https");
-  https.globalAgent = new HttpsProxyAgent(process.env.HTTP_PROXY);
+  proxyAgent = new HttpsProxyAgent(process.env.HTTP_PROXY);
+  http.globalAgent = proxyAgent;
+  https.globalAgent = proxyAgent;
 }
 
 
@@ -40,11 +44,13 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       timeout: 120000,
       httpHeaders: {},
+      ...(proxyAgent ? { httpAgent: proxyAgent, httpsAgent: proxyAgent } : {}),
     },
     bscMainnet: {
-      url: "https://bsc-dataseed1.bnbchain.org",
+      url: process.env.BSC_MAINNET_RPC || "https://bsc-dataseed1.bnbchain.org",
       chainId: 56,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      timeout: 120000,
     },
   },
   gasReporter: {

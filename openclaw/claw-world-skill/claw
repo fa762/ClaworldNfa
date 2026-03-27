@@ -16,7 +16,13 @@ try { NET = fs.readFileSync(home + '/.openclaw/claw-world/network.conf', 'utf8')
 
 const RPC = NET === 'mainnet' ? 'https://bsc-rpc.publicnode.com' : 'https://bsc-testnet-rpc.publicnode.com';
 const CONTRACTS = NET === 'mainnet' ? {
-  nfa: '', router: '', task: '', pk: '', market: '', world: '', clw: ''
+  nfa:    '0xAa2094798B5892191124eae9D77E337544FFAE48',
+  router: '0x60C0D5276c007Fd151f2A615c315cb364EF81BD5',
+  task:   '0xaed370784536e31BE4A5D0Dbb1bF275c98179D10',
+  pk:     '0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF',
+  market: '0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54',
+  world:  '0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA',
+  clw:    '0x82404d91cd6b6cb16b58c650a26122bdc0af7777'
 } : {
   nfa:    '0x1c69be3401a78CFeDC2B2543E62877874f10B135',
   router: '0xA7Ee12C5E9435686978F4b87996B4Eb461c34603',

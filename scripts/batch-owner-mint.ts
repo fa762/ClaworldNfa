@@ -29,7 +29,7 @@ async function main() {
 
   for (let i = 0; i < MINT_COUNT; i++) {
     try {
-      const tx = await vault.ownerMint(deployer.address, RARITY, { gasLimit: 500000 });
+      const tx = await vault.ownerMint(RARITY, deployer.address, { gasLimit: 500000 });
       const receipt = await tx.wait();
       minted++;
       const tokenId = startId + i;
