@@ -79,14 +79,17 @@ Each lobster NFA has:
 ```bash
 node ~/.openclaw/skills/claw-world/claw status <tokenId>
 ```
-Returns JSON. Display the values exactly as returned. Example:
+Returns JSON with full stats including task/PK resume (履历). Display nicely. Example:
 ```json
 {
   "personality": { "courage": 25, "wisdom": 40, "social": 72, "create": 33, "grit": 42 },
   "dna": { "STR": 20, "DEF": 46, "SPD": 27, "VIT": 21 },
-  "level": 1, "xp": 104, "clwBalance": 1000, "dailyCost": 7.9, "daysRemaining": 126
+  "level": 1, "xp": 104, "clwBalance": 1000, "dailyCost": 7.9, "daysRemaining": 126,
+  "taskRecord": { "total": 12, "clwEarned": 3200, "byType": { "courage": 5, "wisdom": 3, "social": 2, "create": 1, "grit": 1 } },
+  "pkRecord": { "wins": 6, "losses": 2, "winRate": "75%", "clwWon": 1800, "clwLost": 400 }
 }
 ```
+**Always show taskRecord and pkRecord when displaying status** — this is the lobster's resume/履历.
 
 ### Check wallet
 ```bash
@@ -176,27 +179,35 @@ node ~/.openclaw/skills/claw-world/claw pk-settle <PIN> <MATCH_ID>
 node ~/.openclaw/skills/claw-world/claw pk-status <MATCH_ID>
 node ~/.openclaw/skills/claw-world/claw pk-search
 node ~/.openclaw/skills/claw-world/claw pk-cancel <PIN> <MATCH_ID>
+node ~/.openclaw/skills/claw-world/claw pk-auto-settle <PIN> <MATCH_ID> [PIN2]
 ```
 - STRATEGY: 0=AllAttack, 1=Balanced, 2=AllDefense
-- pk-create with STRATEGY: pre-saves strategy locally, auto-commit when opponent joins
-- pk-join with STRATEGY: join + auto-commit in one step (best UX)
-- pk-status: view match details and result
+- **Arena mode (推荐)**: pk-create + STRATEGY = 创建+选策略一步完成；pk-join + STRATEGY = 加入+选策略一步完成
+- pk-auto-settle: 自动 reveal 双方 + settle（PIN2 用于自战测试）
 - pk-search: list all active matches
-- pk-cancel: cancel stuck/timed-out matches
+- pk-cancel: cancel stuck matches (supports OPEN/JOINED/COMMITTED phases)
 
-### PK Flow
-1. Player says "我想打架" → ask how much CLW to stake + suggest strategy
-2. Run `claw pk-create <PIN> <NFA> <STAKE> <STRATEGY>` → match created, strategy saved
-3. Wait for opponent (or show matchId to share)
-4. When opponent joins → run `claw pk-commit` with saved strategy
-5. Both committed → run `claw pk-reveal`
-6. Run `claw pk-settle` → show result with `claw pk-status`
+### Personality-Strategy Bias（性格策略加成）
+**When suggesting strategy, factor in personality bonus:**
+- courage ≥ 70 + AllAttack → ATK extra +5% (顺性格打法有加成)
+- grit ≥ 70 + AllDefense → DEF extra +5%
+- wisdom ≥ 70 + Balanced → ATK/DEF each +3%
 
-**Joining flow**: When player wants to join existing match:
+Tell the player: "你的勇气这么高，用全攻会有额外5%攻击加成！" when applicable.
+
+### PK Flow (Arena Mode)
+1. Player says "我想打架" → check personality, suggest matching strategy with bias bonus
+2. Ask CLW stake amount
+3. Run `claw pk-create <PIN> <NFA> <STAKE> <STRATEGY>` → match created + strategy committed on-chain
+4. Show matchId, wait for opponent
+5. When opponent joins+commits → run `claw pk-auto-settle <PIN> <MATCH_ID>` → auto reveal + settle
+6. Show result with narrative (reference shelter culture, personality)
+
+**Joining flow**:
 1. Run `claw pk-search` to find open matches
-2. Suggest strategy based on personality
-3. Run `claw pk-join <PIN> <MATCH_ID> <NFA> <STRATEGY>` → joins + commits in one step
-4. Wait for creator to commit → then both reveal → settle
+2. Suggest strategy based on personality (mention bias bonus)
+3. Run `claw pk-join <PIN> <MATCH_ID> <NFA> <STRATEGY>` → joins + commits in one tx
+4. Both committed → auto reveal + settle
 
 # Market System
 
