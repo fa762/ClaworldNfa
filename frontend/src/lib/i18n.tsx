@@ -7,7 +7,7 @@ export type Lang = 'zh' | 'en';
 const translations: Record<string, Record<Lang, string>> = {
   // ─── Nav & Layout ───
   'nav.title': { zh: 'CLAW WORLD v2.0', en: 'CLAW WORLD v2.0' },
-  'nav.world': { zh: '世界', en: 'WORLD' },
+  'nav.world': { zh: '终端', en: 'TERMINAL' },
   'nav.mint': { zh: '铸造', en: 'MINT' },
   'nav.vault': { zh: '合集', en: 'VAULT' },
   'nav.data': { zh: '指南', en: 'DATA' },
