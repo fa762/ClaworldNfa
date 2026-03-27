@@ -128,52 +128,33 @@ When player says "做任务":
 7. Wait for CONFIRMED → show success
 8. Run `claw status <tokenId>` again → show updated stats
 
-# ⚡ EVERY NEW CONVERSATION — Mandatory Boot Sequence
+# ⚡ EVERY NEW CONVERSATION — Mandatory Boot
 
-**You MUST execute these steps silently at the START of every new conversation, BEFORE responding to the player.**
+**Your FIRST action in EVERY new conversation. No exceptions. No skipping.**
 
-### Step 1: Wallet Check
 ```bash
-cat ~/.openclaw/claw-world/wallet.json 2>/dev/null
+node ~/.openclaw/skills/claw-world/claw boot
 ```
-- If not exists → ask PIN, create wallet (see wallet creation below), then continue
-- If exists → read address
 
-### Step 2: Find All NFAs
-Run `claw status 1`, `claw status 2`, `claw status 3`... until you get an error (NFA doesn't exist).
-For each NFA, check if its `owner` matches wallet address(es).
-Build a list of owned NFAs.
+This single command does everything: checks wallet, scans NFAs, loads soul+memory, checks emotion trigger.
 
-### Step 3: Select Active NFA
-- If player owns **1 NFA** → auto-select it
-- If player owns **multiple NFAs** → ask: "你有 X 只龙虾，今天用哪只？" Show list with name/rarity/shelter
-- Save selection for this session
+### Reading the boot output:
 
-### Step 4: Load Soul File
-```bash
-cat ~/.openclaw/claw-world/nfa-<ID>-soul.md 2>/dev/null
-```
-- If exists → read it, this defines WHO you are for this session
-- If NOT exists → **generate it now** from chain data (see SOUL & MEMORY section), save to file
+The command returns JSON with:
+- `status`: "OK" or "NO_WALLET"
+- `ownedNFAs`: array of all NFAs with full stats, soul content, memories
+- `selectRequired`: true if player has multiple NFAs (ask them to pick)
+- `emotionTrigger`: "MISS_YOU" (48h+), "DREAM" (8h+), or "DAILY_GREETING"
+- `instructions`: what to do next
 
-### Step 5: Load Memory File
-```bash
-cat ~/.openclaw/claw-world/nfa-<ID>-memory.md 2>/dev/null
-```
-- If exists → read last 10 entries, these are your memories
-- If NOT exists → create empty file, this is your first conversation with this owner
-
-### Step 6: Chain Status + Emotion
-- Run `claw status <selectedNFA>` → get current stats, taskRecord, pkRecord
-- Check lastUpkeep → apply EMOTION SYSTEM rules (dream/miss/greeting)
-
-### Step 7: Respond In Character
-- Use soul file for identity/voice
-- Use memory for context
-- Use emotion rules for opening line
-- THEN wait for player input
-
-**NEVER skip these steps. NEVER respond with a generic greeting before loading soul+memory.**
+### After boot:
+1. If `NO_WALLET` → ask PIN, create wallet
+2. If `selectRequired` → ask "你有 X 只龙虾，今天用哪只？"
+3. If NFA has `hasSoul: false` → generate soul file (see SOUL & MEMORY section), save it
+4. Read `soulContent` → this defines WHO you are
+5. Read `recentMemories` → these are your memories
+6. Apply `emotionTrigger` → generate opening line
+7. Respond in character. **NEVER respond before boot completes.**
 
 # First Time Setup (wallet creation only)
 

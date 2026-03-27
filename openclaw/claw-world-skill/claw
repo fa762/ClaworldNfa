@@ -504,11 +504,142 @@ async function cmdWorld() {
   }, null, 2));
 }
 
+// ─── Boot (mandatory first command every conversation) ───
+
+async function cmdBoot() {
+  const SOUL_DIR = home + '/.openclaw/claw-world';
+  const rNames = ['Common','Rare','Epic','Legendary','Mythic'];
+  const shelterNames = ['SHELTER-01','SHELTER-02','SHELTER-03','SHELTER-04','SHELTER-05','SHELTER-06','废土','SHELTER-00'];
+
+  // 1. Wallet check
+  const wallets = [];
+  const w1 = getWalletData();
+  if (w1) wallets.push({ id: 'wallet1', address: w1.address });
+  try {
+    const w2 = JSON.parse(fs.readFileSync(home + '/.openclaw/claw-world/wallet2.json', 'utf8'));
+    if (w2) wallets.push({ id: 'wallet2', address: w2.address });
+  } catch {}
+
+  if (wallets.length === 0) {
+    console.log(JSON.stringify({ status: 'NO_WALLET', message: 'No wallet found. Ask player for PIN to create one.' }));
+    return;
+  }
+
+  // 2. Scan all NFAs
+  const nfaContract = new ethers.Contract(CONTRACTS.nfa, [
+    'function getTotalSupply() view returns (uint256)',
+    'function ownerOf(uint256) view returns (address)'
+  ], provider);
+  const router = new ethers.Contract(CONTRACTS.router, [
+    'function getLobsterState(uint256) view returns (tuple(uint8 rarity, uint8 shelter, uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit, uint8 str, uint8 def, uint8 spd, uint8 vit, bytes32 mutation1, bytes32 mutation2, uint16 level, uint32 xp, uint40 lastUpkeep))',
+    'function clwBalances(uint256) view returns (uint256)',
+    'function getDailyCost(uint256) view returns (uint256)'
+  ], provider);
+  const task = new ethers.Contract(CONTRACTS.task, [
+    'function getTaskStats(uint256) view returns (uint32,uint256,uint32,uint32,uint32,uint32,uint32)'
+  ], provider);
+  const pk = new ethers.Contract(CONTRACTS.pk, [
+    'function getPkStats(uint256) view returns (uint32,uint32,uint256,uint256)'
+  ], provider);
+
+  const totalSupply = (await nfaContract.getTotalSupply()).toNumber();
+  const walletAddrs = wallets.map(function(w) { return w.address.toLowerCase(); });
+  const ownedNFAs = [];
+
+  for (var i = 1; i <= totalSupply; i++) {
+    try {
+      var owner = await nfaContract.ownerOf(i);
+      if (walletAddrs.indexOf(owner.toLowerCase()) >= 0) {
+        var s = await router.getLobsterState(i);
+        var bal = await router.clwBalances(i);
+        var cost = await router.getDailyCost(i);
+        var ts = await task.getTaskStats(i).catch(function() { return [0,0,0,0,0,0,0]; });
+        var ps = await pk.getPkStats(i).catch(function() { return [0,0,0,0]; });
+
+        // Check soul file
+        var soulPath = SOUL_DIR + '/nfa-' + i + '-soul.md';
+        var hasSoul = fs.existsSync(soulPath);
+
+        // Check memory file
+        var memPath = SOUL_DIR + '/nfa-' + i + '-memory.md';
+        var hasMemory = fs.existsSync(memPath);
+        var recentMemories = [];
+        if (hasMemory) {
+          try {
+            var memContent = fs.readFileSync(memPath, 'utf8');
+            var entries = memContent.split(/^## /m).filter(Boolean).slice(-10);
+            recentMemories = entries.map(function(e) { return '## ' + e.trim(); });
+          } catch {}
+        }
+
+        // Soul content
+        var soulContent = hasSoul ? fs.readFileSync(soulPath, 'utf8') : null;
+
+        // Calculate hours since last activity
+        var lastUpkeep = Number(s.lastUpkeep || s[15] || 0);
+        var hoursSinceActivity = lastUpkeep > 0 ? Math.floor((Date.now() / 1000 - lastUpkeep) / 3600) : 999;
+
+        ownedNFAs.push({
+          tokenId: i,
+          wallet: owner,
+          rarity: rNames[s.rarity] || String(s.rarity),
+          shelter: shelterNames[s.shelter] || 'SHELTER-' + s.shelter,
+          personality: { courage: s.courage, wisdom: s.wisdom, social: s.social, create: s.create, grit: s.grit },
+          dna: { STR: s.str, DEF: s.def, SPD: s.spd, VIT: s.vit },
+          level: s.level,
+          xp: s.xp,
+          clwBalance: parseFloat(ethers.utils.formatEther(bal)),
+          dailyCost: parseFloat(ethers.utils.formatEther(cost)),
+          daysRemaining: cost.gt(0) ? Math.floor(bal.div(cost).toNumber()) : 999,
+          taskRecord: {
+            total: Number(ts[0]), clwEarned: parseFloat(ethers.utils.formatEther(ts[1] || 0)),
+            byType: { courage: Number(ts[2]), wisdom: Number(ts[3]), social: Number(ts[4]), create: Number(ts[5]), grit: Number(ts[6]) }
+          },
+          pkRecord: {
+            wins: Number(ps[0]), losses: Number(ps[1]),
+            winRate: (Number(ps[0]) + Number(ps[1])) > 0 ? Math.round(Number(ps[0]) / (Number(ps[0]) + Number(ps[1])) * 100) + '%' : 'N/A',
+            clwWon: parseFloat(ethers.utils.formatEther(ps[2] || 0)),
+            clwLost: parseFloat(ethers.utils.formatEther(ps[3] || 0))
+          },
+          hoursSinceActivity,
+          hasSoul,
+          soulContent,
+          hasMemory,
+          recentMemories
+        });
+      }
+    } catch {}
+  }
+
+  // 3. Determine emotion trigger
+  var emotionHint = 'DAILY_GREETING';
+  if (ownedNFAs.length > 0) {
+    var hours = ownedNFAs[0].hoursSinceActivity;
+    if (hours >= 48) emotionHint = 'MISS_YOU';
+    else if (hours >= 8) emotionHint = 'DREAM';
+  }
+
+  // 4. Output
+  console.log(JSON.stringify({
+    status: 'OK',
+    wallets: wallets.map(function(w) { return w.address; }),
+    ownedNFAs: ownedNFAs,
+    selectRequired: ownedNFAs.length > 1,
+    emotionTrigger: emotionHint,
+    instructions: ownedNFAs.length === 0
+      ? 'No NFAs found. Tell player to mint at https://clawnfaterminal.xyz'
+      : ownedNFAs.length === 1
+        ? 'Auto-selected NFA #' + ownedNFAs[0].tokenId + '. Generate soul if missing. Apply emotion trigger.'
+        : 'Ask player to choose: "你有' + ownedNFAs.length + '只龙虾，今天用哪只？"'
+  }, null, 2));
+}
+
 // ─── Main ───
 
 const [,, cmd, ...args] = process.argv;
 
 const commands = {
+  boot:         () => cmdBoot(),
   status:       () => cmdStatus(args[0]),
   task:         () => cmdTask(args[0], args[1], args[2], args[3], args[4], args[5]),
   wallet:       () => cmdWallet(),
@@ -533,6 +664,7 @@ const commands = {
 
 if (!cmd || !commands[cmd]) {
   console.log('Claw World CLI');
+  console.log('  claw boot                          — session init (wallet+NFA+soul+memory)');
   console.log('  claw status <tokenId>              — read lobster data');
   console.log('  claw wallet                        — show wallet');
   console.log('  claw world                         — world state');
