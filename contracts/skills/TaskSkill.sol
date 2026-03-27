@@ -8,6 +8,13 @@ interface ITaskRouter {
     function addCLW(uint256 nfaId, uint256 amount) external;
     function addXP(uint256 nfaId, uint32 amount) external;
     function evolvePersonality(uint256 nfaId, uint8 dimension, int8 delta) external;
+    function lobsters(uint256 nfaId) external view returns (
+        uint8 rarity, uint8 shelter,
+        uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit,
+        uint8 str, uint8 def, uint8 spd, uint8 vit,
+        bytes32 mutation1, bytes32 mutation2,
+        uint16 level, uint32 xp, uint64 lastUpkeepTime
+    );
 }
 
 interface ITaskWorldState {
@@ -154,21 +161,34 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
 
     /**
      * @dev Owner-callable task completion — NFA owner submits directly, no operator needed.
-     *      Capped rewards prevent abuse: max 50 XP, max 100 CLW per task, 1 task per 4 hours.
+     *      matchScore is calculated ON-CHAIN from personality, not player-supplied.
+     *      Capped rewards: max 50 XP, max 100 CLW base per task, 1 task per 4 hours.
      */
     function ownerCompleteTypedTask(
         uint256 nfaId,
         uint8 taskType,
         uint32 xpReward,
         uint256 clwReward,
-        uint16 matchScore
+        uint16 /* matchScore — IGNORED, calculated on-chain */
     ) external {
         require(nfa.ownerOf(nfaId) == msg.sender, "Not NFA owner");
-        require(matchScore <= 20000, "Score too high");
         require(taskType <= 4, "Invalid task type");
         require(xpReward <= 50, "XP cap exceeded");
         require(clwReward <= 100 * 1e18, "CLW cap exceeded");
         require(block.timestamp >= lastTaskTime[nfaId] + 4 hours, "Cooldown active");
+
+        // Calculate matchScore from on-chain personality — player can't fake it
+        uint16 matchScore;
+        {
+            (,,uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit,,,,,,,,,) = router.lobsters(nfaId);
+            uint8 pVal;
+            if (taskType == 0) pVal = courage;
+            else if (taskType == 1) pVal = wisdom;
+            else if (taskType == 2) pVal = social;
+            else if (taskType == 3) pVal = create;
+            else pVal = grit;
+            matchScore = uint16(pVal) * 200; // 0-20000
+        }
 
         lastTaskTime[nfaId] = block.timestamp;
 
