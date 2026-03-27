@@ -580,15 +580,17 @@ contract ClawRouter is
         require(clwBalances[nfaId] >= amount, "Insufficient game CLW");
         require(address(clwToken) != address(0), "CLW not set");
 
+        uint256 vaultBalance = IERC20(clwToken).balanceOf(address(this));
+        require(vaultBalance > 0, "Vault empty");
+
         uint256 rate = getVaultRate();
         uint256 realAmount = (amount * rate) / 10000;
+        require(realAmount > 0, "Nothing to withdraw");
 
         clwBalances[nfaId] -= amount;
         totalGameCLW -= amount;
 
-        if (realAmount > 0) {
-            IERC20(clwToken).transfer(msg.sender, realAmount);
-        }
+        IERC20(clwToken).transfer(msg.sender, realAmount);
 
         emit CLWWithdrawn(nfaId, amount, realAmount, rate);
     }

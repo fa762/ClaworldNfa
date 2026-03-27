@@ -7389,6 +7389,936 @@
         },
         "namespaces": {}
       }
+    },
+    "2fb43ddd114e43edc5cac3002221f16612e37a1657ce667e478986f94697019a": {
+      "address": "0x6b38cDdB21098Ea26E2e19080d51dDbC7a15D4C5",
+      "txHash": "0x5762328044682787e4f578ff422fc9975b2516ab886fec916b0af9571d056c64",
+      "layout": {
+        "solcVersion": "0.8.26",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:68"
+          },
+          {
+            "label": "_status",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:88"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:40"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\ERC1967\\ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "DAILY_COSTS",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_array(t_uint256)10_storage",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:104"
+          },
+          {
+            "label": "clwToken",
+            "offset": 0,
+            "slot": "261",
+            "type": "t_contract(IERC20)1458",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:113"
+          },
+          {
+            "label": "nfa",
+            "offset": 0,
+            "slot": "262",
+            "type": "t_contract(IClawNFA)2300",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:114"
+          },
+          {
+            "label": "treasury",
+            "offset": 0,
+            "slot": "263",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:115"
+          },
+          {
+            "label": "lobsters",
+            "offset": 0,
+            "slot": "264",
+            "type": "t_mapping(t_uint256,t_struct(LobsterState)2369_storage)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:118"
+          },
+          {
+            "label": "clwBalances",
+            "offset": 0,
+            "slot": "265",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:119"
+          },
+          {
+            "label": "initialized",
+            "offset": 0,
+            "slot": "266",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:120"
+          },
+          {
+            "label": "withdrawRequests",
+            "offset": 0,
+            "slot": "267",
+            "type": "t_mapping(t_uint256,t_struct(WithdrawRequest)2374_storage)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:123"
+          },
+          {
+            "label": "authorizedSkills",
+            "offset": 0,
+            "slot": "268",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:126"
+          },
+          {
+            "label": "minter",
+            "offset": 0,
+            "slot": "269",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:129"
+          },
+          {
+            "label": "zeroBalanceTimestamp",
+            "offset": 0,
+            "slot": "270",
+            "type": "t_mapping(t_uint256,t_uint64)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:132"
+          },
+          {
+            "label": "personalityChangesThisMonth",
+            "offset": 0,
+            "slot": "271",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint8,t_int8))",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:135"
+          },
+          {
+            "label": "personalityMonthStart",
+            "offset": 0,
+            "slot": "272",
+            "type": "t_mapping(t_uint256,t_uint64)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:136"
+          },
+          {
+            "label": "pancakeRouter",
+            "offset": 0,
+            "slot": "273",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:139"
+          },
+          {
+            "label": "flapPortal",
+            "offset": 0,
+            "slot": "274",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:140"
+          },
+          {
+            "label": "graduated",
+            "offset": 20,
+            "slot": "274",
+            "type": "t_bool",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:141"
+          },
+          {
+            "label": "worldState",
+            "offset": 0,
+            "slot": "275",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:144"
+          },
+          {
+            "label": "geneBoostNonce",
+            "offset": 0,
+            "slot": "276",
+            "type": "t_uint256",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:147"
+          },
+          {
+            "label": "personalityEngine",
+            "offset": 0,
+            "slot": "277",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:150"
+          },
+          {
+            "label": "totalGameCLW",
+            "offset": 0,
+            "slot": "278",
+            "type": "t_uint256",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:153"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "279",
+            "type": "t_array(t_uint256)39_storage",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:694"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)10_storage": {
+            "label": "uint256[10]",
+            "numberOfBytes": "320"
+          },
+          "t_array(t_uint256)39_storage": {
+            "label": "uint256[39]",
+            "numberOfBytes": "1248"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IClawNFA)2300": {
+            "label": "contract IClawNFA",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IERC20)1458": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_int8": {
+            "label": "int8",
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint8,t_int8))": {
+            "label": "mapping(uint256 => mapping(uint8 => int8))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(LobsterState)2369_storage)": {
+            "label": "mapping(uint256 => struct ClawRouter.LobsterState)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(WithdrawRequest)2374_storage)": {
+            "label": "mapping(uint256 => struct ClawRouter.WithdrawRequest)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint64)": {
+            "label": "mapping(uint256 => uint64)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_int8)": {
+            "label": "mapping(uint8 => int8)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(LobsterState)2369_storage": {
+            "label": "struct ClawRouter.LobsterState",
+            "members": [
+              {
+                "label": "rarity",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "shelter",
+                "type": "t_uint8",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "courage",
+                "type": "t_uint8",
+                "offset": 2,
+                "slot": "0"
+              },
+              {
+                "label": "wisdom",
+                "type": "t_uint8",
+                "offset": 3,
+                "slot": "0"
+              },
+              {
+                "label": "social",
+                "type": "t_uint8",
+                "offset": 4,
+                "slot": "0"
+              },
+              {
+                "label": "create",
+                "type": "t_uint8",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "grit",
+                "type": "t_uint8",
+                "offset": 6,
+                "slot": "0"
+              },
+              {
+                "label": "str",
+                "type": "t_uint8",
+                "offset": 7,
+                "slot": "0"
+              },
+              {
+                "label": "def",
+                "type": "t_uint8",
+                "offset": 8,
+                "slot": "0"
+              },
+              {
+                "label": "spd",
+                "type": "t_uint8",
+                "offset": 9,
+                "slot": "0"
+              },
+              {
+                "label": "vit",
+                "type": "t_uint8",
+                "offset": 10,
+                "slot": "0"
+              },
+              {
+                "label": "mutation1",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "mutation2",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "level",
+                "type": "t_uint16",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "xp",
+                "type": "t_uint32",
+                "offset": 2,
+                "slot": "3"
+              },
+              {
+                "label": "lastUpkeepTime",
+                "type": "t_uint64",
+                "offset": 6,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(WithdrawRequest)2374_storage": {
+            "label": "struct ClawRouter.WithdrawRequest",
+            "members": [
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "requestTime",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {}
+      }
+    },
+    "8db1c3493dd297c451095419e2ca2038fa52277027a88f709a0e6f21f87c175a": {
+      "address": "0xb9baE670428326ECBC360f35c358007116CdfB8d",
+      "txHash": "0xf042790f235b2d4feb522bdd6ac7734bb87145ba8c2213db91cda126235922a6",
+      "layout": {
+        "solcVersion": "0.8.26",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:68"
+          },
+          {
+            "label": "_status",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:88"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:40"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\ERC1967\\ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "DAILY_COSTS",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_array(t_uint256)10_storage",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:104"
+          },
+          {
+            "label": "clwToken",
+            "offset": 0,
+            "slot": "261",
+            "type": "t_contract(IERC20)1458",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:113"
+          },
+          {
+            "label": "nfa",
+            "offset": 0,
+            "slot": "262",
+            "type": "t_contract(IClawNFA)2300",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:114"
+          },
+          {
+            "label": "treasury",
+            "offset": 0,
+            "slot": "263",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:115"
+          },
+          {
+            "label": "lobsters",
+            "offset": 0,
+            "slot": "264",
+            "type": "t_mapping(t_uint256,t_struct(LobsterState)2369_storage)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:118"
+          },
+          {
+            "label": "clwBalances",
+            "offset": 0,
+            "slot": "265",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:119"
+          },
+          {
+            "label": "initialized",
+            "offset": 0,
+            "slot": "266",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:120"
+          },
+          {
+            "label": "withdrawRequests",
+            "offset": 0,
+            "slot": "267",
+            "type": "t_mapping(t_uint256,t_struct(WithdrawRequest)2374_storage)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:123"
+          },
+          {
+            "label": "authorizedSkills",
+            "offset": 0,
+            "slot": "268",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:126"
+          },
+          {
+            "label": "minter",
+            "offset": 0,
+            "slot": "269",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:129"
+          },
+          {
+            "label": "zeroBalanceTimestamp",
+            "offset": 0,
+            "slot": "270",
+            "type": "t_mapping(t_uint256,t_uint64)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:132"
+          },
+          {
+            "label": "personalityChangesThisMonth",
+            "offset": 0,
+            "slot": "271",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint8,t_int8))",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:135"
+          },
+          {
+            "label": "personalityMonthStart",
+            "offset": 0,
+            "slot": "272",
+            "type": "t_mapping(t_uint256,t_uint64)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:136"
+          },
+          {
+            "label": "pancakeRouter",
+            "offset": 0,
+            "slot": "273",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:139"
+          },
+          {
+            "label": "flapPortal",
+            "offset": 0,
+            "slot": "274",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:140"
+          },
+          {
+            "label": "graduated",
+            "offset": 20,
+            "slot": "274",
+            "type": "t_bool",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:141"
+          },
+          {
+            "label": "worldState",
+            "offset": 0,
+            "slot": "275",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:144"
+          },
+          {
+            "label": "geneBoostNonce",
+            "offset": 0,
+            "slot": "276",
+            "type": "t_uint256",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:147"
+          },
+          {
+            "label": "personalityEngine",
+            "offset": 0,
+            "slot": "277",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:150"
+          },
+          {
+            "label": "totalGameCLW",
+            "offset": 0,
+            "slot": "278",
+            "type": "t_uint256",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:153"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "279",
+            "type": "t_array(t_uint256)39_storage",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:696"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)10_storage": {
+            "label": "uint256[10]",
+            "numberOfBytes": "320"
+          },
+          "t_array(t_uint256)39_storage": {
+            "label": "uint256[39]",
+            "numberOfBytes": "1248"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IClawNFA)2300": {
+            "label": "contract IClawNFA",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IERC20)1458": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_int8": {
+            "label": "int8",
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint8,t_int8))": {
+            "label": "mapping(uint256 => mapping(uint8 => int8))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(LobsterState)2369_storage)": {
+            "label": "mapping(uint256 => struct ClawRouter.LobsterState)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(WithdrawRequest)2374_storage)": {
+            "label": "mapping(uint256 => struct ClawRouter.WithdrawRequest)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint64)": {
+            "label": "mapping(uint256 => uint64)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_int8)": {
+            "label": "mapping(uint8 => int8)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(LobsterState)2369_storage": {
+            "label": "struct ClawRouter.LobsterState",
+            "members": [
+              {
+                "label": "rarity",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "shelter",
+                "type": "t_uint8",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "courage",
+                "type": "t_uint8",
+                "offset": 2,
+                "slot": "0"
+              },
+              {
+                "label": "wisdom",
+                "type": "t_uint8",
+                "offset": 3,
+                "slot": "0"
+              },
+              {
+                "label": "social",
+                "type": "t_uint8",
+                "offset": 4,
+                "slot": "0"
+              },
+              {
+                "label": "create",
+                "type": "t_uint8",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "grit",
+                "type": "t_uint8",
+                "offset": 6,
+                "slot": "0"
+              },
+              {
+                "label": "str",
+                "type": "t_uint8",
+                "offset": 7,
+                "slot": "0"
+              },
+              {
+                "label": "def",
+                "type": "t_uint8",
+                "offset": 8,
+                "slot": "0"
+              },
+              {
+                "label": "spd",
+                "type": "t_uint8",
+                "offset": 9,
+                "slot": "0"
+              },
+              {
+                "label": "vit",
+                "type": "t_uint8",
+                "offset": 10,
+                "slot": "0"
+              },
+              {
+                "label": "mutation1",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "mutation2",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "level",
+                "type": "t_uint16",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "xp",
+                "type": "t_uint32",
+                "offset": 2,
+                "slot": "3"
+              },
+              {
+                "label": "lastUpkeepTime",
+                "type": "t_uint64",
+                "offset": 6,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(WithdrawRequest)2374_storage": {
+            "label": "struct ClawRouter.WithdrawRequest",
+            "members": [
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "requestTime",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {}
+      }
     }
   }
 }
