@@ -54,13 +54,13 @@ export function CLWTokenInfo() {
       const r1 = Number(r1raw) / 1e18; // USDT (18 dec on BSC)
       const bnbUsd = r0 > 0 ? r1 / r0 : 0;
       const usdPrice = pBnb * bnbUsd;
-      if (usdPrice < 0.000001) return '$' + usdPrice.toExponential(2);
-      if (usdPrice < 0.01) return '$' + usdPrice.toFixed(8);
+      if (usdPrice < 0.0000000001) return '$0.0000000001';
+      if (usdPrice < 0.01) return '$' + usdPrice.toFixed(10).replace(/0+$/, '').replace(/\.$/, '');
       return '$' + usdPrice.toFixed(4);
     }
 
-    if (pBnb < 0.000001) return pBnb.toExponential(2) + ' BNB';
-    if (pBnb < 0.01) return pBnb.toFixed(8) + ' BNB';
+    if (pBnb < 0.0000000001) return '0.0000000001 BNB';
+    if (pBnb < 0.01) return pBnb.toFixed(10).replace(/0+$/, '').replace(/\.$/, '') + ' BNB';
     return pBnb.toFixed(4) + ' BNB';
   }, [price, pairReserves]);
   const [copied, setCopied] = useState(false);
