@@ -620,6 +620,11 @@ contract ClawRouter is
         personalityEngine = _engine;
     }
 
+    function setClwToken(address _clwToken) external onlyOwner {
+        require(_clwToken != address(0), "Zero address");
+        clwToken = IERC20(_clwToken);
+    }
+
     /// @dev DEPRECATED: Configure via DepositRouter instead.
     function setPancakeRouter(address _router) external onlyOwner {
         pancakeRouter = _router;

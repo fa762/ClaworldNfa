@@ -12,8 +12,8 @@ let NET = 'testnet';
 try { NET = fs.readFileSync(home + '/.openclaw/claw-world/network.conf', 'utf8').trim(); } catch {}
 
 const RPC = NET === 'mainnet' ? 'https://bsc-rpc.publicnode.com' : 'https://bsc-testnet-rpc.publicnode.com';
-const ROUTER = NET === 'mainnet' ? '' : '0xA7Ee12C5E9435686978F4b87996B4Eb461c34603';
-const NFA_CA = NET === 'mainnet' ? '' : '0x1c69be3401a78CFeDC2B2543E62877874f10B135';
+const ROUTER = NET === 'mainnet' ? '0x60C0D5276c007Fd151f2A615c315cb364EF81BD5' : '0xA7Ee12C5E9435686978F4b87996B4Eb461c34603';
+const NFA_CA = NET === 'mainnet' ? '0xAa2094798B5892191124eae9D77E337544FFAE48' : '0x1c69be3401a78CFeDC2B2543E62877874f10B135';
 
 const p = new ethers.providers.JsonRpcProvider(RPC);
 const router = new ethers.Contract(ROUTER, [

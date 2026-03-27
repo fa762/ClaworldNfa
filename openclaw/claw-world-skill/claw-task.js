@@ -18,7 +18,7 @@ let NET = 'testnet';
 try { NET = fs.readFileSync(home + '/.openclaw/claw-world/network.conf', 'utf8').trim(); } catch {}
 
 const RPC = NET === 'mainnet' ? 'https://bsc-rpc.publicnode.com' : 'https://bsc-testnet-rpc.publicnode.com';
-const TASK_CA = NET === 'mainnet' ? '' : '0x4F8f75D6b0775b065F588F2C11C1Ec79Bb1ECE0E';
+const TASK_CA = NET === 'mainnet' ? '0xaed370784536e31BE4A5D0Dbb1bF275c98179D10' : '0x4F8f75D6b0775b065F588F2C11C1Ec79Bb1ECE0E';
 
 // Decrypt wallet
 const data = JSON.parse(fs.readFileSync(home + '/.openclaw/claw-world/wallet.json', 'utf8'));
@@ -28,7 +28,7 @@ const dc = crypto.createDecipheriv('aes-256-cbc', key, iv);
 let pk = dc.update(data.encrypted, 'hex', 'utf8');
 pk += dc.final('utf8');
 
-const ROUTER_CA = NET === 'mainnet' ? '' : '0xA7Ee12C5E9435686978F4b87996B4Eb461c34603';
+const ROUTER_CA = NET === 'mainnet' ? '0x60C0D5276c007Fd151f2A615c315cb364EF81BD5' : '0xA7Ee12C5E9435686978F4b87996B4Eb461c34603';
 
 const provider = new ethers.providers.JsonRpcProvider(RPC);
 const wallet = new ethers.Wallet(pk, provider);

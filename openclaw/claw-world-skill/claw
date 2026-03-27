@@ -151,7 +151,7 @@ async function cmdWallet() {
   } else {
     console.log('ADDRESS: ' + data.address);
     const bal = await provider.getBalance(data.address);
-    console.log('tBNB: ' + ethers.utils.formatEther(bal));
+    console.log((NET === 'mainnet' ? 'BNB' : 'tBNB') + ': ' + ethers.utils.formatEther(bal));
   }
 }
 
