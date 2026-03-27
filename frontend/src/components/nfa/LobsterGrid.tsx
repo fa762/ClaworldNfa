@@ -8,10 +8,9 @@ import { addresses } from '@/contracts/addresses';
 import { LobsterCard, type LobsterCardData } from './LobsterCard';
 import { FilterBar, type Filters } from './FilterBar';
 import { useTokensOfOwner, useTotalSupply } from '@/contracts/hooks/useClawNFA';
-import { isDemoMode, isTestnet } from '@/lib/env';
+import { isTestnet } from '@/lib/env';
 import { formatCompact } from '@/lib/format';
-import { generateMockLobsters, getLobsterName } from '@/lib/mockData';
-import { ClawNFAABI as NFAAbi } from '@/contracts/abis/ClawNFA';
+import { getLobsterName } from '@/lib/mockData';
 import { getRarityName, getRarityClass, getRarityStars } from '@/lib/rarity';
 import { getShelterName } from '@/lib/shelter';
 import { TerminalBox } from '@/components/terminal/TerminalBox';
@@ -35,7 +34,6 @@ export function LobsterGrid() {
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [lobsters, setLobsters] = useState<LobsterCardData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [useMock, setUseMock] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [page, setPage] = useState(1);
 
@@ -45,12 +43,6 @@ export function LobsterGrid() {
   }, [myTokens]);
 
   useEffect(() => {
-    if (isDemoMode) {
-      setLobsters(generateMockLobsters());
-      setUseMock(true);
-      setLoading(false);
-      return;
-    }
     if (!publicClient || !totalSupply) { setLoading(false); return; }
     const count = Number(totalSupply);
     if (count === 0) { setLobsters([]); setLoading(false); return; }
@@ -62,33 +54,15 @@ export function LobsterGrid() {
       for (let start = 1; start <= count; start += BATCH_SIZE) {
         const end = Math.min(start + BATCH_SIZE - 1, count);
         const ids = Array.from({ length: end - start + 1 }, (_, i) => BigInt(start + i));
-        const CALLS_PER_NFA = 5;
+        const CALLS_PER_NFA = 4;
         const calls = ids.flatMap((id) => [
           { address: addresses.clawNFA, abi: ClawNFAABI, functionName: 'getAgentState' as const, args: [id] as const },
           { address: addresses.clawNFA, abi: ClawNFAABI, functionName: 'getAgentMetadata' as const, args: [id] as const },
           { address: addresses.clawRouter, abi: ClawRouterABI, functionName: 'getLobsterState' as const, args: [id] as const },
           { address: addresses.clawRouter, abi: ClawRouterABI, functionName: 'clwBalances' as const, args: [id] as const },
-          { address: addresses.clawNFA, abi: ClawNFAABI, functionName: 'ownerOf' as const, args: [id] as const },
         ]);
         try {
           const results = await publicClient!.multicall({ contracts: calls });
-
-          // Collect unique owner addresses to batch-fetch BNB balances
-          const ownerMap: Record<number, string> = {};
-          for (let i = 0; i < ids.length; i++) {
-            const ownerRes = results[i * CALLS_PER_NFA + 4];
-            if (ownerRes.status === 'success') {
-              ownerMap[Number(ids[i])] = ownerRes.result as string;
-            }
-          }
-          // Fetch BNB balances for unique owners
-          const uniqueOwners = [...new Set(Object.values(ownerMap))];
-          const bnbBalances: Record<string, bigint> = {};
-          await Promise.all(uniqueOwners.map(async (addr) => {
-            try {
-              bnbBalances[addr] = await publicClient!.getBalance({ address: addr as `0x${string}` });
-            } catch { bnbBalances[addr] = 0n; }
-          }));
 
           for (let i = 0; i < ids.length; i++) {
             const agentState = results[i * CALLS_PER_NFA];
@@ -103,12 +77,13 @@ export function LobsterGrid() {
             const lobster = lobsterState.result as any;
             const clwRaw = clwRes.status === 'success' ? (clwRes.result as bigint) : 0n;
             const tokenId = Number(ids[i]);
-            const ownerAddr = ownerMap[tokenId] || '';
-            const ownerBnbRaw = ownerAddr ? (bnbBalances[ownerAddr] || 0n) : 0n;
+
+            // Agent BNB balance from getAgentState[0] (on-chain balance held by NFA contract)
+            const agentBnbRaw = BigInt(state.balance ?? state[0] ?? 0);
 
             // Format: CLW with commas, BNB to 4 decimals
             const clwFormatted = Number(clwRaw / 10n**14n) / 10000;  // 18 decimals → 4 dp
-            const bnbFormatted = Number(ownerBnbRaw / 10n**14n) / 10000;
+            const bnbFormatted = Number(agentBnbRaw / 10n**14n) / 10000;
 
             allLobsters.push({
               tokenId,
@@ -137,7 +112,7 @@ export function LobsterGrid() {
   const filtered = useMemo(() => {
     let result = lobsters.map((l) => ({
       ...l,
-      isOwned: useMock ? l.isOwned : myTokenSet.has(l.tokenId),
+      isOwned: myTokenSet.has(l.tokenId),
     }));
     if (filters.myOnly) result = result.filter((l) => l.isOwned);
     if (filters.rarity !== null) result = result.filter((l) => l.rarity === filters.rarity);
@@ -155,7 +130,7 @@ export function LobsterGrid() {
       }
     });
     return result;
-  }, [lobsters, filters, myTokenSet, useMock]);
+  }, [lobsters, filters, myTokenSet]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = useMemo(() => {
@@ -171,10 +146,6 @@ export function LobsterGrid() {
 
   return (
     <div>
-      {useMock && (
-        <div className="text-xs rarity-epic mb-3">{t('env.demo')}</div>
-      )}
-
       <FilterBar
         filters={filters}
         onChange={setFilters}

@@ -55,7 +55,7 @@ export function TransferToOpenClaw({ tokenId, ownerAddress }: TransferToOpenClaw
             {t('transfer.successHint') || '现在打开 OpenClaw，安装 claw-world skill，开始和你的龙虾对话吧！'}
           </div>
           <div className="text-xs term-dim">
-            {t('transfer.openclawInstall') || '安装命令: openclaw skills install claw-world'}
+            {t('transfer.openclawInstall') || '安装命令: git clone https://github.com/fa762/claw-world-skill ~/.openclaw/skills/claw-world && cd ~/.openclaw/skills/claw-world && npm install'}
           </div>
           {hash && (
             <a href={getBscScanTxUrl(hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
@@ -74,8 +74,8 @@ export function TransferToOpenClaw({ tokenId, ownerAddress }: TransferToOpenClaw
           <div className="text-xs space-y-1">
             <div className="term-bright">{t('transfer.howTo') || '如何获取 OpenClaw 地址：'}</div>
             <div className="term-dim pl-2">1. {t('transfer.step1') || '安装 OpenClaw: npm install -g openclaw'}</div>
-            <div className="term-dim pl-2">2. {t('transfer.step2') || '安装 Skill: openclaw skills install claw-world'}</div>
-            <div className="term-dim pl-2">3. {t('transfer.step3') || '在对话中输入 /wallet 查看你的 OpenClaw 钱包地址'}</div>
+            <div className="term-dim pl-2">2. {t('transfer.step2') || '安装 Skill: git clone https://github.com/fa762/claw-world-skill ~/.openclaw/skills/claw-world'}</div>
+            <div className="term-dim pl-2">3. {t('transfer.step3') || '开始新对话，龙虾会自动引导你创建钱包'}</div>
           </div>
 
           <div className="term-line my-2" />

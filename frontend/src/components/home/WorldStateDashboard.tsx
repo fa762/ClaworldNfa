@@ -9,8 +9,6 @@ import {
 } from '@/contracts/hooks/useWorldState';
 import { parseActiveEvents, getEventInfo } from '@/lib/events';
 import { formatBasisPoints, formatCLW } from '@/lib/format';
-import { isDemoMode } from '@/lib/env';
-import { mockWorldState } from '@/lib/mockData';
 import { useI18n } from '@/lib/i18n';
 
 export function WorldStateDashboard() {
@@ -21,18 +19,15 @@ export function WorldStateDashboard() {
   const { data: costMul, isLoading: l4 } = useDailyCostMultiplier();
   const { data: events, isLoading: l5 } = useActiveEvents();
 
-  const useMock = isDemoMode;
-  const loading = !useMock && (l1 || l2 || l3 || l4 || l5);
+  const loading = l1 || l2 || l3 || l4 || l5;
 
-  const activeEventKeys = useMock
-    ? mockWorldState.activeEvents
-    : (events ? parseActiveEvents(BigInt(events.toString())) : []);
+  const activeEventKeys = events ? parseActiveEvents(BigInt(events.toString())) : [];
 
   const rows = [
-    { label: t('world.rewardMul'), value: useMock ? mockWorldState.rewardMultiplier : (rewardMul ? formatBasisPoints(rewardMul) : '--') },
-    { label: t('world.pkCap'), value: useMock ? mockWorldState.pkStakeLimit : (pkLimit ? formatCLW(pkLimit) + ' CLW' : '--') },
-    { label: t('world.mutBonus'), value: useMock ? mockWorldState.mutationBonus : (mutBonus ? formatBasisPoints(mutBonus) : '--') },
-    { label: t('world.dailyCost'), value: useMock ? mockWorldState.dailyCostMultiplier : (costMul ? formatBasisPoints(costMul) : '--') },
+    { label: t('world.rewardMul'), value: rewardMul ? formatBasisPoints(rewardMul) : '--' },
+    { label: t('world.pkCap'), value: pkLimit ? formatCLW(pkLimit) + ' CLW' : '--' },
+    { label: t('world.mutBonus'), value: mutBonus ? formatBasisPoints(mutBonus) : '--' },
+    { label: t('world.dailyCost'), value: costMul ? formatBasisPoints(costMul) : '--' },
   ];
 
   return (

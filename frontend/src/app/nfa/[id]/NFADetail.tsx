@@ -16,37 +16,12 @@ import { TerminalBar } from '@/components/terminal/TerminalBar';
 import { formatCLW, truncateAddress } from '@/lib/format';
 import { getXpProgress } from '@/lib/xp';
 import { addresses, getBscScanAddressUrl } from '@/contracts/addresses';
-import { isDemoMode } from '@/lib/env';
 import { getLobsterName } from '@/lib/mockData';
 import { resolveIpfsUrl } from '@/lib/ipfs';
 import { useI18n } from '@/lib/i18n';
 import { useTaskStats, usePkStats } from '@/contracts/hooks/useNFAStats';
 import { formatCompact } from '@/lib/format';
 import Link from 'next/link';
-
-function getMockData(id: number) {
-  const seed = id * 7;
-  const rarity = id <= 1 ? 4 : id <= 5 ? 3 : id <= 11 ? 2 : id <= 28 ? 1 : 0;
-  return {
-    rarity, shelter: id % 8,
-    courage: 20 + ((seed * 3) % 60), wisdom: 25 + ((seed * 5) % 55),
-    social: 30 + ((seed * 7) % 50), create: 15 + ((seed * 11) % 65),
-    grit: 20 + ((seed * 13) % 60),
-    str: rarity === 4 ? 85 : rarity === 3 ? 70 : 20 + ((seed * 17) % 60),
-    def: rarity === 4 ? 80 : rarity === 3 ? 65 : 15 + ((seed * 19) % 60),
-    spd: rarity === 4 ? 90 : rarity === 3 ? 60 : 20 + ((seed * 23) % 55),
-    vit: rarity === 4 ? 75 : rarity === 3 ? 68 : 25 + ((seed * 29) % 50),
-    level: rarity === 4 ? 50 : rarity === 3 ? 35 : rarity === 2 ? 20 : 5 + (id % 15),
-    xp: (seed * 31) % 100,
-    mutation1: rarity >= 3 ? '0x' + 'ab'.repeat(32) : '0x' + '00'.repeat(32),
-    mutation2: rarity >= 4 ? '0x' + 'cd'.repeat(32) : '0x' + '00'.repeat(32),
-    active: id % 5 !== 0,
-    balance: BigInt(rarity === 4 ? 500000 : rarity === 3 ? 100000 : 5000 + id * 200) * 10n ** 18n,
-    cost: BigInt(rarity >= 3 ? 200 : rarity >= 1 ? 50 : 10) * 10n ** 18n,
-    jobClass: id % 6,
-    owner: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD3e',
-  };
-}
 
 export function NFADetail({ tokenId }: { tokenId: string }) {
   const id = BigInt(tokenId);
@@ -75,9 +50,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   const { data: taskStats } = useTaskStats(id);
   const { data: pkStats } = usePkStats(id);
 
-  const useMock = isDemoMode;
-  const mock = useMock ? getMockData(numId) : null;
-  const loading = !useMock && (l1 || l2 || l3);
+  const loading = l1 || l2 || l3;
 
   if (loading) {
     return (
@@ -89,8 +62,8 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
     );
   }
 
-  const lob = useMock ? mock : (lobster as any);
-  if (!lob && !useMock) {
+  const lob = lobster as any;
+  if (!lob) {
     return (
       <div className="p-6 text-center">
         <p className="term-dim mb-4">NFA #{tokenId} {t('nfa.notExist')}</p>
@@ -99,40 +72,38 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
     );
   }
 
-  const state = useMock ? mock : (agentState as any);
-  const rarity = useMock ? mock!.rarity : Number(lob.rarity ?? lob[0] ?? 0);
-  const shelter = useMock ? mock!.shelter : Number(lob.shelter ?? lob[1] ?? 0);
-  const courage = useMock ? mock!.courage : Number(lob.courage ?? lob[2] ?? 0);
-  const wisdom = useMock ? mock!.wisdom : Number(lob.wisdom ?? lob[3] ?? 0);
-  const social = useMock ? mock!.social : Number(lob.social ?? lob[4] ?? 0);
-  const create = useMock ? mock!.create : Number(lob.create ?? lob[5] ?? 0);
-  const grit = useMock ? mock!.grit : Number(lob.grit ?? lob[6] ?? 0);
-  const str = useMock ? mock!.str : Number(lob.str ?? lob[7] ?? 0);
-  const def = useMock ? mock!.def : Number(lob.def ?? lob[8] ?? 0);
-  const spd = useMock ? mock!.spd : Number(lob.spd ?? lob[9] ?? 0);
-  const vit = useMock ? mock!.vit : Number(lob.vit ?? lob[10] ?? 0);
-  const level = useMock ? mock!.level : Number(lob.level ?? lob[13] ?? 0);
-  const xp = useMock ? mock!.xp : Number(lob.xp ?? lob[14] ?? 0);
-  const mutation1 = useMock ? mock!.mutation1 : (lob.mutation1 ?? lob[11] ?? '0x' + '0'.repeat(64));
-  const mutation2 = useMock ? mock!.mutation2 : (lob.mutation2 ?? lob[12] ?? '0x' + '0'.repeat(64));
+  const state = agentState as any;
+  const rarity = Number(lob.rarity ?? lob[0] ?? 0);
+  const shelter = Number(lob.shelter ?? lob[1] ?? 0);
+  const courage = Number(lob.courage ?? lob[2] ?? 0);
+  const wisdom = Number(lob.wisdom ?? lob[3] ?? 0);
+  const social = Number(lob.social ?? lob[4] ?? 0);
+  const create = Number(lob.create ?? lob[5] ?? 0);
+  const grit = Number(lob.grit ?? lob[6] ?? 0);
+  const str = Number(lob.str ?? lob[7] ?? 0);
+  const def = Number(lob.def ?? lob[8] ?? 0);
+  const spd = Number(lob.spd ?? lob[9] ?? 0);
+  const vit = Number(lob.vit ?? lob[10] ?? 0);
+  const level = Number(lob.level ?? lob[13] ?? 0);
+  const xp = Number(lob.xp ?? lob[14] ?? 0);
+  const mutation1 = lob.mutation1 ?? lob[11] ?? '0x' + '0'.repeat(64);
+  const mutation2 = lob.mutation2 ?? lob[12] ?? '0x' + '0'.repeat(64);
 
-  const active = useMock ? mock!.active : (isActive ?? Boolean(state?.active ?? state?.[1]));
-  const ownerAddress = useMock ? mock!.owner : (owner as string || '');
-  const balance = useMock ? mock!.balance : (clwBalance ? BigInt(clwBalance.toString()) : 0n);
-  const cost = useMock ? mock!.cost : (dailyCost ? BigInt(dailyCost.toString()) : 0n);
+  const active = isActive ?? Boolean(state?.active ?? state?.[1]);
+  const ownerAddress = (owner as string) || '';
+  const balance = clwBalance ? BigInt(clwBalance.toString()) : 0n;
+  const cost = dailyCost ? BigInt(dailyCost.toString()) : 0n;
   const daysRemaining = cost > 0n ? Number(balance / cost) : Infinity;
 
   const getJobName = (idx: number) => t(`job.${idx}`) || t('detail.unknown');
   // jobClass from contract returns [uint8, string] tuple — extract the number
-  const jobClassNum = useMock
-    ? mock!.jobClass
-    : (jobClass !== undefined ? Number(Array.isArray(jobClass) ? jobClass[0] : jobClass) : NaN);
+  const jobClassNum = jobClass !== undefined ? Number(Array.isArray(jobClass) ? jobClass[0] : jobClass) : NaN;
   const jobName = !isNaN(jobClassNum) ? getJobName(jobClassNum) : t('detail.unknown');
 
   const name = getLobsterName(numId);
   // wagmi returns getAgentMetadata as Array(2) wrapping the struct — unwrap it
   const metaObj = Array.isArray(agentMeta) ? agentMeta[0] : agentMeta;
-  const rawVaultURI = useMock ? '' : ((metaObj as any)?.vaultURI ?? (metaObj as any)?.[4] ?? '');
+  const rawVaultURI = (metaObj as any)?.vaultURI ?? (metaObj as any)?.[4] ?? '';
   const imageUrl = resolveIpfsUrl(rawVaultURI);
 
   // SPECIAL tab: only personality stats (no DNA — DNA is in gene tab)
@@ -155,10 +126,6 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
 
   return (
     <div className="px-4 py-3 max-w-5xl mx-auto flex flex-col h-full min-h-0">
-      {useMock && (
-        <div className="text-[10px] rarity-epic mb-2">[DEMO]</div>
-      )}
-
       {/* Header: back + name */}
       <div className="flex items-center gap-3 mb-2">
         <Link href="/nfa" className="term-link text-xs">[&lt;]</Link>
@@ -218,8 +185,8 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
           {tab === 'special' && (
             <div className="space-y-3">
               <PipBoyStatList stats={specialStats} />
-              {/* Task Resume 任务履历 */}
-              {!useMock && taskStats && (
+              {/* Task Resume */}
+              {taskStats && (
                 <div className="term-box mt-2" data-title={cn ? '任务履历' : 'TASK RECORD'}>
                   <div className="grid grid-cols-2 gap-1 text-[11px]">
                     <div className="term-dim">{cn ? '总任务' : 'Total Tasks'}</div>
@@ -249,8 +216,8 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
               <div className="term-line my-3" />
               <MutationSlots mutation1={mutation1} mutation2={mutation2} />
 
-              {/* PK Resume 战斗履历 */}
-              {!useMock && pkStats && (
+              {/* PK Resume */}
+              {pkStats && (
                 <>
                   <div className="term-line my-3" />
                   <div className="term-box" data-title={cn ? '战斗履历' : 'PK RECORD'}>
@@ -317,7 +284,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
   );
 }
 
-/** 简单的键值行 */
+/** Simple key-value row */
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex justify-between items-center pipboy-stat-row">
@@ -327,7 +294,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-/** 结算日消耗按钮 */
+/** Process upkeep button */
 function UpkeepButton({ tokenId }: { tokenId: bigint }) {
   const { t } = useI18n();
   const { data: hash, writeContract, isPending } = useWriteContract();
@@ -344,15 +311,15 @@ function UpkeepButton({ tokenId }: { tokenId: bigint }) {
 
   return (
     <div className="flex items-center gap-3 text-xs p-2 border border-crt-darkest">
-      <span className="term-dim">{t('upkeep.label') || '日消耗结算'}</span>
+      <span className="term-dim">{t('upkeep.label') || 'Daily Upkeep'}</span>
       <button
         onClick={handleUpkeep}
         disabled={isPending || isConfirming}
         className="term-btn text-xs"
       >
-        [{isPending ? (t('upkeep.signing') || '签名中...') : isConfirming ? (t('upkeep.confirming') || '确认中...') : (t('upkeep.process') || '结算')}]
+        [{isPending ? (t('upkeep.signing') || 'Signing...') : isConfirming ? (t('upkeep.confirming') || 'Confirming...') : (t('upkeep.process') || 'Process')}]
       </button>
-      {isSuccess && <span className="text-crt-green text-xs">{t('upkeep.done') || '✅ 已结算'}</span>}
+      {isSuccess && <span className="text-crt-green text-xs">{t('upkeep.done') || 'Done'}</span>}
     </div>
   );
 }
