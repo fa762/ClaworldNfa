@@ -57,6 +57,10 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
     mapping(uint256 => uint32) public taskTypeCount3;     // create tasks
     mapping(uint256 => uint32) public taskTypeCount4;     // grit tasks
 
+    // Anti-spam: diminishing returns for consecutive same-type tasks (added after stats)
+    mapping(uint256 => uint8) public lastTaskType;      // nfaId => last task type
+    mapping(uint256 => uint8) public sameTypeStreak;    // nfaId => consecutive same-type count
+
     event TaskStatsUpdated(uint256 indexed nfaId, uint32 totalTasks, uint256 totalEarned);
 
     event TaskCompleted(
@@ -192,8 +196,22 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
 
         lastTaskTime[nfaId] = block.timestamp;
 
+        // Track consecutive same-type streak → diminishing returns
+        if (sameTypeStreak[nfaId] > 0 && lastTaskType[nfaId] == taskType) {
+            sameTypeStreak[nfaId]++;
+        } else {
+            sameTypeStreak[nfaId] = 1;
+        }
+        lastTaskType[nfaId] = taskType;
+
+        // Streak decay: 1=100%, 2=80%, 3=60%, 4+=50%
+        uint256 streakMul = 10000;
+        if (sameTypeStreak[nfaId] == 2) streakMul = 8000;
+        else if (sameTypeStreak[nfaId] == 3) streakMul = 6000;
+        else if (sameTypeStreak[nfaId] >= 4) streakMul = 5000;
+
         uint256 worldMul = worldState.rewardMultiplier();
-        uint256 actualClw = (clwReward * uint256(matchScore) * worldMul) / (10000 * 10000);
+        uint256 actualClw = (clwReward * uint256(matchScore) * worldMul * streakMul) / (10000 * 10000 * 10000);
 
         if (actualClw > 0) {
             router.addCLW(nfaId, actualClw);
@@ -253,5 +271,5 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
     /**
      * @dev Reserved storage gap for future upgrades.
      */
-    uint256[33] private __gap;
+    uint256[31] private __gap;
 }
