@@ -24,15 +24,17 @@ export const mockTokenInfo = {
 };
 
 /**
- * Lobster name generator
+ * Lobster name generator — 30 prefixes × 30 suffixes = 900 unique names (covers 888 genesis)
  */
-const LOBSTER_NAMES = [
-  '问号', '奇点', '课本', '计时', '锈钉', '回声', '静电', '脉冲',
-  '铁骨', '夜行', '裂缝', '星尘', '潜流', '碎片', '电弧', '雾影',
-  '锋刃', '涡旋', '残响', '冰晶', '焰尾', '暗潮', '棱镜', '断弦',
-  '浪涌', '砂砾', '幻音', '钛壳', '虹光', '磁场', '流沙', '铜锈',
-  '雷鸣', '深渊', '旋风', '冻土', '熔岩', '微光', '暴雨', '迷雾',
-  '荆棘', '烈阳', '霜降', '赤潮', '极光', '黑洞', '白噪', '灰烬',
+const NAME_PREFIXES = [
+  '赤', '铁', '深', '暗', '烈', '冰', '雷', '幻', '焰', '钛',
+  '碎', '锈', '虹', '磁', '熔', '霜', '棱', '涡', '潜', '砂',
+  '极', '白', '灰', '黑', '星', '浪', '雾', '夜', '残', '荆',
+];
+const NAME_SUFFIXES = [
+  '潮', '光', '壳', '刃', '弦', '影', '尘', '骨', '鸣', '晶',
+  '渊', '涌', '锋', '响', '弧', '音', '流', '沙', '岩', '芒',
+  '风', '雨', '棘', '甲', '隼', '爪', '瞳', '烬', '镜', '脉',
 ];
 
 /**
@@ -118,7 +120,11 @@ const TOKEN_NAMES: Record<string, { name: string; rarity: string; imageId: numbe
 export function getLobsterName(tokenId: number): string {
   const entry = TOKEN_NAMES[String(tokenId)];
   if (entry) return entry.name;
-  return LOBSTER_NAMES[(tokenId - 1) % LOBSTER_NAMES.length] ?? `NFA #${tokenId}`;
+  // Combinatorial: 30 prefixes × 30 suffixes = 900 unique names
+  const idx = tokenId - 1;
+  const prefix = NAME_PREFIXES[Math.floor(idx / NAME_SUFFIXES.length) % NAME_PREFIXES.length];
+  const suffix = NAME_SUFFIXES[idx % NAME_SUFFIXES.length];
+  return prefix + suffix;
 }
 
 /** @deprecated Use getLobsterName instead */
