@@ -120,7 +120,7 @@ const TOKEN_NAMES: Record<string, { name: string; rarity: string; imageId: numbe
 export function getLobsterName(tokenId: number): string {
   const entry = TOKEN_NAMES[String(tokenId)];
   if (entry) return entry.name;
-  // Combinatorial: 30 prefixes × 30 suffixes = 900 unique names
+  // Fallback for tokenIds > 888: combinatorial 30×30 = 900 unique names
   const idx = tokenId - 1;
   const prefix = NAME_PREFIXES[Math.floor(idx / NAME_SUFFIXES.length) % NAME_PREFIXES.length];
   const suffix = NAME_SUFFIXES[idx % NAME_SUFFIXES.length];
