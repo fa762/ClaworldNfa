@@ -119,6 +119,17 @@ async function cmdStatus(tokenId) {
 async function cmdTask(pin, nfaId, taskType, xp, clw, score) {
   const pk = decryptKey(pin);
   const wallet = new ethers.Wallet(pk, provider);
+  const nfaC = new ethers.Contract(CONTRACTS.nfa, ['function ownerOf(uint256) view returns (address)'], provider);
+
+  // Pre-check: verify this wallet owns the NFA
+  const myAddr = wallet.address;
+  const nfaOwner = await nfaC.ownerOf(nfaId);
+  if (nfaOwner.toLowerCase() !== myAddr.toLowerCase()) {
+    console.error('NOT_OWNER: NFA #' + nfaId + ' owned by ' + nfaOwner + ', not ' + myAddr);
+    console.error('Transfer the NFA to this wallet first (website → "Transfer to OpenClaw")');
+    process.exit(1);
+  }
+
   const router = new ethers.Contract(CONTRACTS.router, ['function processUpkeep(uint256)'], wallet);
   const task = new ethers.Contract(CONTRACTS.task, [
     'function ownerCompleteTypedTask(uint256,uint8,uint32,uint256,uint16)'
@@ -131,14 +142,13 @@ async function cmdTask(pin, nfaId, taskType, xp, clw, score) {
     console.log('UPKEEP_OK');
   } catch { console.log('UPKEEP_SKIPPED'); }
 
-  // Submit task
   console.log('SUBMITTING: nfa=' + nfaId + ' type=' + taskType + ' xp=' + xp + ' clw=' + clw + ' score=' + score);
   const tx = await task.ownerCompleteTypedTask(
     nfaId, taskType, xp,
-    ethers.utils.parseEther(String(clw)),
-    score,
-    { gasLimit: 300000 }
-  );
+      ethers.utils.parseEther(String(clw)),
+      score,
+      { gasLimit: 500000 }
+    );
   console.log('TX: ' + tx.hash);
   const r = await tx.wait();
   console.log('CONFIRMED: block=' + r.blockNumber);
@@ -192,7 +202,7 @@ async function cmdPkCreate(pin, nfaId, stake, strategy) {
     const pk = new ethers.Contract(CONTRACTS.pk, [
       'function createMatch(uint256,uint256) returns (uint256)'
     ], wallet);
-    const tx = await pk.createMatch(nfaId, ethers.utils.parseEther(String(stake)), { gasLimit: 300000 });
+    const tx = await pk.createMatch(nfaId, ethers.utils.parseEther(String(stake)), { gasLimit: 500000 });
     console.log('TX: ' + tx.hash);
     const r = await tx.wait();
     const matchId = r.events?.[0]?.args?.[0] || 'check tx';
@@ -228,7 +238,7 @@ async function cmdPkJoin(pin, matchId, nfaId, strategy) {
     const pk = new ethers.Contract(CONTRACTS.pk, [
       'function joinMatch(uint256,uint256)'
     ], wallet);
-    const tx = await pk.joinMatch(matchId, nfaId, { gasLimit: 300000 });
+    const tx = await pk.joinMatch(matchId, nfaId, { gasLimit: 500000 });
     console.log('TX: ' + tx.hash);
     const r = await tx.wait();
     console.log('JOINED: match=' + matchId + ' block=' + r.blockNumber);
@@ -269,7 +279,7 @@ async function cmdPkReveal(pin, matchId) {
   const pk = new ethers.Contract(CONTRACTS.pk, [
     'function revealStrategy(uint256,uint8,bytes32)'
   ], wallet);
-  const tx = await pk.revealStrategy(matchId, strategy, salt, { gasLimit: 300000 });
+  const tx = await pk.revealStrategy(matchId, strategy, salt, { gasLimit: 500000 });
   console.log('TX: ' + tx.hash);
   const r = await tx.wait();
   console.log('REVEALED: match=' + matchId + ' strategy=' + ['AllAttack','Balanced','AllDefense'][strategy] + ' block=' + r.blockNumber);
@@ -348,7 +358,7 @@ async function cmdPkAutoSettle(pin, matchId, pin2) {
   const saltFile1 = home + '/.openclaw/claw-world/pk-salt-' + matchId + '-' + wallet1.address.slice(2,8) + '.json';
   if (fs.existsSync(saltFile1)) {
     const d1 = JSON.parse(fs.readFileSync(saltFile1, 'utf8'));
-    const tx = await pk.revealStrategy(matchId, d1.strategy, d1.salt, { gasLimit: 300000 });
+    const tx = await pk.revealStrategy(matchId, d1.strategy, d1.salt, { gasLimit: 500000 });
     await tx.wait();
     console.log('REVEALED_1: ' + ['AllAttack','Balanced','AllDefense'][d1.strategy]);
     fs.unlinkSync(saltFile1);
@@ -363,7 +373,7 @@ async function cmdPkAutoSettle(pin, matchId, pin2) {
     const saltFile2 = home + '/.openclaw/claw-world/pk-salt-' + matchId + '-' + wallet2.address.slice(2,8) + '.json';
     if (fs.existsSync(saltFile2)) {
       const d2 = JSON.parse(fs.readFileSync(saltFile2, 'utf8'));
-      const tx = await pk2.revealStrategy(matchId, d2.strategy, d2.salt, { gasLimit: 300000 });
+      const tx = await pk2.revealStrategy(matchId, d2.strategy, d2.salt, { gasLimit: 500000 });
       await tx.wait();
       console.log('REVEALED_2: ' + ['AllAttack','Balanced','AllDefense'][d2.strategy]);
       fs.unlinkSync(saltFile2);
@@ -408,7 +418,7 @@ async function cmdMarketList(pin, nfaId, priceBnb) {
   const market = new ethers.Contract(CONTRACTS.market, [
     'function listFixedPrice(uint256,uint256) returns (uint256)'
   ], wallet);
-  const tx = await market.listFixedPrice(nfaId, ethers.utils.parseEther(String(priceBnb)), { gasLimit: 300000 });
+  const tx = await market.listFixedPrice(nfaId, ethers.utils.parseEther(String(priceBnb)), { gasLimit: 500000 });
   console.log('TX: ' + tx.hash);
   const r = await tx.wait();
   console.log('LISTED: nfa=' + nfaId + ' price=' + priceBnb + 'BNB block=' + r.blockNumber);
@@ -425,7 +435,7 @@ async function cmdMarketAuction(pin, nfaId, startPrice) {
   const market = new ethers.Contract(CONTRACTS.market, [
     'function listAuction(uint256,uint256) returns (uint256)'
   ], wallet);
-  const tx = await market.listAuction(nfaId, ethers.utils.parseEther(String(startPrice)), { gasLimit: 300000 });
+  const tx = await market.listAuction(nfaId, ethers.utils.parseEther(String(startPrice)), { gasLimit: 500000 });
   console.log('TX: ' + tx.hash);
   const r = await tx.wait();
   console.log('AUCTION_CREATED: nfa=' + nfaId + ' startPrice=' + startPrice + 'BNB block=' + r.blockNumber);
@@ -464,7 +474,7 @@ async function cmdMarketCancel(pin, listingId) {
   const market = new ethers.Contract(CONTRACTS.market, [
     'function cancelListing(uint256)'
   ], wallet);
-  const tx = await market.cancelListing(listingId, { gasLimit: 300000 });
+  const tx = await market.cancelListing(listingId, { gasLimit: 500000 });
   console.log('TX: ' + tx.hash);
   const r = await tx.wait();
   console.log('CANCELLED: listing=' + listingId + ' block=' + r.blockNumber);
