@@ -221,6 +221,7 @@ Strategies: 0=AllAttack, 1=Balanced, 2=AllDefense
 
 ### PK CLI Commands
 ```bash
+node ~/.openclaw/skills/claw-world/claw pk-scout <MATCH_ID>
 node ~/.openclaw/skills/claw-world/claw pk-create <PIN> <NFA_ID> <STAKE_CLW> [STRATEGY]
 node ~/.openclaw/skills/claw-world/claw pk-join <PIN> <MATCH_ID> <NFA_ID> [STRATEGY]
 node ~/.openclaw/skills/claw-world/claw pk-commit <PIN> <MATCH_ID> <STRATEGY>
@@ -232,7 +233,8 @@ node ~/.openclaw/skills/claw-world/claw pk-cancel <PIN> <MATCH_ID>
 node ~/.openclaw/skills/claw-world/claw pk-auto-settle <PIN> <MATCH_ID> [PIN2]
 ```
 - STRATEGY: 0=AllAttack, 1=Balanced, 2=AllDefense
-- **Arena mode (推荐)**: pk-create + STRATEGY = 创建+选策略一步完成；pk-join + STRATEGY = 加入+选策略一步完成
+- **pk-scout**: 加入 PK 前自动侦察对手属性、DNA、胜率，并给出策略建议
+- **Arena mode (推荐)**: pk-create + STRATEGY = 创建+选策略一步完成；pk-join + STRATEGY = 加入+选策略+自动侦察一步完成
 - pk-auto-settle: 自动 reveal 双方 + settle（PIN2 用于自战测试）
 - pk-search: list all active matches
 - pk-cancel: cancel stuck matches (supports OPEN/JOINED/COMMITTED phases)
@@ -246,6 +248,14 @@ node ~/.openclaw/skills/claw-world/claw pk-auto-settle <PIN> <MATCH_ID> [PIN2]
 Tell the player: "你的勇气这么高，用全攻会有额外5%攻击加成！" when applicable.
 
 ### PK Flow (Arena Mode)
+**Joining a match (IMPORTANT — always scout first):**
+1. Player says "我想加入擂台X" → run `claw pk-scout X` first
+2. Show opponent's full stats: rarity, level, DNA (STR/DEF/SPD/VIT), personality, HP, PK record
+3. Show the AI strategy suggestion with reason
+4. Factor in YOUR lobster's personality bias bonus when giving final recommendation
+5. Ask player to confirm strategy → run `claw pk-join <PIN> <MATCH_ID> <NFA> <STRATEGY>`
+
+**Creating a match:**
 1. Player says "我想打架" → check personality, suggest matching strategy with bias bonus
 2. Ask CLW stake amount
 3. Run `claw pk-create <PIN> <NFA> <STAKE> <STRATEGY>` → match created + strategy committed on-chain

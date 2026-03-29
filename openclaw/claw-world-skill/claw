@@ -211,7 +211,77 @@ async function cmdPkCreate(pin, nfaId, stake, strategy) {
   }
 }
 
+// ─── PK Scout: view opponent stats before battle ───
+async function cmdPkScout(matchId) {
+  const pkC = new ethers.Contract(CONTRACTS.pk, [
+    'function matches(uint256) view returns (uint256,uint256,bytes32,bytes32,uint8,uint8,uint256,uint8,uint64,bool,bool,bytes32,bytes32)'
+  ], provider);
+  const router = new ethers.Contract(CONTRACTS.router, [
+    'function getLobsterState(uint256) view returns (tuple(uint8 rarity, uint8 shelter, uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit, uint8 str, uint8 def, uint8 spd, uint8 vit, bytes32 mutation1, bytes32 mutation2, uint16 level, uint32 xp, uint40 lastUpkeep))',
+    'function clwBalances(uint256) view returns (uint256)'
+  ], provider);
+  const taskC = new ethers.Contract(CONTRACTS.task, [
+    'function getTaskStats(uint256) view returns (uint32,uint256,uint32,uint32,uint32,uint32,uint32)'
+  ], provider);
+  const pkStatsC = new ethers.Contract(CONTRACTS.pk, [
+    'function getPkStats(uint256) view returns (uint32,uint32,uint256,uint256)'
+  ], provider);
+
+  const m = await pkC.matches(matchId);
+  const nfaA = m[0].toNumber();
+  const stake = ethers.utils.formatEther(m[6]);
+  const phase = m[7];
+  const phaseNames = ['OPEN','JOINED','COMMITTED','REVEALED','SETTLED','CANCELLED'];
+
+  if (nfaA === 0) { console.log('MATCH_NOT_FOUND'); return null; }
+
+  const [s, bal, ts, ps] = await Promise.all([
+    router.getLobsterState(nfaA),
+    router.clwBalances(nfaA),
+    taskC.getTaskStats(nfaA).catch(() => [0,0,0,0,0,0,0]),
+    pkStatsC.getPkStats(nfaA).catch(() => [0,0,0,0])
+  ]);
+
+  const rNames = ['Common','Rare','Epic','Legendary','Mythic'];
+  const stratNames = ['AllAttack','Balanced','AllDefense'];
+
+  // Strategy suggestion based on opponent personality
+  let suggestedStrategy = 'Balanced';
+  let reason = '';
+  if (s.courage >= 70) { suggestedStrategy = 'AllDefense'; reason = 'opponent courage≥70, likely AllAttack → counter with AllDefense'; }
+  else if (s.grit >= 70) { suggestedStrategy = 'AllAttack'; reason = 'opponent grit≥70, likely AllDefense → counter with AllAttack'; }
+  else if (s.wisdom >= 70) { suggestedStrategy = 'AllAttack'; reason = 'opponent wisdom≥70, likely Balanced → overwhelm with AllAttack'; }
+  else { reason = 'no dominant personality → Balanced is safest'; }
+
+  const result = {
+    matchId: Number(matchId),
+    phase: phaseNames[phase] || String(phase),
+    stake: stake + ' CLW',
+    opponent: {
+      nfaId: nfaA,
+      rarity: rNames[s.rarity] || String(s.rarity),
+      level: s.level,
+      personality: { courage: s.courage, wisdom: s.wisdom, social: s.social, create: s.create, grit: s.grit },
+      dna: { STR: s.str, DEF: s.def, SPD: s.spd, VIT: s.vit },
+      hp: s.vit * 10,
+      clwBalance: parseFloat(ethers.utils.formatEther(bal)),
+      pkRecord: {
+        wins: Number(ps[0]), losses: Number(ps[1]),
+        winRate: (Number(ps[0]) + Number(ps[1])) > 0 ? Math.round(Number(ps[0]) / (Number(ps[0]) + Number(ps[1])) * 100) + '%' : 'N/A'
+      }
+    },
+    suggestion: { strategy: suggestedStrategy, reason }
+  };
+  console.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
 async function cmdPkJoin(pin, matchId, nfaId, strategy) {
+  // Auto-scout opponent before joining
+  console.log('--- SCOUTING OPPONENT ---');
+  await cmdPkScout(matchId);
+  console.log('--- END SCOUT ---');
+
   const wallet = new ethers.Wallet(decryptKey(pin), provider);
 
   // Arena mode: join + commit in one tx
@@ -666,6 +736,31 @@ async function cmdWithdrawStatus(nfaId) {
   }, null, 2));
 }
 
+// ─── Version Check ───
+
+const CURRENT_VERSION = '1.0.5';
+const TG_GROUP = 'https://t.me/Claworldgroup';
+const CLAWHUB_API = 'https://clawhub.ai/api/skills/claw-world';
+
+async function checkForUpdate() {
+  return new Promise(function(resolve) {
+    const https = require('https');
+    const req = https.get(CLAWHUB_API, { timeout: 3000 }, function(res) {
+      let data = '';
+      res.on('data', function(d) { data += d; });
+      res.on('end', function() {
+        try {
+          const json = JSON.parse(data);
+          const latest = (json.latestVersion && json.latestVersion.version) || (json.skill && json.skill.latestVersion) || null;
+          resolve(latest && latest !== CURRENT_VERSION ? latest : null);
+        } catch { resolve(null); }
+      });
+    });
+    req.on('error', function() { resolve(null); });
+    req.on('timeout', function() { req.destroy(); resolve(null); });
+  });
+}
+
 // ─── Boot (mandatory first command every conversation) ───
 
 async function cmdBoot() {
@@ -781,18 +876,179 @@ async function cmdBoot() {
     else if (hours >= 8) emotionHint = 'DREAM';
   }
 
-  // 4. Output
-  console.log(JSON.stringify({
+  // 4. Version check (non-blocking)
+  var latestVersion = await checkForUpdate();
+
+  // 5. Output
+  var result = {
     status: 'OK',
+    version: CURRENT_VERSION,
     wallets: wallets.map(function(w) { return w.address; }),
     ownedNFAs: ownedNFAs,
     selectRequired: ownedNFAs.length > 1,
     emotionTrigger: emotionHint,
+    community: { tg: TG_GROUP, website: 'https://clawnfaterminal.xyz' },
     instructions: ownedNFAs.length === 0
       ? 'No NFAs found. Tell player to mint at https://clawnfaterminal.xyz'
       : ownedNFAs.length === 1
         ? 'Auto-selected NFA #' + ownedNFAs[0].tokenId + '. Generate soul if missing. Apply emotion trigger.'
         : 'Ask player to choose: "你有' + ownedNFAs.length + '只龙虾，今天用哪只？"'
+  };
+
+  if (latestVersion) {
+    result.updateAvailable = {
+      current: CURRENT_VERSION,
+      latest: latestVersion,
+      message: '⚠️ 有新版本 v' + latestVersion + '！运行以下命令更新：openclaw skills update claw-world',
+      tg: '加入 TG 社区获取最新消息：' + TG_GROUP
+    };
+  }
+
+  console.log(JSON.stringify(result, null, 2));
+}
+
+// ─── Leaderboard / Supply / Rank ───
+
+async function cmdSupply() {
+  const nfaC = new ethers.Contract(CONTRACTS.nfa, [
+    'function getTotalSupply() view returns (uint256)'
+  ], provider);
+  const total = await nfaC.getTotalSupply();
+  console.log(JSON.stringify({ totalMinted: total.toNumber(), maxSupply: 888 }));
+}
+
+async function scanAllNFAs() {
+  const nfaC = new ethers.Contract(CONTRACTS.nfa, [
+    'function getTotalSupply() view returns (uint256)',
+    'function ownerOf(uint256) view returns (address)'
+  ], provider);
+  const router = new ethers.Contract(CONTRACTS.router, [
+    'function getLobsterState(uint256) view returns (tuple(uint8 rarity, uint8 shelter, uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit, uint8 str, uint8 def, uint8 spd, uint8 vit, bytes32 mutation1, bytes32 mutation2, uint16 level, uint32 xp, uint40 lastUpkeep))',
+    'function clwBalances(uint256) view returns (uint256)'
+  ], provider);
+  const task = new ethers.Contract(CONTRACTS.task, [
+    'function getTaskStats(uint256) view returns (uint32,uint256,uint32,uint32,uint32,uint32,uint32)'
+  ], provider);
+  const pkC = new ethers.Contract(CONTRACTS.pk, [
+    'function getPkStats(uint256) view returns (uint32,uint32,uint256,uint256)'
+  ], provider);
+
+  const total = (await nfaC.getTotalSupply()).toNumber();
+  const rNames = ['Common','Rare','Epic','Legendary','Mythic'];
+
+  // Batch in groups of 10 for speed
+  const all = [];
+  for (var start = 1; start <= total; start += 10) {
+    var batch = [];
+    for (var j = start; j < start + 10 && j <= total; j++) batch.push(j);
+    var results = await Promise.all(batch.map(async function(id) {
+      try {
+        var [s, bal, owner, ts, ps] = await Promise.all([
+          router.getLobsterState(id),
+          router.clwBalances(id),
+          nfaC.ownerOf(id),
+          task.getTaskStats(id).catch(function() { return [0,0,0,0,0,0,0]; }),
+          pkC.getPkStats(id).catch(function() { return [0,0,0,0]; })
+        ]);
+        return {
+          id: id,
+          rarity: rNames[s.rarity] || String(s.rarity),
+          level: s.level,
+          xp: s.xp,
+          clw: parseFloat(ethers.utils.formatEther(bal)),
+          owner: owner,
+          tasks: Number(ts[0]),
+          clwEarned: parseFloat(ethers.utils.formatEther(ts[1] || 0)),
+          pkWins: Number(ps[0]),
+          pkLosses: Number(ps[1]),
+          personality: { courage: s.courage, wisdom: s.wisdom, social: s.social, create: s.create, grit: s.grit },
+          dna: { STR: s.str, DEF: s.def, SPD: s.spd, VIT: s.vit },
+          dnaTotal: s.str + s.def + s.spd + s.vit,
+          personalityTotal: s.courage + s.wisdom + s.social + s.create + s.grit
+        };
+      } catch { return null; }
+    }));
+    results.forEach(function(r) { if (r) all.push(r); });
+  }
+  return all;
+}
+
+async function cmdLeaderboard(metric) {
+  var m = metric || 'xp';
+  var all = await scanAllNFAs();
+
+  var sortFn;
+  switch (m) {
+    case 'clw':       sortFn = function(a, b) { return b.clw - a.clw; }; break;
+    case 'level':     sortFn = function(a, b) { return b.level - a.level || b.xp - a.xp; }; break;
+    case 'tasks':     sortFn = function(a, b) { return b.tasks - a.tasks; }; break;
+    case 'earned':    sortFn = function(a, b) { return b.clwEarned - a.clwEarned; }; break;
+    case 'pk':        sortFn = function(a, b) { return b.pkWins - a.pkWins; }; break;
+    case 'dna':       sortFn = function(a, b) { return b.dnaTotal - a.dnaTotal; }; break;
+    case 'personality': sortFn = function(a, b) { return b.personalityTotal - a.personalityTotal; }; break;
+    default:          sortFn = function(a, b) { return b.xp - a.xp || b.level - a.level; }; break;
+  }
+
+  all.sort(sortFn);
+  var top = all.slice(0, 10);
+
+  console.log(JSON.stringify({
+    metric: m,
+    total: all.length,
+    top10: top.map(function(n, i) {
+      return {
+        rank: i + 1,
+        nfa: '#' + n.id,
+        rarity: n.rarity,
+        level: n.level,
+        xp: n.xp,
+        clw: n.clw,
+        tasks: n.tasks,
+        clwEarned: n.clwEarned,
+        pkWins: n.pkWins,
+        pkLosses: n.pkLosses,
+        dnaTotal: n.dnaTotal,
+        owner: n.owner.slice(0, 8) + '...'
+      };
+    })
+  }, null, 2));
+}
+
+async function cmdRank(nfaId) {
+  var all = await scanAllNFAs();
+  var target = all.find(function(n) { return n.id === Number(nfaId); });
+  if (!target) {
+    console.log(JSON.stringify({ error: 'NFA #' + nfaId + ' not found' }));
+    return;
+  }
+
+  // Rank in multiple dimensions
+  var byXp  = all.slice().sort(function(a, b) { return b.xp - a.xp; });
+  var byClw = all.slice().sort(function(a, b) { return b.clw - a.clw; });
+  var byTasks = all.slice().sort(function(a, b) { return b.tasks - a.tasks; });
+  var byDna = all.slice().sort(function(a, b) { return b.dnaTotal - a.dnaTotal; });
+  var byPk  = all.slice().sort(function(a, b) { return b.pkWins - a.pkWins; });
+
+  function findRank(sorted, id) {
+    for (var i = 0; i < sorted.length; i++) {
+      if (sorted[i].id === id) return i + 1;
+    }
+    return -1;
+  }
+
+  var id = Number(nfaId);
+  console.log(JSON.stringify({
+    nfa: '#' + id,
+    rarity: target.rarity,
+    totalNFAs: all.length,
+    rankings: {
+      xp:    findRank(byXp, id)  + '/' + all.length + ' (XP: ' + target.xp + ')',
+      clw:   findRank(byClw, id) + '/' + all.length + ' (CLW: ' + target.clw + ')',
+      tasks: findRank(byTasks, id) + '/' + all.length + ' (Tasks: ' + target.tasks + ')',
+      dna:   findRank(byDna, id) + '/' + all.length + ' (DNA: ' + target.dnaTotal + ')',
+      pk:    findRank(byPk, id)  + '/' + all.length + ' (Wins: ' + target.pkWins + ')'
+    },
+    stats: target
   }, null, 2));
 }
 
@@ -819,6 +1075,7 @@ const commands = {
   'pk-settle':  () => cmdPkSettle(args[0], args[1]),
   'pk-cancel':  () => cmdPkCancel(args[0], args[1]),
   'pk-auto-settle': () => cmdPkAutoSettle(args[0], args[1], args[2]),
+  'pk-scout':   () => cmdPkScout(args[0]),
   'pk-search':  () => cmdPkSearch(),
   'pk-status':  () => cmdPkStatus(args[0]),
   'market-list':    () => cmdMarketList(args[0], args[1], args[2]),
@@ -830,10 +1087,14 @@ const commands = {
   'withdraw-claim':   () => cmdWithdrawClaim(args[0], args[1]),
   'withdraw-cancel':  () => cmdWithdrawCancel(args[0], args[1]),
   'withdraw-status':  () => cmdWithdrawStatus(args[0]),
+  leaderboard:  () => cmdLeaderboard(args[0]),
+  rank:         () => cmdRank(args[0]),
+  supply:       () => cmdSupply(),
 };
 
 if (!cmd || !commands[cmd]) {
-  console.log('Claw World CLI');
+  console.log('Claw World CLI v' + CURRENT_VERSION);
+  console.log('🌐 https://clawnfaterminal.xyz  💬 TG: https://t.me/Claworldgroup');
   console.log('  claw boot                          — session init (wallet+NFA+soul+memory)');
   console.log('  claw status <tokenId>              — read lobster data');
   console.log('  claw wallet                        — show wallet');
@@ -843,8 +1104,9 @@ if (!cmd || !commands[cmd]) {
   console.log('  claw upkeep <pin> <nfa>                        — process daily upkeep');
   console.log('  claw market-search                             — browse active listings');
   console.log('  claw task <pin> <nfa> <type> <xp> <clw> <score>  — do task');
+  console.log('  claw pk-scout <matchId>                          — scout opponent before PK');
   console.log('  claw pk-create <pin> <nfa> <stake> [strategy]   — create PK (arena: +strategy)');
-  console.log('  claw pk-join <pin> <matchId> <nfa> [strategy]   — join PK (arena: +strategy)');
+  console.log('  claw pk-join <pin> <matchId> <nfa> [strategy]   — join PK (auto-scout + arena)');
   console.log('  claw pk-auto-settle <pin> <matchId> [pin2]      — reveal+settle (auto)');
   console.log('  claw pk-commit <pin> <matchId> <strategy>       — commit (0/1/2) [legacy]');
   console.log('  claw pk-reveal <pin> <matchId>                  — reveal [legacy]');
@@ -859,6 +1121,9 @@ if (!cmd || !commands[cmd]) {
   console.log('  claw withdraw-cancel <pin> <nfa>               — cancel withdraw');
   console.log('  claw withdraw-status <nfa>                     — check withdraw status');
   console.log('  claw transfer <pin> <nfa> <toAddress>           — transfer NFA');
+  console.log('  claw leaderboard [metric]                       — top 10 (xp/clw/level/tasks/earned/pk/dna)');
+  console.log('  claw rank <nfa>                                 — NFA ranking across all metrics');
+  console.log('  claw supply                                     — total minted count');
   process.exit(1);
 }
 
