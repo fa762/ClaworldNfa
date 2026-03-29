@@ -166,7 +166,29 @@ The command returns JSON with:
 1. If no wallet.json → ask PIN, create wallet
 2. Check network: `cat ~/.openclaw/claw-world/network.conf 2>/dev/null`
    - If not set → ask "测试网还是主网？", save to file
-3. Tell player to mint at https://clawnfaterminal.xyz and transfer NFA to this wallet address
+3. After wallet created, **MUST** show this message to player (in Chinese):
+
+```
+✅ 钱包创建成功！
+
+你的游戏钱包地址：<ADDRESS>
+
+⚡ 下一步（必须完成才能开始游戏）：
+
+1. 访问官网：https://clawnfaterminal.xyz
+   → 没有 NFA？先 Mint 一只龙虾
+
+2. 进入你的 NFA 详情页
+   → 点击「维护」Tab
+   → 点击「转移到 OpenClaw」
+   → 粘贴上方钱包地址，确认转移
+
+3. 转移完成后回来找我，我们开始游戏！
+
+💬 有问题？加入社区：https://t.me/Claworldgroup
+```
+
+4. Wait for player to confirm NFA has been transferred before proceeding to game.
 
 ### Wallet Creation Script
 ```bash
