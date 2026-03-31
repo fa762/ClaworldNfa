@@ -29,7 +29,7 @@ export async function GET(
     return new Response(image, {
       headers: {
         'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
       },
     });
   } catch {

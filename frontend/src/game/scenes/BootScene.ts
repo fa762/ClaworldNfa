@@ -7,6 +7,7 @@ import { eventBus } from '../EventBus';
 export class BootScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
   private dots = 0;
+  private readonly assetVersion = '20260331-floor-v2';
 
   constructor() {
     super({ key: 'BootScene' });
@@ -16,19 +17,21 @@ export class BootScene extends Phaser.Scene {
     // ── 占位符精灵（纯色方块，后续替换像素art） ──
     this.generatePlaceholders();
 
+    const assetUrl = (name: string) => `/api/game-assets/${name}?v=${this.assetVersion}`;
+
     // ── 主角龙虾行走图 ──
-    this.load.spritesheet('player-walk', '/api/game-assets/lobster-walk', {
+    this.load.spritesheet('player-walk', assetUrl('lobster-walk'), {
       frameWidth: 48,
       frameHeight: 48,
     });
 
     // ── 真实交互物像素资源 ──
-    this.load.image('npc-task-art', '/api/game-assets/npc-task');
-    this.load.image('npc-pk-art', '/api/game-assets/npc-pk');
-    this.load.image('npc-market-art', '/api/game-assets/npc-market');
-    this.load.image('portal-art', '/api/game-assets/portal');
-    this.load.image('npc-openclaw-art', '/api/game-assets/npc-openclaw');
-    this.load.image('tile-floor-art', '/api/game-assets/tile-floor');
+    this.load.image('npc-task-art', assetUrl('npc-task'));
+    this.load.image('npc-pk-art', assetUrl('npc-pk'));
+    this.load.image('npc-market-art', assetUrl('npc-market'));
+    this.load.image('portal-art', assetUrl('portal'));
+    this.load.image('npc-openclaw-art', assetUrl('npc-openclaw'));
+    this.load.image('tile-floor-art', assetUrl('tile-floor'));
 
     // ── 加载瓦片地图（如果存在） ──
     this.load.on('loaderror', () => { /* 静默忽略缺失资源 */ });
