@@ -7,6 +7,7 @@ import { getTaskDialogue, getPKDialogue, getMarketDialogue, getPortalDialogue, g
 interface NpcDef {
   key: string;
   texture: string;
+  artTexture?: string;
   label: string;
   x: number;
   y: number;
@@ -80,22 +81,24 @@ export class ShelterScene extends Phaser.Scene {
 
     // ── NPC 定义（根据场景大小自适应位置） ──
     this.npcDefs = [
-      { key: 'task',     texture: 'npc-task',     label: '[ 任务终端 ]',     x: W * 0.25,  y: H * 0.3,  action: 'TaskScene' },
-      { key: 'pk',       texture: 'npc-pk',       label: '[ 竞技擂台 ]',     x: W * 0.75,  y: H * 0.3,  action: 'PKScene' },
-      { key: 'market',   texture: 'npc-market',   label: '[ 交易墙 ]',       x: W * 0.5,   y: H * 0.2,  action: 'MarketScene' },
-      { key: 'portal',   texture: 'portal',       label: '[ 隧道传送 ]',     x: W * 0.15,  y: H * 0.7,  action: 'event:portal' },
-      { key: 'openclaw', texture: 'npc-openclaw', label: '[ 意识唤醒舱 ]',   x: W * 0.85,  y: H * 0.7,  action: 'event:openclaw' },
+      { key: 'task',     texture: 'npc-task',     artTexture: 'npc-task-art',     label: '[ 任务终端 ]',     x: W * 0.25,  y: H * 0.3,  action: 'TaskScene' },
+      { key: 'pk',       texture: 'npc-pk',       artTexture: 'npc-pk-art',       label: '[ 竞技擂台 ]',     x: W * 0.75,  y: H * 0.3,  action: 'PKScene' },
+      { key: 'market',   texture: 'npc-market',   artTexture: 'npc-market-art',   label: '[ 交易墙 ]',       x: W * 0.5,   y: H * 0.2,  action: 'MarketScene' },
+      { key: 'portal',   texture: 'portal',       artTexture: 'portal-art',       label: '[ 隧道传送 ]',     x: W * 0.15,  y: H * 0.7,  action: 'event:portal' },
+      { key: 'openclaw', texture: 'npc-openclaw', artTexture: 'npc-openclaw-art', label: '[ 意识唤醒舱 ]',   x: W * 0.85,  y: H * 0.7,  action: 'event:openclaw' },
     ];
 
     // ── 创建 NPC ──
     this.npcs = [];
     for (const def of this.npcDefs) {
-      const npc = this.physics.add.sprite(def.x, def.y, def.texture);
+      const npcTexture = def.artTexture && this.textures.exists(def.artTexture) ? def.artTexture : def.texture;
+      const npc = this.physics.add.sprite(def.x, def.y, npcTexture);
       npc.setImmovable(true);
       npc.setData('def', def);
+      npc.setDepth(8);
 
       // NPC 标签
-      this.add.text(def.x, def.y - 24, def.label, {
+      this.add.text(def.x, def.y - npc.displayHeight / 2 - 10, def.label, {
         fontSize: '9px', fontFamily: 'monospace', color: '#39ff14',
       }).setOrigin(0.5).setAlpha(0.6);
 

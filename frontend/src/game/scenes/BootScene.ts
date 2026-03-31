@@ -22,6 +22,13 @@ export class BootScene extends Phaser.Scene {
       frameHeight: 48,
     });
 
+    // ── 真实交互物像素资源 ──
+    this.load.image('npc-task-art', '/api/game-assets/npc-task');
+    this.load.image('npc-pk-art', '/api/game-assets/npc-pk');
+    this.load.image('npc-market-art', '/api/game-assets/npc-market');
+    this.load.image('portal-art', '/api/game-assets/portal');
+    this.load.image('npc-openclaw-art', '/api/game-assets/npc-openclaw');
+
     // ── 加载瓦片地图（如果存在） ──
     this.load.on('loaderror', () => { /* 静默忽略缺失资源 */ });
   }
