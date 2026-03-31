@@ -1,5 +1,7 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
+import { TerminalModal } from '../ui/TerminalModal';
+import type { NFASummary } from '../chain/wallet';
 
 interface Personality {
   courage: number;
@@ -23,6 +25,7 @@ interface Listing {
   highestBid: string;
   highestBidder: string;
   endTime: number;
+  swapTargetId: number;
   rarity: number;
 }
 
@@ -45,6 +48,9 @@ export class MarketScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
   private playerPosition?: PlayerPosition;
   private entryAction?: string;
+  private walletNfaIds: number[] = [];
+  private walletSummaries: Record<number, NFASummary> = {};
+  private modal!: TerminalModal;
 
   constructor() {
     super({ key: 'MarketScene' });
@@ -77,10 +83,17 @@ export class MarketScene extends Phaser.Scene {
       fontSize: '14px', fontFamily: 'monospace', color: '#3399ff',
     }).setOrigin(0.5).setAlpha(0.6);
 
+    this.add.text(W / 2, 62, '固定价 / 拍卖 / 互换 都在链上结算', {
+      fontSize: '12px', fontFamily: 'monospace', color: '#9fb7ff',
+    }).setOrigin(0.5).setAlpha(0.75);
+
+    this.modal = new TerminalModal(this);
+
     const buttons = [
-      { label: '[ 固定价挂售 ]', x: W * 0.25, action: () => this.promptList('fixed') },
-      { label: '[ 拍卖挂售 ]', x: W * 0.5, action: () => this.promptList('auction') },
-      { label: '[ 刷新列表 ]', x: W * 0.75, action: () => this.requestListings() },
+      { label: '[ 固定价挂售 ]', x: W * 0.2, action: () => this.promptList('fixed') },
+      { label: '[ 拍卖挂售 ]', x: W * 0.4, action: () => this.promptList('auction') },
+      { label: '[ 互换挂售 ]', x: W * 0.6, action: () => this.promptList('swap') },
+      { label: '[ 刷新列表 ]', x: W * 0.8, action: () => this.requestListings() },
     ];
 
     for (const button of buttons) {
@@ -161,6 +174,8 @@ export class MarketScene extends Phaser.Scene {
         this.showStatus('拍卖已结算', '#39ff14');
       } else if (result.action === 'cancel') {
         this.showStatus('挂单已取消', '#39ff14');
+      } else if (result.action === 'acceptSwap') {
+        this.showStatus('互换成功，链上所有权已更新', '#39ff14');
       }
 
       this.requestListings();
@@ -172,17 +187,38 @@ export class MarketScene extends Phaser.Scene {
       this.registry.set('walletAddress', wallet.address);
     });
 
+    const offWalletNfas = eventBus.on('wallet:nfas', (data: unknown) => {
+      const payload = data as { ids: number[]; summaries: Record<number, NFASummary> };
+      this.walletNfaIds = payload.ids;
+      this.walletSummaries = payload.summaries;
+    });
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offListings();
       offResult();
       offWallet();
+      offWalletNfas();
+      this.modal.destroy();
     });
 
+    eventBus.emit('wallet:nfas:request');
     this.requestListings();
 
     if (this.entryAction === 'market:list') {
-      this.time.delayedCall(150, () => this.promptList('fixed'));
+      this.time.delayedCall(150, () => this.promptListingMode());
     }
+  }
+
+  private promptListingMode() {
+    this.modal.showMenu({
+      title: '选择挂售模式',
+      subtitle: '固定价立即成交，拍卖持续 24 小时，互换指定另一只 NFA。',
+      options: [
+        { label: '固定价挂售', description: '输入一个 BNB 价格，任何人都能直接购买。', onSelect: () => this.promptList('fixed') },
+        { label: '拍卖挂售', description: '设置起拍价，24 小时后由最高出价者成交。', onSelect: () => this.promptList('auction') },
+        { label: '互换挂售', description: '指定另一只 NFA，只有目标 NFA 的持有者能接受。', onSelect: () => this.promptList('swap') },
+      ],
+    });
   }
 
   private requestListings() {
@@ -190,11 +226,52 @@ export class MarketScene extends Phaser.Scene {
     eventBus.emit('market:requestListings');
   }
 
-  private promptList(mode: 'fixed' | 'auction') {
+  private promptList(mode: 'fixed' | 'auction' | 'swap') {
+    if (mode === 'swap') {
+      const candidates = this.walletNfaIds.filter((id) => id !== this.nfaId);
+      if (candidates.length === 0) {
+        this.showStatus('你没有其他 NFA 可作为互换目标', '#666666');
+        return;
+      }
+
+      this.modal.showMenu({
+        title: '互换挂售',
+        subtitle: `当前挂出的 NFA 是 #${this.nfaId}。选择你想换到手的目标 NFA。`,
+        options: candidates.map((id) => ({
+          label: `目标 NFA #${id}`,
+          description: this.walletSummaries[id]
+            ? `Lv.${this.walletSummaries[id].level} · ${TYPE_NAMES[2]}目标`
+            : '链上可用 NFA',
+          onSelect: () => eventBus.emit('market:list', { nfaId: this.nfaId, mode: 'swap', targetNfaId: id }),
+        })),
+      });
+      return;
+    }
+
     const defaultValue = mode === 'fixed' ? '0.10' : '0.05';
-    const price = window.prompt(mode === 'fixed' ? '输入固定价 BNB' : '输入拍卖起拍价 BNB', defaultValue);
-    if (!price) return;
-    eventBus.emit('market:list', { nfaId: this.nfaId, price, mode });
+    this.modal.showForm({
+      title: mode === 'fixed' ? '固定价挂售' : '拍卖挂售',
+      subtitle: mode === 'fixed'
+        ? `挂售 NFA #${this.nfaId}，输入你希望收到的 BNB 固定价。`
+        : `挂售 NFA #${this.nfaId}，输入拍卖起拍价。拍卖持续 24 小时。`,
+      fields: [
+        {
+          name: 'price',
+          label: mode === 'fixed' ? '固定价 BNB' : '起拍价 BNB',
+          type: 'number',
+          value: defaultValue,
+          placeholder: defaultValue,
+        },
+      ],
+      submitLabel: '发起挂售',
+      onSubmit: (values) => {
+        if (!values.price || Number(values.price) <= 0) {
+          this.showStatus('请输入有效价格', '#ff4444');
+          return;
+        }
+        eventBus.emit('market:list', { nfaId: this.nfaId, price: values.price, mode });
+      },
+    });
   }
 
   private renderListings() {
@@ -220,8 +297,13 @@ export class MarketScene extends Phaser.Scene {
       const rarityColor = RARITY_COLORS[item.rarity] || '#aaaaaa';
       const sellerShort = `${item.seller.slice(0, 6)}...${item.seller.slice(-4)}`;
       const isMine = Boolean(this.walletAddress) && item.seller.toLowerCase() === this.walletAddress.toLowerCase();
+      const hasSwapTarget = item.listingType === 2 && this.walletNfaIds.includes(item.swapTargetId);
       const auctionEnded = item.listingType === 1 && item.endTime > 0 && Math.floor(Date.now() / 1000) >= item.endTime;
-      const mainValue = item.listingType === 1 && Number(item.highestBid) > 0 ? `${item.highestBid} BNB` : `${item.price} BNB`;
+      const mainValue = item.listingType === 2
+        ? `换 NFA #${item.swapTargetId}`
+        : item.listingType === 1 && Number(item.highestBid) > 0
+          ? `${item.highestBid} BNB`
+          : `${item.price} BNB`;
 
       const rowBg = this.add.rectangle(W / 2, y + 10, W - 30, 40, 0x111122, 0.5)
         .setStrokeStyle(1, 0x222233)
@@ -237,9 +319,13 @@ export class MarketScene extends Phaser.Scene {
       this.rows.push(rowBg, rowText);
 
       if (item.listingType === 2) {
-        const swapLabel = this.add.text(W - 72, y + 1, '[ SWAP ]', {
-          fontSize: '11px', fontFamily: 'monospace', color: '#777777', backgroundColor: '#111111', padding: { x: 6, y: 4 },
+        const swapLabel = this.add.text(W - 72, y + 1, isMine ? '[ 取消 ]' : hasSwapTarget ? '[ 接受 ]' : `[ 需 #${item.swapTargetId} ]`, {
+          fontSize: '11px', fontFamily: 'monospace', color: isMine ? '#ff6666' : hasSwapTarget ? '#39ff14' : '#777777', backgroundColor: '#111111', padding: { x: 6, y: 4 },
         }).setOrigin(0.5);
+        if (isMine || hasSwapTarget) {
+          swapLabel.setInteractive({ useHandCursor: true });
+          swapLabel.on('pointerdown', () => this.handleListingAction(item, isMine, auctionEnded));
+        }
         this.rows.push(swapLabel);
         return;
       }
@@ -272,25 +358,70 @@ export class MarketScene extends Phaser.Scene {
 
   private handleListingAction(item: Listing, isMine: boolean, auctionEnded: boolean) {
     if (isMine) {
-      eventBus.emit('market:cancel', { listingId: item.listingId });
+      this.modal.showMenu({
+        title: '取消挂单',
+        subtitle: `确认取消 Listing #${item.listingId} 吗？链上托管的 NFA 会返回给卖家。`,
+        options: [
+          { label: '确认取消', description: `NFA #${item.nfaId}`, onSelect: () => eventBus.emit('market:cancel', { listingId: item.listingId }) },
+        ],
+      });
       return;
     }
 
     if (item.listingType === 0) {
-      eventBus.emit('market:buy', { listingId: item.listingId, price: item.price });
+      this.modal.showMenu({
+        title: '购买 NFA',
+        subtitle: `确认用 ${item.price} BNB 购买 NFA #${item.nfaId} 吗？`,
+        options: [
+          { label: '确认购买', description: `Listing #${item.listingId}`, onSelect: () => eventBus.emit('market:buy', { listingId: item.listingId, price: item.price }) },
+        ],
+      });
       return;
     }
 
     if (item.listingType === 1 && auctionEnded) {
-      eventBus.emit('market:settle', { listingId: item.listingId });
+      this.modal.showMenu({
+        title: '结算拍卖',
+        subtitle: `拍卖已结束。确认结算 Listing #${item.listingId} 吗？`,
+        options: [
+          { label: '确认结算', description: `NFA #${item.nfaId}`, onSelect: () => eventBus.emit('market:settle', { listingId: item.listingId }) },
+        ],
+      });
       return;
     }
 
     if (item.listingType === 1) {
       const base = Number(item.highestBid) > 0 ? Number(item.highestBid) * 1.05 : Number(item.price);
-      const bidAmount = window.prompt('输入出价 BNB', base.toFixed(4));
-      if (!bidAmount) return;
-      eventBus.emit('market:bid', { listingId: item.listingId, amount: bidAmount });
+      this.modal.showForm({
+        title: '出价竞拍',
+        subtitle: `当前最低有效出价约为 ${base.toFixed(4)} BNB。`,
+        fields: [
+          { name: 'amount', label: '出价 BNB', type: 'number', value: base.toFixed(4), placeholder: base.toFixed(4) },
+        ],
+        submitLabel: '提交出价',
+        onSubmit: (values) => {
+          if (!values.amount || Number(values.amount) <= 0) {
+            this.showStatus('请输入有效出价', '#ff4444');
+            return;
+          }
+          eventBus.emit('market:bid', { listingId: item.listingId, amount: values.amount });
+        },
+      });
+      return;
+    }
+
+    if (item.listingType === 2) {
+      this.modal.showMenu({
+        title: '接受互换',
+        subtitle: `你将交出 NFA #${item.swapTargetId}，换入对方的 NFA #${item.nfaId}。`,
+        options: [
+          {
+            label: '确认互换',
+            description: `Listing #${item.listingId}`,
+            onSelect: () => eventBus.emit('market:acceptSwap', { listingId: item.listingId, targetNfaId: item.swapTargetId }),
+          },
+        ],
+      });
     }
   }
 

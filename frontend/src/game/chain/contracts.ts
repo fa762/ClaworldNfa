@@ -146,6 +146,16 @@ export function marketAuctionArgs(nfaId: number, startPrice: bigint) {
   };
 }
 
+export function marketSwapArgs(nfaId: number, targetNfaId: number) {
+  return {
+    address: addresses.marketSkill as Address,
+    abi: MarketSkillABI,
+    functionName: 'listSwap' as const,
+    args: [BigInt(nfaId), BigInt(targetNfaId)] as const,
+    gas: 300_000n,
+  };
+}
+
 export function marketBidArgs(listingId: number, amount: bigint) {
   return {
     address: addresses.marketSkill as Address,
@@ -174,6 +184,16 @@ export function marketCancelArgs(listingId: number) {
     functionName: 'cancelListing' as const,
     args: [BigInt(listingId)] as const,
     gas: 300_000n,
+  };
+}
+
+export function marketAcceptSwapArgs(listingId: number) {
+  return {
+    address: addresses.marketSkill as Address,
+    abi: MarketSkillABI,
+    functionName: 'acceptSwap' as const,
+    args: [BigInt(listingId)] as const,
+    gas: 350_000n,
   };
 }
 

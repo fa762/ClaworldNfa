@@ -13,7 +13,7 @@ export class StatusHUD {
   private personalityText: Phaser.GameObjects.Text;
   private nfaId = 0;
   private hasData = false;
-  private stats = { level: 0, clw: '0', bnb: '0', courage: 0, wisdom: 0, social: 0, create: 0, grit: 0, hp: 0 };
+  private stats = { level: 0, clw: '0', bnb: '0', courage: 0, wisdom: 0, social: 0, create: 0, grit: 0, hp: 0, active: false, dailyCost: 0, shelter: 0 };
   private readonly offFullStats: () => void;
 
   constructor(scene: Phaser.Scene, nfaId: number) {
@@ -52,7 +52,7 @@ export class StatusHUD {
   refresh() {
     const s = this.stats;
     this.mainText.setText(
-      `NFA #${this.nfaId}  Lv.${s.level}  CLW: ${s.clw}  HP: ${s.hp}`
+      `NFA #${this.nfaId}  Lv.${s.level}  CLW: ${s.clw}  HP: ${s.hp}  ${s.active ? 'ACTIVE' : 'DORMANT'}  UPKEEP: ${s.dailyCost.toFixed(1)}`
     );
 
     if (!this.hasData) {

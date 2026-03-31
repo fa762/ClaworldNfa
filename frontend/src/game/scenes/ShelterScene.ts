@@ -98,6 +98,23 @@ export class ShelterScene extends Phaser.Scene {
       this.add.image(W - 32, y, 'tile-wall').setOrigin(0);
     }
 
+    // ── 功能分区光带 ──
+    const zoneDefs = [
+      { x: W * 0.25, y: H * 0.3, w: 160, h: 92, color: 0xffd34d },
+      { x: W * 0.75, y: H * 0.3, w: 160, h: 92, color: 0xff4d4d },
+      { x: W * 0.5, y: H * 0.2, w: 220, h: 84, color: 0x4da3ff },
+      { x: W * 0.15, y: H * 0.7, w: 132, h: 84, color: 0xaa66ff },
+      { x: W * 0.85, y: H * 0.7, w: 148, h: 92, color: 0x66ffcc },
+    ];
+
+    zoneDefs.forEach((zone) => {
+      this.add.rectangle(zone.x, zone.y, zone.w, zone.h, zone.color, 0.06).setDepth(1);
+      this.add.rectangle(zone.x, zone.y + zone.h / 2 - 4, zone.w * 0.72, 6, zone.color, 0.08).setDepth(1);
+    });
+
+    this.add.rectangle(W / 2, H / 2, Math.min(W * 0.55, 440), 12, 0x39ff14, 0.04).setDepth(1);
+    this.add.rectangle(W / 2, H / 2 + 78, Math.min(W * 0.4, 320), 8, 0x39ff14, 0.03).setDepth(1);
+
     // ── 标题 ──
     const shelterNames = ['虚空', '珊瑚', '深渊', '海藻', '海沟', '礁石', '火山', '废土'];
     const shelterName = shelterNames[this.shelter] || `SHELTER-0${this.shelter}`;
@@ -172,8 +189,8 @@ export class ShelterScene extends Phaser.Scene {
 
     // ── 监听链上数据更新 ──
     const offStats = eventBus.on('nfa:stats', (data: unknown) => {
-      const stats = data as { clw: string; level: number };
-      this.hudText.setText(`NFA #${this.nfaId}  |  CLW: ${stats.clw}  |  Lv.${stats.level}  |  WASD 移动  |  SPACE 交互`);
+      const stats = data as { clw: string; level: number; active?: boolean; dailyCost?: string };
+      this.hudText.setText(`NFA #${this.nfaId}  |  CLW: ${stats.clw}  |  Lv.${stats.level}  |  ${stats.active ? 'ACTIVE' : 'DORMANT'}  |  UPKEEP ${stats.dailyCost ?? '0'}  |  WASD 移动  |  SPACE 交互`);
     });
 
     const offFullStats = eventBus.on('nfa:fullStats', (data: unknown) => {

@@ -24,6 +24,9 @@ export function createGame(parent: HTMLElement): Phaser.Game {
       mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
+    dom: {
+      createContainer: true,
+    },
     scene: [BootScene, ShelterScene, TaskScene, PKScene, MarketScene],
   };
 

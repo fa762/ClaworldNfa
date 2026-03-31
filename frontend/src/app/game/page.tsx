@@ -20,11 +20,13 @@ import {
 import {
   generateCommit,
   loadPKSalt,
+  marketAcceptSwapArgs,
   marketAuctionArgs,
   marketBidArgs,
   marketBuyArgs,
   marketCancelArgs,
   marketListArgs,
+  marketSwapArgs,
   marketSettleAuctionArgs,
   nfaApproveArgs,
   pkCancelArgs,
@@ -153,6 +155,8 @@ export default function GamePage() {
     eventBus.emit('nfa:stats', {
       clw: state.clwBalance.toFixed(0),
       level: state.level,
+      active: state.active,
+      dailyCost: state.dailyCost.toFixed(2),
     });
 
     eventBus.emit('nfa:fullStats', {
@@ -165,6 +169,9 @@ export default function GamePage() {
       create: state.create,
       grit: state.grit,
       hp: state.vit * 10,
+      active: state.active,
+      dailyCost: state.dailyCost,
+      shelter: state.shelter,
     });
 
     eventBus.emit('nfa:active', {
@@ -187,6 +194,7 @@ export default function GamePage() {
 
     const summaries = await loadNfaSummaries(ids);
     setNfaSummaries(summaries);
+    eventBus.emit('wallet:nfas', { ids, summaries });
 
     return ids;
   }, [address, isConnected]);
@@ -267,6 +275,7 @@ export default function GamePage() {
       setActiveNfaId(null);
       setNfaList([]);
       setNfaSummaries({});
+      eventBus.emit('wallet:nfas', { ids: [], summaries: {} });
       setBootProgress(0);
       setStatus('ready');
       return;
@@ -335,6 +344,17 @@ export default function GamePage() {
 
     return () => window.clearInterval(intervalId);
   }, [activeNfaId, refreshActiveNfaState, status]);
+
+  useEffect(() => {
+    eventBus.emit('wallet:nfas', { ids: nfaList, summaries: nfaSummaries });
+  }, [nfaList, nfaSummaries]);
+
+  useEffect(() => {
+    const unsubscribe = eventBus.on('wallet:nfas:request', () => {
+      eventBus.emit('wallet:nfas', { ids: nfaList, summaries: nfaSummaries });
+    });
+    return () => unsubscribe();
+  }, [nfaList, nfaSummaries]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -644,20 +664,47 @@ export default function GamePage() {
       }
     });
 
+    const unsubMarketAcceptSwap = eventBus.on('market:acceptSwap', async (...args: unknown[]) => {
+      const data = args[0] as { listingId: number; targetNfaId: number };
+      try {
+        const approveHash = await writeContractAsync(nfaApproveArgs(data.targetNfaId));
+        await waitForReceipt(approveHash, 'APPROVING SWAP NFA');
+
+        const hash = await writeContractAsync(marketAcceptSwapArgs(data.listingId));
+        eventBus.emit('market:result', { status: 'pending', action: 'acceptSwap', txHash: hash, listingId: data.listingId });
+
+        const receipt = await waitForReceipt(hash, 'ACCEPTING SWAP');
+        if (receipt.status !== 'success') throw new Error('Accept swap transaction reverted');
+
+        await syncAfterOwnershipChange();
+        await emitMarketListings();
+
+        eventBus.emit('market:result', { status: 'confirmed', action: 'acceptSwap', txHash: hash, listingId: data.listingId });
+      } catch (error) {
+        console.error('Accept swap failed:', error);
+        eventBus.emit('market:result', { status: 'failed', action: 'acceptSwap', error: getErrorMessage(error) });
+      }
+    });
+
     const unsubMarketList = eventBus.on('market:list', async (...args: unknown[]) => {
-      const data = args[0] as { nfaId: number; price: string; mode: 'fixed' | 'auction' };
+      const data = args[0] as { nfaId: number; price?: string; mode: 'fixed' | 'auction' | 'swap'; targetNfaId?: number };
       try {
         const approveHash = await writeContractAsync(nfaApproveArgs(data.nfaId));
         await waitForReceipt(approveHash, 'APPROVING NFA');
 
-        const txArgs = data.mode === 'auction'
-          ? marketAuctionArgs(data.nfaId, parseEther(data.price))
-          : marketListArgs(data.nfaId, parseEther(data.price));
+        const txArgs = data.mode === 'swap'
+          ? marketSwapArgs(data.nfaId, Number(data.targetNfaId))
+          : data.mode === 'auction'
+            ? marketAuctionArgs(data.nfaId, parseEther(String(data.price)))
+            : marketListArgs(data.nfaId, parseEther(String(data.price)));
 
         const hash = await writeContractAsync(txArgs);
         eventBus.emit('market:result', { status: 'pending', action: 'list', txHash: hash, nfaId: data.nfaId });
 
-        const receipt = await waitForReceipt(hash, data.mode === 'auction' ? 'CREATING AUCTION' : 'LISTING NFA');
+        const receipt = await waitForReceipt(
+          hash,
+          data.mode === 'swap' ? 'LISTING SWAP' : data.mode === 'auction' ? 'CREATING AUCTION' : 'LISTING NFA'
+        );
         if (receipt.status !== 'success') throw new Error('List transaction reverted');
 
         const listed = getReceiptEventArgs(MarketSkillABI, receipt, addresses.marketSkill, 'Listed');
@@ -690,6 +737,7 @@ export default function GamePage() {
       unsubMarketBid();
       unsubMarketSettle();
       unsubMarketCancel();
+      unsubMarketAcceptSwap();
       unsubMarketList();
     };
   }, [

@@ -1,5 +1,7 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
+import { loadPKSalt } from '../chain/contracts';
+import { TerminalModal } from '../ui/TerminalModal';
 
 const STRATEGIES = [
   { name: '全攻', desc: 'ATK 150% / DEF 50%', color: '#ff4444' },
@@ -44,6 +46,7 @@ export class PKScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
   private playerPosition?: PlayerPosition;
   private entryAction?: string;
+  private modal!: TerminalModal;
 
   constructor() {
     super({ key: 'PKScene' });
@@ -74,6 +77,12 @@ export class PKScene extends Phaser.Scene {
     this.add.text(W / 2, 48, `NFA #${this.nfaId} — 真链上 PK`, {
       fontSize: '14px', fontFamily: 'monospace', color: '#ff6666',
     }).setOrigin(0.5).setAlpha(0.7);
+
+    this.add.text(W / 2, 64, '创建擂台 -> 挑策略 -> 等对手 -> 揭示 -> 结算', {
+      fontSize: '12px', fontFamily: 'monospace', color: '#aaaaaa',
+    }).setOrigin(0.5).setAlpha(0.75);
+
+    this.modal = new TerminalModal(this);
 
     const buttons = [
       { label: '[ 创建 ]', x: W * 0.18, action: () => this.promptCreate() },
@@ -167,6 +176,7 @@ export class PKScene extends Phaser.Scene {
       offMatches();
       offResult();
       offFullStats();
+      this.modal.destroy();
     });
 
     this.requestMatches();
@@ -182,78 +192,103 @@ export class PKScene extends Phaser.Scene {
   }
 
   private promptCreate() {
-    const stake = window.prompt('输入质押 CLW 数量', '100');
-    if (!stake) return;
-    this.showStrategyPicker('create', { stake });
+    this.modal.showForm({
+      title: '创建擂台',
+      subtitle: '输入本场要锁定的 CLW 质押。签名后会在链上创建对战。',
+      fields: [
+        { name: 'stake', label: '质押 CLW', type: 'number', value: '100', placeholder: '100' },
+      ],
+      submitLabel: '下一步',
+      onSubmit: (values) => {
+        if (!values.stake || Number(values.stake) <= 0) {
+          this.showStatus('请输入有效的质押数量', '#ff4444');
+          return;
+        }
+        this.showStrategyPicker('create', { stake: values.stake });
+      },
+    });
   }
 
   private promptReveal() {
-    const matchId = window.prompt('输入要揭示策略的 Match ID');
-    if (!matchId) return;
-    eventBus.emit('pk:reveal', { matchId: Number(matchId) });
+    const revealable = this.matches.filter((match) =>
+      match.phase === 2 && (match.nfaA === this.nfaId || match.nfaB === this.nfaId) && Boolean(loadPKSalt(match.matchId))
+    );
+
+    if (revealable.length === 0) {
+      this.showStatus('当前没有可揭示的对战', '#666666');
+      return;
+    }
+
+    this.modal.showMenu({
+      title: '揭示策略',
+      subtitle: '选择一场已提交 commit 的对战，公开你的策略与 salt。',
+      options: revealable.map((match) => ({
+        label: `#${match.matchId}  对手 NFA #${match.nfaA === this.nfaId ? match.nfaB : match.nfaA}`,
+        description: `质押 ${match.stake} CLW · ${match.phaseName}`,
+        onSelect: () => eventBus.emit('pk:reveal', { matchId: match.matchId }),
+      })),
+    });
   }
 
   private promptSettle() {
-    const matchId = window.prompt('输入要结算的 Match ID');
-    if (!matchId) return;
-    eventBus.emit('pk:settle', { matchId: Number(matchId) });
+    const settleable = this.matches.filter((match) => match.phase === 3);
+
+    if (settleable.length === 0) {
+      this.showStatus('当前没有可结算的对战', '#666666');
+      return;
+    }
+
+    this.modal.showMenu({
+      title: '结算对战',
+      subtitle: '双方都已揭示策略，选择一场对战执行链上结算。',
+      options: settleable.map((match) => ({
+        label: `#${match.matchId}  NFA #${match.nfaA} vs NFA #${match.nfaB}`,
+        description: `总质押 ${Number(match.stake) * 2} CLW`,
+        onSelect: () => eventBus.emit('pk:settle', { matchId: match.matchId }),
+      })),
+    });
   }
 
   private promptCancel() {
-    const matchId = window.prompt('输入要取消的 Match ID');
-    if (!matchId) return;
-    eventBus.emit('pk:cancel', { matchId: Number(matchId) });
+    const cancellable = this.matches.filter((match) =>
+      match.phase <= 2 && (match.nfaA === this.nfaId || match.nfaB === this.nfaId)
+    );
+
+    if (cancellable.length === 0) {
+      this.showStatus('当前没有可取消的对战', '#666666');
+      return;
+    }
+
+    this.modal.showMenu({
+      title: '取消对战',
+      subtitle: '只能取消 OPEN / JOINED / COMMITTED 状态的对战。',
+      options: cancellable.map((match) => ({
+        label: `#${match.matchId}  ${match.phaseName}`,
+        description: `NFA #${match.nfaA} vs ${match.nfaB || '-'} · 质押 ${match.stake} CLW`,
+        onSelect: () => eventBus.emit('pk:cancel', { matchId: match.matchId }),
+      })),
+    });
   }
 
   private showStrategyPicker(mode: 'create' | 'join', options: { stake?: string; matchId?: number }) {
-    const W = this.cameras.main.width;
-    const H = this.cameras.main.height;
-    const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75).setDepth(50);
-    const title = this.add.text(W / 2, H / 2 - 110, mode === 'create' ? '创建擂台：选择策略' : `加入擂台 #${options.matchId}：选择策略`, {
-      fontSize: '18px', fontFamily: 'monospace', color: '#ffffff',
-    }).setOrigin(0.5).setDepth(51);
-
-    const createdObjects: Phaser.GameObjects.GameObject[] = [overlay, title];
-
-    if (options.stake) {
-      const stakeText = this.add.text(W / 2, H / 2 - 88, `质押: ${options.stake} CLW`, {
-        fontSize: '14px', fontFamily: 'monospace', color: '#ffaa00',
-      }).setOrigin(0.5).setDepth(51);
-      createdObjects.push(stakeText);
-    }
-
-    STRATEGIES.forEach((strategy, index) => {
-      const y = H / 2 - 30 + index * 58;
-      const card = this.add.rectangle(W / 2, y, 280, 52, 0x111122)
-        .setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(strategy.color).color)
-        .setDepth(51)
-        .setInteractive({ useHandCursor: true });
-      const name = this.add.text(W / 2, y - 8, strategy.name, {
-        fontSize: '18px', fontFamily: 'monospace', color: strategy.color,
-      }).setOrigin(0.5).setDepth(52);
-      const desc = this.add.text(W / 2, y + 10, strategy.desc, {
-        fontSize: '12px', fontFamily: 'monospace', color: '#888888',
-      }).setOrigin(0.5).setDepth(52);
-
-      card.on('pointerdown', () => {
-        createdObjects.forEach((obj) => obj.destroy());
-        if (mode === 'create' && options.stake) {
-          eventBus.emit('pk:create', { nfaId: this.nfaId, strategy: index, stake: options.stake });
-        }
-        if (mode === 'join' && options.matchId) {
-          eventBus.emit('pk:join', { nfaId: this.nfaId, matchId: options.matchId, strategy: index });
-        }
-      });
-
-      createdObjects.push(card, name, desc);
+    this.modal.showMenu({
+      title: mode === 'create' ? '选择战斗策略' : `加入擂台 #${options.matchId}`,
+      subtitle: options.stake
+        ? `本场质押 ${options.stake} CLW。不同策略互相克制，揭示后才能结算。`
+        : '选择你的战斗策略。',
+      options: STRATEGIES.map((strategy, index) => ({
+        label: strategy.name,
+        description: strategy.desc,
+        onSelect: () => {
+          if (mode === 'create' && options.stake) {
+            eventBus.emit('pk:create', { nfaId: this.nfaId, strategy: index, stake: options.stake });
+          }
+          if (mode === 'join' && options.matchId) {
+            eventBus.emit('pk:join', { nfaId: this.nfaId, matchId: options.matchId, strategy: index });
+          }
+        },
+      })),
     });
-
-    const cancel = this.add.text(W / 2, H / 2 + 155, '[ 取消 ]', {
-      fontSize: '15px', fontFamily: 'monospace', color: '#ff4444',
-    }).setOrigin(0.5).setDepth(52).setInteractive({ useHandCursor: true });
-
-    cancel.on('pointerdown', () => createdObjects.forEach((obj) => obj.destroy()));
-    createdObjects.push(cancel);
   }
 
   private renderMatches() {
