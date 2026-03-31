@@ -11,9 +11,11 @@ import {
   loadMatch,
   loadMarketListings,
   loadNFAState,
+  loadNfaSummaries,
   loadPlayerNFAs,
   loadRecentMatches,
   publicClient,
+  type NFASummary,
 } from '@/game/chain/wallet';
 import {
   generateCommit,
@@ -39,6 +41,9 @@ import { MarketSkillABI } from '@/contracts/abis/MarketSkill';
 import { PKSkillABI } from '@/contracts/abis/PKSkill';
 import { TaskSkillABI } from '@/contracts/abis/TaskSkill';
 import { useI18n } from '@/lib/i18n';
+import { getLobsterName } from '@/lib/mockData';
+import { getRarityName } from '@/lib/rarity';
+import { getShelterName } from '@/lib/shelter';
 
 type GameStatus = 'loading' | 'ready' | 'connected' | 'booting' | 'no-nfa' | 'select-nfa' | 'loading-nfa' | 'playing' | 'error';
 type PendingTx = { hash: `0x${string}`; label: string } | null;
@@ -98,6 +103,8 @@ export default function GamePage() {
 
   const [status, setStatus] = useState<GameStatus>('loading');
   const [nfaList, setNfaList] = useState<number[]>([]);
+  const [nfaSummaries, setNfaSummaries] = useState<Record<number, NFASummary>>({});
+  const [activeNfaId, setActiveNfaId] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   const [pendingTx, setPendingTx] = useState<PendingTx>(null);
   const [showOpenClaw, setShowOpenClaw] = useState(false);
@@ -109,6 +116,8 @@ export default function GamePage() {
     () => connectors.filter((connector) => connector.type === 'injected' || connector.name === 'WalletConnect' || connector.name === 'Coinbase Wallet'),
     [connectors],
   );
+
+  const activeSummary = activeNfaId ? nfaSummaries[activeNfaId] : undefined;
 
   useEffect(() => setMounted(true), []);
 
@@ -123,6 +132,24 @@ export default function GamePage() {
   }, [isConnected]);
 
   const emitNfaState = useCallback((nfaId: number, state: Awaited<ReturnType<typeof loadNFAState>>) => {
+    setNfaSummaries((current) => ({
+      ...current,
+      [nfaId]: {
+        tokenId: nfaId,
+        rarity: state.rarity,
+        shelter: state.shelter,
+        level: state.level,
+        clwBalance: state.clwBalance,
+        active: state.active,
+        dailyCost: state.dailyCost,
+        courage: state.courage,
+        wisdom: state.wisdom,
+        social: state.social,
+        create: state.create,
+        grit: state.grit,
+      },
+    }));
+
     eventBus.emit('nfa:stats', {
       clw: state.clwBalance.toFixed(0),
       level: state.level,
@@ -157,6 +184,10 @@ export default function GamePage() {
     if (!isConnected || !address) return [];
     const ids = await loadPlayerNFAs(address as Address);
     setNfaList(ids);
+
+    const summaries = await loadNfaSummaries(ids);
+    setNfaSummaries(summaries);
+
     return ids;
   }, [address, isConnected]);
 
@@ -184,6 +215,7 @@ export default function GamePage() {
 
     if (activeNfaId && !ids.includes(activeNfaId)) {
       activeNfaIdRef.current = null;
+      setActiveNfaId(null);
       setStatus(ids.length === 0 ? 'no-nfa' : 'select-nfa');
     }
 
@@ -193,6 +225,7 @@ export default function GamePage() {
   const selectAndEnter = useCallback(async (nfaId: number) => {
     setStatus('loading-nfa');
     activeNfaIdRef.current = nfaId;
+    setActiveNfaId(nfaId);
 
     try {
       const state = await loadNFAState(nfaId);
@@ -231,7 +264,9 @@ export default function GamePage() {
 
     if (!isConnected) {
       activeNfaIdRef.current = null;
+      setActiveNfaId(null);
       setNfaList([]);
+      setNfaSummaries({});
       setBootProgress(0);
       setStatus('ready');
       return;
@@ -288,6 +323,18 @@ export default function GamePage() {
       setStatus('error');
     }
   }, [address, isConnected, refreshOwnedNfas]);
+
+  useEffect(() => {
+    if (status !== 'playing' || !activeNfaId) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshActiveNfaState(activeNfaId);
+    }, 15000);
+
+    return () => window.clearInterval(intervalId);
+  }, [activeNfaId, refreshActiveNfaState, status]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -715,6 +762,20 @@ export default function GamePage() {
               </p>
             </div>
 
+            <div className="px-5 py-4 border-b border-crt-green/20 text-xs">
+              <p className="text-crt-green/40 text-[10px] tracking-widest mb-2">// ACTIVE LOBSTER</p>
+              {activeSummary ? (
+                <div className="space-y-1 text-crt-green/70">
+                  <p className="text-crt-green">NFA #{activeSummary.tokenId} · {getLobsterName(activeSummary.tokenId)}</p>
+                  <p>Lv.{activeSummary.level} · {getRarityName(activeSummary.rarity, lang === 'zh')}</p>
+                  <p>{getShelterName(activeSummary.shelter)}</p>
+                  <p>CLW {activeSummary.clwBalance.toFixed(0)} · {activeSummary.active ? (lang === 'zh' ? '激活' : 'Active') : (lang === 'zh' ? '休眠' : 'Dormant')}</p>
+                </div>
+              ) : (
+                <p className="text-crt-green/30">{lang === 'zh' ? '未选择龙虾' : 'No active lobster'}</p>
+              )}
+            </div>
+
             {/* NFA 切换 */}
             <div className="px-5 py-4 flex-1 overflow-y-auto">
               <p className="text-crt-green/50 text-[10px] tracking-widest mb-3">// SWITCH NFA</p>
@@ -729,7 +790,12 @@ export default function GamePage() {
                     border-crt-green/20 text-crt-green/70 hover:border-crt-green/60 hover:text-crt-green
                     hover:bg-crt-green/5"
                 >
-                  {id === activeNfaIdRef.current ? '▶ ' : '  '}NFA #{id}
+                  <div>{id === activeNfaIdRef.current ? '▶ ' : '  '}NFA #{id}</div>
+                  {nfaSummaries[id] && (
+                    <div className="mt-1 text-[11px] text-crt-green/40">
+                      Lv.{nfaSummaries[id].level} · {getRarityName(nfaSummaries[id].rarity, lang === 'zh')} · CLW {nfaSummaries[id].clwBalance.toFixed(0)}
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -839,14 +905,38 @@ export default function GamePage() {
                 <p className="text-sm text-crt-green/50 mb-6">
                   {lang === 'zh' ? '同步完成，选择要进入避难所的龙虾。' : 'Sync complete. Select a lobster to enter the shelter.'}
                 </p>
-                <div className="flex gap-3 flex-wrap">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {nfaList.map((id) => (
                     <button
                       key={id}
                       onClick={() => selectAndEnter(id)}
-                      className="soft-key text-base px-6 py-4"
+                      className="soft-key text-left px-5 py-4"
                     >
-                      NFA #{id}
+                      <div className="text-lg text-crt-green mb-1">NFA #{id}</div>
+                      <div className="text-xs text-crt-green/50 mb-2">{getLobsterName(id)}</div>
+                      {nfaSummaries[id] ? (
+                        (() => {
+                          const summary = nfaSummaries[id];
+                          const traits = [
+                            { label: lang === 'zh' ? '勇气' : 'Courage', value: summary.courage },
+                            { label: lang === 'zh' ? '智慧' : 'Wisdom', value: summary.wisdom },
+                            { label: lang === 'zh' ? '社交' : 'Social', value: summary.social },
+                            { label: lang === 'zh' ? '创造' : 'Create', value: summary.create },
+                            { label: lang === 'zh' ? '毅力' : 'Grit', value: summary.grit },
+                          ].sort((a, b) => b.value - a.value);
+
+                          return (
+                            <div className="space-y-1 text-sm text-crt-green/70">
+                              <div>Lv.{summary.level} · {getRarityName(summary.rarity, lang === 'zh')}</div>
+                              <div>{getShelterName(summary.shelter)}</div>
+                              <div>CLW {summary.clwBalance.toFixed(0)} · {summary.active ? (lang === 'zh' ? '激活' : 'Active') : (lang === 'zh' ? '休眠' : 'Dormant')}</div>
+                              <div>{lang === 'zh' ? '主性格' : 'Dominant'}: {traits[0].label} {traits[0].value}</div>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <div className="text-sm text-crt-green/40">{lang === 'zh' ? '读取链上属性中...' : 'Loading onchain traits...'}</div>
+                      )}
                     </button>
                   ))}
                 </div>

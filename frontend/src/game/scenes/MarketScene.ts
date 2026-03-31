@@ -9,6 +9,11 @@ interface Personality {
   grit: number;
 }
 
+interface PlayerPosition {
+  x: number;
+  y: number;
+}
+
 interface Listing {
   listingId: number;
   nfaId: number;
@@ -38,12 +43,14 @@ export class MarketScene extends Phaser.Scene {
   private readonly PER_PAGE = 5;
   private rows: Phaser.GameObjects.GameObject[] = [];
   private statusText!: Phaser.GameObjects.Text;
+  private playerPosition?: PlayerPosition;
+  private entryAction?: string;
 
   constructor() {
     super({ key: 'MarketScene' });
   }
 
-  init(data: { nfaId: number; shelter: number; personality?: Personality }) {
+  init(data: { nfaId: number; shelter: number; personality?: Personality; playerPosition?: PlayerPosition; entryAction?: string }) {
     this.nfaId = data.nfaId || (this.registry.get('nfaId') as number) || 1;
     this.shelter = data.shelter || (this.registry.get('shelter') as number) || 0;
     this.walletAddress = (this.registry.get('walletAddress') as string) || '';
@@ -52,6 +59,8 @@ export class MarketScene extends Phaser.Scene {
       const cached = this.registry.get('personality') as Personality | undefined;
       if (cached) this.personality = cached;
     }
+    this.playerPosition = data.playerPosition || (this.registry.get('playerPosition') as PlayerPosition | undefined);
+    this.entryAction = data.entryAction;
   }
 
   create() {
@@ -170,6 +179,10 @@ export class MarketScene extends Phaser.Scene {
     });
 
     this.requestListings();
+
+    if (this.entryAction === 'market:list') {
+      this.time.delayedCall(150, () => this.promptList('fixed'));
+    }
   }
 
   private requestListings() {
@@ -287,6 +300,6 @@ export class MarketScene extends Phaser.Scene {
   }
 
   private goBack() {
-    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality });
+    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition });
   }
 }

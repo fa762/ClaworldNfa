@@ -15,6 +15,11 @@ interface Personality {
   grit: number;
 }
 
+interface PlayerPosition {
+  x: number;
+  y: number;
+}
+
 interface MatchItem {
   matchId: number;
   nfaA: number;
@@ -37,12 +42,14 @@ export class PKScene extends Phaser.Scene {
   private matches: MatchItem[] = [];
   private rows: Phaser.GameObjects.GameObject[] = [];
   private statusText!: Phaser.GameObjects.Text;
+  private playerPosition?: PlayerPosition;
+  private entryAction?: string;
 
   constructor() {
     super({ key: 'PKScene' });
   }
 
-  init(data: { nfaId: number; shelter: number; personality?: Personality }) {
+  init(data: { nfaId: number; shelter: number; personality?: Personality; playerPosition?: PlayerPosition; entryAction?: string }) {
     this.nfaId = data.nfaId || (this.registry.get('nfaId') as number) || 1;
     this.shelter = data.shelter || (this.registry.get('shelter') as number) || 0;
     if (data.personality) this.personality = data.personality;
@@ -50,6 +57,8 @@ export class PKScene extends Phaser.Scene {
       const cached = this.registry.get('personality') as Personality | undefined;
       if (cached) this.personality = cached;
     }
+    this.playerPosition = data.playerPosition || (this.registry.get('playerPosition') as PlayerPosition | undefined);
+    this.entryAction = data.entryAction;
   }
 
   create() {
@@ -161,6 +170,10 @@ export class PKScene extends Phaser.Scene {
     });
 
     this.requestMatches();
+
+    if (this.entryAction === 'pk:showCreate') {
+      this.time.delayedCall(150, () => this.promptCreate());
+    }
   }
 
   private requestMatches() {
@@ -295,6 +308,6 @@ export class PKScene extends Phaser.Scene {
   }
 
   private goBack() {
-    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality });
+    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition });
   }
 }

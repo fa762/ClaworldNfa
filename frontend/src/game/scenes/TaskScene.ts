@@ -19,6 +19,11 @@ interface Personality {
   grit: number;
 }
 
+interface PlayerPosition {
+  x: number;
+  y: number;
+}
+
 const TYPE_NAMES = ['勇气', '智慧', '社交', '创造', '毅力'];
 const TYPE_COLORS = ['#ff4444', '#4488ff', '#ffaa00', '#aa44ff', '#44ff44'];
 
@@ -32,12 +37,13 @@ export class TaskScene extends Phaser.Scene {
   private personality: Personality = { courage: 50, wisdom: 50, social: 50, create: 50, grit: 50 };
   private tasks: TaskOption[] = [];
   private selectedIdx = -1;
+  private playerPosition?: PlayerPosition;
 
   constructor() {
     super({ key: 'TaskScene' });
   }
 
-  init(data: { nfaId: number; shelter: number; personality?: Personality }) {
+  init(data: { nfaId: number; shelter: number; personality?: Personality; playerPosition?: PlayerPosition }) {
     this.nfaId = data.nfaId || (this.registry.get('nfaId') as number) || 1;
     this.shelter = data.shelter || (this.registry.get('shelter') as number) || 0;
     if (data.personality) {
@@ -46,6 +52,7 @@ export class TaskScene extends Phaser.Scene {
       const cached = this.registry.get('personality') as Personality | undefined;
       if (cached) this.personality = cached;
     }
+    this.playerPosition = data.playerPosition || (this.registry.get('playerPosition') as PlayerPosition | undefined);
   }
 
   create() {
@@ -243,6 +250,6 @@ export class TaskScene extends Phaser.Scene {
   }
 
   private goBack() {
-    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality });
+    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition });
   }
 }

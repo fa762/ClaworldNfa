@@ -10,6 +10,55 @@ import { addresses, chainId, rpcUrl } from '@/contracts/addresses';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const BATCH_SIZE = 40;
 
+const LOBSTER_STATE_ABI = [{
+  name: 'getLobsterState',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [{ name: 'tokenId', type: 'uint256' }],
+  outputs: [
+    { name: 'rarity', type: 'uint8' },
+    { name: 'shelter', type: 'uint8' },
+    { name: 'courage', type: 'uint256' },
+    { name: 'wisdom', type: 'uint256' },
+    { name: 'social', type: 'uint256' },
+    { name: 'create_', type: 'uint256' },
+    { name: 'grit', type: 'uint256' },
+    { name: 'str_', type: 'uint256' },
+    { name: 'def_', type: 'uint256' },
+    { name: 'spd', type: 'uint256' },
+    { name: 'vit', type: 'uint256' },
+    { name: 'mutation1', type: 'uint256' },
+    { name: 'mutation2', type: 'uint256' },
+    { name: 'level', type: 'uint256' },
+    { name: 'xp', type: 'uint256' },
+    { name: 'lastUpkeepTime', type: 'uint256' },
+  ],
+}] as const;
+
+const CLW_BALANCE_ABI = [{
+  name: 'clwBalances',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [{ name: '', type: 'uint256' }],
+  outputs: [{ name: '', type: 'uint256' }],
+}] as const;
+
+const IS_ACTIVE_ABI = [{
+  name: 'isActive',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [{ name: 'nfaId', type: 'uint256' }],
+  outputs: [{ name: '', type: 'bool' }],
+}] as const;
+
+const DAILY_COST_ABI = [{
+  name: 'getDailyCost',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [{ name: 'nfaId', type: 'uint256' }],
+  outputs: [{ name: '', type: 'uint256' }],
+}] as const;
+
 const MARKET_GET_LISTING_ABI = [{
   name: 'getListing',
   type: 'function',
@@ -66,6 +115,42 @@ export const publicClient = createPublicClient({
   transport: http(rpcUrl),
 });
 
+export interface NFAState {
+  rarity: number;
+  shelter: number;
+  courage: number;
+  wisdom: number;
+  social: number;
+  create: number;
+  grit: number;
+  str: number;
+  def: number;
+  spd: number;
+  vit: number;
+  mutation1: number;
+  mutation2: number;
+  level: number;
+  xp: number;
+  clwBalance: number;
+  active: boolean;
+  dailyCost: number;
+}
+
+export interface NFASummary {
+  tokenId: number;
+  rarity: number;
+  shelter: number;
+  level: number;
+  clwBalance: number;
+  active: boolean;
+  dailyCost: number;
+  courage: number;
+  wisdom: number;
+  social: number;
+  create: number;
+  grit: number;
+}
+
 // ─── NFA 读取 ───
 
 export async function loadPlayerNFAs(ownerAddress: Address): Promise<number[]> {
@@ -94,44 +179,41 @@ export async function loadPlayerNFAs(ownerAddress: Address): Promise<number[]> {
 }
 
 export async function loadNFAState(nfaId: number) {
-  const result = await publicClient.readContract({
-    address: CONTRACTS.clawRouter,
-    abi: [{
-      name: 'getLobsterState',
-      type: 'function',
-      stateMutability: 'view',
-      inputs: [{ name: 'tokenId', type: 'uint256' }],
-      outputs: [
-        { name: 'rarity', type: 'uint8' },
-        { name: 'shelter', type: 'uint8' },
-        { name: 'courage', type: 'uint256' },
-        { name: 'wisdom', type: 'uint256' },
-        { name: 'social', type: 'uint256' },
-        { name: 'create_', type: 'uint256' },
-        { name: 'grit', type: 'uint256' },
-        { name: 'str_', type: 'uint256' },
-        { name: 'def_', type: 'uint256' },
-        { name: 'spd', type: 'uint256' },
-        { name: 'vit', type: 'uint256' },
-        { name: 'mutation1', type: 'uint256' },
-        { name: 'mutation2', type: 'uint256' },
-        { name: 'level', type: 'uint256' },
-        { name: 'xp', type: 'uint256' },
-        { name: 'lastUpkeepTime', type: 'uint256' },
-      ],
-    }],
-    functionName: 'getLobsterState',
-    args: [BigInt(nfaId)],
-  }) as unknown as unknown[];
-
-  const clwBalance = await publicClient.readContract({
-    address: CONTRACTS.clawRouter,
-    abi: [{ name: 'clwBalances', type: 'function', stateMutability: 'view', inputs: [{ name: '', type: 'uint256' }], outputs: [{ name: '', type: 'uint256' }] }],
-    functionName: 'clwBalances',
-    args: [BigInt(nfaId)],
+  const results = await publicClient.multicall({
+    contracts: [
+      {
+        address: CONTRACTS.clawRouter,
+        abi: LOBSTER_STATE_ABI,
+        functionName: 'getLobsterState',
+        args: [BigInt(nfaId)],
+      },
+      {
+        address: CONTRACTS.clawRouter,
+        abi: CLW_BALANCE_ABI,
+        functionName: 'clwBalances',
+        args: [BigInt(nfaId)],
+      },
+      {
+        address: CONTRACTS.clawRouter,
+        abi: IS_ACTIVE_ABI,
+        functionName: 'isActive',
+        args: [BigInt(nfaId)],
+      },
+      {
+        address: CONTRACTS.clawRouter,
+        abi: DAILY_COST_ABI,
+        functionName: 'getDailyCost',
+        args: [BigInt(nfaId)],
+      },
+    ],
   });
 
-  return {
+  const result = results[0].result as unknown as readonly unknown[];
+  const clwBalance = results[1].result as bigint;
+  const isActive = results[2].result as boolean;
+  const dailyCost = results[3].result as bigint;
+
+  const state: NFAState = {
     rarity: Number(result[0]),
     shelter: Number(result[1]),
     courage: Number(result[2]),
@@ -148,7 +230,82 @@ export async function loadNFAState(nfaId: number) {
     level: Number(result[13]),
     xp: Number(result[14]),
     clwBalance: Number(clwBalance) / 1e18,
+    active: Boolean(isActive),
+    dailyCost: Number(dailyCost) / 1e18,
   };
+
+  return state;
+}
+
+export async function loadNfaSummaries(tokenIds: number[]): Promise<Record<number, NFASummary>> {
+  if (tokenIds.length === 0) {
+    return {};
+  }
+
+  const summaries: Record<number, NFASummary> = {};
+
+  for (let start = 0; start < tokenIds.length; start += BATCH_SIZE) {
+    const batchIds = tokenIds.slice(start, start + BATCH_SIZE);
+    const calls = batchIds.flatMap((tokenId) => [
+      {
+        address: CONTRACTS.clawRouter,
+        abi: LOBSTER_STATE_ABI,
+        functionName: 'getLobsterState',
+        args: [BigInt(tokenId)],
+      },
+      {
+        address: CONTRACTS.clawRouter,
+        abi: CLW_BALANCE_ABI,
+        functionName: 'clwBalances',
+        args: [BigInt(tokenId)],
+      },
+      {
+        address: CONTRACTS.clawRouter,
+        abi: IS_ACTIVE_ABI,
+        functionName: 'isActive',
+        args: [BigInt(tokenId)],
+      },
+      {
+        address: CONTRACTS.clawRouter,
+        abi: DAILY_COST_ABI,
+        functionName: 'getDailyCost',
+        args: [BigInt(tokenId)],
+      },
+    ]);
+
+    const results = await publicClient.multicall({ contracts: calls });
+
+    for (let index = 0; index < batchIds.length; index++) {
+      const tokenId = batchIds[index];
+      const offset = index * 4;
+      const lobsterState = results[offset];
+      const clwBalance = results[offset + 1];
+      const isActive = results[offset + 2];
+      const dailyCost = results[offset + 3];
+
+      if (lobsterState.status !== 'success' || clwBalance.status !== 'success' || isActive.status !== 'success' || dailyCost.status !== 'success') {
+        continue;
+      }
+
+      const state = lobsterState.result as unknown as readonly unknown[];
+      summaries[tokenId] = {
+        tokenId,
+        rarity: Number(state[0]),
+        shelter: Number(state[1]),
+        courage: Number(state[2]),
+        wisdom: Number(state[3]),
+        social: Number(state[4]),
+        create: Number(state[5]),
+        grit: Number(state[6]),
+        level: Number(state[13]),
+        clwBalance: Number(clwBalance.result as bigint) / 1e18,
+        active: Boolean(isActive.result as boolean),
+        dailyCost: Number(dailyCost.result as bigint) / 1e18,
+      };
+    }
+  }
+
+  return summaries;
 }
 
 // ─── Market 读取 ───

@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 export const runtime = 'nodejs';
 
 const ASSET_PATHS: Record<string, string> = {
-  'lobster-walk': resolve(process.cwd(), '..', 'art', '人物图.png'),
+  'lobster-walk': resolve(process.cwd(), '..', 'art', 'exports', 'sprites', 'player_walk_latest.png'),
   'npc-task': resolve(process.cwd(), '..', 'art', 'sources', 'npc_task_terminal_v1.png'),
   'npc-pk': resolve(process.cwd(), '..', 'art', 'sources', 'npc_pk_terminal_v1.png'),
   'npc-market': resolve(process.cwd(), '..', 'art', 'sources', 'npc_market_wall_v1.png'),

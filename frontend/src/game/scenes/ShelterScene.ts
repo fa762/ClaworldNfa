@@ -14,6 +14,27 @@ interface NpcDef {
   action: string; // scene key or event name
 }
 
+interface Personality {
+  courage: number;
+  wisdom: number;
+  social: number;
+  create: number;
+  grit: number;
+}
+
+interface PlayerPosition {
+  x: number;
+  y: number;
+}
+
+interface ShelterSceneData {
+  nfaId: number;
+  shelter: number;
+  personality?: Personality;
+  playerPosition?: PlayerPosition;
+  entryAction?: string;
+}
+
 /**
  * ShelterScene — 避难所主场景（赛博朋克终端厅）
  * 玩家控制龙虾在场景中走动，接近 NPC 按空格交互
@@ -32,18 +53,19 @@ export class ShelterScene extends Phaser.Scene {
   private statusHUD!: StatusHUD;
   private nfaId = 0;
   private shelter = 0;
-  private personality = { courage: 50, wisdom: 50, social: 50, create: 50, grit: 50 };
+  private personality: Personality = { courage: 50, wisdom: 50, social: 50, create: 50, grit: 50 };
   private readonly SPEED = 160;
   private readonly INTERACT_DIST = 50;
   private facing: 'front' | 'back' | 'left' | 'right' = 'front';
   private lastInteractTime = 0;
   private readonly INTERACT_COOLDOWN = 600; // ms，对话关闭后防止立即重触发
+  private playerPosition?: PlayerPosition;
 
   constructor() {
     super({ key: 'ShelterScene' });
   }
 
-  init(data: { nfaId: number; shelter: number; personality?: typeof ShelterScene.prototype.personality }) {
+  init(data: ShelterSceneData) {
     this.nfaId = data.nfaId || (this.registry.get('nfaId') as number) || 1;
     this.shelter = data.shelter || (this.registry.get('shelter') as number) || 0;
     if (data.personality) this.personality = data.personality;
@@ -51,6 +73,7 @@ export class ShelterScene extends Phaser.Scene {
       const cached = this.registry.get('personality') as typeof ShelterScene.prototype.personality | undefined;
       if (cached) this.personality = cached;
     }
+    this.playerPosition = data.playerPosition || (this.registry.get('playerPosition') as PlayerPosition | undefined);
   }
 
   create() {
@@ -110,7 +133,8 @@ export class ShelterScene extends Phaser.Scene {
 
     // ── 玩家龙虾 ──
     const hasSpriteSheet = this.textures.exists('player-walk');
-    this.player = this.physics.add.sprite(W / 2, H / 2, hasSpriteSheet ? 'player-walk' : 'player', hasSpriteSheet ? 1 : undefined);
+    const spawn = this.playerPosition ?? { x: W / 2, y: H / 2 };
+    this.player = this.physics.add.sprite(spawn.x, spawn.y, hasSpriteSheet ? 'player-walk' : 'player', hasSpriteSheet ? 1 : undefined);
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(10);
     if (hasSpriteSheet) {
@@ -161,6 +185,7 @@ export class ShelterScene extends Phaser.Scene {
     this.registry.set('nfaId', this.nfaId);
     this.registry.set('shelter', this.shelter);
     this.registry.set('personality', this.personality);
+    this.registry.set('playerPosition', { x: this.player.x, y: this.player.y });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offStats();
@@ -211,7 +236,7 @@ export class ShelterScene extends Phaser.Scene {
 
     if (this.nearestNpc) {
       const def = this.nearestNpc.getData('def') as NpcDef;
-      this.promptText.setText(`按 SPACE 进入 ${def.label}`);
+      this.promptText.setText(`[SPACE / 点击] 进入 ${def.label}`);
       this.promptText.setAlpha(1);
     } else {
       this.promptText.setAlpha(0);
@@ -224,6 +249,8 @@ export class ShelterScene extends Phaser.Scene {
       const def = this.nearestNpc.getData('def') as NpcDef;
       this.handleInteract(def);
     }
+
+    this.registry.set('playerPosition', { x: this.player.x, y: this.player.y });
   }
 
   private updatePlayerAnimation(vx: number, vy: number) {
@@ -260,7 +287,7 @@ export class ShelterScene extends Phaser.Scene {
   private handleInteract(def: NpcDef) {
     this.lastInteractTime = Date.now();
     // 根据 NPC 类型显示对话
-    const sceneData = { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality };
+    const sceneData = this.buildSceneData();
 
     switch (def.key) {
       case 'task': {
@@ -272,7 +299,7 @@ export class ShelterScene extends Phaser.Scene {
               callback: () => {
                 this.lastInteractTime = Date.now();
                 if (c.action === 'dialogue:close') return;
-                this.scene.start('TaskScene', sceneData);
+                this.scene.start('TaskScene', { ...sceneData, entryAction: c.action });
               },
             })));
           } else {
@@ -291,7 +318,7 @@ export class ShelterScene extends Phaser.Scene {
               callback: () => {
                 this.lastInteractTime = Date.now();
                 if (c.action === 'dialogue:close') return;
-                this.scene.start('PKScene', sceneData);
+                this.scene.start('PKScene', { ...sceneData, entryAction: c.action });
               },
             })));
           } else {
@@ -309,7 +336,7 @@ export class ShelterScene extends Phaser.Scene {
               callback: () => {
                 this.lastInteractTime = Date.now();
                 if (c.action === 'dialogue:close') return;
-                this.scene.start('MarketScene', sceneData);
+                this.scene.start('MarketScene', { ...sceneData, entryAction: c.action });
               },
             })));
           } else {
@@ -346,6 +373,8 @@ export class ShelterScene extends Phaser.Scene {
                 this.lastInteractTime = Date.now();
                 if (c.action === 'openclaw:install') {
                   eventBus.emit('game:openclaw');
+                } else if (c.action === 'openclaw:connected') {
+                  eventBus.emit('game:openclaw');
                 }
               },
             })));
@@ -363,6 +392,15 @@ export class ShelterScene extends Phaser.Scene {
         }
       }
     }
+  }
+
+  private buildSceneData(): ShelterSceneData {
+    return {
+      nfaId: this.nfaId,
+      shelter: this.shelter,
+      personality: this.personality,
+      playerPosition: { x: this.player.x, y: this.player.y },
+    };
   }
 
   private setupTouchControls() {

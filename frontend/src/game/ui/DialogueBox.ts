@@ -22,6 +22,7 @@ export class DialogueBox {
   private speakerText: Phaser.GameObjects.Text;
   private bodyText: Phaser.GameObjects.Text;
   private promptText: Phaser.GameObjects.Text;
+  private hintText: Phaser.GameObjects.Text;
   private choiceTexts: Phaser.GameObjects.Text[] = [];
   private lines: DialogueLine[] = [];
   private lineIdx = 0;
@@ -66,6 +67,10 @@ export class DialogueBox {
       fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0);
 
+    this.hintText = scene.add.text(this.PADDING + 10, boxY + this.BOX_H - 32, '', {
+      fontSize: '13px', fontFamily: 'monospace', color: '#39ff14',
+    }).setAlpha(0);
+
     // 闪烁动画
     scene.tweens.add({
       targets: this.promptText,
@@ -75,7 +80,7 @@ export class DialogueBox {
       repeat: -1,
     });
 
-    this.container.add([this.bg, this.speakerText, this.bodyText, this.promptText]);
+    this.container.add([this.bg, this.speakerText, this.bodyText, this.promptText, this.hintText]);
     this.container.setVisible(false);
 
     // 点击/空格推进对话，ESC 直接关闭
@@ -98,6 +103,7 @@ export class DialogueBox {
     this.container.setVisible(true);
     this.choiceTexts.forEach(t => t.destroy());
     this.choiceTexts = [];
+    this.hintText.setAlpha(0);
     this.showLine();
   }
 
@@ -137,6 +143,7 @@ export class DialogueBox {
     });
 
     this.promptText.setAlpha(0);
+    this.hintText.setText(`[1-${choices.length}] 选择  ·  ESC 关闭`).setAlpha(0.7);
   }
 
   hide() {
@@ -145,6 +152,8 @@ export class DialogueBox {
     this.choiceTexts = [];
     if (this.typingTimer) this.typingTimer.destroy();
     this.clearChoiceKeyBindings();
+    this.hintText.setAlpha(0);
+    this.promptText.setAlpha(0);
   }
 
   isVisible() {
@@ -163,6 +172,7 @@ export class DialogueBox {
     if (line.color) this.speakerText.setColor(line.color);
     this.bodyText.setText('');
     this.promptText.setAlpha(0);
+    this.hintText.setAlpha(0);
 
     // 逐字打印效果
     this.typing = true;
@@ -178,6 +188,7 @@ export class DialogueBox {
         if (charIdx >= line.text.length) {
           this.typing = false;
           this.promptText.setAlpha(1);
+          this.hintText.setText('[SPACE/点击继续]  ·  [ESC 关闭]').setAlpha(0.7);
         }
       },
     });
@@ -194,6 +205,7 @@ export class DialogueBox {
       this.bodyText.setText(line.text);
       this.typing = false;
       this.promptText.setAlpha(1);
+      this.hintText.setText('[SPACE/点击继续]  ·  [ESC 关闭]').setAlpha(0.7);
     } else {
       this.lineIdx++;
       this.showLine();

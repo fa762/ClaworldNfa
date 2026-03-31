@@ -7,7 +7,7 @@ import { eventBus } from '../EventBus';
 export class BootScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
   private dots = 0;
-  private readonly assetVersion = '20260331-floor-v2';
+  private readonly assetVersion = '20260401-player-ascii-v1';
 
   constructor() {
     super({ key: 'BootScene' });
