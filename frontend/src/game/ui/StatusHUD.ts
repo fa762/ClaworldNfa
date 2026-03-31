@@ -12,6 +12,7 @@ export class StatusHUD {
   private mainText: Phaser.GameObjects.Text;
   private personalityText: Phaser.GameObjects.Text;
   private nfaId = 0;
+  private hasData = false;
   private stats = { level: 0, clw: '0', bnb: '0', courage: 0, wisdom: 0, social: 0, create: 0, grit: 0, hp: 0 };
   private readonly offFullStats: () => void;
 
@@ -41,6 +42,7 @@ export class StatusHUD {
     // 监听数据更新
     this.offFullStats = eventBus.on('nfa:fullStats', (data: unknown) => {
       this.stats = data as typeof this.stats;
+      this.hasData = true;
       this.refresh();
     });
 
@@ -50,20 +52,26 @@ export class StatusHUD {
   refresh() {
     const s = this.stats;
     this.mainText.setText(
-      `NFA #${this.nfaId}  |  Lv.${s.level}  |  CLW: ${s.clw}  |  HP: ${s.hp}`
+      `NFA #${this.nfaId}  Lv.${s.level}  CLW: ${s.clw}  HP: ${s.hp}`
     );
 
-    // 找最高性格维度
+    if (!this.hasData) {
+      this.personalityText.setText('加载中...');
+      return;
+    }
+
+    // 找前3高性格维度
     const dims = [
-      { name: '勇', val: s.courage },
-      { name: '智', val: s.wisdom },
-      { name: '社', val: s.social },
-      { name: '创', val: s.create },
-      { name: '毅', val: s.grit },
+      { name: '勇气', val: s.courage },
+      { name: '智慧', val: s.wisdom },
+      { name: '社交', val: s.social },
+      { name: '创造', val: s.create },
+      { name: '毅力', val: s.grit },
     ];
     const sorted = [...dims].sort((a, b) => b.val - a.val);
-    const top = sorted[0];
-    this.personalityText.setText(`${top.name}${top.val}  ${sorted[1].name}${sorted[1].val}  ${sorted[2].name}${sorted[2].val}`);
+    this.personalityText.setText(
+      `${sorted[0].name}:${sorted[0].val}  ${sorted[1].name}:${sorted[1].val}  ${sorted[2].name}:${sorted[2].val}`
+    );
   }
 
   destroy() {

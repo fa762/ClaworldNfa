@@ -266,8 +266,19 @@ export class ShelterScene extends Phaser.Scene {
       case 'task': {
         const d = getTaskDialogue(this.nfaId, this.personality);
         this.dialogueBox.show(d.lines, () => {
-          this.lastInteractTime = Date.now();
-          this.scene.start('TaskScene', sceneData);
+          if (d.choices) {
+            this.dialogueBox.showChoices(d.choices.map(c => ({
+              label: c.label,
+              callback: () => {
+                this.lastInteractTime = Date.now();
+                if (c.action === 'dialogue:close') return;
+                this.scene.start('TaskScene', sceneData);
+              },
+            })));
+          } else {
+            this.lastInteractTime = Date.now();
+            this.scene.start('TaskScene', sceneData);
+          }
         });
         break;
       }

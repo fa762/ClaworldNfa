@@ -41,9 +41,12 @@ export function getTaskDialogue(nfaId: number, personality: { courage: number; w
 
   return {
     lines: [
-      { speaker: '任务终端', text: `检测到 NFA #${nfaId}...身份验证通过。`, color: '#ffd700' },
-      { speaker: '任务终端', text: `分析性格数据...主导维度: ${top.name} (${top.val})`, color: '#ffd700' },
-      { speaker: '任务终端', text: '当前有 3 项任务待领取。选择一项执行。', color: '#ffd700' },
+      { speaker: '任务终端', text: `NFA #${nfaId} 验证通过。主导属性: ${top.name} (${top.val})`, color: '#ffd700' },
+      { speaker: '任务终端', text: '当前有 3 项任务可领取，完成可获得 CLW 奖励。', color: '#ffd700' },
+    ],
+    choices: [
+      { label: '查看任务列表', action: 'task:enter' },
+      { label: '离开', action: 'dialogue:close' },
     ],
   };
 }

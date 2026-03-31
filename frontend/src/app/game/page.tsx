@@ -103,6 +103,7 @@ export default function GamePage() {
   const [showOpenClaw, setShowOpenClaw] = useState(false);
   const [bootProgress, setBootProgress] = useState(0);
   const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null);
+  const [showSidePanel, setShowSidePanel] = useState(false);
 
   const walletOptions = useMemo(
     () => connectors.filter((connector) => connector.type === 'injected' || connector.name === 'WalletConnect' || connector.name === 'Coinbase Wallet'),
@@ -110,6 +111,16 @@ export default function GamePage() {
   );
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!isConnected) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') { e.preventDefault(); setShowSidePanel(p => !p); }
+      if (e.key === 'Escape') setShowSidePanel(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isConnected]);
 
   const emitNfaState = useCallback((nfaId: number, state: Awaited<ReturnType<typeof loadNFAState>>) => {
     eventBus.emit('nfa:stats', {
@@ -668,22 +679,77 @@ export default function GamePage() {
           : 'fixed inset-0 -z-10 opacity-0 pointer-events-none'}
       />
 
-      {/* 游戏内叠加层（返回按钮 + 交易提示）*/}
+      {/* 游戏内叠加层 */}
       {isPlaying && (
         <div className="fixed inset-0 z-[10000] pointer-events-none">
+
+          {/* TAB 提示 — 左下角，不遮状态栏 */}
           <button
-            onClick={() => router.push('/')}
-            className="pointer-events-auto absolute top-3 left-3 font-mono text-sm text-crt-green/50 hover:text-crt-green transition-colors bg-black/60 px-3 py-1 border border-crt-green/20 hover:border-crt-green/50"
+            onClick={() => setShowSidePanel(p => !p)}
+            className="pointer-events-auto absolute bottom-4 left-3 font-mono text-xs text-crt-green/40 hover:text-crt-green/70 transition-colors"
           >
-            ◀ {lang === 'zh' ? '返回' : 'BACK'}
+            [TAB] {lang === 'zh' ? '菜单' : 'MENU'}
           </button>
 
+          {/* 交易进行中提示 — 右下角 */}
           {pendingTx && (
-            <div className="absolute top-3 right-3 text-[11px] font-mono text-crt-green/70 animate-pulse text-right bg-black/70 px-3 py-1 border border-crt-green/20">
+            <div className="absolute bottom-4 right-3 text-[11px] font-mono text-crt-green/70 animate-pulse text-right bg-black/70 px-3 py-1 border border-crt-green/20">
               <div>{pendingTx.label}</div>
               <div className="text-crt-green/40">{pendingTx.hash.slice(0, 12)}...</div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB 侧边栏 */}
+      {showSidePanel && (
+        <div className="fixed inset-0 z-[10001]" onClick={() => setShowSidePanel(false)}>
+          <div
+            className="absolute left-0 top-0 h-full w-64 bg-black/97 border-r border-crt-green/30 font-mono flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-crt-green/20">
+              <p className="text-crt-green/40 text-[10px] tracking-widest mb-1">// SYSTEM PANEL</p>
+              <p className="text-crt-green/80 text-xs">
+                {address ? `${address.slice(0, 8)}...${address.slice(-6)}` : lang === 'zh' ? '未连接' : 'NOT CONNECTED'}
+              </p>
+            </div>
+
+            {/* NFA 切换 */}
+            <div className="px-5 py-4 flex-1 overflow-y-auto">
+              <p className="text-crt-green/50 text-[10px] tracking-widest mb-3">// SWITCH NFA</p>
+              {nfaList.length === 0 && (
+                <p className="text-crt-green/30 text-xs">无可用 NFA</p>
+              )}
+              {nfaList.map(id => (
+                <button
+                  key={id}
+                  onClick={() => { void selectAndEnter(id); setShowSidePanel(false); }}
+                  className="w-full text-left px-3 py-2 mb-2 border font-mono text-sm transition-colors
+                    border-crt-green/20 text-crt-green/70 hover:border-crt-green/60 hover:text-crt-green
+                    hover:bg-crt-green/5"
+                >
+                  {id === activeNfaIdRef.current ? '▶ ' : '  '}NFA #{id}
+                </button>
+              ))}
+            </div>
+
+            {/* 底部操作 */}
+            <div className="px-5 py-4 border-t border-crt-green/20 space-y-2">
+              <button
+                onClick={() => { setShowSidePanel(false); router.push('/nfa'); }}
+                className="w-full soft-key py-2 text-xs"
+              >
+                {lang === 'zh' ? '[ NFA 详情 ]' : '[ NFA DETAIL ]'}
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="w-full soft-key py-2 text-xs"
+              >
+                {lang === 'zh' ? '[ ← 返回首页 ]' : '[ ← HOME ]'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
