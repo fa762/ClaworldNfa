@@ -9,6 +9,7 @@ import { useI18n } from '@/lib/i18n';
 
 const tabs = [
   { href: '/', labelKey: 'nav.world' as const, key: 'HOME' },
+  { href: '/game', labelKey: 'nav.game' as const, key: 'GAME' },
   { href: '/mint', labelKey: 'nav.mint' as const, key: 'MINT' },
   { href: '/nfa', labelKey: 'nav.vault' as const, key: 'NFA' },
   { href: '/openclaw', labelKey: 'nav.openclaw' as const, key: 'PLAY' },

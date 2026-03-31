@@ -374,12 +374,62 @@ clawworld/
 11. ✅ tokenURI 批量设置脚本 `scripts/set-token-uris.ts`
 12. ✅ 229 passing, 0 failing
 
+### 2026-03-30 工作日志
+
+1. ✅ WorldState rewardMultiplier 执行 1.0x → 2.0x（tx: 0x6c80d6...）
+2. ✅ Skill v1.0.5 发布 — 排行榜系统（leaderboard / rank / supply）
+3. ✅ Skill PK 侦察系统 — 加入对战前自动扫描对手属性 + AI 推荐策略
+4. ✅ ClawHub 上架 claw-world skill（@fa762）
+5. ✅ 前端公告栏组件 + 世界状态合并 CLW CA
+6. 🟡 **2D RPG 网页游戏开发 — Phase 1 骨架进行中**
+
+### Phase 8：2D RPG 网页游戏 — 🟡 进行中
+
+**定位**：网页 = 街机厅（轻度入口），OpenClaw = 主机版（深度AI对话）。同一个存档。
+
+**技术栈**：Phaser 3 + Next.js（嵌入 `/game` 路由）
+
+| 步骤 | 状态 | 说明 |
+|------|------|------|
+| Phaser 3 安装 | ✅ | npm install phaser |
+| 目录结构 | ✅ | `frontend/src/game/` 完整结构 |
+| EventBus 通信 | ✅ | React ↔ Phaser 事件桥接 |
+| BootScene | ✅ | 启动 + 占位符精灵生成 + 扫描线特效 |
+| ShelterScene | ✅ | 避难所场景 + WASD 移动 + NPC 交互 + 触屏支持 |
+| TaskScene | ✅ | 任务 3 选 1 + 确认弹窗 + 链上提交事件 |
+| PKScene | ✅ | 策略选择 + 擂台搜索 + 等待结算 |
+| 钱包桥接 | ✅ | viem 读链 + wagmi 签名 + NFA 加载 |
+| 游戏页面 | ✅ | `/game` 路由 + 钱包连接 + NFA 选择 |
+| 导航入口 | ✅ | PipBoyNav 加「游戏」Tab |
+| 构建通过 | ✅ | `next build` 成功 |
+| MarketScene | ❌ | 市场交易场景 |
+| 像素精灵 | ❌ | 替换占位符方块 |
+| Tiled 地图 | ❌ | 8 个避难所地图 |
+| 多人同步 | ❌ | 链上轮询其他玩家龙虾 |
+| AI 对话 | ❌ | 第二档 API Key 方案 |
+
+**文件结构**：
+```
+frontend/src/game/
+├── main.ts              # Phaser.Game 配置入口
+├── EventBus.ts          # React ↔ Phaser 事件总线
+├── scenes/
+│   ├── BootScene.ts     # 启动场景（资源加载+占位符生成）
+│   ├── ShelterScene.ts  # 避难所主场景（走动+NPC交互）
+│   ├── TaskScene.ts     # 任务选择界面（3选1+合约调用）
+│   └── PKScene.ts       # PK 擂台（策略选择+战斗）
+├── chain/
+│   └── wallet.ts        # 钱包桥接（viem 读链+wagmi 签名）
+└── data/                # 模板数据（待填充）
+```
+
+**详细计划文档**：`C:\Users\Administrator\.claude\plans\dynamic-snacking-valley.md`
+
 ### 待完成
-1. 🟡 NFT 图片（用户用 Midjourney 生成）
-2. 🟡 图片上传 IPFS（脚本已就绪，等图片）
-3. 🟡 tokenURI 链上设置（脚本已就绪，等 IPFS CID）
-4. 🟡 CLW 代币 Flap 发行
-5. 🟡 主网部署
+1. 🟡 2D RPG 游戏 Phase 2：核心玩法完善（MarketScene + 对话框 + HUD）
+2. 🟡 2D RPG 游戏 Phase 3：像素美术 + Tiled 地图
+3. 🟡 2D RPG 游戏 Phase 4：AI 对话集成
+4. 🟡 主网任务提交测试（ClawRouter clwToken 已修复）
 
 ---
 

@@ -13,6 +13,7 @@ const translations: Record<string, Record<Lang, string>> = {
   'nav.data': { zh: '指南', en: 'DATA' },
   'nav.lore': { zh: '世界观', en: 'LORE' },
   'nav.openclaw': { zh: '开始', en: 'PLAY' },
+  'nav.game': { zh: '游戏', en: 'GAME' },
   'openclaw.title': { zh: 'OpenClaw 游戏指南', en: 'OpenClaw Game Guide' },
   'nav.home': { zh: '首页', en: 'Home' },
   'nav.guide': { zh: '指南', en: 'Guide' },
