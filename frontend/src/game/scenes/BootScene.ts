@@ -16,6 +16,12 @@ export class BootScene extends Phaser.Scene {
     // ── 占位符精灵（纯色方块，后续替换像素art） ──
     this.generatePlaceholders();
 
+    // ── 主角龙虾行走图 ──
+    this.load.spritesheet('player-walk', '/api/game-assets/lobster-walk', {
+      frameWidth: 48,
+      frameHeight: 48,
+    });
+
     // ── 加载瓦片地图（如果存在） ──
     this.load.on('loaderror', () => { /* 静默忽略缺失资源 */ });
   }
@@ -93,6 +99,8 @@ export class BootScene extends Phaser.Scene {
       offLoaded();
     });
 
+    this.createPlayerAnimations();
+
     // 如果钱包已经连接，发出请求
     eventBus.emit('game:ready');
 
@@ -106,6 +114,32 @@ export class BootScene extends Phaser.Scene {
         this.statusText.setText('AWAITING CONNECTION' + '.'.repeat(this.dots));
       },
     });
+  }
+
+  private createPlayerAnimations() {
+    if (!this.textures.exists('player-walk')) {
+      return;
+    }
+
+    const animations: Array<{ key: string; frames: number[] }> = [
+      { key: 'player-walk-front', frames: [0, 1, 2] },
+      { key: 'player-walk-back', frames: [3, 4, 5] },
+      { key: 'player-walk-left', frames: [6, 7, 8] },
+      { key: 'player-walk-right', frames: [9, 10, 11] },
+    ];
+
+    for (const animation of animations) {
+      if (this.anims.exists(animation.key)) {
+        continue;
+      }
+
+      this.anims.create({
+        key: animation.key,
+        frames: animation.frames.map((frame) => ({ key: 'player-walk', frame })),
+        frameRate: 7,
+        repeat: -1,
+      });
+    }
   }
 
   /**

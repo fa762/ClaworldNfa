@@ -34,6 +34,7 @@ export class ShelterScene extends Phaser.Scene {
   private personality = { courage: 50, wisdom: 50, social: 50, create: 50, grit: 50 };
   private readonly SPEED = 160;
   private readonly INTERACT_DIST = 50;
+  private facing: 'front' | 'back' | 'left' | 'right' = 'front';
 
   constructor() {
     super({ key: 'ShelterScene' });
@@ -107,9 +108,13 @@ export class ShelterScene extends Phaser.Scene {
     }
 
     // ── 玩家龙虾 ──
-    this.player = this.physics.add.sprite(W / 2, H / 2, 'player');
+    const hasSpriteSheet = this.textures.exists('player-walk');
+    this.player = this.physics.add.sprite(W / 2, H / 2, hasSpriteSheet ? 'player-walk' : 'player', hasSpriteSheet ? 1 : undefined);
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(10);
+    if (hasSpriteSheet) {
+      this.player.setSize(18, 20).setOffset(15, 24);
+    }
 
     // ── 碰撞 ──
     this.physics.world.setBounds(32, 32, W - 64, H - 64);
@@ -190,6 +195,8 @@ export class ShelterScene extends Phaser.Scene {
       body.velocity.normalize().scale(this.SPEED);
     }
 
+    this.updatePlayerAnimation(body.velocity.x, body.velocity.y);
+
     // ── 检测最近 NPC ──
     this.nearestNpc = null;
     let minDist = this.INTERACT_DIST;
@@ -213,6 +220,37 @@ export class ShelterScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.interactKey) && this.nearestNpc) {
       const def = this.nearestNpc.getData('def') as NpcDef;
       this.handleInteract(def);
+    }
+  }
+
+  private updatePlayerAnimation(vx: number, vy: number) {
+    if (!this.textures.exists('player-walk')) {
+      return;
+    }
+
+    if (Math.abs(vx) < 1 && Math.abs(vy) < 1) {
+      this.player.anims.stop();
+      const idleFrames = {
+        front: 1,
+        back: 4,
+        left: 7,
+        right: 10,
+      } as const;
+      this.player.setFrame(idleFrames[this.facing]);
+      return;
+    }
+
+    if (Math.abs(vx) > Math.abs(vy)) {
+      this.facing = vx > 0 ? 'right' : 'left';
+    } else {
+      this.facing = vy > 0 ? 'front' : 'back';
+    }
+
+    const animKey = `player-walk-${this.facing}`;
+    if (this.player.anims.currentAnim?.key !== animKey) {
+      this.player.play(animKey, true);
+    } else if (!this.player.anims.isPlaying) {
+      this.player.play(animKey, true);
     }
   }
 
