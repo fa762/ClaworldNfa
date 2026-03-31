@@ -3,6 +3,7 @@ import { BootScene } from './scenes/BootScene';
 import { ShelterScene } from './scenes/ShelterScene';
 import { TaskScene } from './scenes/TaskScene';
 import { PKScene } from './scenes/PKScene';
+import { MarketScene } from './scenes/MarketScene';
 
 export function createGame(parent: HTMLElement): Phaser.Game {
   const w = parent.clientWidth;
@@ -23,7 +24,7 @@ export function createGame(parent: HTMLElement): Phaser.Game {
       mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-    scene: [BootScene, ShelterScene, TaskScene, PKScene],
+    scene: [BootScene, ShelterScene, TaskScene, PKScene, MarketScene],
   };
 
   return new Phaser.Game(config);

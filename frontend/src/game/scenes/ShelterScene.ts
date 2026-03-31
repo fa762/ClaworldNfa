@@ -1,5 +1,8 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
+import { DialogueBox } from '../ui/DialogueBox';
+import { StatusHUD } from '../ui/StatusHUD';
+import { getTaskDialogue, getPKDialogue, getMarketDialogue, getPortalDialogue, getOpenClawDialogue } from '../data/npc-dialogues';
 
 interface NpcDef {
   key: string;
@@ -24,8 +27,11 @@ export class ShelterScene extends Phaser.Scene {
   private nearestNpc: Phaser.Physics.Arcade.Sprite | null = null;
   private promptText!: Phaser.GameObjects.Text;
   private hudText!: Phaser.GameObjects.Text;
+  private dialogueBox!: DialogueBox;
+  private statusHUD!: StatusHUD;
   private nfaId = 0;
   private shelter = 0;
+  private personality = { courage: 50, wisdom: 50, social: 50, create: 50, grit: 50 };
   private readonly SPEED = 160;
   private readonly INTERACT_DIST = 50;
 
@@ -33,9 +39,10 @@ export class ShelterScene extends Phaser.Scene {
     super({ key: 'ShelterScene' });
   }
 
-  init(data: { nfaId: number; shelter: number }) {
+  init(data: { nfaId: number; shelter: number; personality?: typeof ShelterScene.prototype.personality }) {
     this.nfaId = data.nfaId || 1;
     this.shelter = data.shelter || 0;
+    if (data.personality) this.personality = data.personality;
   }
 
   create() {
@@ -123,6 +130,12 @@ export class ShelterScene extends Phaser.Scene {
       fontSize: '9px', fontFamily: 'monospace', color: '#39ff14',
     }).setDepth(100).setAlpha(0.4);
 
+    // ── 对话框 ──
+    this.dialogueBox = new DialogueBox(this);
+
+    // ── 状态 HUD ──
+    this.statusHUD = new StatusHUD(this, this.nfaId);
+
     // ── 监听链上数据更新 ──
     eventBus.on('nfa:stats', (data: unknown) => {
       const stats = data as { clw: string; level: number };
@@ -134,6 +147,9 @@ export class ShelterScene extends Phaser.Scene {
   }
 
   update() {
+    // 对话框打开时禁止移动
+    if (this.dialogueBox && this.dialogueBox.isVisible()) return;
+
     // ── 移动 ──
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(0);
@@ -180,16 +196,85 @@ export class ShelterScene extends Phaser.Scene {
   }
 
   private handleInteract(def: NpcDef) {
-    if (def.action.startsWith('event:')) {
-      const eventName = def.action.replace('event:', '');
-      if (eventName === 'portal') {
-        eventBus.emit('game:portal', { shelter: this.shelter });
-      } else if (eventName === 'openclaw') {
-        eventBus.emit('game:openclaw');
+    // 根据 NPC 类型显示对话
+    const sceneData = { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality };
+
+    switch (def.key) {
+      case 'task': {
+        const d = getTaskDialogue(this.nfaId, this.personality);
+        this.dialogueBox.show(d.lines, () => {
+          this.scene.start('TaskScene', sceneData);
+        });
+        break;
       }
-    } else {
-      // 切换到对应场景
-      this.scene.start(def.action, { nfaId: this.nfaId, shelter: this.shelter });
+      case 'pk': {
+        const d = getPKDialogue(this.nfaId);
+        this.dialogueBox.show(d.lines, () => {
+          if (d.choices) {
+            this.dialogueBox.showChoices(d.choices.map(c => ({
+              label: c.label,
+              callback: () => {
+                if (c.action === 'dialogue:close') return;
+                this.scene.start('PKScene', sceneData);
+              },
+            })));
+          }
+        });
+        break;
+      }
+      case 'market': {
+        const d = getMarketDialogue();
+        this.dialogueBox.show(d.lines, () => {
+          if (d.choices) {
+            this.dialogueBox.showChoices(d.choices.map(c => ({
+              label: c.label,
+              callback: () => {
+                if (c.action === 'dialogue:close') return;
+                this.scene.start('MarketScene', sceneData);
+              },
+            })));
+          }
+        });
+        break;
+      }
+      case 'portal': {
+        const d = getPortalDialogue(this.shelter);
+        this.dialogueBox.show(d.lines, () => {
+          if (d.choices) {
+            this.dialogueBox.showChoices(d.choices.map(c => ({
+              label: c.label,
+              callback: () => {
+                const targetShelter = (c.data as { shelter: number }).shelter;
+                this.scene.start('ShelterScene', { ...sceneData, shelter: targetShelter });
+              },
+            })));
+          }
+        });
+        break;
+      }
+      case 'openclaw': {
+        const d = getOpenClawDialogue();
+        this.dialogueBox.show(d.lines, () => {
+          if (d.choices) {
+            this.dialogueBox.showChoices(d.choices.map(c => ({
+              label: c.label,
+              callback: () => {
+                if (c.action === 'openclaw:install') {
+                  eventBus.emit('game:openclaw');
+                }
+              },
+            })));
+          }
+        });
+        break;
+      }
+      default: {
+        if (def.action.startsWith('event:')) {
+          eventBus.emit('game:' + def.action.replace('event:', ''));
+        } else {
+          this.scene.start(def.action, sceneData);
+        }
+      }
     }
   }
 
