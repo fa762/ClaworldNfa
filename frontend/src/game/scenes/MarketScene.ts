@@ -113,10 +113,46 @@ export class MarketScene extends Phaser.Scene {
   }
 
   private requestListings() {
+    // 显示加载提示
+    const W = this.cameras.main.width;
+    const loadingText = this.add.text(W / 2, 180, '读取链上数据...', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
+    }).setOrigin(0.5).setData('listingRow', true);
+
+    // 监听链上数据返回
+    const unsub = eventBus.on('market:listings', (data: unknown) => {
+      loadingText.destroy();
+      const items = data as Array<{ listingId: number; nfaId: number; price: string; seller: string; type: number }>;
+      if (items.length > 0) {
+        this.listings = items.map(item => ({
+          listingId: item.listingId,
+          nfaId: item.nfaId,
+          seller: item.seller.slice(0, 6) + '...' + item.seller.slice(-4),
+          price: item.price + ' BNB',
+          listingType: item.type,
+          name: `NFA #${item.nfaId}`,
+          rarity: 0,
+        }));
+      } else {
+        // 无链上数据时显示 mock 数据（测试用）
+        this.listings = this.generateMockListings();
+      }
+      this.renderListings();
+      unsub();
+    });
+
+    // 请求链上数据
     eventBus.emit('market:requestListings');
-    // 同时生成模拟数据（MVP，后续从链上读取）
-    this.listings = this.generateMockListings();
-    this.renderListings();
+
+    // 3 秒超时回退到 mock 数据
+    this.time.delayedCall(3000, () => {
+      if (this.listings.length === 0) {
+        loadingText.destroy();
+        this.listings = this.generateMockListings();
+        this.renderListings();
+        unsub();
+      }
+    });
   }
 
   private renderListings() {

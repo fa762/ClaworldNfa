@@ -142,6 +142,11 @@ export class ShelterScene extends Phaser.Scene {
       this.hudText.setText(`NFA #${this.nfaId}  |  CLW: ${stats.clw}  |  Lv.${stats.level}  |  WASD 移动  |  SPACE 交互`);
     });
 
+    eventBus.on('nfa:fullStats', (data: unknown) => {
+      const stats = data as { courage: number; wisdom: number; social: number; create: number; grit: number };
+      this.personality = { courage: stats.courage, wisdom: stats.wisdom, social: stats.social, create: stats.create, grit: stats.grit };
+    });
+
     // ── 触屏支持（移动端） ──
     this.setupTouchControls();
   }

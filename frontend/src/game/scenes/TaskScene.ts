@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
+import { pickTasks, calcMatchScore } from '../data/task-templates';
 
 interface TaskOption {
   type: number;     // 0=courage 1=wisdom 2=social 3=create 4=grit
@@ -8,6 +9,14 @@ interface TaskOption {
   matchScore: number;
   clw: number;
   xp: number;
+}
+
+interface Personality {
+  courage: number;
+  wisdom: number;
+  social: number;
+  create: number;
+  grit: number;
 }
 
 const TYPE_NAMES = ['勇气', '智慧', '社交', '创造', '毅力'];
@@ -20,6 +29,7 @@ const TYPE_COLORS = ['#ff4444', '#4488ff', '#ffaa00', '#aa44ff', '#44ff44'];
 export class TaskScene extends Phaser.Scene {
   private nfaId = 0;
   private shelter = 0;
+  private personality: Personality = { courage: 50, wisdom: 50, social: 50, create: 50, grit: 50 };
   private tasks: TaskOption[] = [];
   private selectedIdx = -1;
 
@@ -27,9 +37,12 @@ export class TaskScene extends Phaser.Scene {
     super({ key: 'TaskScene' });
   }
 
-  init(data: { nfaId: number; shelter: number }) {
+  init(data: { nfaId: number; shelter: number; personality?: Personality }) {
     this.nfaId = data.nfaId || 1;
     this.shelter = data.shelter || 0;
+    if (data.personality) {
+      this.personality = data.personality;
+    }
   }
 
   create() {
@@ -191,22 +204,13 @@ export class TaskScene extends Phaser.Scene {
   }
 
   private generateTasks(): TaskOption[] {
-    // MVP 模板任务（后续替换为 AI 生成或链上数据驱动）
-    const templates = [
-      { type: 0, title: '废墟探索', desc: '穿越 AXIOM 巡逻区域，回收一批电子元件。危险但回报丰厚。', baseClw: 80, baseXp: 40 },
-      { type: 1, title: '密码破译', desc: '截获了一段 AXIOM 加密通信，需要分析并破译其中的指令。', baseClw: 60, baseXp: 45 },
-      { type: 2, title: '物资谈判', desc: 'SHELTER-04 的商人带来了稀缺零件，但开价很高。', baseClw: 70, baseXp: 35 },
-      { type: 3, title: '终端改装', desc: '一台老旧终端机需要创造性改装，提升避难所的通信能力。', baseClw: 65, baseXp: 40 },
-      { type: 4, title: '巡逻守卫', desc: '夜间巡逻，确保避难所入口安全。枯燥但必须坚持。', baseClw: 50, baseXp: 50 },
-    ];
-
-    // 随机选 3 个不重复类型
-    const shuffled = [...templates].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 3).map(t => ({
+    // 根据性格权重从 25 个模板中选取 3 个任务
+    const templates = pickTasks(this.personality);
+    return templates.map(t => ({
       type: t.type,
       title: t.title,
       desc: t.desc,
-      matchScore: 0.3 + Math.random() * 1.4, // 模拟匹配度
+      matchScore: calcMatchScore(this.personality, t.type),
       clw: t.baseClw,
       xp: t.baseXp,
     }));

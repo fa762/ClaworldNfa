@@ -67,12 +67,19 @@ export class BootScene extends Phaser.Scene {
       this.statusText.setText(`WALLET: ${address.slice(0, 6)}...${address.slice(-4)}`);
     });
 
+    // 缓存性格数据
+    let cachedPersonality: { courage: number; wisdom: number; social: number; create: number; grit: number } | undefined;
+    eventBus.on('nfa:fullStats', (data: unknown) => {
+      const stats = data as { courage: number; wisdom: number; social: number; create: number; grit: number };
+      cachedPersonality = { courage: stats.courage, wisdom: stats.wisdom, social: stats.social, create: stats.create, grit: stats.grit };
+    });
+
     // 监听 NFA 数据加载完成
     eventBus.on('nfa:loaded', (data: unknown) => {
       const { nfaId, shelter } = data as { nfaId: number; shelter: number };
       this.statusText.setText(`NFA #${nfaId} LOADED — SHELTER-0${shelter}`);
       this.time.delayedCall(1000, () => {
-        this.scene.start('ShelterScene', { nfaId, shelter });
+        this.scene.start('ShelterScene', { nfaId, shelter, personality: cachedPersonality });
       });
     });
 
