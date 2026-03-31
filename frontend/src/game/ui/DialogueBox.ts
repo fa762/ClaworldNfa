@@ -30,8 +30,8 @@ export class DialogueBox {
   private onComplete?: () => void;
   private readonly W: number;
   private readonly H: number;
-  private readonly BOX_H = 120;
-  private readonly PADDING = 16;
+  private readonly BOX_H = 156;
+  private readonly PADDING = 22;
   private readonly pointerHandler: () => void;
   private readonly spaceHandler: () => void;
   private choiceKeyCleanups: Array<() => void> = [];
@@ -46,23 +46,23 @@ export class DialogueBox {
     this.container = scene.add.container(0, 0).setDepth(200);
 
     // 半透明背景
-    this.bg = scene.add.rectangle(this.W / 2, boxY + this.BOX_H / 2, this.W - 20, this.BOX_H, 0x0a0a1a, 0.92);
+    this.bg = scene.add.rectangle(this.W / 2, boxY + this.BOX_H / 2, this.W - 28, this.BOX_H, 0x0a0a1a, 0.94);
     this.bg.setStrokeStyle(1, 0x39ff14, 0.5);
 
     // 说话者名字
     this.speakerText = scene.add.text(this.PADDING + 10, boxY + 10, '', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#ffd700',
+      fontSize: '15px', fontFamily: 'monospace', color: '#ffd700',
     });
 
     // 正文
     this.bodyText = scene.add.text(this.PADDING + 10, boxY + 30, '', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#cccccc',
-      wordWrap: { width: this.W - 60 }, lineSpacing: 4,
+      fontSize: '14px', fontFamily: 'monospace', color: '#cccccc',
+      wordWrap: { width: this.W - 80 }, lineSpacing: 8,
     });
 
     // 继续提示
-    this.promptText = scene.add.text(this.W - 30, boxY + this.BOX_H - 16, '▼', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
+    this.promptText = scene.add.text(this.W - 32, boxY + this.BOX_H - 20, '▼', {
+      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0);
 
     // 闪烁动画
@@ -108,9 +108,9 @@ export class DialogueBox {
 
     const boxY = this.H - this.BOX_H;
     choices.forEach((choice, i) => {
-      const y = boxY + 40 + i * 22;
+      const y = boxY + 58 + i * 28;
       const text = this.scene.add.text(this.PADDING + 20, y, `[${i + 1}] ${choice.label}`, {
-        fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
+        fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
       }).setInteractive({ useHandCursor: true }).setDepth(201);
 
       text.on('pointerover', () => text.setColor('#ffffff'));

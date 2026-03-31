@@ -54,11 +54,12 @@ export class ShelterScene extends Phaser.Scene {
   create() {
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
+    const floorTexture = this.textures.exists('tile-floor-art') ? 'tile-floor-art' : 'tile-floor';
 
     // ── 地板 ──
     for (let x = 0; x < W + 32; x += 32) {
       for (let y = 0; y < H + 32; y += 32) {
-        this.add.image(x, y, 'tile-floor').setOrigin(0);
+        this.add.image(x, y, floorTexture).setOrigin(0);
       }
     }
 
@@ -76,7 +77,7 @@ export class ShelterScene extends Phaser.Scene {
     const shelterNames = ['虚空', '珊瑚', '深渊', '海藻', '海沟', '礁石', '火山', '废土'];
     const shelterName = shelterNames[this.shelter] || `SHELTER-0${this.shelter}`;
     this.add.text(W / 2, 12, `SHELTER-0${this.shelter}  ${shelterName}`, {
-      fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5, 0).setDepth(100).setAlpha(0.5);
 
     // ── NPC 定义（根据场景大小自适应位置） ──
@@ -99,13 +100,8 @@ export class ShelterScene extends Phaser.Scene {
 
       // NPC 标签
       this.add.text(def.x, def.y - npc.displayHeight / 2 - 10, def.label, {
-        fontSize: '9px', fontFamily: 'monospace', color: '#39ff14',
+        fontSize: '12px', fontFamily: 'monospace', color: '#39ff14',
       }).setOrigin(0.5).setAlpha(0.6);
-
-      // 传送门旋转动画
-      if (def.key === 'portal') {
-        this.tweens.add({ targets: npc, angle: 360, duration: 4000, repeat: -1 });
-      }
 
       this.npcs.push(npc);
     }
@@ -134,12 +130,12 @@ export class ShelterScene extends Phaser.Scene {
 
     // ── 交互提示 ──
     this.promptText = this.add.text(W / 2, H - 48, '', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#ffd700',
+      fontSize: '16px', fontFamily: 'monospace', color: '#ffd700',
     }).setOrigin(0.5).setDepth(100);
 
     // ── HUD ──
     this.hudText = this.add.text(8, H - 20, `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互`, {
-      fontSize: '9px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '12px', fontFamily: 'monospace', color: '#39ff14',
     }).setDepth(100).setAlpha(0.4);
 
     // ── 对话框 ──

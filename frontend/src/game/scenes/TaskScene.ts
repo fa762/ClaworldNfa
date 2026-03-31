@@ -57,18 +57,18 @@ export class TaskScene extends Phaser.Scene {
 
     // 标题
     this.add.text(W / 2, 30, '[ 任务分配终端 ]', {
-      fontSize: '16px', fontFamily: 'monospace', color: '#ffd700',
+      fontSize: '24px', fontFamily: 'monospace', color: '#ffd700',
     }).setOrigin(0.5);
 
     this.add.text(W / 2, 50, `NFA #${this.nfaId} — 选择一个任务`, {
-      fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0.6);
 
     // 生成 3 个模板任务（MVP 阶段，后续接 AI）
     this.tasks = this.generateTasks();
 
     // 渲染任务卡片
-    const cardW = Math.min(W * 0.28, 220);
+    const cardW = Math.min(W * 0.28, 250);
     const gap = 20;
     const totalW = cardW * 3 + gap * 2;
     const startX = (W - totalW) / 2;
@@ -83,32 +83,32 @@ export class TaskScene extends Phaser.Scene {
       card.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(TYPE_COLORS[task.type]).color, 0.6);
       card.setInteractive({ useHandCursor: true });
 
-      // 类型标签
-      this.add.text(x + cardW / 2, y + 15, `[ ${TYPE_NAMES[task.type]} ]`, {
-        fontSize: '12px', fontFamily: 'monospace', color: TYPE_COLORS[task.type],
-      }).setOrigin(0.5);
+        // 类型标签
+        this.add.text(x + cardW / 2, y + 15, `[ ${TYPE_NAMES[task.type]} ]`, {
+          fontSize: '15px', fontFamily: 'monospace', color: TYPE_COLORS[task.type],
+        }).setOrigin(0.5);
 
       // 标题
       this.add.text(x + cardW / 2, y + 40, task.title, {
-        fontSize: '11px', fontFamily: 'monospace', color: '#ffffff',
+        fontSize: '14px', fontFamily: 'monospace', color: '#ffffff',
         wordWrap: { width: cardW - 20 }, align: 'center',
       }).setOrigin(0.5, 0);
 
       // 描述
       this.add.text(x + 10, y + 75, task.desc, {
-        fontSize: '9px', fontFamily: 'monospace', color: '#aaaaaa',
+        fontSize: '12px', fontFamily: 'monospace', color: '#aaaaaa',
         wordWrap: { width: cardW - 20 },
       });
 
       // 奖励
       this.add.text(x + cardW / 2, y + cardH - 50, `CLW: +${task.clw}  XP: +${task.xp}`, {
-        fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
+        fontSize: '13px', fontFamily: 'monospace', color: '#39ff14',
       }).setOrigin(0.5);
 
       // 匹配度
       const matchColor = task.matchScore >= 1.0 ? '#39ff14' : task.matchScore >= 0.5 ? '#ffaa00' : '#ff4444';
       this.add.text(x + cardW / 2, y + cardH - 30, `匹配度: ${task.matchScore.toFixed(2)}x`, {
-        fontSize: '10px', fontFamily: 'monospace', color: matchColor,
+        fontSize: '13px', fontFamily: 'monospace', color: matchColor,
       }).setOrigin(0.5);
 
       // 点击选择
@@ -123,7 +123,7 @@ export class TaskScene extends Phaser.Scene {
 
     // 返回按钮
     const backBtn = this.add.text(W / 2, H - 30, '[ ESC 返回避难所 ]', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0.5).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.goBack());
 
@@ -155,25 +155,25 @@ export class TaskScene extends Phaser.Scene {
 
     // 确认弹窗
     const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.7).setDepth(50);
-    const confirmBox = this.add.rectangle(W / 2, H / 2, 300, 120, 0x111122).setDepth(51);
+    const confirmBox = this.add.rectangle(W / 2, H / 2, 420, 170, 0x111122).setDepth(51);
     confirmBox.setStrokeStyle(1, 0x39ff14);
 
     this.add.text(W / 2, H / 2 - 35, `确认执行: ${task.title}?`, {
-      fontSize: '12px', fontFamily: 'monospace', color: '#ffd700', align: 'center',
-      wordWrap: { width: 280 },
+      fontSize: '18px', fontFamily: 'monospace', color: '#ffd700', align: 'center',
+      wordWrap: { width: 360 },
     }).setOrigin(0.5).setDepth(52);
 
     this.add.text(W / 2, H / 2 + 5, `CLW +${task.clw}  XP +${task.xp}  匹配 ${task.matchScore.toFixed(2)}x`, {
-      fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setDepth(52);
 
     // 确认/取消
     const yesBtn = this.add.text(W / 2 - 60, H / 2 + 35, '[ 确认 ]', {
-      fontSize: '12px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setDepth(52).setInteractive({ useHandCursor: true });
 
     const noBtn = this.add.text(W / 2 + 60, H / 2 + 35, '[ 取消 ]', {
-      fontSize: '12px', fontFamily: 'monospace', color: '#ff4444',
+      fontSize: '16px', fontFamily: 'monospace', color: '#ff4444',
     }).setOrigin(0.5).setDepth(52).setInteractive({ useHandCursor: true });
 
     yesBtn.on('pointerdown', () => {
@@ -189,7 +189,7 @@ export class TaskScene extends Phaser.Scene {
       // 显示等待
       overlay.destroy(); confirmBox.destroy(); yesBtn.destroy(); noBtn.destroy();
       const waitText = this.add.text(W / 2, H / 2, '上链中...', {
-        fontSize: '16px', fontFamily: 'monospace', color: '#ffd700',
+        fontSize: '20px', fontFamily: 'monospace', color: '#ffd700',
       }).setOrigin(0.5).setDepth(52);
 
       // 监听结果
@@ -209,13 +209,13 @@ export class TaskScene extends Phaser.Scene {
             : `任务完成! TX: ${result.txHash?.slice(0, 10)}...`;
 
           this.add.text(W / 2, H / 2, rewardText, {
-            fontSize: '12px', fontFamily: 'monospace', color: '#39ff14',
+            fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
             align: 'center',
-            wordWrap: { width: 280 },
+            wordWrap: { width: 360 },
           }).setOrigin(0.5).setDepth(52);
         } else {
           this.add.text(W / 2, H / 2, `失败: ${result.error}`, {
-            fontSize: '12px', fontFamily: 'monospace', color: '#ff4444',
+            fontSize: '16px', fontFamily: 'monospace', color: '#ff4444',
           }).setOrigin(0.5).setDepth(52);
         }
         this.time.delayedCall(2000, () => this.goBack());

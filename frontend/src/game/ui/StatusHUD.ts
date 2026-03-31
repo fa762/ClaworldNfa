@@ -24,16 +24,16 @@ export class StatusHUD {
     this.container = scene.add.container(0, 0).setDepth(150);
 
     // 背景条
-    this.bg = scene.add.rectangle(W / 2, 16, W, 32, 0x0a0a0a, 0.85);
+    this.bg = scene.add.rectangle(W / 2, 22, W, 44, 0x0a0a0a, 0.88);
 
     // 主信息
-    this.mainText = scene.add.text(8, 6, '', {
-      fontSize: '9px', fontFamily: 'monospace', color: '#39ff14',
+    this.mainText = scene.add.text(10, 8, '', {
+      fontSize: '12px', fontFamily: 'monospace', color: '#39ff14',
     });
 
     // 性格摘要（右侧）
-    this.personalityText = scene.add.text(W - 8, 6, '', {
-      fontSize: '9px', fontFamily: 'monospace', color: '#888888',
+    this.personalityText = scene.add.text(W - 10, 8, '', {
+      fontSize: '12px', fontFamily: 'monospace', color: '#888888',
     }).setOrigin(1, 0);
 
     this.container.add([this.bg, this.mainText, this.personalityText]);

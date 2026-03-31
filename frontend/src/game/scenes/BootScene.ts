@@ -28,6 +28,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('npc-market-art', '/api/game-assets/npc-market');
     this.load.image('portal-art', '/api/game-assets/portal');
     this.load.image('npc-openclaw-art', '/api/game-assets/npc-openclaw');
+    this.load.image('tile-floor-art', '/api/game-assets/tile-floor');
 
     // ── 加载瓦片地图（如果存在） ──
     this.load.on('loaderror', () => { /* 静默忽略缺失资源 */ });

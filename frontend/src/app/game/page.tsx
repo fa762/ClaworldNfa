@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount, useConnect, useWriteContract } from 'wagmi';
 import { decodeEventLog, formatEther, parseEther, type Address, type TransactionReceipt } from 'viem';
 import Link from 'next/link';
@@ -39,7 +39,7 @@ import { PKSkillABI } from '@/contracts/abis/PKSkill';
 import { TaskSkillABI } from '@/contracts/abis/TaskSkill';
 import { useI18n } from '@/lib/i18n';
 
-type GameStatus = 'loading' | 'ready' | 'no-nfa' | 'select-nfa' | 'loading-nfa' | 'playing' | 'error';
+type GameStatus = 'loading' | 'ready' | 'connected' | 'booting' | 'no-nfa' | 'select-nfa' | 'loading-nfa' | 'playing' | 'error';
 type PendingTx = { hash: `0x${string}`; label: string } | null;
 
 const PK_PHASE_NAMES = ['OPEN', 'JOINED', 'COMMITTED', 'REVEALED', 'SETTLED', 'CANCELLED'];
@@ -99,6 +99,13 @@ export default function GamePage() {
   const [mounted, setMounted] = useState(false);
   const [pendingTx, setPendingTx] = useState<PendingTx>(null);
   const [showOpenClaw, setShowOpenClaw] = useState(false);
+  const [bootProgress, setBootProgress] = useState(0);
+  const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null);
+
+  const walletOptions = useMemo(
+    () => connectors.filter((connector) => connector.type === 'injected' || connector.name === 'WalletConnect' || connector.name === 'Coinbase Wallet'),
+    [connectors],
+  );
 
   useEffect(() => setMounted(true), []);
 
@@ -207,33 +214,67 @@ export default function GamePage() {
   }, [mounted]);
 
   useEffect(() => {
-    if (!mounted || isConnected) return;
-    activeNfaIdRef.current = null;
-    setNfaList([]);
-    setStatus('ready');
-  }, [isConnected, mounted]);
+    if (!mounted) return;
 
-  useEffect(() => {
+    if (!isConnected) {
+      activeNfaIdRef.current = null;
+      setNfaList([]);
+      setBootProgress(0);
+      setStatus('ready');
+      return;
+    }
+
+    if (address) {
+      eventBus.emit('wallet:connected', { address });
+    }
+
+    setStatus((current) => (
+      current === 'playing' || current === 'loading-nfa' || current === 'select-nfa' || current === 'no-nfa' || current === 'booting'
+        ? current
+        : 'connected'
+    ));
+  }, [address, isConnected, mounted]);
+
+  const startGameBoot = useCallback(async () => {
     if (!isConnected || !address) return;
 
-    eventBus.emit('wallet:connected', { address });
+    setStatus('booting');
+    setBootProgress(0);
 
-    void (async () => {
-      try {
-        const ids = await refreshOwnedNfas();
-        if (ids.length === 1) {
-          await selectAndEnter(ids[0]);
-        } else if (ids.length === 0) {
-          setStatus('no-nfa');
-        } else {
-          setStatus('select-nfa');
-        }
-      } catch (error) {
-        console.error('Failed to load NFAs:', error);
-        setStatus('error');
+    let intervalId: number | undefined;
+
+    try {
+      const startAt = Date.now();
+      const minDuration = 1800;
+
+      intervalId = window.setInterval(() => {
+        const elapsed = Date.now() - startAt;
+        const progress = Math.min(95, Math.floor((elapsed / minDuration) * 100));
+        setBootProgress(progress);
+      }, 60);
+
+      const ids = await refreshOwnedNfas();
+      const elapsed = Date.now() - startAt;
+      if (elapsed < minDuration) {
+        await new Promise((resolve) => window.setTimeout(resolve, minDuration - elapsed));
       }
-    })();
-  }, [address, isConnected, refreshOwnedNfas, selectAndEnter]);
+
+      if (intervalId) window.clearInterval(intervalId);
+      setBootProgress(100);
+
+      await new Promise((resolve) => window.setTimeout(resolve, 220));
+
+      if (ids.length === 0) {
+        setStatus('no-nfa');
+      } else {
+        setStatus('select-nfa');
+      }
+    } catch (error) {
+      if (intervalId) window.clearInterval(intervalId);
+      console.error('Failed to boot game:', error);
+      setStatus('error');
+    }
+  }, [address, isConnected, refreshOwnedNfas]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -633,24 +674,56 @@ export default function GamePage() {
 
       {status !== 'playing' && (
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-          <div className="pointer-events-auto text-center">
-            {!isConnected && status === 'ready' && (
-              <div>
+          <div className="pointer-events-auto text-center max-w-2xl mx-4 rounded border border-crt-green/20 bg-black/85 px-8 py-8 shadow-[0_0_40px_rgba(57,255,20,0.08)]">
+            {(status === 'ready' || status === 'connected' || status === 'booting') && (
+              <div className="font-mono">
+                <p className="text-crt-green text-2xl mb-2">
+                  {lang === 'zh' ? '接入协议' : 'Connection Protocol'}
+                </p>
+                <p className="text-crt-green/60 text-sm mb-6">
+                  {lang === 'zh' ? '选择钱包后进入同步阶段，读条完成后再选择龙虾。' : 'Choose a wallet, enter the game, then wait for sync to finish before selecting your lobster.'}
+                </p>
+
+                <div className="grid gap-3 sm:grid-cols-2 mb-6">
+                  {walletOptions.map((connector) => {
+                    const active = selectedConnectorId === connector.id;
+                    return (
+                      <button
+                        key={connector.id}
+                        onClick={() => {
+                          setSelectedConnectorId(connector.id);
+                          connect({ connector });
+                        }}
+                        className={`soft-key px-5 py-4 text-base ${active ? 'text-white' : ''}`}
+                      >
+                        {connector.name}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mb-6 text-sm text-crt-green/70 min-h-6">
+                  {isConnected && address
+                    ? `${lang === 'zh' ? '已连接' : 'Connected'}: ${address.slice(0, 6)}...${address.slice(-4)}`
+                    : (lang === 'zh' ? '请先选择并连接钱包' : 'Select and connect a wallet first')}
+                </div>
+
                 <button
-                  onClick={() => {
-                    const injected = connectors.find((connector) => connector.type === 'injected');
-                    const walletConnect = connectors.find((connector) => connector.name === 'WalletConnect');
-                    const connector = (injected && (window as Window & { ethereum?: unknown }).ethereum)
-                      ? injected
-                      : walletConnect || connectors[0];
-                    if (connector) connect({ connector });
-                  }}
-                  className="soft-key text-sm px-6 py-3 font-mono"
+                  onClick={() => void startGameBoot()}
+                  disabled={!isConnected || status === 'booting'}
+                  className="soft-key text-lg px-8 py-4 font-mono disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {lang === 'zh' ? '[ 连接钱包进入游戏 ]' : '[ CONNECT WALLET TO PLAY ]'}
+                  {status === 'booting'
+                    ? (lang === 'zh' ? '[ 同步中... ]' : '[ SYNCING... ]')
+                    : (lang === 'zh' ? '[ 进入游戏 ]' : '[ ENTER GAME ]')}
                 </button>
-                <p className="text-[10px] font-mono text-crt-green/40 mt-3">MetaMask / WalletConnect</p>
-                <Link href="/mint" className="block text-[10px] font-mono text-crt-green/30 mt-6 hover:text-crt-green/60">
+
+                <div className="mt-6 h-4 w-full border border-crt-green/30 bg-black/70">
+                  <div className="h-full bg-crt-green/70 transition-all duration-100" style={{ width: `${bootProgress}%` }} />
+                </div>
+                <p className="mt-2 text-sm text-crt-green/50">{bootProgress}%</p>
+
+                <Link href="/mint" className="block text-sm font-mono text-crt-green/30 mt-6 hover:text-crt-green/60">
                   {lang === 'zh' ? '还没有龙虾？去铸造 →' : 'No lobster? Mint one →'}
                 </Link>
               </div>
@@ -658,10 +731,10 @@ export default function GamePage() {
 
             {status === 'no-nfa' && (
               <div className="font-mono">
-                <p className="text-crt-green text-sm mb-4">
+                <p className="text-crt-green text-xl mb-4">
                   {lang === 'zh' ? '未检测到龙虾 NFA' : 'No lobster NFA detected'}
                 </p>
-                <Link href="/mint" className="soft-key text-xs px-6 py-2">
+                <Link href="/mint" className="soft-key text-base px-8 py-3">
                   {lang === 'zh' ? '[ 去铸造 ]' : '[ MINT NOW ]'}
                 </Link>
               </div>
@@ -669,15 +742,18 @@ export default function GamePage() {
 
             {status === 'select-nfa' && (
               <div className="font-mono">
-                <p className="text-crt-green text-sm mb-4">
+                <p className="text-crt-green text-xl mb-4">
                   {lang === 'zh' ? '选择你的龙虾' : 'Choose your lobster'}
                 </p>
-                <div className="flex gap-3 flex-wrap justify-center max-w-sm">
+                <p className="text-sm text-crt-green/50 mb-5">
+                  {lang === 'zh' ? '同步完成，选择要进入避难所的龙虾。' : 'Synchronization complete. Select which lobster enters the shelter.'}
+                </p>
+                <div className="flex gap-4 flex-wrap justify-center max-w-xl">
                   {nfaList.map((id) => (
                     <button
                       key={id}
                       onClick={() => selectAndEnter(id)}
-                      className="soft-key text-xs px-4 py-2"
+                      className="soft-key text-base px-6 py-4"
                     >
                       NFA #{id}
                     </button>
@@ -687,7 +763,7 @@ export default function GamePage() {
             )}
 
             {(status === 'loading' || status === 'loading-nfa') && (
-              <p className="text-crt-green font-mono text-xs animate-pulse">
+              <p className="text-crt-green font-mono text-lg animate-pulse">
                 {status === 'loading-nfa'
                   ? (lang === 'zh' ? '读取链上数据...' : 'READING CHAIN DATA...')
                   : (lang === 'zh' ? '初始化引擎...' : 'INITIALIZING ENGINE...')}
@@ -696,10 +772,10 @@ export default function GamePage() {
 
             {status === 'error' && (
               <div className="font-mono">
-                <p className="text-red-400 text-sm mb-3">
+                <p className="text-red-400 text-xl mb-3">
                   {lang === 'zh' ? '加载失败' : 'LOAD FAILED'}
                 </p>
-                <button onClick={() => window.location.reload()} className="soft-key text-xs px-4 py-2">
+                <button onClick={() => window.location.reload()} className="soft-key text-base px-6 py-3">
                   {lang === 'zh' ? '[ 重试 ]' : '[ RETRY ]'}
                 </button>
               </div>

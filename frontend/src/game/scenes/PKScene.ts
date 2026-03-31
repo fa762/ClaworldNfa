@@ -59,11 +59,11 @@ export class PKScene extends Phaser.Scene {
     this.add.rectangle(W / 2, H / 2, W, H, 0x0a0a0a, 0.95);
 
     this.add.text(W / 2, 26, '[ 竞技擂台 ]', {
-      fontSize: '16px', fontFamily: 'monospace', color: '#ff3333',
+      fontSize: '24px', fontFamily: 'monospace', color: '#ff3333',
     }).setOrigin(0.5);
 
     this.add.text(W / 2, 48, `NFA #${this.nfaId} — 真链上 PK`, {
-      fontSize: '10px', fontFamily: 'monospace', color: '#ff6666',
+      fontSize: '14px', fontFamily: 'monospace', color: '#ff6666',
     }).setOrigin(0.5).setAlpha(0.7);
 
     const buttons = [
@@ -76,23 +76,23 @@ export class PKScene extends Phaser.Scene {
 
     for (const button of buttons) {
       this.add.text(button.x, 78, button.label, {
-        fontSize: '11px', fontFamily: 'monospace', color: '#39ff14',
-        backgroundColor: '#001a00', padding: { x: 8, y: 4 },
+        fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
+        backgroundColor: '#001a00', padding: { x: 10, y: 6 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', button.action);
     }
 
     this.add.text(18, 110, 'ID     A        B        STAKE        PHASE           ACTION', {
-      fontSize: '9px', fontFamily: 'monospace', color: '#555555',
+      fontSize: '11px', fontFamily: 'monospace', color: '#555555',
     });
     this.add.rectangle(W / 2, 122, W - 32, 1, 0x333333);
 
     this.statusText = this.add.text(W / 2, H - 56, '读取链上擂台中...', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#ffaa00', align: 'center',
+      fontSize: '14px', fontFamily: 'monospace', color: '#ffaa00', align: 'center',
       wordWrap: { width: W - 40 },
     }).setOrigin(0.5);
 
     this.add.text(W / 2, H - 26, '[ ESC 返回避难所 ]', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.goBack());
 
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
@@ -197,29 +197,29 @@ export class PKScene extends Phaser.Scene {
     const H = this.cameras.main.height;
     const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75).setDepth(50);
     const title = this.add.text(W / 2, H / 2 - 110, mode === 'create' ? '创建擂台：选择策略' : `加入擂台 #${options.matchId}：选择策略`, {
-      fontSize: '13px', fontFamily: 'monospace', color: '#ffffff',
+      fontSize: '18px', fontFamily: 'monospace', color: '#ffffff',
     }).setOrigin(0.5).setDepth(51);
 
     const createdObjects: Phaser.GameObjects.GameObject[] = [overlay, title];
 
     if (options.stake) {
       const stakeText = this.add.text(W / 2, H / 2 - 88, `质押: ${options.stake} CLW`, {
-        fontSize: '10px', fontFamily: 'monospace', color: '#ffaa00',
+        fontSize: '14px', fontFamily: 'monospace', color: '#ffaa00',
       }).setOrigin(0.5).setDepth(51);
       createdObjects.push(stakeText);
     }
 
     STRATEGIES.forEach((strategy, index) => {
       const y = H / 2 - 30 + index * 58;
-      const card = this.add.rectangle(W / 2, y, 240, 44, 0x111122)
+      const card = this.add.rectangle(W / 2, y, 280, 52, 0x111122)
         .setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(strategy.color).color)
         .setDepth(51)
         .setInteractive({ useHandCursor: true });
       const name = this.add.text(W / 2, y - 8, strategy.name, {
-        fontSize: '14px', fontFamily: 'monospace', color: strategy.color,
+        fontSize: '18px', fontFamily: 'monospace', color: strategy.color,
       }).setOrigin(0.5).setDepth(52);
       const desc = this.add.text(W / 2, y + 10, strategy.desc, {
-        fontSize: '9px', fontFamily: 'monospace', color: '#888888',
+        fontSize: '12px', fontFamily: 'monospace', color: '#888888',
       }).setOrigin(0.5).setDepth(52);
 
       card.on('pointerdown', () => {
@@ -236,7 +236,7 @@ export class PKScene extends Phaser.Scene {
     });
 
     const cancel = this.add.text(W / 2, H / 2 + 155, '[ 取消 ]', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#ff4444',
+      fontSize: '15px', fontFamily: 'monospace', color: '#ff4444',
     }).setOrigin(0.5).setDepth(52).setInteractive({ useHandCursor: true });
 
     cancel.on('pointerdown', () => createdObjects.forEach((obj) => obj.destroy()));
@@ -251,37 +251,37 @@ export class PKScene extends Phaser.Scene {
 
     if (this.matches.length === 0) {
       const empty = this.add.text(W / 2, 200, '没有活跃中的链上对战', {
-        fontSize: '12px', fontFamily: 'monospace', color: '#666666',
+        fontSize: '16px', fontFamily: 'monospace', color: '#666666',
       }).setOrigin(0.5);
       this.rows.push(empty);
       return;
     }
 
     this.matches.slice(0, 6).forEach((match, index) => {
-      const y = 140 + index * 42;
-      const rowBg = this.add.rectangle(W / 2, y + 8, W - 36, 34, 0x111122, 0.5).setStrokeStyle(1, 0x222233);
+      const y = 140 + index * 50;
+      const rowBg = this.add.rectangle(W / 2, y + 10, W - 36, 40, 0x111122, 0.5).setStrokeStyle(1, 0x222233);
       const rowText = this.add.text(18, y,
         `${String(match.matchId).padEnd(6)} ${String(match.nfaA).padEnd(8)} ${String(match.nfaB || '-').padEnd(8)} ${`${match.stake} CLW`.padEnd(12)} ${match.phaseName.padEnd(14)}`,
-        { fontSize: '10px', fontFamily: 'monospace', color: '#cccccc' },
+        { fontSize: '12px', fontFamily: 'monospace', color: '#cccccc' },
       );
 
       this.rows.push(rowBg, rowText);
 
       if (match.phase === 0) {
         const joinBtn = this.add.text(W - 70, y + 1, '[ 加入 ]', {
-          fontSize: '9px', fontFamily: 'monospace', color: '#ffaa00', backgroundColor: '#1a1a00', padding: { x: 4, y: 2 },
+          fontSize: '11px', fontFamily: 'monospace', color: '#ffaa00', backgroundColor: '#1a1a00', padding: { x: 6, y: 4 },
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
         joinBtn.on('pointerdown', () => this.showStrategyPicker('join', { matchId: match.matchId }));
         this.rows.push(joinBtn);
       } else if (match.phase === 2) {
         const revealBtn = this.add.text(W - 70, y + 1, '[ 揭示 ]', {
-          fontSize: '9px', fontFamily: 'monospace', color: '#39ff14', backgroundColor: '#001a00', padding: { x: 4, y: 2 },
+          fontSize: '11px', fontFamily: 'monospace', color: '#39ff14', backgroundColor: '#001a00', padding: { x: 6, y: 4 },
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
         revealBtn.on('pointerdown', () => eventBus.emit('pk:reveal', { matchId: match.matchId }));
         this.rows.push(revealBtn);
       } else if (match.phase === 3) {
         const settleBtn = this.add.text(W - 70, y + 1, '[ 结算 ]', {
-          fontSize: '9px', fontFamily: 'monospace', color: '#39ff14', backgroundColor: '#001a00', padding: { x: 4, y: 2 },
+          fontSize: '11px', fontFamily: 'monospace', color: '#39ff14', backgroundColor: '#001a00', padding: { x: 6, y: 4 },
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
         settleBtn.on('pointerdown', () => eventBus.emit('pk:settle', { matchId: match.matchId }));
         this.rows.push(settleBtn);
