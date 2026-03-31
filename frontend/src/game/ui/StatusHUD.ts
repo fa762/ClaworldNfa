@@ -13,6 +13,7 @@ export class StatusHUD {
   private personalityText: Phaser.GameObjects.Text;
   private nfaId = 0;
   private stats = { level: 0, clw: '0', bnb: '0', courage: 0, wisdom: 0, social: 0, create: 0, grit: 0, hp: 0 };
+  private readonly offFullStats: () => void;
 
   constructor(scene: Phaser.Scene, nfaId: number) {
     this.scene = scene;
@@ -38,7 +39,7 @@ export class StatusHUD {
     this.container.add([this.bg, this.mainText, this.personalityText]);
 
     // 监听数据更新
-    eventBus.on('nfa:fullStats', (data: unknown) => {
+    this.offFullStats = eventBus.on('nfa:fullStats', (data: unknown) => {
       this.stats = data as typeof this.stats;
       this.refresh();
     });
@@ -66,6 +67,7 @@ export class StatusHUD {
   }
 
   destroy() {
+    this.offFullStats();
     this.container.destroy(true);
   }
 }

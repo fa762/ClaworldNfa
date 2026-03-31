@@ -32,6 +32,9 @@ export class DialogueBox {
   private readonly H: number;
   private readonly BOX_H = 120;
   private readonly PADDING = 16;
+  private readonly pointerHandler: () => void;
+  private readonly spaceHandler: () => void;
+  private choiceKeyCleanups: Array<() => void> = [];
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -75,8 +78,11 @@ export class DialogueBox {
     this.container.setVisible(false);
 
     // 点击/空格推进对话
-    scene.input.on('pointerdown', () => this.advance());
-    scene.input.keyboard?.on('keydown-SPACE', () => this.advance());
+    this.pointerHandler = () => this.advance();
+    this.spaceHandler = () => this.advance();
+
+    scene.input.on('pointerdown', this.pointerHandler);
+    scene.input.keyboard?.on('keydown-SPACE', this.spaceHandler);
   }
 
   /**
@@ -96,6 +102,7 @@ export class DialogueBox {
    * 显示选择分支
    */
   showChoices(choices: DialogueChoice[]) {
+    this.clearChoiceKeyBindings();
     this.choiceTexts.forEach(t => t.destroy());
     this.choiceTexts = [];
 
@@ -115,10 +122,12 @@ export class DialogueBox {
 
       // 键盘快捷键
       const keyName = `keydown-${['ONE', 'TWO', 'THREE', 'FOUR'][i]}`;
-      this.scene.input.keyboard?.on(keyName, () => {
+      const keyHandler = () => {
         this.hide();
         choice.callback();
-      });
+      };
+      this.scene.input.keyboard?.on(keyName, keyHandler);
+      this.choiceKeyCleanups.push(() => this.scene.input.keyboard?.off(keyName, keyHandler));
 
       this.choiceTexts.push(text);
       this.container.add(text);
@@ -132,6 +141,7 @@ export class DialogueBox {
     this.choiceTexts.forEach(t => t.destroy());
     this.choiceTexts = [];
     if (this.typingTimer) this.typingTimer.destroy();
+    this.clearChoiceKeyBindings();
   }
 
   isVisible() {
@@ -188,6 +198,14 @@ export class DialogueBox {
   }
 
   destroy() {
+    this.clearChoiceKeyBindings();
+    this.scene.input.off('pointerdown', this.pointerHandler);
+    this.scene.input.keyboard?.off('keydown-SPACE', this.spaceHandler);
     this.container.destroy(true);
+  }
+
+  private clearChoiceKeyBindings() {
+    this.choiceKeyCleanups.forEach((cleanup) => cleanup());
+    this.choiceKeyCleanups = [];
   }
 }

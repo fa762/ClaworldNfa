@@ -1,22 +1,84 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useAccount, useConnect, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAccount, useConnect, useWriteContract } from 'wagmi';
+import { decodeEventLog, formatEther, parseEther, type Address, type TransactionReceipt } from 'viem';
+import Link from 'next/link';
+
 import { eventBus } from '@/game/EventBus';
-import { loadPlayerNFAs, loadNFAState, loadMarketListings, loadOpenMatches } from '@/game/chain/wallet';
 import {
-  taskSubmitArgs,
+  loadMatch,
+  loadMarketListings,
+  loadNFAState,
+  loadPlayerNFAs,
+  loadRecentMatches,
+  publicClient,
+} from '@/game/chain/wallet';
+import {
+  generateCommit,
+  loadPKSalt,
+  marketAuctionArgs,
+  marketBidArgs,
+  marketBuyArgs,
+  marketCancelArgs,
+  marketListArgs,
+  marketSettleAuctionArgs,
+  nfaApproveArgs,
+  pkCancelArgs,
   pkCreateArgs,
   pkJoinArgs,
-  generateCommit,
+  pkRevealArgs,
+  pkSettleArgs,
+  processUpkeepArgs,
   savePKSalt,
-  marketListArgs,
-  nfaApproveArgs,
+  taskSubmitArgs,
 } from '@/game/chain/contracts';
+import { addresses } from '@/contracts/addresses';
+import { MarketSkillABI } from '@/contracts/abis/MarketSkill';
+import { PKSkillABI } from '@/contracts/abis/PKSkill';
+import { TaskSkillABI } from '@/contracts/abis/TaskSkill';
 import { useI18n } from '@/lib/i18n';
-import Link from 'next/link';
-import type { Address } from 'viem';
-import { formatEther } from 'viem';
+
+type GameStatus = 'loading' | 'ready' | 'no-nfa' | 'select-nfa' | 'loading-nfa' | 'playing' | 'error';
+type PendingTx = { hash: `0x${string}`; label: string } | null;
+
+const PK_PHASE_NAMES = ['OPEN', 'JOINED', 'COMMITTED', 'REVEALED', 'SETTLED', 'CANCELLED'];
+
+function getErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) return 'Transaction failed';
+
+  if (error.message.includes('User rejected')) return 'User rejected transaction';
+  if (error.message.includes('Cooldown active')) return 'Task cooldown is still active';
+  if (error.message.includes('Not NFA owner')) return 'Current wallet does not own this NFA';
+  if (error.message.includes('Insufficient CLW')) return 'Not enough CLW balance';
+  if (error.message.includes('Invalid reveal')) return 'Saved strategy does not match on-chain commit';
+
+  return error.message;
+}
+
+function getReceiptEventArgs(
+  abi: any,
+  receipt: TransactionReceipt,
+  contractAddress: Address,
+  eventName: string,
+) {
+  for (const log of receipt.logs) {
+    if (log.address.toLowerCase() !== contractAddress.toLowerCase()) continue;
+    try {
+      const decoded = decodeEventLog({ abi, data: log.data, topics: log.topics }) as {
+        eventName: string;
+        args: Record<string, unknown>;
+      };
+      if (decoded.eventName === eventName) {
+        return decoded.args as Record<string, unknown>;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
 
 /**
  * /game — Claw World 2D RPG 游戏页
@@ -25,22 +87,104 @@ import { formatEther } from 'viem';
 export default function GamePage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<unknown>(null);
+  const activeNfaIdRef = useRef<number | null>(null);
+
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { writeContractAsync } = useWriteContract();
   const { lang } = useI18n();
-  const [status, setStatus] = useState('loading');
+
+  const [status, setStatus] = useState<GameStatus>('loading');
   const [nfaList, setNfaList] = useState<number[]>([]);
   const [mounted, setMounted] = useState(false);
-  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+  const [pendingTx, setPendingTx] = useState<PendingTx>(null);
+  const [showOpenClaw, setShowOpenClaw] = useState(false);
 
-  // 等待交易确认
-  const { isSuccess: txConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
-
-  // 客户端挂载检测
   useEffect(() => setMounted(true), []);
 
-  // 初始化 Phaser（仅客户端）
+  const emitNfaState = useCallback((nfaId: number, state: Awaited<ReturnType<typeof loadNFAState>>) => {
+    eventBus.emit('nfa:stats', {
+      clw: state.clwBalance.toFixed(0),
+      level: state.level,
+    });
+
+    eventBus.emit('nfa:fullStats', {
+      level: state.level,
+      clw: state.clwBalance.toFixed(0),
+      bnb: '0',
+      courage: state.courage,
+      wisdom: state.wisdom,
+      social: state.social,
+      create: state.create,
+      grit: state.grit,
+      hp: state.vit * 10,
+    });
+
+    eventBus.emit('nfa:active', {
+      nfaId,
+      shelter: state.shelter,
+      personality: {
+        courage: state.courage,
+        wisdom: state.wisdom,
+        social: state.social,
+        create: state.create,
+        grit: state.grit,
+      },
+    });
+  }, []);
+
+  const refreshOwnedNfas = useCallback(async () => {
+    if (!isConnected || !address) return [];
+    const ids = await loadPlayerNFAs(address as Address);
+    setNfaList(ids);
+    return ids;
+  }, [address, isConnected]);
+
+  const refreshActiveNfaState = useCallback(async (nfaId?: number) => {
+    const targetId = nfaId ?? activeNfaIdRef.current;
+    if (!targetId) return null;
+
+    const state = await loadNFAState(targetId);
+    emitNfaState(targetId, state);
+    return state;
+  }, [emitNfaState]);
+
+  const waitForReceipt = useCallback(async (hash: `0x${string}`, label: string) => {
+    setPendingTx({ hash, label });
+    try {
+      return await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+    } finally {
+      setPendingTx((current) => (current?.hash === hash ? null : current));
+    }
+  }, []);
+
+  const syncAfterOwnershipChange = useCallback(async () => {
+    const ids = await refreshOwnedNfas();
+    const activeNfaId = activeNfaIdRef.current;
+
+    if (activeNfaId && !ids.includes(activeNfaId)) {
+      activeNfaIdRef.current = null;
+      setStatus(ids.length === 0 ? 'no-nfa' : 'select-nfa');
+    }
+
+    return ids;
+  }, [refreshOwnedNfas]);
+
+  const selectAndEnter = useCallback(async (nfaId: number) => {
+    setStatus('loading-nfa');
+    activeNfaIdRef.current = nfaId;
+
+    try {
+      const state = await loadNFAState(nfaId);
+      emitNfaState(nfaId, state);
+      eventBus.emit('nfa:loaded', { nfaId, shelter: state.shelter });
+      setStatus('playing');
+    } catch (error) {
+      console.error('Failed to load NFA state:', error);
+      setStatus('error');
+    }
+  }, [emitNfaState]);
+
   useEffect(() => {
     if (!mounted || !containerRef.current || gameRef.current) return;
 
@@ -49,186 +193,386 @@ export default function GamePage() {
         gameRef.current = createGame(containerRef.current);
         setStatus('ready');
       }
-    }).catch(err => {
-      console.error('Phaser init failed:', err);
+    }).catch((error) => {
+      console.error('Phaser init failed:', error);
       setStatus('error');
     });
 
     return () => {
       if (gameRef.current) {
-        (gameRef.current as { destroy: (b: boolean) => void }).destroy(true);
+        (gameRef.current as { destroy: (removeCanvas?: boolean) => void }).destroy(true);
         gameRef.current = null;
       }
     };
   }, [mounted]);
 
-  // 钱包连接后加载 NFA
+  useEffect(() => {
+    if (!mounted || isConnected) return;
+    activeNfaIdRef.current = null;
+    setNfaList([]);
+    setStatus('ready');
+  }, [isConnected, mounted]);
+
   useEffect(() => {
     if (!isConnected || !address) return;
 
     eventBus.emit('wallet:connected', { address });
 
-    loadPlayerNFAs(address as Address).then(ids => {
-      setNfaList(ids);
-      if (ids.length === 1) {
-        selectAndEnter(ids[0]);
-      } else if (ids.length === 0) {
-        setStatus('no-nfa');
-      } else {
-        setStatus('select-nfa');
+    void (async () => {
+      try {
+        const ids = await refreshOwnedNfas();
+        if (ids.length === 1) {
+          await selectAndEnter(ids[0]);
+        } else if (ids.length === 0) {
+          setStatus('no-nfa');
+        } else {
+          setStatus('select-nfa');
+        }
+      } catch (error) {
+        console.error('Failed to load NFAs:', error);
+        setStatus('error');
       }
-    }).catch(err => {
-      console.error('Failed to load NFAs:', err);
-      setStatus('error');
-    });
-  }, [isConnected, address]);
+    })();
+  }, [address, isConnected, refreshOwnedNfas, selectAndEnter]);
 
-  const selectAndEnter = useCallback(async (nfaId: number) => {
-    setStatus('loading-nfa');
-    try {
-      const state = await loadNFAState(nfaId);
-      eventBus.emit('nfa:loaded', { nfaId, shelter: state.shelter });
-      eventBus.emit('nfa:stats', { clw: state.clwBalance.toFixed(0), level: state.level });
-      eventBus.emit('nfa:fullStats', {
-        level: state.level,
-        clw: state.clwBalance.toFixed(0),
-        bnb: '0',
-        courage: state.courage,
-        wisdom: state.wisdom,
-        social: state.social,
-        create: state.create,
-        grit: state.grit,
-        hp: state.vit * 10,
-      });
-      setStatus('playing');
-    } catch (err) {
-      console.error('Failed to load NFA state:', err);
-      setStatus('error');
-    }
-  }, []);
-
-  // ─── 链上写操作事件桥接 ───
   useEffect(() => {
     if (!mounted) return;
 
-    // 任务提交
+    const tryProcessUpkeep = async (nfaId: number) => {
+      try {
+        const upkeepHash = await writeContractAsync(processUpkeepArgs(nfaId));
+        await waitForReceipt(upkeepHash, 'PROCESSING UPKEEP');
+      } catch {
+        // Upkeep frequently reverts when no upkeep is needed; ignore it.
+      }
+    };
+
+    const emitPkMatches = async () => {
+      const matches = await loadRecentMatches();
+      eventBus.emit('pk:matches', matches.map((match) => ({
+        matchId: match.matchId,
+        nfaA: match.nfaA,
+        nfaB: match.nfaB,
+        stake: formatEther(match.stake),
+        phase: match.phase,
+        phaseName: PK_PHASE_NAMES[match.phase] || String(match.phase),
+        revealedA: match.revealedA,
+        revealedB: match.revealedB,
+      })));
+    };
+
+    const emitMarketListings = async () => {
+      const listings = await loadMarketListings();
+      eventBus.emit('market:listings', listings.map((listing) => ({
+        listingId: listing.listingId,
+        nfaId: listing.nfaId,
+        seller: listing.seller,
+        listingType: listing.listingType,
+        price: formatEther(listing.price),
+        highestBid: formatEther(listing.highestBid),
+        highestBidder: listing.highestBidder,
+        endTime: listing.endTime,
+        swapTargetId: listing.swapTargetId,
+        rarity: listing.rarity,
+      })));
+    };
+
     const unsubTask = eventBus.on('task:submit', async (...args: unknown[]) => {
       const data = args[0] as { nfaId: number; taskType: number; xp: number; clw: number; matchScore: number };
       try {
-        const txArgs = taskSubmitArgs(data.nfaId, data.taskType, data.xp, data.clw, data.matchScore);
-        const hash = await writeContractAsync(txArgs);
-        setTxHash(hash);
-        eventBus.emit('task:result', { success: true, hash });
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Transaction failed';
-        console.error('Task submit failed:', err);
-        eventBus.emit('task:result', { success: false, error: message });
+        await tryProcessUpkeep(data.nfaId);
+
+        const hash = await writeContractAsync(taskSubmitArgs(data.nfaId, data.taskType, data.xp, data.clw, data.matchScore));
+        eventBus.emit('task:result', { status: 'pending', txHash: hash });
+
+        const receipt = await waitForReceipt(hash, 'SUBMITTING TASK');
+        if (receipt.status !== 'success') throw new Error('Task transaction reverted');
+
+        await refreshActiveNfaState(data.nfaId);
+
+        const completed = getReceiptEventArgs(TaskSkillABI, receipt, addresses.taskSkill, 'TaskCompleted');
+        eventBus.emit('task:result', {
+          status: 'confirmed',
+          txHash: hash,
+          actualClw: completed?.actualClw ? formatEther(completed.actualClw as bigint) : undefined,
+        });
+      } catch (error) {
+        console.error('Task submit failed:', error);
+        eventBus.emit('task:result', { status: 'failed', error: getErrorMessage(error) });
       }
     });
 
-    // PK 创建
     const unsubPKCreate = eventBus.on('pk:create', async (...args: unknown[]) => {
-      const data = args[0] as { nfaId: number; strategy: number; stake: number };
+      const data = args[0] as { nfaId: number; strategy: number; stake: string };
       try {
-        const { commitHash, salt } = generateCommit(data.strategy);
-        const txArgs = pkCreateArgs(data.nfaId, BigInt(data.stake), commitHash);
-        const hash = await writeContractAsync(txArgs);
-        savePKSalt(0, data.strategy, salt);
-        setTxHash(hash);
-        eventBus.emit('pk:result', { success: true, hash, action: 'create' });
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Transaction failed';
-        console.error('PK create failed:', err);
-        eventBus.emit('pk:result', { success: false, error: message });
+        if (!address) throw new Error('Wallet not connected');
+
+        const { commitHash, salt } = generateCommit(data.strategy, address as Address);
+        const hash = await writeContractAsync(pkCreateArgs(data.nfaId, parseEther(data.stake), commitHash));
+        eventBus.emit('pk:result', { status: 'pending', action: 'create', txHash: hash });
+
+        const receipt = await waitForReceipt(hash, 'CREATING PK MATCH');
+        if (receipt.status !== 'success') throw new Error('PK create transaction reverted');
+
+        const created = getReceiptEventArgs(PKSkillABI, receipt, addresses.pkSkill, 'MatchCreated');
+        const matchId = created?.matchId ? Number(created.matchId) : null;
+        if (!matchId) throw new Error('Could not read matchId from receipt');
+
+        savePKSalt(matchId, data.strategy, salt);
+        await refreshActiveNfaState(data.nfaId);
+        await emitPkMatches();
+
+        eventBus.emit('pk:result', {
+          status: 'confirmed',
+          action: 'create',
+          txHash: hash,
+          matchId,
+        });
+      } catch (error) {
+        console.error('PK create failed:', error);
+        eventBus.emit('pk:result', { status: 'failed', action: 'create', error: getErrorMessage(error) });
       }
     });
 
-    // PK 加入
     const unsubPKJoin = eventBus.on('pk:join', async (...args: unknown[]) => {
       const data = args[0] as { nfaId: number; matchId: number; strategy: number };
       try {
-        const { commitHash, salt } = generateCommit(data.strategy);
-        const txArgs = pkJoinArgs(data.matchId, data.nfaId, commitHash);
-        const hash = await writeContractAsync(txArgs);
+        if (!address) throw new Error('Wallet not connected');
+
+        const match = await loadMatch(data.matchId);
+        if (!match) throw new Error('Match not found');
+
+        const { commitHash, salt } = generateCommit(data.strategy, address as Address);
+        const hash = await writeContractAsync(pkJoinArgs(data.matchId, data.nfaId, commitHash));
+        eventBus.emit('pk:result', { status: 'pending', action: 'join', txHash: hash, matchId: data.matchId });
+
+        const receipt = await waitForReceipt(hash, 'JOINING PK MATCH');
+        if (receipt.status !== 'success') throw new Error('PK join transaction reverted');
+
         savePKSalt(data.matchId, data.strategy, salt);
-        setTxHash(hash);
-        eventBus.emit('pk:result', { success: true, hash, action: 'join' });
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Transaction failed';
-        console.error('PK join failed:', err);
-        eventBus.emit('pk:result', { success: false, error: message });
+        await refreshActiveNfaState(data.nfaId);
+        await emitPkMatches();
+
+        eventBus.emit('pk:result', {
+          status: 'confirmed',
+          action: 'join',
+          txHash: hash,
+          matchId: data.matchId,
+          stake: formatEther(match.stake),
+        });
+      } catch (error) {
+        console.error('PK join failed:', error);
+        eventBus.emit('pk:result', { status: 'failed', action: 'join', error: getErrorMessage(error) });
       }
     });
 
-    // PK 搜索
     const unsubPKSearch = eventBus.on('pk:search', async () => {
       try {
-        const matches = await loadOpenMatches();
-        eventBus.emit('pk:matches', matches.map(m => ({
-          matchId: m.matchId,
-          nfaId: m.nfaA,
-          stake: formatEther(m.stake),
-        })));
-      } catch (err) {
-        console.error('PK search failed:', err);
+        await emitPkMatches();
+      } catch (error) {
+        console.error('PK search failed:', error);
         eventBus.emit('pk:matches', []);
       }
     });
 
-    // 市场列表请求
-    const unsubMarketList = eventBus.on('market:requestListings', async () => {
+    const unsubPKReveal = eventBus.on('pk:reveal', async (...args: unknown[]) => {
+      const data = args[0] as { matchId: number };
       try {
-        const listings = await loadMarketListings();
-        eventBus.emit('market:listings', listings.map(l => ({
-          listingId: l.listingId,
-          nfaId: l.nfaId,
-          price: formatEther(l.price),
-          seller: l.seller,
-          type: l.listingType,
-        })));
-      } catch (err) {
-        console.error('Market listings failed:', err);
+        const saved = loadPKSalt(data.matchId);
+        if (!saved) throw new Error(`No saved strategy for match #${data.matchId}`);
+
+        const hash = await writeContractAsync(pkRevealArgs(data.matchId, saved.strategy, saved.salt as `0x${string}`));
+        eventBus.emit('pk:result', { status: 'pending', action: 'reveal', txHash: hash, matchId: data.matchId });
+
+        const receipt = await waitForReceipt(hash, 'REVEALING STRATEGY');
+        if (receipt.status !== 'success') throw new Error('Reveal transaction reverted');
+
+        localStorage.removeItem(`claw-pk-${data.matchId}`);
+        await emitPkMatches();
+
+        const match = await loadMatch(data.matchId);
+        eventBus.emit('pk:result', {
+          status: 'confirmed',
+          action: 'reveal',
+          txHash: hash,
+          matchId: data.matchId,
+          phase: match?.phase,
+        });
+      } catch (error) {
+        console.error('PK reveal failed:', error);
+        eventBus.emit('pk:result', { status: 'failed', action: 'reveal', error: getErrorMessage(error) });
+      }
+    });
+
+    const unsubPKSettle = eventBus.on('pk:settle', async (...args: unknown[]) => {
+      const data = args[0] as { matchId: number };
+      try {
+        const hash = await writeContractAsync(pkSettleArgs(data.matchId));
+        eventBus.emit('pk:result', { status: 'pending', action: 'settle', txHash: hash, matchId: data.matchId });
+
+        const receipt = await waitForReceipt(hash, 'SETTLING PK MATCH');
+        if (receipt.status !== 'success') throw new Error('Settle transaction reverted');
+
+        await refreshActiveNfaState();
+        await emitPkMatches();
+
+        const settled = getReceiptEventArgs(PKSkillABI, receipt, addresses.pkSkill, 'MatchSettled');
+        eventBus.emit('pk:result', {
+          status: 'confirmed',
+          action: 'settle',
+          txHash: hash,
+          matchId: data.matchId,
+          winnerNfaId: settled?.winner ? Number(settled.winner) : undefined,
+          loserNfaId: settled?.loser ? Number(settled.loser) : undefined,
+          reward: settled?.reward ? formatEther(settled.reward as bigint) : undefined,
+        });
+      } catch (error) {
+        console.error('PK settle failed:', error);
+        eventBus.emit('pk:result', { status: 'failed', action: 'settle', error: getErrorMessage(error) });
+      }
+    });
+
+    const unsubPKCancel = eventBus.on('pk:cancel', async (...args: unknown[]) => {
+      const data = args[0] as { matchId: number };
+      try {
+        const match = await loadMatch(data.matchId);
+        if (!match) throw new Error('Match not found');
+        if (match.phase > 2) throw new Error('Only OPEN/JOINED/COMMITTED matches can be cancelled');
+
+        const hash = await writeContractAsync(pkCancelArgs(data.matchId, match.phase));
+        eventBus.emit('pk:result', { status: 'pending', action: 'cancel', txHash: hash, matchId: data.matchId });
+
+        const receipt = await waitForReceipt(hash, 'CANCELLING PK MATCH');
+        if (receipt.status !== 'success') throw new Error('Cancel transaction reverted');
+
+        await refreshActiveNfaState();
+        await emitPkMatches();
+
+        eventBus.emit('pk:result', {
+          status: 'confirmed',
+          action: 'cancel',
+          txHash: hash,
+          matchId: data.matchId,
+        });
+      } catch (error) {
+        console.error('PK cancel failed:', error);
+        eventBus.emit('pk:result', { status: 'failed', action: 'cancel', error: getErrorMessage(error) });
+      }
+    });
+
+    const unsubMarketRequest = eventBus.on('market:requestListings', async () => {
+      try {
+        await emitMarketListings();
+      } catch (error) {
+        console.error('Market listings failed:', error);
         eventBus.emit('market:listings', []);
       }
     });
 
-    // 市场购买
     const unsubMarketBuy = eventBus.on('market:buy', async (...args: unknown[]) => {
       const data = args[0] as { listingId: number; price: string };
       try {
-        const priceWei = BigInt(Math.round(parseFloat(data.price) * 1e18));
-        const hash = await writeContractAsync({
-          address: (await import('@/contracts/addresses')).addresses.marketSkill as Address,
-          abi: (await import('@/contracts/abis/MarketSkill')).MarketSkillABI,
-          functionName: 'buyFixedPrice',
-          args: [BigInt(data.listingId)],
-          value: priceWei,
-          gas: 300_000n,
-        });
-        setTxHash(hash);
-        eventBus.emit('market:buyResult', { success: true, hash });
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Transaction failed';
-        console.error('Market buy failed:', err);
-        eventBus.emit('market:buyResult', { success: false, error: message });
+        const hash = await writeContractAsync(marketBuyArgs(data.listingId, parseEther(data.price)));
+        eventBus.emit('market:result', { status: 'pending', action: 'buy', txHash: hash, listingId: data.listingId });
+
+        const receipt = await waitForReceipt(hash, 'BUYING NFA');
+        if (receipt.status !== 'success') throw new Error('Buy transaction reverted');
+
+        await syncAfterOwnershipChange();
+        await emitMarketListings();
+
+        eventBus.emit('market:result', { status: 'confirmed', action: 'buy', txHash: hash, listingId: data.listingId });
+      } catch (error) {
+        console.error('Market buy failed:', error);
+        eventBus.emit('market:result', { status: 'failed', action: 'buy', error: getErrorMessage(error) });
       }
     });
 
-    // 市场挂售
-    const unsubMarketSell = eventBus.on('market:list', async (...args: unknown[]) => {
-      const data = args[0] as { nfaId: number; price: string };
+    const unsubMarketBid = eventBus.on('market:bid', async (...args: unknown[]) => {
+      const data = args[0] as { listingId: number; amount: string };
       try {
-        const priceWei = BigInt(Math.round(parseFloat(data.price) * 1e18));
-        const approveArgs = nfaApproveArgs(data.nfaId);
-        await writeContractAsync(approveArgs);
-        const listTxArgs = marketListArgs(data.nfaId, priceWei);
-        const hash = await writeContractAsync(listTxArgs);
-        setTxHash(hash);
-        eventBus.emit('market:listResult', { success: true, hash });
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Transaction failed';
-        console.error('Market list failed:', err);
-        eventBus.emit('market:listResult', { success: false, error: message });
+        const hash = await writeContractAsync(marketBidArgs(data.listingId, parseEther(data.amount)));
+        eventBus.emit('market:result', { status: 'pending', action: 'bid', txHash: hash, listingId: data.listingId });
+
+        const receipt = await waitForReceipt(hash, 'PLACING BID');
+        if (receipt.status !== 'success') throw new Error('Bid transaction reverted');
+
+        await emitMarketListings();
+        eventBus.emit('market:result', { status: 'confirmed', action: 'bid', txHash: hash, listingId: data.listingId });
+      } catch (error) {
+        console.error('Market bid failed:', error);
+        eventBus.emit('market:result', { status: 'failed', action: 'bid', error: getErrorMessage(error) });
+      }
+    });
+
+    const unsubMarketSettle = eventBus.on('market:settle', async (...args: unknown[]) => {
+      const data = args[0] as { listingId: number };
+      try {
+        const hash = await writeContractAsync(marketSettleAuctionArgs(data.listingId));
+        eventBus.emit('market:result', { status: 'pending', action: 'settle', txHash: hash, listingId: data.listingId });
+
+        const receipt = await waitForReceipt(hash, 'SETTLING AUCTION');
+        if (receipt.status !== 'success') throw new Error('Auction settle transaction reverted');
+
+        await syncAfterOwnershipChange();
+        await emitMarketListings();
+
+        eventBus.emit('market:result', { status: 'confirmed', action: 'settle', txHash: hash, listingId: data.listingId });
+      } catch (error) {
+        console.error('Market settle failed:', error);
+        eventBus.emit('market:result', { status: 'failed', action: 'settle', error: getErrorMessage(error) });
+      }
+    });
+
+    const unsubMarketCancel = eventBus.on('market:cancel', async (...args: unknown[]) => {
+      const data = args[0] as { listingId: number };
+      try {
+        const hash = await writeContractAsync(marketCancelArgs(data.listingId));
+        eventBus.emit('market:result', { status: 'pending', action: 'cancel', txHash: hash, listingId: data.listingId });
+
+        const receipt = await waitForReceipt(hash, 'CANCELLING LISTING');
+        if (receipt.status !== 'success') throw new Error('Cancel listing transaction reverted');
+
+        await syncAfterOwnershipChange();
+        await emitMarketListings();
+
+        eventBus.emit('market:result', { status: 'confirmed', action: 'cancel', txHash: hash, listingId: data.listingId });
+      } catch (error) {
+        console.error('Market cancel failed:', error);
+        eventBus.emit('market:result', { status: 'failed', action: 'cancel', error: getErrorMessage(error) });
+      }
+    });
+
+    const unsubMarketList = eventBus.on('market:list', async (...args: unknown[]) => {
+      const data = args[0] as { nfaId: number; price: string; mode: 'fixed' | 'auction' };
+      try {
+        const approveHash = await writeContractAsync(nfaApproveArgs(data.nfaId));
+        await waitForReceipt(approveHash, 'APPROVING NFA');
+
+        const txArgs = data.mode === 'auction'
+          ? marketAuctionArgs(data.nfaId, parseEther(data.price))
+          : marketListArgs(data.nfaId, parseEther(data.price));
+
+        const hash = await writeContractAsync(txArgs);
+        eventBus.emit('market:result', { status: 'pending', action: 'list', txHash: hash, nfaId: data.nfaId });
+
+        const receipt = await waitForReceipt(hash, data.mode === 'auction' ? 'CREATING AUCTION' : 'LISTING NFA');
+        if (receipt.status !== 'success') throw new Error('List transaction reverted');
+
+        const listed = getReceiptEventArgs(MarketSkillABI, receipt, addresses.marketSkill, 'Listed');
+        await syncAfterOwnershipChange();
+        await emitMarketListings();
+
+        eventBus.emit('market:result', {
+          status: 'confirmed',
+          action: 'list',
+          txHash: hash,
+          nfaId: data.nfaId,
+          listingId: listed?.listingId ? Number(listed.listingId) : undefined,
+        });
+      } catch (error) {
+        console.error('Market list failed:', error);
+        eventBus.emit('market:result', { status: 'failed', action: 'list', error: getErrorMessage(error) });
       }
     });
 
@@ -237,20 +581,30 @@ export default function GamePage() {
       unsubPKCreate();
       unsubPKJoin();
       unsubPKSearch();
-      unsubMarketList();
+      unsubPKReveal();
+      unsubPKSettle();
+      unsubPKCancel();
+      unsubMarketRequest();
       unsubMarketBuy();
-      unsubMarketSell();
+      unsubMarketBid();
+      unsubMarketSettle();
+      unsubMarketCancel();
+      unsubMarketList();
     };
-  }, [mounted, writeContractAsync]);
+  }, [
+    address,
+    mounted,
+    refreshActiveNfaState,
+    syncAfterOwnershipChange,
+    waitForReceipt,
+    writeContractAsync,
+  ]);
 
-  // 监听游戏内事件
-  const [showOpenClaw, setShowOpenClaw] = useState(false);
   useEffect(() => {
-    const unsub1 = eventBus.on('game:openclaw', () => setShowOpenClaw(true));
-    return () => { unsub1(); };
+    const unsubscribe = eventBus.on('game:openclaw', () => setShowOpenClaw(true));
+    return () => unsubscribe();
   }, []);
 
-  // SSR 阶段不渲染任何内容
   if (!mounted) {
     return (
       <div className="h-screen w-screen bg-black flex items-center justify-center">
@@ -261,10 +615,8 @@ export default function GamePage() {
 
   return (
     <div className="relative h-screen w-screen bg-black">
-      {/* Phaser 画布容器 */}
       <div ref={containerRef} className="absolute inset-0" />
 
-      {/* 返回官网按钮 */}
       <Link
         href="/"
         className="absolute top-2 left-2 z-30 text-[9px] font-mono text-crt-green/40 hover:text-crt-green/80 transition-colors"
@@ -272,42 +624,38 @@ export default function GamePage() {
         ← TERMINAL
       </Link>
 
-      {/* 交易状态提示 */}
-      {txHash && !txConfirmed && (
-        <div className="absolute top-2 right-2 z-30 text-[9px] font-mono text-crt-green/60 animate-pulse">
-          TX PENDING...
+      {pendingTx && (
+        <div className="absolute top-2 right-2 z-30 text-[9px] font-mono text-crt-green/70 animate-pulse text-right">
+          <div>{pendingTx.label}</div>
+          <div>{pendingTx.hash.slice(0, 10)}...</div>
         </div>
       )}
 
-      {/* 覆盖层 UI */}
       {status !== 'playing' && (
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
           <div className="pointer-events-auto text-center">
-
-            {/* 未连接钱包 */}
-            {(!isConnected && status === 'ready') && (
+            {!isConnected && status === 'ready' && (
               <div>
                 <button
                   onClick={() => {
-                    const inj = connectors.find((c) => c.type === 'injected');
-                    const wc = connectors.find((c) => c.name === 'WalletConnect');
-                    const connector = (inj && (window as any).ethereum) ? inj : wc || connectors[0];
+                    const injected = connectors.find((connector) => connector.type === 'injected');
+                    const walletConnect = connectors.find((connector) => connector.name === 'WalletConnect');
+                    const connector = (injected && (window as Window & { ethereum?: unknown }).ethereum)
+                      ? injected
+                      : walletConnect || connectors[0];
                     if (connector) connect({ connector });
                   }}
                   className="soft-key text-sm px-6 py-3 font-mono"
                 >
                   {lang === 'zh' ? '[ 连接钱包进入游戏 ]' : '[ CONNECT WALLET TO PLAY ]'}
                 </button>
-                <p className="text-[10px] font-mono text-crt-green/40 mt-3">
-                  MetaMask / WalletConnect
-                </p>
+                <p className="text-[10px] font-mono text-crt-green/40 mt-3">MetaMask / WalletConnect</p>
                 <Link href="/mint" className="block text-[10px] font-mono text-crt-green/30 mt-6 hover:text-crt-green/60">
                   {lang === 'zh' ? '还没有龙虾？去铸造 →' : 'No lobster? Mint one →'}
                 </Link>
               </div>
             )}
 
-            {/* 没有 NFA */}
             {status === 'no-nfa' && (
               <div className="font-mono">
                 <p className="text-crt-green text-sm mb-4">
@@ -319,14 +667,13 @@ export default function GamePage() {
               </div>
             )}
 
-            {/* 多只 NFA 选择 */}
             {status === 'select-nfa' && (
               <div className="font-mono">
                 <p className="text-crt-green text-sm mb-4">
                   {lang === 'zh' ? '选择你的龙虾' : 'Choose your lobster'}
                 </p>
                 <div className="flex gap-3 flex-wrap justify-center max-w-sm">
-                  {nfaList.map(id => (
+                  {nfaList.map((id) => (
                     <button
                       key={id}
                       onClick={() => selectAndEnter(id)}
@@ -339,7 +686,6 @@ export default function GamePage() {
               </div>
             )}
 
-            {/* 加载中 */}
             {(status === 'loading' || status === 'loading-nfa') && (
               <p className="text-crt-green font-mono text-xs animate-pulse">
                 {status === 'loading-nfa'
@@ -348,7 +694,6 @@ export default function GamePage() {
               </p>
             )}
 
-            {/* 错误 */}
             {status === 'error' && (
               <div className="font-mono">
                 <p className="text-red-400 text-sm mb-3">
@@ -363,7 +708,6 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* OpenClaw 意识唤醒弹窗 */}
       {showOpenClaw && (
         <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/80">
           <div className="max-w-md p-6 border border-crt-green/30 bg-black/95 font-mono text-center">

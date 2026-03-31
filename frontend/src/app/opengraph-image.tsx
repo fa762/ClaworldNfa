@@ -1,56 +1,82 @@
 import { ImageResponse } from 'next/og';
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 
+export const runtime = 'edge';
 export const alt = 'CLAW WORLD TERMINAL';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-export default async function Image() {
-  const logoData = await readFile(join(process.cwd(), 'public', 'brand-logo.png'));
-  const logoBase64 = `data:image/png;base64,${logoData.toString('base64')}`;
-
+export default function Image() {
   return new ImageResponse(
     (
       <div
         style={{
-          background: '#0a0a0a',
           width: '100%',
           height: '100%',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
+          background: '#0a0a0a',
+          color: '#33ff66',
           fontFamily: 'monospace',
-          color: '#33FF66',
           position: 'relative',
         }}
       >
-        {/* Vignette */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%)',
+            background: 'radial-gradient(circle at center, rgba(51,255,102,0.08) 0%, rgba(51,255,102,0.02) 35%, rgba(0,0,0,0.75) 100%)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 24,
+            border: '2px solid rgba(51,255,102,0.18)',
+            display: 'flex',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 1px, transparent 4px)',
           }}
         />
 
-        {/* Content */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
-          {/* Brand Logo */}
-          <img
-            src={logoBase64}
-            width={160}
-            height={160}
-            style={{ marginBottom: 20 }}
-          />
+        <div
+          style={{
+            zIndex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: 136,
+              height: 136,
+              borderRadius: 20,
+              border: '4px solid #33ff66',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 72,
+              fontWeight: 700,
+              boxShadow: '0 0 28px rgba(51,255,102,0.35)',
+              marginBottom: 28,
+            }}
+          >
+            C
+          </div>
           <div
             style={{
               fontSize: 72,
               fontWeight: 700,
-              letterSpacing: '0.1em',
-              textShadow: '0 0 20px rgba(51,255,102,0.8), 0 0 40px rgba(51,255,102,0.4)',
-              marginBottom: 16,
+              letterSpacing: '0.12em',
+              textShadow: '0 0 20px rgba(51,255,102,0.55)',
+              marginBottom: 18,
             }}
           >
             CLAW WORLD
@@ -58,42 +84,23 @@ export default async function Image() {
           <div
             style={{
               fontSize: 24,
-              color: '#1a6b2d',
-              letterSpacing: '0.3em',
-              marginBottom: 40,
+              color: '#7adf8b',
+              letterSpacing: '0.36em',
+              marginBottom: 34,
             }}
           >
             T E R M I N A L
           </div>
           <div
             style={{
-              fontSize: 18,
-              color: '#1a6b2d',
+              fontSize: 20,
+              color: '#8fbf96',
               textAlign: 'center',
-              maxWidth: 600,
             }}
           >
-            BSC 链上去中心化 AI 龙虾养成终端
-          </div>
-          <div
-            style={{
-              marginTop: 32,
-              fontSize: 14,
-              color: '#0f3d1a',
-            }}
-          >
-            ═══════════════════════════════════════
+            BSC Onchain AI Lobster Civilization Interface
           </div>
         </div>
-
-        {/* Scanlines */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 3px)',
-          }}
-        />
       </div>
     ),
     { ...size }

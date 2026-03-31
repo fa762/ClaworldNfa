@@ -7,16 +7,60 @@ import { createPublicClient, http, type Address } from 'viem';
 import { bsc, bscTestnet } from 'viem/chains';
 import { addresses, chainId, rpcUrl } from '@/contracts/addresses';
 
-// 从环境配置读取合约地址
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const BATCH_SIZE = 40;
+
+const MARKET_GET_LISTING_ABI = [{
+  name: 'getListing',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [{ name: 'listingId', type: 'uint256' }],
+  outputs: [{
+    type: 'tuple',
+    components: [
+      { name: 'nfaId', type: 'uint256' },
+      { name: 'seller', type: 'address' },
+      { name: 'listingType', type: 'uint8' },
+      { name: 'price', type: 'uint256' },
+      { name: 'highestBid', type: 'uint256' },
+      { name: 'highestBidder', type: 'address' },
+      { name: 'endTime', type: 'uint64' },
+      { name: 'swapTargetId', type: 'uint256' },
+      { name: 'status', type: 'uint8' },
+    ],
+  }],
+}] as const;
+
+const PK_MATCHES_ABI = [{
+  name: 'matches',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [{ name: '', type: 'uint256' }],
+  outputs: [
+    { name: 'nfaA', type: 'uint256' },
+    { name: 'nfaB', type: 'uint256' },
+    { name: 'commitA', type: 'bytes32' },
+    { name: 'commitB', type: 'bytes32' },
+    { name: 'strategyA', type: 'uint8' },
+    { name: 'strategyB', type: 'uint8' },
+    { name: 'stake', type: 'uint256' },
+    { name: 'phase', type: 'uint8' },
+    { name: 'phaseTimestamp', type: 'uint64' },
+    { name: 'revealedA', type: 'bool' },
+    { name: 'revealedB', type: 'bool' },
+    { name: 'saltA', type: 'bytes32' },
+    { name: 'saltB', type: 'bytes32' },
+  ],
+}] as const;
+
 export const CONTRACTS = {
-  clawNFA:     addresses.clawNFA,
-  clawRouter:  addresses.clawRouter,
-  taskSkill:   addresses.taskSkill,
-  pkSkill:     addresses.pkSkill,
+  clawNFA: addresses.clawNFA,
+  clawRouter: addresses.clawRouter,
+  taskSkill: addresses.taskSkill,
+  pkSkill: addresses.pkSkill,
   marketSkill: addresses.marketSkill,
 };
 
-// 公共读取客户端（根据 chainId 自动选网络）
 export const publicClient = createPublicClient({
   chain: chainId === 56 ? bsc : bscTestnet,
   transport: http(rpcUrl),
@@ -45,6 +89,7 @@ export async function loadPlayerNFAs(ownerAddress: Address): Promise<number[]> {
     });
     nfaIds.push(Number(tokenId));
   }
+
   return nfaIds;
 }
 
@@ -114,59 +159,109 @@ export interface MarketListing {
   seller: string;
   listingType: number; // 0=fixed, 1=auction, 2=swap
   price: bigint;
-  active: boolean;
+  highestBid: bigint;
+  highestBidder: string;
+  endTime: number;
+  swapTargetId: number;
+  status: number; // 0=active, 1=sold, 2=cancelled
+  rarity: number;
+}
+
+function isEmptyListing(listing: {
+  nfaId: bigint;
+  seller: string;
+  price: bigint;
+  highestBid: bigint;
+  highestBidder: string;
+  endTime: bigint;
+  swapTargetId: bigint;
+  status: number;
+}) {
+  return (
+    listing.nfaId === 0n &&
+    listing.seller.toLowerCase() === ZERO_ADDRESS &&
+    listing.price === 0n &&
+    listing.highestBid === 0n &&
+    listing.highestBidder.toLowerCase() === ZERO_ADDRESS &&
+    listing.endTime === 0n &&
+    listing.swapTargetId === 0n &&
+    listing.status === 0
+  );
 }
 
 export async function loadMarketListings(): Promise<MarketListing[]> {
-  const listings: MarketListing[] = [];
+  const activeListings: Omit<MarketListing, 'rarity'>[] = [];
 
-  // 读取 getListing(id) 逐个扫描最近的 listing
-  // MarketSkill 没有 getActiveListings 批量接口，需要遍历
-  for (let id = 1; id <= 50; id++) {
-    try {
-      const result = await publicClient.readContract({
+  let reachedEnd = false;
+
+  for (let start = 1; start <= 200 && !reachedEnd; start += BATCH_SIZE) {
+    const end = Math.min(200, start + BATCH_SIZE - 1);
+    const ids = Array.from({ length: end - start + 1 }, (_, index) => start + index);
+    const results = await publicClient.multicall({
+      allowFailure: true,
+      contracts: ids.map((id) => ({
         address: CONTRACTS.marketSkill,
-        abi: [{
-          name: 'getListing',
-          type: 'function',
-          stateMutability: 'view',
-          inputs: [{ name: 'listingId', type: 'uint256' }],
-          outputs: [{
-            type: 'tuple',
-            components: [
-              { name: 'nfaId', type: 'uint256' },
-              { name: 'seller', type: 'address' },
-              { name: 'listingType', type: 'uint8' },
-              { name: 'price', type: 'uint256' },
-              { name: 'highestBid', type: 'uint256' },
-              { name: 'highestBidder', type: 'address' },
-              { name: 'endTime', type: 'uint256' },
-              { name: 'wantedNfaId', type: 'uint256' },
-              { name: 'active', type: 'bool' },
-            ],
-          }],
-        }],
+        abi: MARKET_GET_LISTING_ABI,
         functionName: 'getListing',
         args: [BigInt(id)],
-      }) as unknown as { nfaId: bigint; seller: string; listingType: number; price: bigint; active: boolean };
+      })),
+    });
 
-      if (result.active) {
-        listings.push({
-          listingId: id,
-          nfaId: Number(result.nfaId),
-          seller: result.seller,
-          listingType: result.listingType,
-          price: result.price,
-          active: true,
+    for (let index = 0; index < results.length; index++) {
+      const result = results[index];
+      const listingId = ids[index];
+
+      if (result.status !== 'success') {
+        reachedEnd = true;
+        break;
+      }
+
+      const listing = result.result as {
+        nfaId: bigint;
+        seller: string;
+        listingType: number;
+        price: bigint;
+        highestBid: bigint;
+        highestBidder: string;
+        endTime: bigint;
+        swapTargetId: bigint;
+        status: number;
+      };
+
+      if (isEmptyListing(listing)) {
+        reachedEnd = true;
+        break;
+      }
+
+      if (listing.status === 0) {
+        activeListings.push({
+          listingId,
+          nfaId: Number(listing.nfaId),
+          seller: listing.seller,
+          listingType: listing.listingType,
+          price: listing.price,
+          highestBid: listing.highestBid,
+          highestBidder: listing.highestBidder,
+          endTime: Number(listing.endTime),
+          swapTargetId: Number(listing.swapTargetId),
+          status: listing.status,
         });
       }
-    } catch {
-      // listing doesn't exist, stop scanning
-      break;
     }
   }
 
-  return listings;
+  const enriched = await Promise.all(activeListings.map(async (listing) => {
+    let rarity = 0;
+    try {
+      const state = await loadNFAState(listing.nfaId);
+      rarity = state.rarity;
+    } catch {
+      rarity = 0;
+    }
+    return { ...listing, rarity };
+  }));
+
+  return enriched.sort((a, b) => b.listingId - a.listingId);
 }
 
 // ─── PK 读取 ───
@@ -175,14 +270,62 @@ export interface PKMatch {
   matchId: number;
   nfaA: number;
   nfaB: number;
+  strategyA: number;
+  strategyB: number;
   stake: bigint;
-  status: number; // 0=Open, 1=Joined, 2=BothCommitted, 3=Settled, 4=Cancelled
+  phase: number; // 0=open,1=joined,2=committed,3=revealed,4=settled,5=cancelled
+  phaseTimestamp: number;
+  revealedA: boolean;
+  revealedB: boolean;
 }
 
-export async function loadOpenMatches(): Promise<PKMatch[]> {
+export async function loadMatch(matchId: number): Promise<PKMatch | null> {
+  try {
+    const result = await publicClient.readContract({
+      address: CONTRACTS.pkSkill,
+      abi: PK_MATCHES_ABI,
+      functionName: 'matches',
+      args: [BigInt(matchId)],
+    }) as unknown as [
+      bigint,
+      bigint,
+      `0x${string}`,
+      `0x${string}`,
+      number,
+      number,
+      bigint,
+      number,
+      bigint,
+      boolean,
+      boolean,
+      `0x${string}`,
+      `0x${string}`,
+    ];
+
+    if (result[0] === 0n) {
+      return null;
+    }
+
+    return {
+      matchId,
+      nfaA: Number(result[0]),
+      nfaB: Number(result[1]),
+      strategyA: result[4],
+      strategyB: result[5],
+      stake: result[6],
+      phase: result[7],
+      phaseTimestamp: Number(result[8]),
+      revealedA: result[9],
+      revealedB: result[10],
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function loadRecentMatches(): Promise<PKMatch[]> {
   const matches: PKMatch[] = [];
 
-  // 获取总场次
   let matchCount = 0;
   try {
     const count = await publicClient.readContract({
@@ -195,55 +338,68 @@ export async function loadOpenMatches(): Promise<PKMatch[]> {
     return matches;
   }
 
-  // 从最新的开始往回扫描，找 Open 状态的 (最多扫 30 场)
-  const start = Math.max(1, matchCount - 30);
-  for (let id = matchCount; id >= start; id--) {
-    try {
-      const result = await publicClient.readContract({
-        address: CONTRACTS.pkSkill,
-        abi: [{
-          name: 'getMatch',
-          type: 'function',
-          stateMutability: 'view',
-          inputs: [{ name: 'matchId', type: 'uint256' }],
-          outputs: [{
-            type: 'tuple',
-            components: [
-              { name: 'nfaA', type: 'uint256' },
-              { name: 'nfaB', type: 'uint256' },
-              { name: 'commitA', type: 'bytes32' },
-              { name: 'commitB', type: 'bytes32' },
-              { name: 'strategyA', type: 'uint8' },
-              { name: 'strategyB', type: 'uint8' },
-              { name: 'saltA', type: 'bytes32' },
-              { name: 'saltB', type: 'bytes32' },
-              { name: 'stake', type: 'uint256' },
-              { name: 'status', type: 'uint8' },
-              { name: 'winner', type: 'uint256' },
-              { name: 'createdAt', type: 'uint256' },
-            ],
-          }],
-        }],
-        functionName: 'getMatch',
-        args: [BigInt(id)],
-      }) as unknown as { nfaA: bigint; nfaB: bigint; stake: bigint; status: number };
+  const start = Math.max(1, matchCount - 29);
+  const ids = Array.from({ length: matchCount - start + 1 }, (_, index) => matchCount - index);
 
-      // status 0 = Open (waiting for opponent)
-      if (result.status === 0) {
-        matches.push({
-          matchId: id,
-          nfaA: Number(result.nfaA),
-          nfaB: 0,
-          stake: result.stake,
-          status: 0,
-        });
+  for (let batchStart = 0; batchStart < ids.length; batchStart += BATCH_SIZE) {
+    const batchIds = ids.slice(batchStart, batchStart + BATCH_SIZE);
+    const results = await publicClient.multicall({
+      allowFailure: true,
+      contracts: batchIds.map((id) => ({
+        address: CONTRACTS.pkSkill,
+        abi: PK_MATCHES_ABI,
+        functionName: 'matches',
+        args: [BigInt(id)],
+      })),
+    });
+
+    for (let index = 0; index < results.length; index++) {
+      const result = results[index];
+      if (result.status !== 'success') continue;
+
+      const raw = result.result as [
+        bigint,
+        bigint,
+        `0x${string}`,
+        `0x${string}`,
+        number,
+        number,
+        bigint,
+        number,
+        bigint,
+        boolean,
+        boolean,
+        `0x${string}`,
+        `0x${string}`,
+      ];
+
+      if (raw[0] === 0n) continue;
+
+      const match: PKMatch = {
+        matchId: batchIds[index],
+        nfaA: Number(raw[0]),
+        nfaB: Number(raw[1]),
+        strategyA: raw[4],
+        strategyB: raw[5],
+        stake: raw[6],
+        phase: raw[7],
+        phaseTimestamp: Number(raw[8]),
+        revealedA: raw[9],
+        revealedB: raw[10],
+      };
+
+      if (match.phase <= 3) {
+        matches.push(match);
       }
-    } catch {
-      continue;
     }
   }
 
   return matches;
+}
+
+export async function loadOpenMatches(): Promise<PKMatch[]> {
+  const matches = await loadRecentMatches();
+  return matches.filter((match) => match.phase === 0);
 }
 
 // ─── Bridge 初始化 ───

@@ -38,10 +38,13 @@ export class TaskScene extends Phaser.Scene {
   }
 
   init(data: { nfaId: number; shelter: number; personality?: Personality }) {
-    this.nfaId = data.nfaId || 1;
-    this.shelter = data.shelter || 0;
+    this.nfaId = data.nfaId || (this.registry.get('nfaId') as number) || 1;
+    this.shelter = data.shelter || (this.registry.get('shelter') as number) || 0;
     if (data.personality) {
       this.personality = data.personality;
+    } else {
+      const cached = this.registry.get('personality') as Personality | undefined;
+      if (cached) this.personality = cached;
     }
   }
 
@@ -130,6 +133,16 @@ export class TaskScene extends Phaser.Scene {
     this.input.keyboard!.on('keydown-ONE',   () => this.selectTask(0));
     this.input.keyboard!.on('keydown-TWO',   () => this.selectTask(1));
     this.input.keyboard!.on('keydown-THREE', () => this.selectTask(2));
+
+    const offFullStats = eventBus.on('nfa:fullStats', (data: unknown) => {
+      const stats = data as Personality;
+      this.personality = stats;
+      this.registry.set('personality', stats);
+    });
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      offFullStats();
+    });
   }
 
   private selectTask(idx: number) {
@@ -181,11 +194,24 @@ export class TaskScene extends Phaser.Scene {
 
       // 监听结果
       const unsub = eventBus.on('task:result', (res: unknown) => {
-        const result = res as { success: boolean; txHash?: string; error?: string };
+        const result = res as { status: 'pending' | 'confirmed' | 'failed'; txHash?: string; error?: string; actualClw?: string };
+
+        if (result.status === 'pending') {
+          waitText.setText(`等待确认...\n${result.txHash?.slice(0, 10)}...`);
+          return;
+        }
+
         waitText.destroy();
-        if (result.success) {
-          this.add.text(W / 2, H / 2, `任务完成! TX: ${result.txHash?.slice(0, 10)}...`, {
+
+        if (result.status === 'confirmed') {
+          const rewardText = result.actualClw
+            ? `任务完成! 实际奖励 ${Number(result.actualClw).toFixed(2)} CLW`
+            : `任务完成! TX: ${result.txHash?.slice(0, 10)}...`;
+
+          this.add.text(W / 2, H / 2, rewardText, {
             fontSize: '12px', fontFamily: 'monospace', color: '#39ff14',
+            align: 'center',
+            wordWrap: { width: 280 },
           }).setOrigin(0.5).setDepth(52);
         } else {
           this.add.text(W / 2, H / 2, `失败: ${result.error}`, {
@@ -211,12 +237,12 @@ export class TaskScene extends Phaser.Scene {
       title: t.title,
       desc: t.desc,
       matchScore: calcMatchScore(this.personality, t.type),
-      clw: t.baseClw,
-      xp: t.baseXp,
+      clw: Math.min(t.baseClw, 100),
+      xp: Math.min(t.baseXp, 50),
     }));
   }
 
   private goBack() {
-    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter });
+    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality });
   }
 }

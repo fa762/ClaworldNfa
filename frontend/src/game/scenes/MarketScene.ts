@@ -1,37 +1,57 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 
+interface Personality {
+  courage: number;
+  wisdom: number;
+  social: number;
+  create: number;
+  grit: number;
+}
+
 interface Listing {
   listingId: number;
   nfaId: number;
   seller: string;
-  price: string;     // BNB
-  listingType: number; // 0=fixed, 1=auction
-  name: string;
+  listingType: number; // 0=fixed, 1=auction, 2=swap
+  price: string;
+  highestBid: string;
+  highestBidder: string;
+  endTime: number;
   rarity: number;
 }
 
 const RARITY_COLORS = ['#aaaaaa', '#3399ff', '#aa44ff', '#ffd700', '#ff4444'];
 const RARITY_NAMES = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
+const TYPE_NAMES = ['固定价', '拍卖', '互换'];
 
 /**
- * MarketScene — 交易墙
- * 显示当前市场挂售列表，支持购买/挂售
+ * MarketScene — 全真链上市场
  */
 export class MarketScene extends Phaser.Scene {
   private nfaId = 0;
   private shelter = 0;
+  private personality: Personality = { courage: 50, wisdom: 50, social: 50, create: 50, grit: 50 };
+  private walletAddress = '';
   private listings: Listing[] = [];
   private page = 0;
   private readonly PER_PAGE = 5;
+  private rows: Phaser.GameObjects.GameObject[] = [];
+  private statusText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'MarketScene' });
   }
 
-  init(data: { nfaId: number; shelter: number }) {
-    this.nfaId = data.nfaId || 1;
-    this.shelter = data.shelter || 0;
+  init(data: { nfaId: number; shelter: number; personality?: Personality }) {
+    this.nfaId = data.nfaId || (this.registry.get('nfaId') as number) || 1;
+    this.shelter = data.shelter || (this.registry.get('shelter') as number) || 0;
+    this.walletAddress = (this.registry.get('walletAddress') as string) || '';
+    if (data.personality) this.personality = data.personality;
+    else {
+      const cached = this.registry.get('personality') as Personality | undefined;
+      if (cached) this.personality = cached;
+    }
   }
 
   create() {
@@ -40,223 +60,233 @@ export class MarketScene extends Phaser.Scene {
 
     this.add.rectangle(W / 2, H / 2, W, H, 0x0a0a0a, 0.95);
 
-    // 标题
     this.add.text(W / 2, 24, '[ 交易墙 ]', {
       fontSize: '16px', fontFamily: 'monospace', color: '#3399ff',
     }).setOrigin(0.5);
 
-    this.add.text(W / 2, 46, 'MARKET — 浏览 / 购买 / 挂售', {
+    this.add.text(W / 2, 46, `NFA #${this.nfaId} — 全真链上市场`, {
       fontSize: '10px', fontFamily: 'monospace', color: '#3399ff',
     }).setOrigin(0.5).setAlpha(0.6);
 
-    // 操作按钮栏
-    const btnY = 68;
-    const listBtn = this.add.text(W / 2 - 100, btnY, '[ 挂售我的 NFA ]', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#ffd700',
-      backgroundColor: '#1a1a00', padding: { x: 8, y: 4 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const buttons = [
+      { label: '[ 固定价挂售 ]', x: W * 0.25, action: () => this.promptList('fixed') },
+      { label: '[ 拍卖挂售 ]', x: W * 0.5, action: () => this.promptList('auction') },
+      { label: '[ 刷新列表 ]', x: W * 0.75, action: () => this.requestListings() },
+    ];
 
-    const refreshBtn = this.add.text(W / 2 + 100, btnY, '[ 刷新列表 ]', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#39ff14',
-      backgroundColor: '#001a00', padding: { x: 8, y: 4 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    for (const button of buttons) {
+      this.add.text(button.x, 70, button.label, {
+        fontSize: '11px', fontFamily: 'monospace', color: '#39ff14',
+        backgroundColor: '#001a00', padding: { x: 8, y: 4 },
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', button.action);
+    }
 
-    listBtn.on('pointerdown', () => this.showListPanel());
-    refreshBtn.on('pointerdown', () => this.requestListings());
-
-    // 列表区域
-    this.add.text(16, 95, '  ID    NAME              RARITY      PRICE       TYPE', {
+    this.add.text(14, 98, 'ID     NFA     RARITY      TYPE       PRICE/BID           SELLER        ACTION', {
       fontSize: '9px', fontFamily: 'monospace', color: '#555555',
     });
-    this.add.rectangle(W / 2, 105, W - 32, 1, 0x333333);
+    this.add.rectangle(W / 2, 110, W - 28, 1, 0x333333);
 
-    // 请求市场数据
-    this.requestListings();
-
-    // 监听市场数据
-    eventBus.on('market:listings', (data: unknown) => {
-      this.listings = data as Listing[];
-      this.renderListings();
-    });
-
-    // 监听购买结果
-    eventBus.on('market:buyResult', (res: unknown) => {
-      const result = res as { success: boolean; error?: string };
-      const msg = result.success ? '购买成功!' : `失败: ${result.error}`;
-      const color = result.success ? '#39ff14' : '#ff4444';
-      this.add.text(W / 2, H / 2, msg, {
-        fontSize: '14px', fontFamily: 'monospace', color,
-        backgroundColor: '#000000', padding: { x: 12, y: 8 },
-      }).setOrigin(0.5).setDepth(100);
-      if (result.success) this.time.delayedCall(1500, () => this.requestListings());
-    });
-
-    // 分页
-    const prevBtn = this.add.text(W / 2 - 60, H - 50, '[ ← 上一页 ]', {
+    const prevBtn = this.add.text(W / 2 - 60, H - 52, '[ ← 上一页 ]', {
       fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    const nextBtn = this.add.text(W / 2 + 60, H - 50, '[ 下一页 → ]', {
+    const nextBtn = this.add.text(W / 2 + 60, H - 52, '[ 下一页 → ]', {
       fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-    prevBtn.on('pointerdown', () => { if (this.page > 0) { this.page--; this.renderListings(); } });
+    prevBtn.on('pointerdown', () => {
+      if (this.page > 0) {
+        this.page--;
+        this.renderListings();
+      }
+    });
     nextBtn.on('pointerdown', () => {
-      if ((this.page + 1) * this.PER_PAGE < this.listings.length) { this.page++; this.renderListings(); }
+      if ((this.page + 1) * this.PER_PAGE < this.listings.length) {
+        this.page++;
+        this.renderListings();
+      }
     });
 
-    // 返回
-    this.add.text(W / 2, H - 25, '[ ESC 返回避难所 ]', {
+    this.statusText = this.add.text(W / 2, H - 76, '读取链上市场中...', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#ffaa00',
+      align: 'center', wordWrap: { width: W - 40 },
+    }).setOrigin(0.5);
+
+    this.add.text(W / 2, H - 24, '[ ESC 返回避难所 ]', {
       fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
-    }).setOrigin(0.5).setAlpha(0.5).setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.goBack());
+    }).setOrigin(0.5).setAlpha(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.goBack());
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
+
+    const offListings = eventBus.on('market:listings', (data: unknown) => {
+      this.listings = data as Listing[];
+      this.page = 0;
+      this.renderListings();
+      this.showStatus(this.listings.length > 0 ? '已同步链上挂单列表' : '当前没有活跃挂单', this.listings.length > 0 ? '#39ff14' : '#666666');
+    });
+
+    const offResult = eventBus.on('market:result', (data: unknown) => {
+      const result = data as {
+        status: 'pending' | 'confirmed' | 'failed';
+        action: string;
+        txHash?: string;
+        error?: string;
+        listingId?: number;
+      };
+
+      if (result.status === 'pending') {
+        this.showStatus(`${result.action.toUpperCase()} 提交中... ${result.txHash?.slice(0, 10)}...`, '#ffaa00');
+        return;
+      }
+
+      if (result.status === 'failed') {
+        this.showStatus(`失败: ${result.error}`, '#ff4444');
+        return;
+      }
+
+      if (result.action === 'list') {
+        this.showStatus(`挂售成功，Listing #${result.listingId ?? '?'}`, '#39ff14');
+      } else if (result.action === 'buy') {
+        this.showStatus('购买成功，链上所有权已更新', '#39ff14');
+      } else if (result.action === 'bid') {
+        this.showStatus('出价成功，已写入链上', '#39ff14');
+      } else if (result.action === 'settle') {
+        this.showStatus('拍卖已结算', '#39ff14');
+      } else if (result.action === 'cancel') {
+        this.showStatus('挂单已取消', '#39ff14');
+      }
+
+      this.requestListings();
+    });
+
+    const offWallet = eventBus.on('wallet:connected', (data: unknown) => {
+      const wallet = data as { address: string };
+      this.walletAddress = wallet.address;
+      this.registry.set('walletAddress', wallet.address);
+    });
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      offListings();
+      offResult();
+      offWallet();
+    });
+
+    this.requestListings();
   }
 
   private requestListings() {
-    // 显示加载提示
-    const W = this.cameras.main.width;
-    const loadingText = this.add.text(W / 2, 180, '读取链上数据...', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#39ff14',
-    }).setOrigin(0.5).setData('listingRow', true);
-
-    // 监听链上数据返回
-    const unsub = eventBus.on('market:listings', (data: unknown) => {
-      loadingText.destroy();
-      const items = data as Array<{ listingId: number; nfaId: number; price: string; seller: string; type: number }>;
-      if (items.length > 0) {
-        this.listings = items.map(item => ({
-          listingId: item.listingId,
-          nfaId: item.nfaId,
-          seller: item.seller.slice(0, 6) + '...' + item.seller.slice(-4),
-          price: item.price + ' BNB',
-          listingType: item.type,
-          name: `NFA #${item.nfaId}`,
-          rarity: 0,
-        }));
-      } else {
-        // 无链上数据时显示 mock 数据（测试用）
-        this.listings = this.generateMockListings();
-      }
-      this.renderListings();
-      unsub();
-    });
-
-    // 请求链上数据
+    this.showStatus('读取链上市场中...', '#ffaa00');
     eventBus.emit('market:requestListings');
+  }
 
-    // 3 秒超时回退到 mock 数据
-    this.time.delayedCall(3000, () => {
-      if (this.listings.length === 0) {
-        loadingText.destroy();
-        this.listings = this.generateMockListings();
-        this.renderListings();
-        unsub();
-      }
-    });
+  private promptList(mode: 'fixed' | 'auction') {
+    const defaultValue = mode === 'fixed' ? '0.10' : '0.05';
+    const price = window.prompt(mode === 'fixed' ? '输入固定价 BNB' : '输入拍卖起拍价 BNB', defaultValue);
+    if (!price) return;
+    eventBus.emit('market:list', { nfaId: this.nfaId, price, mode });
   }
 
   private renderListings() {
-    const W = this.cameras.main.width;
-    // 清除旧列表（tag 标记的对象）
-    this.children.list
-      .filter(c => c.getData('listingRow'))
-      .forEach(c => c.destroy());
+    this.rows.forEach((row) => row.destroy());
+    this.rows = [];
 
-    const start = this.page * this.PER_PAGE;
-    const pageItems = this.listings.slice(start, start + this.PER_PAGE);
+    const W = this.cameras.main.width;
+    const pageItems = this.listings.slice(this.page * this.PER_PAGE, this.page * this.PER_PAGE + this.PER_PAGE);
 
     if (pageItems.length === 0) {
-      const empty = this.add.text(W / 2, 180, '暂无挂售', {
-        fontSize: '12px', fontFamily: 'monospace', color: '#555555',
+      const empty = this.add.text(W / 2, 180, '没有活跃中的链上挂单', {
+        fontSize: '12px', fontFamily: 'monospace', color: '#666666',
       }).setOrigin(0.5);
-      empty.setData('listingRow', true);
+      const pageInfo = this.add.text(W / 2, this.cameras.main.height - 96, '第 0 / 0 页', {
+        fontSize: '9px', fontFamily: 'monospace', color: '#555555',
+      }).setOrigin(0.5);
+      this.rows.push(empty, pageInfo);
       return;
     }
 
-    pageItems.forEach((item, i) => {
-      const y = 118 + i * 36;
+    pageItems.forEach((item, index) => {
+      const y = 126 + index * 40;
       const rarityColor = RARITY_COLORS[item.rarity] || '#aaaaaa';
-      const typeLabel = item.listingType === 0 ? '固定价' : '拍卖';
+      const sellerShort = `${item.seller.slice(0, 6)}...${item.seller.slice(-4)}`;
+      const isMine = Boolean(this.walletAddress) && item.seller.toLowerCase() === this.walletAddress.toLowerCase();
+      const auctionEnded = item.listingType === 1 && item.endTime > 0 && Math.floor(Date.now() / 1000) >= item.endTime;
+      const mainValue = item.listingType === 1 && Number(item.highestBid) > 0 ? `${item.highestBid} BNB` : `${item.price} BNB`;
 
-      // 行背景（悬停高亮）
-      const rowBg = this.add.rectangle(W / 2, y + 8, W - 40, 32, 0x111122, 0.5)
-        .setInteractive({ useHandCursor: true })
-        .setData('listingRow', true);
-
-      const text = this.add.text(20, y,
-        `  #${String(item.nfaId).padEnd(5)} ${item.name.padEnd(18)} ${RARITY_NAMES[item.rarity].padEnd(12)} ${item.price.padEnd(12)} ${typeLabel}`, {
-        fontSize: '10px', fontFamily: 'monospace', color: rarityColor,
-      }).setData('listingRow', true);
-
-      // 购买按钮
-      const buyBtn = this.add.text(W - 60, y + 2, '[ 购买 ]', {
-        fontSize: '9px', fontFamily: 'monospace', color: '#ffd700',
-        backgroundColor: '#1a1a00', padding: { x: 4, y: 2 },
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setData('listingRow', true);
-
+      const rowBg = this.add.rectangle(W / 2, y + 8, W - 30, 34, 0x111122, 0.5)
+        .setStrokeStyle(1, 0x222233)
+        .setInteractive({ useHandCursor: true });
       rowBg.on('pointerover', () => rowBg.setFillStyle(0x222244, 0.8));
       rowBg.on('pointerout', () => rowBg.setFillStyle(0x111122, 0.5));
 
-      buyBtn.on('pointerdown', () => {
-        eventBus.emit('market:buy', { listingId: item.listingId, price: item.price, nfaId: item.nfaId });
-      });
+      const rowText = this.add.text(16, y,
+        `${String(item.listingId).padEnd(6)} ${String(item.nfaId).padEnd(7)} ${RARITY_NAMES[item.rarity].padEnd(11)} ${TYPE_NAMES[item.listingType].padEnd(10)} ${mainValue.padEnd(18)} ${sellerShort.padEnd(13)}`,
+        { fontSize: '9px', fontFamily: 'monospace', color: rarityColor },
+      );
+
+      this.rows.push(rowBg, rowText);
+
+      if (item.listingType === 2) {
+        const swapLabel = this.add.text(W - 72, y + 1, '[ SWAP ]', {
+          fontSize: '9px', fontFamily: 'monospace', color: '#777777', backgroundColor: '#111111', padding: { x: 4, y: 2 },
+        }).setOrigin(0.5);
+        this.rows.push(swapLabel);
+        return;
+      }
+
+      const actionLabel = isMine
+        ? '[ 取消 ]'
+        : item.listingType === 0
+          ? '[ 购买 ]'
+          : auctionEnded
+            ? '[ 结算 ]'
+            : '[ 出价 ]';
+
+      const actionColor = isMine ? '#ff4444' : '#ffd700';
+      const actionBtn = this.add.text(W - 72, y + 1, actionLabel, {
+        fontSize: '9px', fontFamily: 'monospace', color: actionColor,
+        backgroundColor: isMine ? '#1a0000' : '#1a1a00', padding: { x: 4, y: 2 },
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+      actionBtn.on('pointerdown', () => this.handleListingAction(item, isMine, auctionEnded));
+      this.rows.push(actionBtn);
     });
 
-    // 页码
-    const pageInfo = this.add.text(this.cameras.main.width / 2, this.cameras.main.height - 68,
-      `第 ${this.page + 1} / ${Math.ceil(this.listings.length / this.PER_PAGE)} 页  (共 ${this.listings.length} 条)`, {
-      fontSize: '9px', fontFamily: 'monospace', color: '#555555',
-    }).setOrigin(0.5).setData('listingRow', true);
+    const totalPages = Math.ceil(this.listings.length / this.PER_PAGE);
+    const pageInfo = this.add.text(W / 2, this.cameras.main.height - 96,
+      `第 ${this.page + 1} / ${totalPages} 页  (共 ${this.listings.length} 条)`, {
+        fontSize: '9px', fontFamily: 'monospace', color: '#555555',
+      }).setOrigin(0.5);
+    this.rows.push(pageInfo);
   }
 
-  private showListPanel() {
-    const W = this.cameras.main.width;
-    const H = this.cameras.main.height;
+  private handleListingAction(item: Listing, isMine: boolean, auctionEnded: boolean) {
+    if (isMine) {
+      eventBus.emit('market:cancel', { listingId: item.listingId });
+      return;
+    }
 
-    const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.7).setDepth(50);
-    const panel = this.add.rectangle(W / 2, H / 2, 280, 150, 0x111122).setDepth(51)
-      .setStrokeStyle(1, 0xffd700);
+    if (item.listingType === 0) {
+      eventBus.emit('market:buy', { listingId: item.listingId, price: item.price });
+      return;
+    }
 
-    this.add.text(W / 2, H / 2 - 50, `挂售 NFA #${this.nfaId}`, {
-      fontSize: '13px', fontFamily: 'monospace', color: '#ffd700',
-    }).setOrigin(0.5).setDepth(52);
+    if (item.listingType === 1 && auctionEnded) {
+      eventBus.emit('market:settle', { listingId: item.listingId });
+      return;
+    }
 
-    this.add.text(W / 2, H / 2 - 20, '价格将在钱包确认时输入', {
-      fontSize: '9px', fontFamily: 'monospace', color: '#888888',
-    }).setOrigin(0.5).setDepth(52);
-
-    const confirmBtn = this.add.text(W / 2 - 50, H / 2 + 30, '[ 确认挂售 ]', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#39ff14',
-    }).setOrigin(0.5).setDepth(52).setInteractive({ useHandCursor: true });
-
-    const cancelBtn = this.add.text(W / 2 + 50, H / 2 + 30, '[ 取消 ]', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#ff4444',
-    }).setOrigin(0.5).setDepth(52).setInteractive({ useHandCursor: true });
-
-    confirmBtn.on('pointerdown', () => {
-      eventBus.emit('market:list', { nfaId: this.nfaId, price: '0.1' });
-      overlay.destroy(); panel.destroy(); confirmBtn.destroy(); cancelBtn.destroy();
-    });
-
-    cancelBtn.on('pointerdown', () => {
-      overlay.destroy(); panel.destroy(); confirmBtn.destroy(); cancelBtn.destroy();
-    });
+    if (item.listingType === 1) {
+      const base = Number(item.highestBid) > 0 ? Number(item.highestBid) * 1.05 : Number(item.price);
+      const bidAmount = window.prompt('输入出价 BNB', base.toFixed(4));
+      if (!bidAmount) return;
+      eventBus.emit('market:bid', { listingId: item.listingId, amount: bidAmount });
+    }
   }
 
-  private generateMockListings(): Listing[] {
-    const names = ['CW-0042', 'CW-0187', 'CW-0331', 'CW-0099', 'CW-0556', 'CW-0712', 'CW-0028'];
-    return names.map((name, i) => ({
-      listingId: 1000 + i,
-      nfaId: 42 + i * 30,
-      seller: `0x${(i + 1).toString(16).padStart(4, '0')}...`,
-      price: (0.05 + Math.random() * 0.5).toFixed(3) + ' BNB',
-      listingType: i % 3 === 0 ? 1 : 0,
-      name,
-      rarity: Math.min(i % 5, 4),
-    }));
+  private showStatus(text: string, color = '#39ff14') {
+    this.statusText.setColor(color);
+    this.statusText.setText(text);
   }
 
   private goBack() {
-    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter });
+    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality });
   }
 }

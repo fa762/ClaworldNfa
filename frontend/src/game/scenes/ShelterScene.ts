@@ -40,9 +40,13 @@ export class ShelterScene extends Phaser.Scene {
   }
 
   init(data: { nfaId: number; shelter: number; personality?: typeof ShelterScene.prototype.personality }) {
-    this.nfaId = data.nfaId || 1;
-    this.shelter = data.shelter || 0;
+    this.nfaId = data.nfaId || (this.registry.get('nfaId') as number) || 1;
+    this.shelter = data.shelter || (this.registry.get('shelter') as number) || 0;
     if (data.personality) this.personality = data.personality;
+    else {
+      const cached = this.registry.get('personality') as typeof ShelterScene.prototype.personality | undefined;
+      if (cached) this.personality = cached;
+    }
   }
 
   create() {
@@ -137,14 +141,26 @@ export class ShelterScene extends Phaser.Scene {
     this.statusHUD = new StatusHUD(this, this.nfaId);
 
     // ── 监听链上数据更新 ──
-    eventBus.on('nfa:stats', (data: unknown) => {
+    const offStats = eventBus.on('nfa:stats', (data: unknown) => {
       const stats = data as { clw: string; level: number };
       this.hudText.setText(`NFA #${this.nfaId}  |  CLW: ${stats.clw}  |  Lv.${stats.level}  |  WASD 移动  |  SPACE 交互`);
     });
 
-    eventBus.on('nfa:fullStats', (data: unknown) => {
+    const offFullStats = eventBus.on('nfa:fullStats', (data: unknown) => {
       const stats = data as { courage: number; wisdom: number; social: number; create: number; grit: number };
       this.personality = { courage: stats.courage, wisdom: stats.wisdom, social: stats.social, create: stats.create, grit: stats.grit };
+      this.registry.set('personality', this.personality);
+    });
+
+    this.registry.set('nfaId', this.nfaId);
+    this.registry.set('shelter', this.shelter);
+    this.registry.set('personality', this.personality);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      offStats();
+      offFullStats();
+      this.dialogueBox.destroy();
+      this.statusHUD.destroy();
     });
 
     // ── 触屏支持（移动端） ──

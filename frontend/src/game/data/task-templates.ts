@@ -85,7 +85,7 @@ export function calcMatchScore(
 ): number {
   const vals = [personality.courage, personality.wisdom, personality.social, personality.create, personality.grit];
   const taskVal = vals[taskType] || 0;
-  const maxVal = Math.max(...vals, 1);
-  // 匹配度 = 该维度 / 最高维度 * 2.0（上限 2.0）
-  return Math.min(2.0, Math.max(0.05, (taskVal / maxVal) * 2.0));
+  // 和链上 ownerCompleteTypedTask 保持一致：matchScore = personalityValue * 200 basis points
+  // 前端显示为倍率，即 personalityValue / 50，范围 0.00x - 2.00x
+  return Math.min(2.0, Math.max(0, taskVal / 50));
 }
