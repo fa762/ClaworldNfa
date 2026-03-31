@@ -715,7 +715,7 @@ export default function GamePage() {
                       }}
                       className={`soft-key py-3 text-sm ${selectedConnectorId === connector.id ? 'text-white' : ''}`}
                     >
-                      {connector.name}
+                      {connector.name === 'Injected' ? '浏览器钱包 (MetaMask 等)' : connector.name}
                     </button>
                   ))}
                 </div>
