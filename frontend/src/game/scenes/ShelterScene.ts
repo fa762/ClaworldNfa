@@ -36,6 +36,8 @@ export class ShelterScene extends Phaser.Scene {
   private readonly SPEED = 160;
   private readonly INTERACT_DIST = 50;
   private facing: 'front' | 'back' | 'left' | 'right' = 'front';
+  private lastInteractTime = 0;
+  private readonly INTERACT_COOLDOWN = 600; // ms，对话关闭后防止立即重触发
 
   constructor() {
     super({ key: 'ShelterScene' });
@@ -216,7 +218,9 @@ export class ShelterScene extends Phaser.Scene {
     }
 
     // ── 交互 ──
-    if (Phaser.Input.Keyboard.JustDown(this.interactKey) && this.nearestNpc) {
+    const now = Date.now();
+    if (Phaser.Input.Keyboard.JustDown(this.interactKey) && this.nearestNpc
+        && now - this.lastInteractTime > this.INTERACT_COOLDOWN) {
       const def = this.nearestNpc.getData('def') as NpcDef;
       this.handleInteract(def);
     }
@@ -254,6 +258,7 @@ export class ShelterScene extends Phaser.Scene {
   }
 
   private handleInteract(def: NpcDef) {
+    this.lastInteractTime = Date.now();
     // 根据 NPC 类型显示对话
     const sceneData = { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality };
 
@@ -261,6 +266,7 @@ export class ShelterScene extends Phaser.Scene {
       case 'task': {
         const d = getTaskDialogue(this.nfaId, this.personality);
         this.dialogueBox.show(d.lines, () => {
+          this.lastInteractTime = Date.now();
           this.scene.start('TaskScene', sceneData);
         });
         break;
@@ -272,10 +278,13 @@ export class ShelterScene extends Phaser.Scene {
             this.dialogueBox.showChoices(d.choices.map(c => ({
               label: c.label,
               callback: () => {
+                this.lastInteractTime = Date.now();
                 if (c.action === 'dialogue:close') return;
                 this.scene.start('PKScene', sceneData);
               },
             })));
+          } else {
+            this.lastInteractTime = Date.now();
           }
         });
         break;
@@ -287,10 +296,13 @@ export class ShelterScene extends Phaser.Scene {
             this.dialogueBox.showChoices(d.choices.map(c => ({
               label: c.label,
               callback: () => {
+                this.lastInteractTime = Date.now();
                 if (c.action === 'dialogue:close') return;
                 this.scene.start('MarketScene', sceneData);
               },
             })));
+          } else {
+            this.lastInteractTime = Date.now();
           }
         });
         break;
@@ -302,10 +314,13 @@ export class ShelterScene extends Phaser.Scene {
             this.dialogueBox.showChoices(d.choices.map(c => ({
               label: c.label,
               callback: () => {
+                this.lastInteractTime = Date.now();
                 const targetShelter = (c.data as { shelter: number }).shelter;
                 this.scene.start('ShelterScene', { ...sceneData, shelter: targetShelter });
               },
             })));
+          } else {
+            this.lastInteractTime = Date.now();
           }
         });
         break;
@@ -317,11 +332,14 @@ export class ShelterScene extends Phaser.Scene {
             this.dialogueBox.showChoices(d.choices.map(c => ({
               label: c.label,
               callback: () => {
+                this.lastInteractTime = Date.now();
                 if (c.action === 'openclaw:install') {
                   eventBus.emit('game:openclaw');
                 }
               },
             })));
+          } else {
+            this.lastInteractTime = Date.now();
           }
         });
         break;

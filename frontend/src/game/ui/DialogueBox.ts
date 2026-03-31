@@ -34,6 +34,7 @@ export class DialogueBox {
   private readonly PADDING = 24;
   private readonly pointerHandler: () => void;
   private readonly spaceHandler: () => void;
+  private readonly escHandler: () => void;
   private choiceKeyCleanups: Array<() => void> = [];
 
   constructor(scene: Phaser.Scene) {
@@ -77,12 +78,14 @@ export class DialogueBox {
     this.container.add([this.bg, this.speakerText, this.bodyText, this.promptText]);
     this.container.setVisible(false);
 
-    // 点击/空格推进对话
+    // 点击/空格推进对话，ESC 直接关闭
     this.pointerHandler = () => this.advance();
     this.spaceHandler = () => this.advance();
+    this.escHandler = () => { if (this.container.visible) this.hide(); };
 
     scene.input.on('pointerdown', this.pointerHandler);
     scene.input.keyboard?.on('keydown-SPACE', this.spaceHandler);
+    scene.input.keyboard?.on('keydown-ESC', this.escHandler);
   }
 
   /**
@@ -201,6 +204,7 @@ export class DialogueBox {
     this.clearChoiceKeyBindings();
     this.scene.input.off('pointerdown', this.pointerHandler);
     this.scene.input.keyboard?.off('keydown-SPACE', this.spaceHandler);
+    this.scene.input.keyboard?.off('keydown-ESC', this.escHandler);
     this.container.destroy(true);
   }
 

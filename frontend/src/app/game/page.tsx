@@ -692,9 +692,12 @@ export default function GamePage() {
         <main className="max-w-2xl mx-auto px-4 py-10 min-h-[calc(100vh-160px)] flex flex-col items-center justify-center">
           <div className="w-full border border-crt-green/30 bg-black/80 px-8 py-8 font-mono shadow-[0_0_40px_rgba(57,255,20,0.06)]">
 
-            <p className="text-crt-green/40 text-xs mb-6 tracking-widest">
-              // SHELTER ACCESS TERMINAL
-            </p>
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-crt-green/40 text-xs tracking-widest">// SHELTER ACCESS TERMINAL</p>
+              <Link href="/" className="text-xs font-mono text-crt-green/40 hover:text-crt-green/80 transition-colors">
+                ← {lang === 'zh' ? '返回首页' : 'HOME'}
+              </Link>
+            </div>
 
             {/* 钱包连接 + 同步 */}
             {(status === 'ready' || status === 'connected' || status === 'booting') && (
@@ -737,6 +740,11 @@ export default function GamePage() {
                   />
                 </div>
                 <p className="text-xs text-crt-green/40 mb-6">{bootProgress}%</p>
+                {status === 'booting' && (
+                  <p className="text-sm text-crt-green/70 mb-6 animate-pulse">
+                    {lang === 'zh' ? '正在获取链上数据...' : 'Fetching onchain data...'}
+                  </p>
+                )}
 
                 <Link href="/mint" className="text-xs text-crt-green/30 hover:text-crt-green/60 transition-colors">
                   {lang === 'zh' ? '还没有龙虾？去铸造 →' : 'No lobster? Mint one →'}
