@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAccount, useConnect, useWriteContract } from 'wagmi';
 import { decodeEventLog, formatEther, parseEther, type Address, type TransactionReceipt } from 'viem';
 import Link from 'next/link';
@@ -89,6 +90,7 @@ export default function GamePage() {
   const gameRef = useRef<unknown>(null);
   const activeNfaIdRef = useRef<number | null>(null);
 
+  const router = useRouter();
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { writeContractAsync } = useWriteContract();
@@ -646,109 +648,124 @@ export default function GamePage() {
     return () => unsubscribe();
   }, []);
 
+  const isPlaying = status === 'playing';
+
   if (!mounted) {
     return (
-      <div className="h-screen w-screen bg-black flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <p className="text-crt-green font-mono text-xs animate-pulse">INITIALIZING...</p>
       </div>
     );
   }
 
   return (
-    <div className="relative h-screen w-screen bg-black">
-      <div ref={containerRef} className="absolute inset-0" />
+    <>
+      {/* Phaser 画布容器 — 始终在 DOM 中，playing 时全屏覆盖，否则隐藏在画面外 */}
+      <div
+        ref={containerRef}
+        className={isPlaying
+          ? 'fixed inset-0 z-[9999] bg-black'
+          : 'fixed inset-0 -z-10 opacity-0 pointer-events-none'}
+      />
 
-      <Link
-        href="/"
-        className="absolute top-2 left-2 z-30 text-[9px] font-mono text-crt-green/40 hover:text-crt-green/80 transition-colors"
-      >
-        ← TERMINAL
-      </Link>
+      {/* 游戏内叠加层（返回按钮 + 交易提示）*/}
+      {isPlaying && (
+        <div className="fixed inset-0 z-[10000] pointer-events-none">
+          <button
+            onClick={() => router.push('/')}
+            className="pointer-events-auto absolute top-3 left-3 font-mono text-sm text-crt-green/50 hover:text-crt-green transition-colors bg-black/60 px-3 py-1 border border-crt-green/20 hover:border-crt-green/50"
+          >
+            ◀ {lang === 'zh' ? '返回' : 'BACK'}
+          </button>
 
-      {pendingTx && (
-        <div className="absolute top-2 right-2 z-30 text-[9px] font-mono text-crt-green/70 animate-pulse text-right">
-          <div>{pendingTx.label}</div>
-          <div>{pendingTx.hash.slice(0, 10)}...</div>
+          {pendingTx && (
+            <div className="absolute top-3 right-3 text-[11px] font-mono text-crt-green/70 animate-pulse text-right bg-black/70 px-3 py-1 border border-crt-green/20">
+              <div>{pendingTx.label}</div>
+              <div className="text-crt-green/40">{pendingTx.hash.slice(0, 12)}...</div>
+            </div>
+          )}
         </div>
       )}
 
-      {status !== 'playing' && (
-        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-          <div className="pointer-events-auto text-center max-w-2xl mx-4 rounded border border-crt-green/20 bg-black/85 px-8 py-8 shadow-[0_0_40px_rgba(57,255,20,0.08)]">
+      {/* 大厅 UI — 在 CRT 终端页面内，selecting/booting 等状态显示 */}
+      {!isPlaying && (
+        <main className="max-w-2xl mx-auto px-4 py-10 min-h-[calc(100vh-160px)] flex flex-col items-center justify-center">
+          <div className="w-full border border-crt-green/30 bg-black/80 px-8 py-8 font-mono shadow-[0_0_40px_rgba(57,255,20,0.06)]">
+
+            <p className="text-crt-green/40 text-xs mb-6 tracking-widest">
+              // SHELTER ACCESS TERMINAL
+            </p>
+
+            {/* 钱包连接 + 同步 */}
             {(status === 'ready' || status === 'connected' || status === 'booting') && (
-              <div className="font-mono">
-                <p className="text-crt-green text-2xl mb-2">
-                  {lang === 'zh' ? '接入协议' : 'Connection Protocol'}
-                </p>
-                <p className="text-crt-green/60 text-sm mb-6">
-                  {lang === 'zh' ? '选择钱包后进入同步阶段，读条完成后再选择龙虾。' : 'Choose a wallet, enter the game, then wait for sync to finish before selecting your lobster.'}
-                </p>
-
-                <div className="grid gap-3 sm:grid-cols-2 mb-6">
-                  {walletOptions.map((connector) => {
-                    const active = selectedConnectorId === connector.id;
-                    return (
-                      <button
-                        key={connector.id}
-                        onClick={() => {
-                          setSelectedConnectorId(connector.id);
-                          connect({ connector });
-                        }}
-                        className={`soft-key px-5 py-4 text-base ${active ? 'text-white' : ''}`}
-                      >
-                        {connector.name}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="mb-6 text-sm text-crt-green/70 min-h-6">
+              <>
+                <div className="text-sm text-crt-green/60 mb-5 min-h-5">
                   {isConnected && address
                     ? `${lang === 'zh' ? '已连接' : 'Connected'}: ${address.slice(0, 6)}...${address.slice(-4)}`
-                    : (lang === 'zh' ? '请先选择并连接钱包' : 'Select and connect a wallet first')}
+                    : (lang === 'zh' ? '请选择并连接钱包' : 'Select and connect a wallet')}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 mb-5">
+                  {walletOptions.map((connector) => (
+                    <button
+                      key={connector.id}
+                      onClick={() => {
+                        setSelectedConnectorId(connector.id);
+                        connect({ connector });
+                      }}
+                      className={`soft-key py-3 text-sm ${selectedConnectorId === connector.id ? 'text-white' : ''}`}
+                    >
+                      {connector.name}
+                    </button>
+                  ))}
                 </div>
 
                 <button
                   onClick={() => void startGameBoot()}
                   disabled={!isConnected || status === 'booting'}
-                  className="soft-key text-lg px-8 py-4 font-mono disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="soft-key w-full py-4 text-base mb-5 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {status === 'booting'
                     ? (lang === 'zh' ? '[ 同步中... ]' : '[ SYNCING... ]')
                     : (lang === 'zh' ? '[ 进入游戏 ]' : '[ ENTER GAME ]')}
                 </button>
 
-                <div className="mt-6 h-4 w-full border border-crt-green/30 bg-black/70">
-                  <div className="h-full bg-crt-green/70 transition-all duration-100" style={{ width: `${bootProgress}%` }} />
+                <div className="h-3 w-full border border-crt-green/30 bg-black/70 mb-1">
+                  <div
+                    className="h-full bg-crt-green/70 transition-all duration-100"
+                    style={{ width: `${bootProgress}%` }}
+                  />
                 </div>
-                <p className="mt-2 text-sm text-crt-green/50">{bootProgress}%</p>
+                <p className="text-xs text-crt-green/40 mb-6">{bootProgress}%</p>
 
-                <Link href="/mint" className="block text-sm font-mono text-crt-green/30 mt-6 hover:text-crt-green/60">
+                <Link href="/mint" className="text-xs text-crt-green/30 hover:text-crt-green/60 transition-colors">
                   {lang === 'zh' ? '还没有龙虾？去铸造 →' : 'No lobster? Mint one →'}
                 </Link>
-              </div>
+              </>
             )}
 
+            {/* 未找到 NFA */}
             {status === 'no-nfa' && (
-              <div className="font-mono">
-                <p className="text-crt-green text-xl mb-4">
+              <>
+                <p className="text-crt-green text-lg mb-6">
                   {lang === 'zh' ? '未检测到龙虾 NFA' : 'No lobster NFA detected'}
                 </p>
-                <Link href="/mint" className="soft-key text-base px-8 py-3">
+                <Link href="/mint" className="soft-key text-sm px-8 py-3">
                   {lang === 'zh' ? '[ 去铸造 ]' : '[ MINT NOW ]'}
                 </Link>
-              </div>
+              </>
             )}
 
+            {/* 选择龙虾 */}
             {status === 'select-nfa' && (
-              <div className="font-mono">
-                <p className="text-crt-green text-xl mb-4">
+              <>
+                <p className="text-crt-green text-lg mb-2">
                   {lang === 'zh' ? '选择你的龙虾' : 'Choose your lobster'}
                 </p>
-                <p className="text-sm text-crt-green/50 mb-5">
-                  {lang === 'zh' ? '同步完成，选择要进入避难所的龙虾。' : 'Synchronization complete. Select which lobster enters the shelter.'}
+                <p className="text-sm text-crt-green/50 mb-6">
+                  {lang === 'zh' ? '同步完成，选择要进入避难所的龙虾。' : 'Sync complete. Select a lobster to enter the shelter.'}
                 </p>
-                <div className="flex gap-4 flex-wrap justify-center max-w-xl">
+                <div className="flex gap-3 flex-wrap">
                   {nfaList.map((id) => (
                     <button
                       key={id}
@@ -759,33 +776,36 @@ export default function GamePage() {
                     </button>
                   ))}
                 </div>
-              </div>
+              </>
             )}
 
+            {/* 加载中 */}
             {(status === 'loading' || status === 'loading-nfa') && (
-              <p className="text-crt-green font-mono text-lg animate-pulse">
+              <p className="text-crt-green animate-pulse">
                 {status === 'loading-nfa'
                   ? (lang === 'zh' ? '读取链上数据...' : 'READING CHAIN DATA...')
                   : (lang === 'zh' ? '初始化引擎...' : 'INITIALIZING ENGINE...')}
               </p>
             )}
 
+            {/* 错误 */}
             {status === 'error' && (
-              <div className="font-mono">
-                <p className="text-red-400 text-xl mb-3">
+              <>
+                <p className="text-red-400 text-lg mb-4">
                   {lang === 'zh' ? '加载失败' : 'LOAD FAILED'}
                 </p>
-                <button onClick={() => window.location.reload()} className="soft-key text-base px-6 py-3">
+                <button onClick={() => window.location.reload()} className="soft-key text-sm px-6 py-3">
                   {lang === 'zh' ? '[ 重试 ]' : '[ RETRY ]'}
                 </button>
-              </div>
+              </>
             )}
           </div>
-        </div>
+        </main>
       )}
 
+      {/* OpenClaw 弹窗 */}
       {showOpenClaw && (
-        <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/80">
+        <div className="fixed inset-0 flex items-center justify-center z-[10001] bg-black/80">
           <div className="max-w-md p-6 border border-crt-green/30 bg-black/95 font-mono text-center">
             <p className="text-white text-sm mb-2">{'[ 意识唤醒舱 ]'}</p>
             <p className="text-crt-green/70 text-xs mb-4">
@@ -815,6 +835,6 @@ export default function GamePage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

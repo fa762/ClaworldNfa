@@ -30,8 +30,8 @@ export class DialogueBox {
   private onComplete?: () => void;
   private readonly W: number;
   private readonly H: number;
-  private readonly BOX_H = 156;
-  private readonly PADDING = 22;
+  private readonly BOX_H = 200;
+  private readonly PADDING = 24;
   private readonly pointerHandler: () => void;
   private readonly spaceHandler: () => void;
   private choiceKeyCleanups: Array<() => void> = [];
@@ -50,19 +50,19 @@ export class DialogueBox {
     this.bg.setStrokeStyle(1, 0x39ff14, 0.5);
 
     // 说话者名字
-    this.speakerText = scene.add.text(this.PADDING + 10, boxY + 10, '', {
-      fontSize: '15px', fontFamily: 'monospace', color: '#ffd700',
+    this.speakerText = scene.add.text(this.PADDING + 10, boxY + 14, '', {
+      fontSize: '20px', fontFamily: 'monospace', color: '#ffd700',
     });
 
     // 正文
-    this.bodyText = scene.add.text(this.PADDING + 10, boxY + 30, '', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#cccccc',
+    this.bodyText = scene.add.text(this.PADDING + 10, boxY + 46, '', {
+      fontSize: '17px', fontFamily: 'monospace', color: '#cccccc',
       wordWrap: { width: this.W - 80 }, lineSpacing: 8,
     });
 
     // 继续提示
     this.promptText = scene.add.text(this.W - 32, boxY + this.BOX_H - 20, '▼', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0);
 
     // 闪烁动画
@@ -108,9 +108,9 @@ export class DialogueBox {
 
     const boxY = this.H - this.BOX_H;
     choices.forEach((choice, i) => {
-      const y = boxY + 58 + i * 28;
+      const y = boxY + 68 + i * 36;
       const text = this.scene.add.text(this.PADDING + 20, y, `[${i + 1}] ${choice.label}`, {
-        fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
+        fontSize: '17px', fontFamily: 'monospace', color: '#39ff14',
       }).setInteractive({ useHandCursor: true }).setDepth(201);
 
       text.on('pointerover', () => text.setColor('#ffffff'));

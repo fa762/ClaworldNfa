@@ -76,9 +76,9 @@ export class ShelterScene extends Phaser.Scene {
     // ── 标题 ──
     const shelterNames = ['虚空', '珊瑚', '深渊', '海藻', '海沟', '礁石', '火山', '废土'];
     const shelterName = shelterNames[this.shelter] || `SHELTER-0${this.shelter}`;
-    this.add.text(W / 2, 12, `SHELTER-0${this.shelter}  ${shelterName}`, {
-      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
-    }).setOrigin(0.5, 0).setDepth(100).setAlpha(0.5);
+    this.add.text(W / 2, 14, `SHELTER-0${this.shelter}  ${shelterName}`, {
+      fontSize: '18px', fontFamily: 'monospace', color: '#39ff14',
+    }).setOrigin(0.5, 0).setDepth(100).setAlpha(0.7);
 
     // ── NPC 定义（根据场景大小自适应位置） ──
     this.npcDefs = [
@@ -100,8 +100,8 @@ export class ShelterScene extends Phaser.Scene {
 
       // NPC 标签
       this.add.text(def.x, def.y - npc.displayHeight / 2 - 10, def.label, {
-        fontSize: '12px', fontFamily: 'monospace', color: '#39ff14',
-      }).setOrigin(0.5).setAlpha(0.6);
+        fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
+      }).setOrigin(0.5).setAlpha(0.85);
 
       this.npcs.push(npc);
     }
@@ -129,14 +129,14 @@ export class ShelterScene extends Phaser.Scene {
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     // ── 交互提示 ──
-    this.promptText = this.add.text(W / 2, H - 48, '', {
-      fontSize: '16px', fontFamily: 'monospace', color: '#ffd700',
+    this.promptText = this.add.text(W / 2, H - 56, '', {
+      fontSize: '18px', fontFamily: 'monospace', color: '#ffd700',
     }).setOrigin(0.5).setDepth(100);
 
     // ── HUD ──
-    this.hudText = this.add.text(8, H - 20, `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互`, {
-      fontSize: '12px', fontFamily: 'monospace', color: '#39ff14',
-    }).setDepth(100).setAlpha(0.4);
+    this.hudText = this.add.text(8, H - 22, `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互`, {
+      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
+    }).setDepth(100).setAlpha(0.6);
 
     // ── 对话框 ──
     this.dialogueBox = new DialogueBox(this);
