@@ -1,11 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { PipBoyNav } from "@/components/layout/PipBoyNav";
-import { PipBoyStatusBar } from "@/components/layout/PipBoyStatusBar";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { KeyboardNav } from "@/components/layout/KeyboardNav";
 import { I18nProvider } from "@/lib/i18n";
+import { LayoutShell } from "@/components/layout/LayoutShell";
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -47,54 +44,7 @@ export default function RootLayout({
       <body>
         <WalletProvider>
         <I18nProvider>
-          {/* PipBoy Terminal — Pure CSS frame */}
-          <div className="terminal-backdrop">
-            {/* Hardware frame */}
-            <div className="hw-frame">
-              {/* Top bezel — model label + indicator LEDs */}
-              <div className="hw-top-bezel">
-                <div className="hw-screw-dot" />
-                <div className="hw-model-label">CLAW TERMINAL — MODEL NFA-578</div>
-                <div className="hw-leds">
-                  <span className="hw-led hw-led-green" />
-                  <span className="hw-led hw-led-amber" />
-                </div>
-                <div className="hw-screw-dot" />
-              </div>
-
-              {/* CRT screen area */}
-              <div className="hw-screen-housing">
-                <div className="crt-viewport">
-                  <div className="crt-barrel">
-                    <div className="crt-glow-overlay" />
-                    <div className="crt-scanlines" />
-                    <div className="crt-glass" />
-                    <div className="crt-screen">
-                      <div className="crt-content">
-                        <PipBoyNav />
-                        <main className="flex-1 overflow-y-auto min-h-0">
-                          <ErrorBoundary>{children}</ErrorBoundary>
-                        </main>
-                        <PipBoyStatusBar />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom bezel — vents + serial */}
-              <div className="hw-bottom-bezel">
-                <div className="hw-screw-dot" />
-                <div className="hw-vents">
-                  <span /><span /><span /><span /><span /><span /><span /><span />
-                </div>
-                <div className="hw-serial">SN:CCU-2026-888</div>
-                <div className="hw-screw-dot" />
-              </div>
-            </div>
-          </div>
-
-          <KeyboardNav />
+          <LayoutShell>{children}</LayoutShell>
         </I18nProvider>
         </WalletProvider>
       </body>
