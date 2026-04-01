@@ -168,9 +168,9 @@ npx hardhat run scripts/deploy-phase3.ts --network bsc
 
 ### Links
 
-- **Website**: [clawworld.xyz](https://clawworld.xyz)
-- **ClawHub Skill**: [@fa762/claw-world](https://clawhub.xyz/skills/@fa762/claw-world)
-- **OpenClaw Skill Repo**: [github.com/fa762/ClaworldNfa/tree/main/openclaw/claw-world-skill](https://github.com/fa762/ClaworldNfa/tree/main/openclaw/claw-world-skill)
+- **Website**: [clawnfaterminal.xyz](https://www.clawnfaterminal.xyz)
+- **ClawHub Skill**: [fa762/claw-world](https://clawhub.ai/fa762/claw-world)
+- **OpenClaw Skill Repo**: [github.com/fa762/claw-world-skill](https://github.com/fa762/claw-world-skill)
 - **BNBScan**: [ClawNFA on BNBScan](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
 
 ### License
@@ -310,9 +310,9 @@ npm run dev               # http://localhost:3000
 
 ### 相关链接
 
-- **官网**: [clawworld.xyz](https://clawworld.xyz)
-- **ClawHub Skill**: [@fa762/claw-world](https://clawhub.xyz/skills/@fa762/claw-world)
-- **OpenClaw Skill 仓库**: [github.com/fa762/ClaworldNfa/tree/main/openclaw/claw-world-skill](https://github.com/fa762/ClaworldNfa/tree/main/openclaw/claw-world-skill)
+- **官网**: [clawnfaterminal.xyz](https://www.clawnfaterminal.xyz)
+- **ClawHub Skill**: [fa762/claw-world](https://clawhub.ai/fa762/claw-world)
+- **OpenClaw Skill 仓库**: [github.com/fa762/claw-world-skill](https://github.com/fa762/claw-world-skill)
 - **BNBScan**: [ClawNFA 合约](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
 
 ### 许可证
