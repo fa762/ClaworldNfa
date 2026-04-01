@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 import { pickTasks, calcMatchScore } from '../data/task-templates';
+import type { GameLang } from '../data/npc-dialogues';
 
 interface TaskOption {
   type: number;     // 0=courage 1=wisdom 2=social 3=create 4=grit
@@ -28,9 +29,9 @@ interface SwitchNfaPayload {
   nfaId: number;
   shelter: number;
   personality: Personality;
+  lang?: GameLang;
 }
 
-const TYPE_NAMES = ['勇气', '智慧', '社交', '创造', '毅力'];
 const TYPE_COLORS = ['#ff4444', '#4488ff', '#ffaa00', '#aa44ff', '#44ff44'];
 
 /**
@@ -44,12 +45,13 @@ export class TaskScene extends Phaser.Scene {
   private tasks: TaskOption[] = [];
   private selectedIdx = -1;
   private playerPosition?: PlayerPosition;
+  private lang: GameLang = 'zh';
 
   constructor() {
     super({ key: 'TaskScene' });
   }
 
-  init(data: { nfaId: number; shelter: number; personality?: Personality; playerPosition?: PlayerPosition }) {
+  init(data: { nfaId: number; shelter: number; personality?: Personality; playerPosition?: PlayerPosition; lang?: GameLang }) {
     this.nfaId = data.nfaId || (this.registry.get('nfaId') as number) || 1;
     this.shelter = data.shelter || (this.registry.get('shelter') as number) || 0;
     if (data.personality) {
@@ -59,6 +61,7 @@ export class TaskScene extends Phaser.Scene {
       if (cached) this.personality = cached;
     }
     this.playerPosition = data.playerPosition || (this.registry.get('playerPosition') as PlayerPosition | undefined);
+    this.lang = data.lang || (this.registry.get('gameLang') as GameLang) || 'zh';
   }
 
   create() {
@@ -70,11 +73,11 @@ export class TaskScene extends Phaser.Scene {
     this.add.rectangle(W / 2, H / 2, W, H, 0x0a0a0a, 0.95);
 
     // 标题
-    this.add.text(W / 2, 30, '[ 任务分配终端 ]', {
+    this.add.text(W / 2, 30, this.lang === 'zh' ? '[ 任务分配终端 ]' : '[ TASK TERMINAL ]', {
       fontSize: '24px', fontFamily: 'monospace', color: '#ffd700',
     }).setOrigin(0.5);
 
-    this.add.text(W / 2, 50, `NFA #${this.nfaId} — 选择一个任务`, {
+    this.add.text(W / 2, 50, this.lang === 'zh' ? `NFA #${this.nfaId} — 选择一个任务` : `NFA #${this.nfaId} — Choose a task`, {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0.6);
 
@@ -97,7 +100,7 @@ export class TaskScene extends Phaser.Scene {
       card.setInteractive({ useHandCursor: true });
 
         // 类型标签
-        this.add.text(x + cardW / 2, y + 15, `[ ${TYPE_NAMES[task.type]} ]`, {
+        this.add.text(x + cardW / 2, y + 15, `[ ${this.getTypeNames()[task.type]} ]`, {
           fontSize: '15px', fontFamily: 'monospace', color: TYPE_COLORS[task.type],
         }).setOrigin(0.5);
 
@@ -127,7 +130,7 @@ export class TaskScene extends Phaser.Scene {
 
       // 匹配度
       const matchColor = task.matchScore >= 1.0 ? '#39ff14' : task.matchScore >= 0.5 ? '#ffaa00' : '#ff4444';
-      this.add.text(x + cardW / 2, y + cardH - (compact ? 18 : 30), `匹配度: ${task.matchScore.toFixed(2)}x`, {
+      this.add.text(x + cardW / 2, y + cardH - (compact ? 18 : 30), `${this.lang === 'zh' ? '匹配度' : 'Match'}: ${task.matchScore.toFixed(2)}x`, {
         fontSize: compact ? '12px' : '13px', fontFamily: 'monospace', color: matchColor,
       }).setOrigin(0.5);
 
@@ -142,7 +145,7 @@ export class TaskScene extends Phaser.Scene {
     });
 
     // 返回按钮
-    const backBtn = this.add.text(W / 2, compact ? H - 18 : H - 30, '[ ESC 返回避难所 ]', {
+    const backBtn = this.add.text(W / 2, compact ? H - 18 : H - 30, this.lang === 'zh' ? '[ ESC 返回避难所 ]' : '[ ESC BACK TO SHELTER ]', {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0.5).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.goBack());
@@ -167,6 +170,7 @@ export class TaskScene extends Phaser.Scene {
         shelter: payload.shelter,
         personality: payload.personality,
         playerPosition: this.playerPosition,
+        lang: payload.lang ?? this.lang,
       });
     });
 
@@ -189,21 +193,21 @@ export class TaskScene extends Phaser.Scene {
     const confirmBox = this.add.rectangle(W / 2, H / 2, 420, 170, 0x111122).setDepth(51);
     confirmBox.setStrokeStyle(1, 0x39ff14);
 
-    this.add.text(W / 2, H / 2 - 35, `确认执行: ${task.title}?`, {
+    this.add.text(W / 2, H / 2 - 35, this.lang === 'zh' ? `确认执行: ${task.title}?` : `Confirm task: ${task.title}?`, {
       fontSize: '18px', fontFamily: 'monospace', color: '#ffd700', align: 'center',
       wordWrap: { width: 360 },
     }).setOrigin(0.5).setDepth(52);
 
-    this.add.text(W / 2, H / 2 + 5, `CLW +${task.clw}  XP +${task.xp}  匹配 ${task.matchScore.toFixed(2)}x`, {
+    this.add.text(W / 2, H / 2 + 5, this.lang === 'zh' ? `CLW +${task.clw}  XP +${task.xp}  匹配 ${task.matchScore.toFixed(2)}x` : `CLW +${task.clw}  XP +${task.xp}  Match ${task.matchScore.toFixed(2)}x`, {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setDepth(52);
 
     // 确认/取消
-    const yesBtn = this.add.text(W / 2 - 60, H / 2 + 35, '[ 确认 ]', {
+    const yesBtn = this.add.text(W / 2 - 60, H / 2 + 35, this.lang === 'zh' ? '[ 确认 ]' : '[ CONFIRM ]', {
       fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setDepth(52).setInteractive({ useHandCursor: true });
 
-    const noBtn = this.add.text(W / 2 + 60, H / 2 + 35, '[ 取消 ]', {
+    const noBtn = this.add.text(W / 2 + 60, H / 2 + 35, this.lang === 'zh' ? '[ 取消 ]' : '[ CANCEL ]', {
       fontSize: '16px', fontFamily: 'monospace', color: '#ff4444',
     }).setOrigin(0.5).setDepth(52).setInteractive({ useHandCursor: true });
 
@@ -219,7 +223,7 @@ export class TaskScene extends Phaser.Scene {
 
       // 显示等待
       overlay.destroy(); confirmBox.destroy(); yesBtn.destroy(); noBtn.destroy();
-      const waitText = this.add.text(W / 2, H / 2, '上链中...', {
+      const waitText = this.add.text(W / 2, H / 2, this.lang === 'zh' ? '上链中...' : 'Submitting onchain...', {
         fontSize: '20px', fontFamily: 'monospace', color: '#ffd700',
       }).setOrigin(0.5).setDepth(52);
 
@@ -228,7 +232,7 @@ export class TaskScene extends Phaser.Scene {
         const result = res as { status: 'pending' | 'confirmed' | 'failed'; txHash?: string; error?: string; actualClw?: string };
 
         if (result.status === 'pending') {
-          waitText.setText(`等待确认...\n${result.txHash?.slice(0, 10)}...`);
+          waitText.setText(this.lang === 'zh' ? `等待确认...\n${result.txHash?.slice(0, 10)}...` : `Awaiting confirmation...\n${result.txHash?.slice(0, 10)}...`);
           return;
         }
 
@@ -236,8 +240,8 @@ export class TaskScene extends Phaser.Scene {
 
         if (result.status === 'confirmed') {
           const rewardText = result.actualClw
-            ? `任务完成! 实际奖励 ${Number(result.actualClw).toFixed(2)} CLW`
-            : `任务完成! TX: ${result.txHash?.slice(0, 10)}...`;
+            ? (this.lang === 'zh' ? `任务完成! 实际奖励 ${Number(result.actualClw).toFixed(2)} CLW` : `Task complete! Reward ${Number(result.actualClw).toFixed(2)} CLW`)
+            : (this.lang === 'zh' ? `任务完成! TX: ${result.txHash?.slice(0, 10)}...` : `Task complete! TX: ${result.txHash?.slice(0, 10)}...`);
 
           this.add.text(W / 2, H / 2, rewardText, {
             fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
@@ -245,7 +249,7 @@ export class TaskScene extends Phaser.Scene {
             wordWrap: { width: 360 },
           }).setOrigin(0.5).setDepth(52);
         } else {
-          this.add.text(W / 2, H / 2, `失败: ${result.error}`, {
+          this.add.text(W / 2, H / 2, this.lang === 'zh' ? `失败: ${result.error}` : `Failed: ${result.error}`, {
             fontSize: '16px', fontFamily: 'monospace', color: '#ff4444',
           }).setOrigin(0.5).setDepth(52);
         }
@@ -274,6 +278,12 @@ export class TaskScene extends Phaser.Scene {
   }
 
   private goBack() {
-    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition });
+    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition, lang: this.lang });
+  }
+
+  private getTypeNames() {
+    return this.lang === 'zh'
+      ? ['勇气', '智慧', '社交', '创造', '毅力']
+      : ['Courage', 'Wisdom', 'Social', 'Create', 'Grit'];
   }
 }

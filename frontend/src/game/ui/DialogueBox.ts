@@ -11,6 +11,8 @@ interface DialogueChoice {
   callback: () => void;
 }
 
+type GameLang = 'zh' | 'en';
+
 /**
  * DialogueBox — 通用 NPC 对话框 UI
  * 支持：逐字显示、多行对话、选择分支
@@ -37,9 +39,11 @@ export class DialogueBox {
   private readonly spaceHandler: () => void;
   private readonly escHandler: () => void;
   private choiceKeyCleanups: Array<() => void> = [];
+  private lang: GameLang;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, lang: GameLang = 'zh') {
     this.scene = scene;
+    this.lang = lang;
     this.W = scene.cameras.main.width;
     this.H = scene.cameras.main.height;
 
@@ -148,7 +152,7 @@ export class DialogueBox {
     });
 
     this.promptText.setAlpha(0);
-    this.hintText.setText(`[1-${choices.length}] 选择  ·  ESC 关闭`).setAlpha(0.7);
+    this.hintText.setText(this.lang === 'zh' ? `[1-${choices.length}] 选择  ·  ESC 关闭` : `[1-${choices.length}] Select  ·  ESC Close`).setAlpha(0.7);
   }
 
   hide() {
@@ -193,7 +197,7 @@ export class DialogueBox {
         if (charIdx >= line.text.length) {
           this.typing = false;
           this.promptText.setAlpha(1);
-          this.hintText.setText('[SPACE/点击继续]  ·  [ESC 关闭]').setAlpha(0.7);
+          this.hintText.setText(this.lang === 'zh' ? '[SPACE/点击继续]  ·  [ESC 关闭]' : '[SPACE/Click Next]  ·  [ESC Close]').setAlpha(0.7);
         }
       },
     });
@@ -210,7 +214,7 @@ export class DialogueBox {
       this.bodyText.setText(line.text);
       this.typing = false;
       this.promptText.setAlpha(1);
-      this.hintText.setText('[SPACE/点击继续]  ·  [ESC 关闭]').setAlpha(0.7);
+      this.hintText.setText(this.lang === 'zh' ? '[SPACE/点击继续]  ·  [ESC 关闭]' : '[SPACE/Click Next]  ·  [ESC Close]').setAlpha(0.7);
     } else {
       this.lineIdx++;
       this.showLine();

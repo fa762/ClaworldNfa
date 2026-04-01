@@ -310,6 +310,7 @@ export default function GamePage() {
       eventBus.emit('game:switchNfa', {
         nfaId,
         shelter: state.shelter,
+        lang,
         personality: {
           courage: state.courage,
           wisdom: state.wisdom,
@@ -323,7 +324,7 @@ export default function GamePage() {
       console.error('Failed to load NFA state:', error);
       setStatus('error');
     }
-  }, [emitNfaState, ensureGame]);
+  }, [emitNfaState, ensureGame, lang]);
 
   useEffect(() => {
     return () => {

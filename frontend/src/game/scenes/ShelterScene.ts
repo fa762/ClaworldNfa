@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 import { DialogueBox } from '../ui/DialogueBox';
 import { StatusHUD } from '../ui/StatusHUD';
-import { getTaskDialogue, getPKDialogue, getMarketDialogue, getPortalDialogue, getOpenClawDialogue } from '../data/npc-dialogues';
+import { getTaskDialogue, getPKDialogue, getMarketDialogue, getPortalDialogue, getOpenClawDialogue, type GameLang } from '../data/npc-dialogues';
 
 interface NpcDef {
   key: string;
@@ -33,6 +33,7 @@ interface ShelterSceneData {
   personality?: Personality;
   playerPosition?: PlayerPosition;
   entryAction?: string;
+  lang?: GameLang;
 }
 
 /**
@@ -61,6 +62,7 @@ export class ShelterScene extends Phaser.Scene {
   private readonly INTERACT_COOLDOWN = 600; // ms，对话关闭后防止立即重触发
   private playerPosition?: PlayerPosition;
   private moveTarget: PlayerPosition | null = null;
+  private lang: GameLang = 'zh';
 
   constructor() {
     super({ key: 'ShelterScene' });
@@ -75,6 +77,7 @@ export class ShelterScene extends Phaser.Scene {
       if (cached) this.personality = cached;
     }
     this.playerPosition = data.playerPosition || (this.registry.get('playerPosition') as PlayerPosition | undefined);
+    this.lang = data.lang || (this.registry.get('gameLang') as GameLang) || 'zh';
   }
 
   create() {
@@ -117,7 +120,9 @@ export class ShelterScene extends Phaser.Scene {
     this.add.rectangle(W / 2, H / 2 + 78, Math.min(W * 0.4, 320), 8, 0x39ff14, 0.03).setDepth(1);
 
     // ── 标题 ──
-    const shelterNames = ['虚空', '珊瑚', '深渊', '海藻', '海沟', '礁石', '火山', '废土'];
+    const shelterNames = this.lang === 'zh'
+      ? ['虚空', '珊瑚', '深渊', '海藻', '海沟', '礁石', '火山', '废土']
+      : ['Void', 'Coral', 'Abyss', 'Kelp', 'Trench', 'Reef', 'Volcano', 'Wasteland'];
     const shelterName = shelterNames[this.shelter] || `SHELTER-0${this.shelter}`;
     this.add.text(W / 2, 14, `SHELTER-0${this.shelter}  ${shelterName}`, {
       fontSize: '18px', fontFamily: 'monospace', color: '#39ff14',
@@ -125,11 +130,11 @@ export class ShelterScene extends Phaser.Scene {
 
     // ── NPC 定义（根据场景大小自适应位置） ──
     this.npcDefs = [
-      { key: 'task',     texture: 'npc-task',     artTexture: 'npc-task-art',     label: '[ 任务终端 ]',     x: W * 0.25,  y: H * 0.3,  action: 'TaskScene' },
-      { key: 'pk',       texture: 'npc-pk',       artTexture: 'npc-pk-art',       label: '[ 竞技擂台 ]',     x: W * 0.75,  y: H * 0.3,  action: 'PKScene' },
-      { key: 'market',   texture: 'npc-market',   artTexture: 'npc-market-art',   label: '[ 交易墙 ]',       x: W * 0.5,   y: H * 0.2,  action: 'MarketScene' },
-      { key: 'portal',   texture: 'portal',       artTexture: 'portal-art',       label: '[ 隧道传送 ]',     x: W * 0.15,  y: H * 0.7,  action: 'event:portal' },
-      { key: 'openclaw', texture: 'npc-openclaw', artTexture: 'npc-openclaw-art', label: '[ 意识唤醒舱 ]',   x: W * 0.85,  y: H * 0.7,  action: 'event:openclaw' },
+      { key: 'task',     texture: 'npc-task',     artTexture: 'npc-task-art',     label: this.lang === 'zh' ? '[ 任务终端 ]' : '[ TASK ]',        x: W * 0.25,  y: H * 0.3,  action: 'TaskScene' },
+      { key: 'pk',       texture: 'npc-pk',       artTexture: 'npc-pk-art',       label: this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]',       x: W * 0.75,  y: H * 0.3,  action: 'PKScene' },
+      { key: 'market',   texture: 'npc-market',   artTexture: 'npc-market-art',   label: this.lang === 'zh' ? '[ 交易墙 ]' : '[ MARKET ]',      x: W * 0.5,   y: H * 0.2,  action: 'MarketScene' },
+      { key: 'portal',   texture: 'portal',       artTexture: 'portal-art',       label: this.lang === 'zh' ? '[ 隧道传送 ]' : '[ PORTAL ]',      x: W * 0.15,  y: H * 0.7,  action: 'event:portal' },
+      { key: 'openclaw', texture: 'npc-openclaw', artTexture: 'npc-openclaw-art', label: this.lang === 'zh' ? '[ 意识唤醒舱 ]' : '[ AWAKENING ]', x: W * 0.85,  y: H * 0.7,  action: 'event:openclaw' },
     ];
 
     // ── 创建 NPC ──
@@ -177,19 +182,19 @@ export class ShelterScene extends Phaser.Scene {
       fontSize: '18px', fontFamily: 'monospace', color: '#ffd700',
     }).setOrigin(0.5).setDepth(100);
 
-    this.add.text(W / 2, H - 82, 'WASD/方向键移动  ·  点击地面移动  ·  靠近装置按 SPACE', {
+    this.add.text(W / 2, H - 82, this.lang === 'zh' ? 'WASD/方向键移动  ·  点击地面移动  ·  靠近装置按 SPACE' : 'WASD/Arrows move  ·  Tap ground to move  ·  Press SPACE near terminals', {
       fontSize: W < 720 ? '10px' : '12px', fontFamily: 'monospace', color: '#39ff14',
       align: 'center',
       wordWrap: { width: W - 40 },
     }).setOrigin(0.5).setDepth(100).setAlpha(0.38);
 
     // ── HUD ──
-    this.hudText = this.add.text(8, H - 22, `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互`, {
+    this.hudText = this.add.text(8, H - 22, this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`, {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setDepth(100).setAlpha(0.6);
 
     // ── 对话框 ──
-    this.dialogueBox = new DialogueBox(this);
+    this.dialogueBox = new DialogueBox(this, this.lang);
 
     // ── 状态 HUD ──
     this.statusHUD = new StatusHUD(this, this.nfaId);
@@ -197,7 +202,9 @@ export class ShelterScene extends Phaser.Scene {
     // ── 监听链上数据更新 ──
     const offStats = eventBus.on('nfa:stats', (data: unknown) => {
       const stats = data as { clw: string; level: number; active?: boolean; dailyCost?: string };
-      this.hudText.setText(`NFA #${this.nfaId}  |  CLW: ${stats.clw}  |  Lv.${stats.level}  |  ${stats.active ? 'ACTIVE' : 'DORMANT'}  |  UPKEEP ${stats.dailyCost ?? '0'}  |  WASD 移动  |  SPACE 交互`);
+      this.hudText.setText(this.lang === 'zh'
+        ? `NFA #${this.nfaId}  |  CLW: ${stats.clw}  |  Lv.${stats.level}  |  ${stats.active ? 'ACTIVE' : 'DORMANT'}  |  UPKEEP ${stats.dailyCost ?? '0'}  |  WASD 移动  |  SPACE 交互`
+        : `NFA #${this.nfaId}  |  CLW: ${stats.clw}  |  Lv.${stats.level}  |  ${stats.active ? 'ACTIVE' : 'DORMANT'}  |  UPKEEP ${stats.dailyCost ?? '0'}  |  WASD Move  |  SPACE Interact`);
     });
 
     const offFullStats = eventBus.on('nfa:fullStats', (data: unknown) => {
@@ -293,7 +300,7 @@ export class ShelterScene extends Phaser.Scene {
 
     if (this.nearestNpc) {
       const def = this.nearestNpc.getData('def') as NpcDef;
-      this.promptText.setText(`[SPACE / 点击] 进入 ${def.label}`);
+      this.promptText.setText(this.lang === 'zh' ? `[SPACE / 点击] 进入 ${def.label}` : `[SPACE / Tap] Enter ${def.label}`);
       this.promptText.setAlpha(1);
     } else {
       this.promptText.setAlpha(0);
@@ -348,7 +355,7 @@ export class ShelterScene extends Phaser.Scene {
 
     switch (def.key) {
       case 'task': {
-        const d = getTaskDialogue(this.nfaId, this.personality);
+        const d = getTaskDialogue(this.nfaId, this.personality, this.lang);
         this.dialogueBox.show(d.lines, () => {
           if (d.choices) {
             this.dialogueBox.showChoices(d.choices.map(c => ({
@@ -367,7 +374,7 @@ export class ShelterScene extends Phaser.Scene {
         break;
       }
       case 'pk': {
-        const d = getPKDialogue(this.nfaId);
+        const d = getPKDialogue(this.nfaId, this.lang);
         this.dialogueBox.show(d.lines, () => {
           if (d.choices) {
             this.dialogueBox.showChoices(d.choices.map(c => ({
@@ -385,7 +392,7 @@ export class ShelterScene extends Phaser.Scene {
         break;
       }
       case 'market': {
-        const d = getMarketDialogue();
+        const d = getMarketDialogue(this.lang);
         this.dialogueBox.show(d.lines, () => {
           if (d.choices) {
             this.dialogueBox.showChoices(d.choices.map(c => ({
@@ -403,7 +410,7 @@ export class ShelterScene extends Phaser.Scene {
         break;
       }
       case 'portal': {
-        const d = getPortalDialogue(this.shelter);
+        const d = getPortalDialogue(this.shelter, this.lang);
         this.dialogueBox.show(d.lines, () => {
           if (d.choices) {
             this.dialogueBox.showChoices(d.choices.map(c => ({
@@ -421,7 +428,7 @@ export class ShelterScene extends Phaser.Scene {
         break;
       }
       case 'openclaw': {
-        const d = getOpenClawDialogue();
+        const d = getOpenClawDialogue(this.lang);
         this.dialogueBox.show(d.lines, () => {
           if (d.choices) {
             this.dialogueBox.showChoices(d.choices.map(c => ({
@@ -457,6 +464,7 @@ export class ShelterScene extends Phaser.Scene {
       shelter: this.shelter,
       personality: this.personality,
       playerPosition: { x: this.player.x, y: this.player.y },
+      lang: this.lang,
     };
   }
 

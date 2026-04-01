@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 import { TerminalModal } from '../ui/TerminalModal';
 import type { NFASummary } from '../chain/wallet';
+import type { GameLang } from '../data/npc-dialogues';
 
 interface Personality {
   courage: number;
@@ -20,6 +21,7 @@ interface SwitchNfaPayload {
   nfaId: number;
   shelter: number;
   personality: Personality;
+  lang?: GameLang;
 }
 
 interface Listing {
@@ -37,7 +39,8 @@ interface Listing {
 
 const RARITY_COLORS = ['#aaaaaa', '#3399ff', '#aa44ff', '#ffd700', '#ff4444'];
 const RARITY_NAMES = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
-const TYPE_NAMES = ['固定价', '拍卖', '互换'];
+const TYPE_NAMES_ZH = ['固定价', '拍卖', '互换'];
+const TYPE_NAMES_EN = ['Fixed', 'Auction', 'Swap'];
 
 /**
  * MarketScene — 全真链上市场
@@ -57,12 +60,13 @@ export class MarketScene extends Phaser.Scene {
   private walletNfaIds: number[] = [];
   private walletSummaries: Record<number, NFASummary> = {};
   private modal!: TerminalModal;
+  private lang: GameLang = 'zh';
 
   constructor() {
     super({ key: 'MarketScene' });
   }
 
-  init(data: { nfaId: number; shelter: number; personality?: Personality; playerPosition?: PlayerPosition; entryAction?: string }) {
+  init(data: { nfaId: number; shelter: number; personality?: Personality; playerPosition?: PlayerPosition; entryAction?: string; lang?: GameLang }) {
     this.nfaId = data.nfaId || (this.registry.get('nfaId') as number) || 1;
     this.shelter = data.shelter || (this.registry.get('shelter') as number) || 0;
     this.walletAddress = (this.registry.get('walletAddress') as string) || '';
@@ -73,6 +77,7 @@ export class MarketScene extends Phaser.Scene {
     }
     this.playerPosition = data.playerPosition || (this.registry.get('playerPosition') as PlayerPosition | undefined);
     this.entryAction = data.entryAction;
+    this.lang = data.lang || (this.registry.get('gameLang') as GameLang) || 'zh';
   }
 
   create() {
@@ -81,15 +86,15 @@ export class MarketScene extends Phaser.Scene {
 
     this.add.rectangle(W / 2, H / 2, W, H, 0x0a0a0a, 0.95);
 
-    this.add.text(W / 2, 24, '[ 交易墙 ]', {
+    this.add.text(W / 2, 24, this.lang === 'zh' ? '[ 交易墙 ]' : '[ MARKET WALL ]', {
       fontSize: '24px', fontFamily: 'monospace', color: '#3399ff',
     }).setOrigin(0.5);
 
-    this.add.text(W / 2, 46, `NFA #${this.nfaId} — 全真链上市场`, {
+    this.add.text(W / 2, 46, this.lang === 'zh' ? `NFA #${this.nfaId} — 全真链上市场` : `NFA #${this.nfaId} — Full Onchain Market`, {
       fontSize: '14px', fontFamily: 'monospace', color: '#3399ff',
     }).setOrigin(0.5).setAlpha(0.6);
 
-    this.add.text(W / 2, 62, '固定价 / 拍卖 / 互换 都在链上结算', {
+    this.add.text(W / 2, 62, this.lang === 'zh' ? '固定价 / 拍卖 / 互换 都在链上结算' : 'Fixed / Auction / Swap all settle onchain', {
       fontSize: '12px', fontFamily: 'monospace', color: '#9fb7ff',
     }).setOrigin(0.5).setAlpha(0.75);
 
@@ -97,10 +102,10 @@ export class MarketScene extends Phaser.Scene {
     const compactHeader = W < 760;
 
     const buttons = [
-      { label: '[ 固定价挂售 ]', x: W * 0.2, action: () => this.promptList('fixed') },
-      { label: '[ 拍卖挂售 ]', x: W * 0.4, action: () => this.promptList('auction') },
-      { label: '[ 互换挂售 ]', x: W * 0.6, action: () => this.promptList('swap') },
-      { label: '[ 刷新列表 ]', x: W * 0.8, action: () => this.requestListings() },
+      { label: this.lang === 'zh' ? '[ 固定价挂售 ]' : '[ FIXED LIST ]', x: W * 0.2, action: () => this.promptList('fixed') },
+      { label: this.lang === 'zh' ? '[ 拍卖挂售 ]' : '[ AUCTION ]', x: W * 0.4, action: () => this.promptList('auction') },
+      { label: this.lang === 'zh' ? '[ 互换挂售 ]' : '[ SWAP LIST ]', x: W * 0.6, action: () => this.promptList('swap') },
+      { label: this.lang === 'zh' ? '[ 刷新列表 ]' : '[ REFRESH ]', x: W * 0.8, action: () => this.requestListings() },
     ];
 
     buttons.forEach((button, index) => {
@@ -120,10 +125,10 @@ export class MarketScene extends Phaser.Scene {
     });
     this.add.rectangle(W / 2, compactHeader ? 146 : 110, W - 28, 1, 0x333333);
 
-    const prevBtn = this.add.text(W / 2 - 60, H - 52, '[ ← 上一页 ]', {
+    const prevBtn = this.add.text(W / 2 - 60, H - 52, this.lang === 'zh' ? '[ ← 上一页 ]' : '[ ← PREV ]', {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    const nextBtn = this.add.text(W / 2 + 60, H - 52, '[ 下一页 → ]', {
+    const nextBtn = this.add.text(W / 2 + 60, H - 52, this.lang === 'zh' ? '[ 下一页 → ]' : '[ NEXT → ]', {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
@@ -140,12 +145,12 @@ export class MarketScene extends Phaser.Scene {
       }
     });
 
-    this.statusText = this.add.text(W / 2, H - 76, '读取链上市场中...', {
+    this.statusText = this.add.text(W / 2, H - 76, this.lang === 'zh' ? '读取链上市场中...' : 'Loading onchain market...', {
       fontSize: '14px', fontFamily: 'monospace', color: '#ffaa00',
       align: 'center', wordWrap: { width: W - 40 },
     }).setOrigin(0.5);
 
-    this.add.text(W / 2, H - 24, '[ ESC 返回避难所 ]', {
+    this.add.text(W / 2, H - 24, this.lang === 'zh' ? '[ ESC 返回避难所 ]' : '[ ESC BACK TO SHELTER ]', {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.goBack());
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
@@ -154,7 +159,7 @@ export class MarketScene extends Phaser.Scene {
       this.listings = data as Listing[];
       this.page = 0;
       this.renderListings();
-      this.showStatus(this.listings.length > 0 ? '已同步链上挂单列表' : '当前没有活跃挂单', this.listings.length > 0 ? '#39ff14' : '#666666');
+      this.showStatus(this.listings.length > 0 ? (this.lang === 'zh' ? '已同步链上挂单列表' : 'Loaded onchain listings') : (this.lang === 'zh' ? '当前没有活跃挂单' : 'No active listings'), this.listings.length > 0 ? '#39ff14' : '#666666');
     });
 
     const offResult = eventBus.on('market:result', (data: unknown) => {
@@ -172,22 +177,22 @@ export class MarketScene extends Phaser.Scene {
       }
 
       if (result.status === 'failed') {
-        this.showStatus(`失败: ${result.error}`, '#ff4444');
+        this.showStatus(this.lang === 'zh' ? `失败: ${result.error}` : `Failed: ${result.error}`, '#ff4444');
         return;
       }
 
       if (result.action === 'list') {
-        this.showStatus(`挂售成功，Listing #${result.listingId ?? '?'}`, '#39ff14');
+        this.showStatus(this.lang === 'zh' ? `挂售成功，Listing #${result.listingId ?? '?'}` : `Listed successfully, listing #${result.listingId ?? '?'}`, '#39ff14');
       } else if (result.action === 'buy') {
-        this.showStatus('购买成功，链上所有权已更新', '#39ff14');
+        this.showStatus(this.lang === 'zh' ? '购买成功，链上所有权已更新' : 'Purchase successful, ownership updated', '#39ff14');
       } else if (result.action === 'bid') {
-        this.showStatus('出价成功，已写入链上', '#39ff14');
+        this.showStatus(this.lang === 'zh' ? '出价成功，已写入链上' : 'Bid submitted onchain', '#39ff14');
       } else if (result.action === 'settle') {
-        this.showStatus('拍卖已结算', '#39ff14');
+        this.showStatus(this.lang === 'zh' ? '拍卖已结算' : 'Auction settled', '#39ff14');
       } else if (result.action === 'cancel') {
-        this.showStatus('挂单已取消', '#39ff14');
+        this.showStatus(this.lang === 'zh' ? '挂单已取消' : 'Listing cancelled', '#39ff14');
       } else if (result.action === 'acceptSwap') {
-        this.showStatus('互换成功，链上所有权已更新', '#39ff14');
+        this.showStatus(this.lang === 'zh' ? '互换成功，链上所有权已更新' : 'Swap accepted, ownership updated', '#39ff14');
       }
 
       this.requestListings();
@@ -234,18 +239,18 @@ export class MarketScene extends Phaser.Scene {
 
   private promptListingMode() {
     this.modal.showMenu({
-      title: '选择挂售模式',
-      subtitle: '固定价立即成交，拍卖持续 24 小时，互换指定另一只 NFA。',
+      title: this.lang === 'zh' ? '选择挂售模式' : 'Choose listing mode',
+      subtitle: this.lang === 'zh' ? '固定价立即成交，拍卖持续 24 小时，互换指定另一只 NFA。' : 'Fixed price sells instantly, auctions last 24 hours, swaps target another NFA.',
       options: [
-        { label: '固定价挂售', description: '输入一个 BNB 价格，任何人都能直接购买。', onSelect: () => this.promptList('fixed') },
-        { label: '拍卖挂售', description: '设置起拍价，24 小时后由最高出价者成交。', onSelect: () => this.promptList('auction') },
-        { label: '互换挂售', description: '指定另一只 NFA，只有目标 NFA 的持有者能接受。', onSelect: () => this.promptList('swap') },
+        { label: this.lang === 'zh' ? '固定价挂售' : 'Fixed price listing', description: this.lang === 'zh' ? '输入一个 BNB 价格，任何人都能直接购买。' : 'Set a BNB price for instant purchase.', onSelect: () => this.promptList('fixed') },
+        { label: this.lang === 'zh' ? '拍卖挂售' : 'Auction listing', description: this.lang === 'zh' ? '设置起拍价，24 小时后由最高出价者成交。' : 'Set a start price; highest bid wins after 24h.', onSelect: () => this.promptList('auction') },
+        { label: this.lang === 'zh' ? '互换挂售' : 'Swap listing', description: this.lang === 'zh' ? '指定另一只 NFA，只有目标 NFA 的持有者能接受。' : 'Target another NFA for a direct swap.', onSelect: () => this.promptList('swap') },
       ],
     });
   }
 
   private requestListings() {
-    this.showStatus('读取链上市场中...', '#ffaa00');
+    this.showStatus(this.lang === 'zh' ? '读取链上市场中...' : 'Loading onchain market...', '#ffaa00');
     eventBus.emit('market:requestListings');
   }
 
@@ -253,17 +258,17 @@ export class MarketScene extends Phaser.Scene {
     if (mode === 'swap') {
       const candidates = this.walletNfaIds.filter((id) => id !== this.nfaId);
       if (candidates.length === 0) {
-        this.showStatus('你没有其他 NFA 可作为互换目标', '#666666');
+        this.showStatus(this.lang === 'zh' ? '你没有其他 NFA 可作为互换目标' : 'No other NFA available as a swap target', '#666666');
         return;
       }
 
       this.modal.showMenu({
-        title: '互换挂售',
-        subtitle: `当前挂出的 NFA 是 #${this.nfaId}。选择你想换到手的目标 NFA。`,
+        title: this.lang === 'zh' ? '互换挂售' : 'Swap listing',
+        subtitle: this.lang === 'zh' ? `当前挂出的 NFA 是 #${this.nfaId}。选择你想换到手的目标 NFA。` : `You are listing NFA #${this.nfaId}. Choose the NFA you want in return.`,
         options: candidates.map((id) => ({
           label: `目标 NFA #${id}`,
           description: this.walletSummaries[id]
-            ? `Lv.${this.walletSummaries[id].level} · ${TYPE_NAMES[2]}目标`
+            ? `Lv.${this.walletSummaries[id].level} · ${(this.lang === 'zh' ? TYPE_NAMES_ZH : TYPE_NAMES_EN)[2]} ${this.lang === 'zh' ? '目标' : 'target'}`
             : '链上可用 NFA',
           onSelect: () => eventBus.emit('market:list', { nfaId: this.nfaId, mode: 'swap', targetNfaId: id }),
         })),
@@ -273,23 +278,23 @@ export class MarketScene extends Phaser.Scene {
 
     const defaultValue = mode === 'fixed' ? '0.10' : '0.05';
     this.modal.showForm({
-      title: mode === 'fixed' ? '固定价挂售' : '拍卖挂售',
+      title: mode === 'fixed' ? (this.lang === 'zh' ? '固定价挂售' : 'Fixed price listing') : (this.lang === 'zh' ? '拍卖挂售' : 'Auction listing'),
       subtitle: mode === 'fixed'
-        ? `挂售 NFA #${this.nfaId}，输入你希望收到的 BNB 固定价。`
-        : `挂售 NFA #${this.nfaId}，输入拍卖起拍价。拍卖持续 24 小时。`,
+        ? (this.lang === 'zh' ? `挂售 NFA #${this.nfaId}，输入你希望收到的 BNB 固定价。` : `List NFA #${this.nfaId} and set the BNB fixed price you want.`)
+        : (this.lang === 'zh' ? `挂售 NFA #${this.nfaId}，输入拍卖起拍价。拍卖持续 24 小时。` : `List NFA #${this.nfaId} and set the starting price. Auction lasts 24 hours.`),
       fields: [
         {
           name: 'price',
-          label: mode === 'fixed' ? '固定价 BNB' : '起拍价 BNB',
+          label: mode === 'fixed' ? (this.lang === 'zh' ? '固定价 BNB' : 'Fixed price BNB') : (this.lang === 'zh' ? '起拍价 BNB' : 'Starting bid BNB'),
           type: 'number',
           value: defaultValue,
           placeholder: defaultValue,
         },
       ],
-      submitLabel: '发起挂售',
+      submitLabel: this.lang === 'zh' ? '发起挂售' : 'Create listing',
       onSubmit: (values) => {
         if (!values.price || Number(values.price) <= 0) {
-          this.showStatus('请输入有效价格', '#ff4444');
+          this.showStatus(this.lang === 'zh' ? '请输入有效价格' : 'Enter a valid price', '#ff4444');
           return;
         }
         eventBus.emit('market:list', { nfaId: this.nfaId, price: values.price, mode });
@@ -341,8 +346,8 @@ export class MarketScene extends Phaser.Scene {
         16,
         y,
         isCompact
-          ? `#${item.listingId}  NFA ${item.nfaId}  ${TYPE_NAMES[item.listingType]}\n${RARITY_NAMES[item.rarity]}  ·  ${mainValue}\n卖家 ${sellerShort}`
-          : `${String(item.listingId).padEnd(6)} ${String(item.nfaId).padEnd(7)} ${RARITY_NAMES[item.rarity].padEnd(11)} ${TYPE_NAMES[item.listingType].padEnd(10)} ${mainValue.padEnd(18)} ${sellerShort.padEnd(13)}`,
+          ? `#${item.listingId}  NFA ${item.nfaId}  ${(this.lang === 'zh' ? TYPE_NAMES_ZH : TYPE_NAMES_EN)[item.listingType]}\n${RARITY_NAMES[item.rarity]}  ·  ${mainValue}\n${this.lang === 'zh' ? '卖家' : 'Seller'} ${sellerShort}`
+          : `${String(item.listingId).padEnd(6)} ${String(item.nfaId).padEnd(7)} ${RARITY_NAMES[item.rarity].padEnd(11)} ${(this.lang === 'zh' ? TYPE_NAMES_ZH : TYPE_NAMES_EN)[item.listingType].padEnd(10)} ${mainValue.padEnd(18)} ${sellerShort.padEnd(13)}`,
         { fontSize: isCompact ? '11px' : '11px', fontFamily: 'monospace', color: rarityColor, lineSpacing: 4 },
       );
 
@@ -461,6 +466,10 @@ export class MarketScene extends Phaser.Scene {
   }
 
   private goBack() {
-    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition });
+    this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition, lang: this.lang });
+  }
+
+  private getTypeNames() {
+    return this.lang === 'zh' ? TYPE_NAMES_ZH : TYPE_NAMES_EN;
   }
 }
