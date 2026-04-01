@@ -36,6 +36,13 @@ interface ShelterSceneData {
   lang?: GameLang;
 }
 
+interface EchoProjection {
+  nfaId: number;
+  x: number;
+  y: number;
+  title: string;
+}
+
 /**
  * ShelterScene — 避难所主场景（赛博朋克终端厅）
  * 玩家控制龙虾在场景中走动，接近 NPC 按空格交互
@@ -63,6 +70,7 @@ export class ShelterScene extends Phaser.Scene {
   private playerPosition?: PlayerPosition;
   private moveTarget: PlayerPosition | null = null;
   private lang: GameLang = 'zh';
+  private echoes: Phaser.GameObjects.GameObject[] = [];
 
   constructor() {
     super({ key: 'ShelterScene' });
@@ -164,6 +172,8 @@ export class ShelterScene extends Phaser.Scene {
       this.player.setSize(18, 20).setOffset(15, 24);
     }
 
+    this.spawnWorldEchoes(W, H);
+
     // ── 碰撞 ──
     this.physics.world.setBounds(32, 32, W - 64, H - 64);
 
@@ -240,6 +250,8 @@ export class ShelterScene extends Phaser.Scene {
       offSwitchNfa();
       this.dialogueBox.destroy();
       this.statusHUD.destroy();
+      this.echoes.forEach((echo) => echo.destroy());
+      this.echoes = [];
     });
 
     // ── 触屏支持（移动端） ──
@@ -466,6 +478,48 @@ export class ShelterScene extends Phaser.Scene {
       playerPosition: { x: this.player.x, y: this.player.y },
       lang: this.lang,
     };
+  }
+
+  private spawnWorldEchoes(W: number, H: number) {
+    const echoIds = [
+      this.nfaId + 7,
+      this.nfaId + 19,
+      Math.max(1, this.nfaId - 11),
+    ];
+    const positions: EchoProjection[] = [
+      { nfaId: echoIds[0], x: W * 0.38, y: H * 0.58, title: this.lang === 'zh' ? '活跃投影' : 'Active Echo' },
+      { nfaId: echoIds[1], x: W * 0.62, y: H * 0.62, title: this.lang === 'zh' ? '交易残影' : 'Market Echo' },
+      { nfaId: echoIds[2], x: W * 0.5, y: H * 0.75, title: this.lang === 'zh' ? '擂台回波' : 'Arena Echo' },
+    ];
+
+    positions.forEach((echo, index) => {
+      const ring = this.add.circle(echo.x, echo.y, 18 + index * 2, 0x39ff14, 0.06).setDepth(4);
+      const core = this.add.circle(echo.x, echo.y, 8, index === 1 ? 0x3399ff : 0x39ff14, 0.18).setDepth(5);
+      const text = this.add.text(echo.x, echo.y + 26, `${echo.title} · NFA #${echo.nfaId}`, {
+        fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: '#7adf8b',
+      }).setOrigin(0.5).setAlpha(0.55).setDepth(6);
+
+      this.tweens.add({
+        targets: [ring, core],
+        alpha: { from: 0.04, to: 0.2 },
+        scale: { from: 0.96, to: 1.08 },
+        duration: 1200 + index * 200,
+        yoyo: true,
+        repeat: -1,
+      });
+
+      this.echoes.push(ring, core, text);
+    });
+
+    const broadcast = this.add.text(W / 2, 34, this.lang === 'zh'
+      ? `世界广播：SHELTER-0${this.shelter} 近期检测到 3 个活跃龙虾信号`
+      : `World Broadcast: 3 active lobster echoes detected near SHELTER-0${this.shelter}`,
+    {
+      fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: '#39ff14', align: 'center',
+      wordWrap: { width: W - 80 },
+    }).setOrigin(0.5).setAlpha(0.45).setDepth(100);
+
+    this.echoes.push(broadcast);
   }
 
   private setupTouchControls() {
