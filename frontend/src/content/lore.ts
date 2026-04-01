@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { readTextFileAuto } from './readTextFile';
 
 export interface LoreSection {
   id: string;
@@ -42,7 +43,7 @@ export function getLoreActs(): LoreAct[] {
   return acts.map(({ file, id, title }) => {
     const filePath = path.join(loreDir, file);
     const content = fs.existsSync(filePath)
-      ? fs.readFileSync(filePath, 'utf8')
+      ? readTextFileAuto(filePath)
       : `# ${title}\n\n> 本章节内容当前未随开源仓库公开。`; 
     const sections = splitIntoSections(content, id);
     return { id, title, content, sections };

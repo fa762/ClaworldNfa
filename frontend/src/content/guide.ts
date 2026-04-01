@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { readTextFileAuto } from './readTextFile';
 
 export interface Chapter {
   id: string;
@@ -9,7 +10,8 @@ export interface Chapter {
 
 export function getGuideChapters(): Chapter[] {
   const filePath = path.join(process.cwd(), '..', '游戏说明.md');
-  const raw = fs.readFileSync(filePath, 'utf8');
+  if (!fs.existsSync(filePath)) return [];
+  const raw = readTextFileAuto(filePath);
 
   // Split by ## headings
   const sections = raw.split(/^## /m).filter(Boolean);
