@@ -4,6 +4,7 @@ import { loadPKSalt } from '../chain/contracts';
 import { loadNFAState } from '../chain/wallet';
 import { TerminalModal } from '../ui/TerminalModal';
 import type { GameLang } from '../data/npc-dialogues';
+import { buildIdentityFromState, buildLobsterIdentity } from '@/lib/lobsterIdentity';
 
 const STRATEGIES_ZH = [
   { name: '全攻', desc: 'ATK 150% / DEF 50%', color: '#ff4444' },
@@ -351,7 +352,7 @@ export class PKScene extends Phaser.Scene {
         18,
         y,
         isCompact
-          ? `#${match.matchId}  ${match.phaseName}\nNFA ${match.nfaA} vs ${match.nfaB || '-'}\n质押 ${match.stake} CLW`
+          ? this.buildCompactMatchText(match)
           : `${String(match.matchId).padEnd(6)} ${String(match.nfaA).padEnd(8)} ${String(match.nfaB || '-').padEnd(8)} ${`${match.stake} CLW`.padEnd(12)} ${match.phaseName.padEnd(14)}`,
         { fontSize: isCompact ? '11px' : '12px', fontFamily: 'monospace', color: '#cccccc', lineSpacing: 4 },
       );
@@ -398,6 +399,7 @@ export class PKScene extends Phaser.Scene {
     try {
       this.showStatus(this.lang === 'zh' ? '读取对手属性中...' : 'Loading opponent stats...', '#7ad7ff');
       const state = await loadNFAState(nfaId);
+      const identity = buildIdentityFromState(state, this.lang);
       const dominant = [
         { label: this.lang === 'zh' ? '勇气' : 'Courage', value: state.courage },
         { label: this.lang === 'zh' ? '智慧' : 'Wisdom', value: state.wisdom },
@@ -407,12 +409,12 @@ export class PKScene extends Phaser.Scene {
       ].sort((a, b) => b.value - a.value);
 
       this.modal.showMenu({
-        title: this.lang === 'zh' ? `对手 NFA #${nfaId}` : `Opponent NFA #${nfaId}`,
+        title: this.lang === 'zh' ? `对手 NFA #${nfaId} · ${identity.title}` : `Opponent NFA #${nfaId} · ${identity.title}`,
         subtitle: this.lang === 'zh'
           ? `Lv.${state.level} · ${state.active ? '激活' : '休眠'} · CLW ${state.clwBalance.toFixed(0)}`
           : `Lv.${state.level} · ${state.active ? 'Active' : 'Dormant'} · CLW ${state.clwBalance.toFixed(0)}`,
         options: [
-          { label: `${dominant[0].label}: ${dominant[0].value}`, description: `${dominant[1].label}: ${dominant[1].value} · ${dominant[2].label}: ${dominant[2].value}`, disabled: true, onSelect: () => {} },
+          { label: identity.subtitle, description: `${dominant[0].label}: ${dominant[0].value} · ${dominant[1].label}: ${dominant[1].value} · ${dominant[2].label}: ${dominant[2].value}`, disabled: true, onSelect: () => {} },
           { label: `STR ${state.str}  DEF ${state.def}  SPD ${state.spd}  VIT ${state.vit}`, description: this.lang === 'zh' ? '链上实时属性快照' : 'Live onchain stat snapshot', disabled: true, onSelect: () => {} },
         ],
         cancelLabel: this.lang === 'zh' ? '关闭' : 'Close',
@@ -426,5 +428,25 @@ export class PKScene extends Phaser.Scene {
 
   private goBack() {
     this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition, lang: this.lang });
+  }
+
+  private buildCompactMatchText(match: MatchItem) {
+    const opponentId = match.nfaA === this.nfaId ? match.nfaB : match.nfaA;
+    const identity = opponentId > 0
+      ? buildLobsterIdentity({
+          rarity: opponentId % 5,
+          shelter: (this.shelter + 1) % 8,
+          level: 8 + (opponentId % 21),
+          courage: 30 + ((opponentId * 7) % 60),
+          wisdom: 30 + ((opponentId * 11) % 60),
+          social: 30 + ((opponentId * 13) % 60),
+          create: 30 + ((opponentId * 17) % 60),
+          grit: 30 + ((opponentId * 19) % 60),
+        }, this.lang)
+      : null;
+
+    return this.lang === 'zh'
+      ? `#${match.matchId}  ${match.phaseName}\n对手 NFA ${opponentId || '-'}  ·  ${identity?.title || '未知'}\n质押 ${match.stake} CLW`
+      : `#${match.matchId}  ${match.phaseName}\nOpponent NFA ${opponentId || '-'}  ·  ${identity?.title || 'Unknown'}\nStake ${match.stake} CLW`;
   }
 }
