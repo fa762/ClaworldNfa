@@ -793,18 +793,18 @@ export default function GamePage() {
   }
 
   return (
-    <>
+    <div className="relative h-full min-h-0">
       {/* Phaser 画布容器 — 始终在 DOM 中，playing 时全屏覆盖，否则隐藏在画面外 */}
       <div
         ref={containerRef}
         className={shouldMountGame
-          ? 'fixed inset-0 z-[9999] bg-black'
-          : 'fixed inset-0 -z-10 opacity-0 pointer-events-none'}
+          ? 'absolute inset-0 z-[20] bg-black rounded'
+          : 'absolute inset-0 -z-10 opacity-0 pointer-events-none'}
       />
 
       {/* 游戏内叠加层 */}
       {isPlaying && (
-        <div className="fixed inset-0 z-[10000] pointer-events-none">
+        <div className="absolute inset-0 z-[30] pointer-events-none">
 
           {/* TAB 提示 — 左下角，不遮状态栏 */}
           <button
@@ -826,7 +826,7 @@ export default function GamePage() {
 
       {/* TAB 侧边栏 */}
       {showSidePanel && (
-        <div className="fixed inset-0 z-[10001]" onClick={() => setShowSidePanel(false)}>
+        <div className="absolute inset-0 z-[40]" onClick={() => setShowSidePanel(false)}>
           <div
             className="absolute left-0 top-0 h-full w-64 bg-black/97 border-r border-crt-green/30 font-mono flex flex-col"
             onClick={e => e.stopPropagation()}
@@ -897,8 +897,8 @@ export default function GamePage() {
 
       {/* 大厅 UI — 在 CRT 终端页面内，selecting/booting 等状态显示 */}
       {!isPlaying && (
-        <main className="max-w-2xl mx-auto px-4 py-10 min-h-[calc(100vh-160px)] flex flex-col items-center justify-center">
-          <div className="w-full border border-crt-green/30 bg-black/80 px-8 py-8 font-mono shadow-[0_0_40px_rgba(57,255,20,0.06)]">
+        <main className="h-full min-h-0 flex flex-col items-center justify-center px-2 sm:px-4 py-4 sm:py-8">
+          <div className="w-full max-w-3xl border border-crt-green/30 bg-black/80 px-4 sm:px-8 py-5 sm:py-8 font-mono shadow-[0_0_40px_rgba(57,255,20,0.06)] overflow-y-auto max-h-full">
 
             <div className="flex items-center justify-between mb-6">
               <p className="text-crt-green/40 text-xs tracking-widest">// SHELTER ACCESS TERMINAL</p>
@@ -924,7 +924,7 @@ export default function GamePage() {
                         setSelectedConnectorId(connector.id);
                         connect({ connector });
                       }}
-                      className={`soft-key py-3 text-sm ${selectedConnectorId === connector.id ? 'text-white' : ''}`}
+                      className={`soft-key py-3 text-xs sm:text-sm ${selectedConnectorId === connector.id ? 'text-white' : ''}`}
                     >
                       {connector.name === 'Injected' ? '浏览器钱包 (MetaMask 等)' : connector.name}
                     </button>
@@ -934,7 +934,7 @@ export default function GamePage() {
                 <button
                   onClick={() => void startGameBoot()}
                   disabled={!isConnected || status === 'booting'}
-                  className="soft-key w-full py-4 text-base mb-5 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="soft-key w-full py-3 sm:py-4 text-sm sm:text-base mb-5 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {status === 'booting'
                     ? (lang === 'zh' ? '[ 同步中... ]' : '[ SYNCING... ]')
@@ -981,14 +981,14 @@ export default function GamePage() {
                 <p className="text-sm text-crt-green/50 mb-6">
                   {lang === 'zh' ? '同步完成，选择要进入避难所的龙虾。' : 'Sync complete. Select a lobster to enter the shelter.'}
                 </p>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
                   {nfaList.map((id) => (
                     <button
                       key={id}
                       onClick={() => selectAndEnter(id)}
-                      className="soft-key text-left px-5 py-4"
+                      className="soft-key text-left px-4 sm:px-5 py-3 sm:py-4"
                     >
-                      <div className="text-lg text-crt-green mb-1">NFA #{id}</div>
+                      <div className="text-base sm:text-lg text-crt-green mb-1">NFA #{id}</div>
                       <div className="text-xs text-crt-green/50 mb-2">{getLobsterName(id)}</div>
                       {nfaSummaries[id] ? (
                         (() => {
@@ -1002,7 +1002,7 @@ export default function GamePage() {
                           ].sort((a, b) => b.value - a.value);
 
                           return (
-                            <div className="space-y-1 text-sm text-crt-green/70">
+                            <div className="space-y-1 text-xs sm:text-sm text-crt-green/70">
                               <div>Lv.{summary.level} · {getRarityName(summary.rarity, lang === 'zh')}</div>
                               <div>{getShelterName(summary.shelter)}</div>
                               <div>CLW {summary.clwBalance.toFixed(0)} · {summary.active ? (lang === 'zh' ? '激活' : 'Active') : (lang === 'zh' ? '休眠' : 'Dormant')}</div>
@@ -1045,7 +1045,7 @@ export default function GamePage() {
 
       {/* OpenClaw 弹窗 */}
       {showOpenClaw && (
-        <div className="fixed inset-0 flex items-center justify-center z-[10001] bg-black/80">
+        <div className="absolute inset-0 flex items-center justify-center z-[50] bg-black/80 p-4">
           <div className="max-w-md p-6 border border-crt-green/30 bg-black/95 font-mono text-center">
             <p className="text-white text-sm mb-2">{'[ 意识唤醒舱 ]'}</p>
             <p className="text-crt-green/70 text-xs mb-4">
@@ -1075,6 +1075,6 @@ export default function GamePage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

@@ -60,6 +60,7 @@ export class ShelterScene extends Phaser.Scene {
   private lastInteractTime = 0;
   private readonly INTERACT_COOLDOWN = 600; // ms，对话关闭后防止立即重触发
   private playerPosition?: PlayerPosition;
+  private moveTarget: PlayerPosition | null = null;
 
   constructor() {
     super({ key: 'ShelterScene' });
@@ -232,6 +233,22 @@ export class ShelterScene extends Phaser.Scene {
     if (right) body.setVelocityX(this.SPEED);
     if (up)    body.setVelocityY(-this.SPEED);
     if (down)  body.setVelocityY(this.SPEED);
+
+    const usingKeyboard = left || right || up || down;
+
+    if (usingKeyboard) {
+      this.moveTarget = null;
+    } else if (this.moveTarget) {
+      const dx = this.moveTarget.x - this.player.x;
+      const dy = this.moveTarget.y - this.player.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist <= 6) {
+        this.moveTarget = null;
+      } else {
+        body.setVelocity((dx / dist) * this.SPEED, (dy / dist) * this.SPEED);
+      }
+    }
 
     // 对角线速度归一化
     if (body.velocity.length() > this.SPEED) {
@@ -421,12 +438,7 @@ export class ShelterScene extends Phaser.Scene {
   }
 
   private setupTouchControls() {
-    // 简单触屏：点击方向移动
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      const dx = pointer.x - this.player.x;
-      const dy = pointer.y - this.player.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
       // 如果点击在 NPC 附近，当作交互
       for (const npc of this.npcs) {
         const npcDist = Phaser.Math.Distance.Between(pointer.x, pointer.y, npc.x, npc.y);
@@ -437,14 +449,16 @@ export class ShelterScene extends Phaser.Scene {
         }
       }
 
-      // 否则移动玩家
-      if (dist > 10) {
-        const body = this.player.body as Phaser.Physics.Arcade.Body;
-        body.setVelocity(
-          (dx / dist) * this.SPEED,
-          (dy / dist) * this.SPEED,
-        );
-        this.time.delayedCall(300, () => body.setVelocity(0));
+      // 点击/触屏地面后持续移动到目标点
+      const worldPoint = (pointer.positionToCamera(this.cameras.main) ?? pointer) as Phaser.Math.Vector2;
+      this.moveTarget = {
+        x: Phaser.Math.Clamp(worldPoint.x, 36, this.cameras.main.width - 36),
+        y: Phaser.Math.Clamp(worldPoint.y, 36, this.cameras.main.height - 36),
+      };
+
+      // 近距离二次点击，直接清除移动目标
+      if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.moveTarget.x, this.moveTarget.y) < 8) {
+        this.moveTarget = null;
       }
     });
   }

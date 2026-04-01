@@ -1,26 +1,14 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
 import { PipBoyNav } from './PipBoyNav';
 import { PipBoyStatusBar } from './PipBoyStatusBar';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { KeyboardNav } from './KeyboardNav';
 
 /**
- * LayoutShell — 根据路径决定是否显示 CRT 终端框架
- * /game 路由：全屏渲染，无 CRT 包装
- * 其他路由：标准 PipBoy 终端框架
+ * LayoutShell — 标准 CRT 终端框架
  */
 export function LayoutShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isGame = pathname.startsWith('/game');
-
-  // 游戏页面：直接全屏渲染
-  if (isGame) {
-    return <ErrorBoundary>{children}</ErrorBoundary>;
-  }
-
-  // 普通页面：CRT 终端包装
   return (
     <>
       <div className="terminal-backdrop">
