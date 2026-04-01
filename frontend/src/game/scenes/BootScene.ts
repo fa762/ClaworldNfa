@@ -94,9 +94,7 @@ export class BootScene extends Phaser.Scene {
       this.registry.set('nfaId', nfaId);
       this.registry.set('shelter', shelter);
       this.statusText.setText(`NFA #${nfaId} LOADED — SHELTER-0${shelter}`);
-      this.time.delayedCall(1000, () => {
-        this.scene.start('ShelterScene', { nfaId, shelter, personality: cachedPersonality });
-      });
+      this.scene.start('ShelterScene', { nfaId, shelter, personality: cachedPersonality });
     });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
