@@ -3,6 +3,7 @@ import { eventBus } from '../EventBus';
 import { TerminalModal } from '../ui/TerminalModal';
 import type { NFASummary } from '../chain/wallet';
 import type { GameLang } from '../data/npc-dialogues';
+import { buildLobsterIdentity } from '@/lib/lobsterIdentity';
 
 interface Personality {
   courage: number;
@@ -335,6 +336,16 @@ export class MarketScene extends Phaser.Scene {
         : item.listingType === 1 && Number(item.highestBid) > 0
           ? `${item.highestBid} BNB`
           : `${item.price} BNB`;
+      const identity = buildLobsterIdentity({
+        rarity: item.rarity,
+        shelter: (item.nfaId + this.shelter) % 8,
+        level: 8 + (item.nfaId % 21),
+        courage: 30 + ((item.nfaId * 7) % 60),
+        wisdom: 30 + ((item.nfaId * 11) % 60),
+        social: 30 + ((item.nfaId * 13) % 60),
+        create: 30 + ((item.nfaId * 17) % 60),
+        grit: 30 + ((item.nfaId * 19) % 60),
+      }, this.lang);
 
       const rowBg = this.add.rectangle(W / 2, y + (isCompact ? 18 : 10), W - 30, isCompact ? 68 : 40, 0x111122, 0.5)
         .setStrokeStyle(1, 0x222233)
@@ -346,8 +357,8 @@ export class MarketScene extends Phaser.Scene {
         16,
         y,
         isCompact
-          ? `#${item.listingId}  NFA ${item.nfaId}  ${(this.lang === 'zh' ? TYPE_NAMES_ZH : TYPE_NAMES_EN)[item.listingType]}\n${RARITY_NAMES[item.rarity]}  ·  ${mainValue}\n${this.lang === 'zh' ? '卖家' : 'Seller'} ${sellerShort}`
-          : `${String(item.listingId).padEnd(6)} ${String(item.nfaId).padEnd(7)} ${RARITY_NAMES[item.rarity].padEnd(11)} ${(this.lang === 'zh' ? TYPE_NAMES_ZH : TYPE_NAMES_EN)[item.listingType].padEnd(10)} ${mainValue.padEnd(18)} ${sellerShort.padEnd(13)}`,
+          ? `#${item.listingId}  NFA ${item.nfaId}  ${(this.lang === 'zh' ? TYPE_NAMES_ZH : TYPE_NAMES_EN)[item.listingType]}\n${identity.title}  ·  ${mainValue}\n${this.lang === 'zh' ? '卖家' : 'Seller'} ${sellerShort}`
+          : `${String(item.listingId).padEnd(6)} ${String(item.nfaId).padEnd(7)} ${identity.title.padEnd(18)} ${(this.lang === 'zh' ? TYPE_NAMES_ZH : TYPE_NAMES_EN)[item.listingType].padEnd(10)} ${mainValue.padEnd(18)} ${sellerShort.padEnd(13)}`,
         { fontSize: isCompact ? '11px' : '11px', fontFamily: 'monospace', color: rarityColor, lineSpacing: 4 },
       );
 

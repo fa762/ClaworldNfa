@@ -524,15 +524,34 @@ export class ShelterScene extends Phaser.Scene {
       this.echoes.push(ring, core, text);
     });
 
-    const broadcast = this.add.text(W / 2, 34, this.lang === 'zh'
-      ? `世界广播：SHELTER-0${this.shelter} 近期检测到 3 个活跃龙虾信号`
-      : `World Broadcast: 3 active lobster echoes detected near SHELTER-0${this.shelter}`,
-    {
+    const broadcastMessages = this.lang === 'zh'
+      ? [
+          `世界广播：SHELTER-0${this.shelter} 近期检测到 3 个活跃龙虾信号`,
+          `交易墙记录：最近 24 小时内有新的拍卖与互换请求写入链上`,
+          `擂台频道：竞技终端正在等待新的揭示与结算动作`,
+        ]
+      : [
+          `World Broadcast: 3 active lobster echoes detected near SHELTER-0${this.shelter}`,
+          `Market feed: new auction and swap requests were written onchain in the last 24h`,
+          `Arena channel: the combat terminals are waiting for new reveals and settlements`,
+        ];
+
+    const broadcast = this.add.text(W / 2, 34, broadcastMessages[0], {
       fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: '#39ff14', align: 'center',
       wordWrap: { width: W - 80 },
     }).setOrigin(0.5).setAlpha(0.45).setDepth(100);
 
     this.echoes.push(broadcast);
+
+    let broadcastIndex = 0;
+    this.time.addEvent({
+      delay: 4200,
+      repeat: -1,
+      callback: () => {
+        broadcastIndex = (broadcastIndex + 1) % broadcastMessages.length;
+        broadcast.setText(broadcastMessages[broadcastIndex]);
+      },
+    });
   }
 
   private setupTouchControls() {
