@@ -224,6 +224,7 @@ export class MarketScene extends Phaser.Scene {
         shelter: payload.shelter,
         personality: payload.personality,
         playerPosition: this.playerPosition,
+        lang: payload.lang ?? this.lang,
       });
     });
 
