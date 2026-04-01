@@ -2,11 +2,10 @@ import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 
 /**
- * BootScene — 加载资源 + 等待钱包连接 + 读取 NFA 数据
+ * BootScene — 加载资源并在收到外层状态后进入 Shelter
  */
 export class BootScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
-  private dots = 0;
   private readonly assetVersion = '20260401-player-ascii-v1';
 
   constructor() {
@@ -62,7 +61,7 @@ export class BootScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // 底部提示
-    this.add.text(cx, cy + 80, '[ CONNECT WALLET TO ENTER ]', {
+    this.add.text(cx, cy + 80, '[ SHELTER LINK ESTABLISHED ]', {
       fontSize: '11px',
       fontFamily: 'monospace',
       color: '#39ff14',
@@ -78,12 +77,8 @@ export class BootScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    // 监听钱包连接事件
-    const offWallet = eventBus.on('wallet:connected', (data: unknown) => {
-      const { address } = data as { address: string };
-      this.registry.set('walletAddress', address);
-      this.statusText.setText(`WALLET: ${address.slice(0, 6)}...${address.slice(-4)}`);
-    });
+    // 初始化状态
+    this.statusText.setText('SYNC COMPLETE');
 
     // 缓存性格数据
     let cachedPersonality: { courage: number; wisdom: number; social: number; create: number; grit: number } | undefined;
@@ -105,26 +100,14 @@ export class BootScene extends Phaser.Scene {
     });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      offWallet();
       offStats();
       offLoaded();
     });
 
     this.createPlayerAnimations();
 
-    // 如果钱包已经连接，发出请求
+    // 通知桥接层 Phaser 已就绪
     eventBus.emit('game:ready');
-
-    // 加载动画
-    this.time.addEvent({
-      delay: 500,
-      loop: true,
-      callback: () => {
-        if (this.statusText.text.startsWith('WALLET:') || this.statusText.text.includes('LOADED')) return;
-        this.dots = (this.dots + 1) % 4;
-        this.statusText.setText('AWAITING CONNECTION' + '.'.repeat(this.dots));
-      },
-    });
   }
 
   private createPlayerAnimations() {
