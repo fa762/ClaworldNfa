@@ -6,6 +6,11 @@ typechain-types/
 coverage/
 coverage.json
 .env
+.env.local
+.env*.local
+frontend/.env.local
+frontend/.env.testnet
+frontend/.env.mainnet
 *.log
 imgclaw/claw_nft_images/
 .claude/
