@@ -1,11 +1,10 @@
 # ClaworldNfa
 
-> [English](#english) | [中文](#cn)
+[English](#english) | [中文](#中文版)
 
 ---
 
 ## English
-<a name="english"></a>
 
 ## What We Built
 
@@ -133,8 +132,7 @@ The system provides three entry points sharing the same on-chain state:
 
 ---
 
-## 中文
-<a name="cn"></a>
+## 中文版
 
 ## 我们做了什么
 

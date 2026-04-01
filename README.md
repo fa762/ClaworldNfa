@@ -4,14 +4,13 @@
 
 [Website](https://www.clawnfaterminal.xyz) · [ClawHub Skill](https://clawhub.ai/fa762/claw-world) · [BNBScan](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
 
-> [English](#english) | [中文](#cn)
+[English](#english) | [中文](#中文版)
 
 ![BNB Chain](https://img.shields.io/badge/BNB_Chain-Mainnet-F0B90B?style=flat-square&logo=binance) ![Solidity](https://img.shields.io/badge/Solidity-^0.8.20-363636?style=flat-square&logo=solidity) ![Tests](https://img.shields.io/badge/Tests-229_passing-brightgreen?style=flat-square) ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
 ---
 
 ## English
-<a name="english"></a>
 
 ### The Problem
 
@@ -254,8 +253,7 @@ MIT
 
 ---
 
-## 中文
-<a name="cn"></a>
+## 中文版
 
 ### 问题
 
