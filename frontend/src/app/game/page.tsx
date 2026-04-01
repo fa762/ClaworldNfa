@@ -96,6 +96,8 @@ export default function GamePage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<unknown>(null);
   const activeNfaIdRef = useRef<number | null>(null);
+  const bootReadyRef = useRef(false);
+  const bootReadyPromiseRef = useRef<Promise<void> | null>(null);
 
   const router = useRouter();
   const { address, isConnected } = useAccount();
@@ -233,6 +235,9 @@ export default function GamePage() {
 
   const ensureGame = useCallback(async () => {
     if (gameRef.current) {
+      if (bootReadyPromiseRef.current) {
+        await bootReadyPromiseRef.current;
+      }
       return gameRef.current;
     }
 
@@ -261,9 +266,26 @@ export default function GamePage() {
       throw new Error('Game container has zero size');
     }
 
+    bootReadyRef.current = false;
+    bootReadyPromiseRef.current = new Promise<void>((resolve, reject) => {
+      const timeoutId = window.setTimeout(() => {
+        unsubscribe();
+        reject(new Error('BootScene ready timeout'));
+      }, 12000);
+
+      const unsubscribe = eventBus.on('game:ready', () => {
+        bootReadyRef.current = true;
+        window.clearTimeout(timeoutId);
+        unsubscribe();
+        resolve();
+      });
+    });
+
     const { createGame } = await import('@/game/main');
     gameRef.current = createGame(readyContainer);
     setGameReady(true);
+
+    await bootReadyPromiseRef.current;
     return gameRef.current;
   }, []);
 
@@ -306,6 +328,8 @@ export default function GamePage() {
       if (gameRef.current) {
         (gameRef.current as { destroy: (removeCanvas?: boolean) => void }).destroy(true);
         gameRef.current = null;
+        bootReadyRef.current = false;
+        bootReadyPromiseRef.current = null;
       }
     };
   }, []);
