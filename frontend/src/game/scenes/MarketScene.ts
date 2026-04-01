@@ -4,6 +4,7 @@ import { TerminalModal } from '../ui/TerminalModal';
 import type { NFASummary } from '../chain/wallet';
 import type { GameLang } from '../data/npc-dialogues';
 import { buildLobsterIdentity } from '@/lib/lobsterIdentity';
+import { getShelterSpecialty } from '@/lib/shelter';
 
 interface Personality {
   courage: number;
@@ -99,6 +100,11 @@ export class MarketScene extends Phaser.Scene {
       fontSize: '12px', fontFamily: 'monospace', color: '#9fb7ff',
     }).setOrigin(0.5).setAlpha(0.75);
 
+    const specialty = getShelterSpecialty(this.shelter, this.lang);
+    this.add.text(W / 2, 78, this.lang === 'zh' ? `当前避难所偏向：${specialty.text}` : `Current shelter bias: ${specialty.text}`, {
+      fontSize: '11px', fontFamily: 'monospace', color: specialty.color,
+    }).setOrigin(0.5).setAlpha(0.75);
+
     this.modal = new TerminalModal(this);
     const compactHeader = W < 760;
 
@@ -113,7 +119,7 @@ export class MarketScene extends Phaser.Scene {
       const col = compactHeader ? index % 2 : index;
       const row = compactHeader ? Math.floor(index / 2) : 0;
       const x = compactHeader ? W * (0.3 + col * 0.4) : button.x;
-      const y = compactHeader ? 72 + row * 34 : 70;
+      const y = compactHeader ? 90 + row * 34 : 88;
 
       this.add.text(x, y, button.label, {
         fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
@@ -121,10 +127,10 @@ export class MarketScene extends Phaser.Scene {
       }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', button.action);
     });
 
-    this.add.text(14, compactHeader ? 134 : 98, 'ID     NFA     RARITY      TYPE       PRICE/BID           SELLER        ACTION', {
+    this.add.text(14, compactHeader ? 152 : 116, 'ID     NFA     RARITY      TYPE       PRICE/BID           SELLER        ACTION', {
       fontSize: '11px', fontFamily: 'monospace', color: '#555555',
     });
-    this.add.rectangle(W / 2, compactHeader ? 146 : 110, W - 28, 1, 0x333333);
+    this.add.rectangle(W / 2, compactHeader ? 164 : 128, W - 28, 1, 0x333333);
 
     const prevBtn = this.add.text(W / 2 - 60, H - 52, this.lang === 'zh' ? '[ ← 上一页 ]' : '[ ← PREV ]', {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',

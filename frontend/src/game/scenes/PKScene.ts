@@ -5,6 +5,7 @@ import { loadNFAState } from '../chain/wallet';
 import { TerminalModal } from '../ui/TerminalModal';
 import type { GameLang } from '../data/npc-dialogues';
 import { buildIdentityFromState, buildLobsterIdentity } from '@/lib/lobsterIdentity';
+import { getShelterSpecialty } from '@/lib/shelter';
 
 const STRATEGIES_ZH = [
   { name: '全攻', desc: 'ATK 150% / DEF 50%', color: '#ff4444' },
@@ -99,6 +100,11 @@ export class PKScene extends Phaser.Scene {
       fontSize: '12px', fontFamily: 'monospace', color: '#aaaaaa',
     }).setOrigin(0.5).setAlpha(0.75);
 
+    const specialty = getShelterSpecialty(this.shelter, this.lang);
+    this.add.text(W / 2, 80, this.lang === 'zh' ? `当前避难所偏向：${specialty.text}` : `Current shelter bias: ${specialty.text}`, {
+      fontSize: '11px', fontFamily: 'monospace', color: specialty.color,
+    }).setOrigin(0.5).setAlpha(0.75);
+
     this.modal = new TerminalModal(this);
     const compactHeader = W < 720;
 
@@ -114,7 +120,7 @@ export class PKScene extends Phaser.Scene {
       const col = compactHeader ? index % 3 : index;
       const row = compactHeader ? Math.floor(index / 3) : 0;
       const x = compactHeader ? W * (0.22 + col * 0.28) : button.x;
-      const y = compactHeader ? 80 + row * 34 : 78;
+      const y = compactHeader ? 98 + row * 34 : 96;
 
       this.add.text(x, y, button.label, {
         fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
@@ -122,10 +128,10 @@ export class PKScene extends Phaser.Scene {
       }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', button.action);
     });
 
-    this.add.text(18, compactHeader ? 144 : 110, 'ID     A        B        STAKE        PHASE           ACTION', {
+    this.add.text(18, compactHeader ? 162 : 128, 'ID     A        B        STAKE        PHASE           ACTION', {
       fontSize: '11px', fontFamily: 'monospace', color: '#555555',
     });
-    this.add.rectangle(W / 2, compactHeader ? 156 : 122, W - 32, 1, 0x333333);
+    this.add.rectangle(W / 2, compactHeader ? 174 : 140, W - 32, 1, 0x333333);
 
     this.statusText = this.add.text(W / 2, H - 56, this.lang === 'zh' ? '读取链上擂台中...' : 'Loading arena matches...', {
       fontSize: '14px', fontFamily: 'monospace', color: '#ffaa00', align: 'center',

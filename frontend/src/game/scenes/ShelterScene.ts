@@ -4,7 +4,7 @@ import { DialogueBox } from '../ui/DialogueBox';
 import { StatusHUD } from '../ui/StatusHUD';
 import { getTaskDialogue, getPKDialogue, getMarketDialogue, getPortalDialogue, getOpenClawDialogue, type GameLang } from '../data/npc-dialogues';
 import { buildLobsterIdentity } from '@/lib/lobsterIdentity';
-import { getShelterDescription } from '@/lib/shelter';
+import { getShelterDescription, getShelterSpecialty } from '@/lib/shelter';
 
 interface NpcDef {
   key: string;
@@ -156,6 +156,12 @@ export class ShelterScene extends Phaser.Scene {
       fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: '#7adf8b',
       align: 'center', wordWrap: { width: W - 100 },
     }).setOrigin(0.5).setDepth(100).setAlpha(0.45);
+
+    const specialty = getShelterSpecialty(this.shelter, this.lang);
+    this.add.text(W / 2, 54, this.lang === 'zh' ? `区域偏向：${specialty.text}` : `Shelter specialty: ${specialty.text}`, {
+      fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: specialty.color,
+      align: 'center', wordWrap: { width: W - 100 },
+    }).setOrigin(0.5).setDepth(100).setAlpha(0.65);
 
     // ── NPC 定义（根据场景大小自适应位置） ──
     this.npcDefs = [

@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 import { pickTasks, calcMatchScore } from '../data/task-templates';
 import type { GameLang } from '../data/npc-dialogues';
+import { getShelterSpecialty } from '@/lib/shelter';
 
 interface TaskOption {
   type: number;     // 0=courage 1=wisdom 2=social 3=create 4=grit
@@ -80,6 +81,11 @@ export class TaskScene extends Phaser.Scene {
     this.add.text(W / 2, 50, this.lang === 'zh' ? `NFA #${this.nfaId} — 选择一个任务` : `NFA #${this.nfaId} — Choose a task`, {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0.6);
+
+    const specialty = getShelterSpecialty(this.shelter, this.lang);
+    this.add.text(W / 2, 66, this.lang === 'zh' ? `当前避难所偏向：${specialty.text}` : `Current shelter bias: ${specialty.text}`, {
+      fontSize: '11px', fontFamily: 'monospace', color: specialty.color,
+    }).setOrigin(0.5).setAlpha(0.75);
 
     // 生成 3 个模板任务（MVP 阶段，后续接 AI）
     this.tasks = this.generateTasks();
