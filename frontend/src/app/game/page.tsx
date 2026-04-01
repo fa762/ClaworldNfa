@@ -103,7 +103,7 @@ export default function GamePage() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { writeContractAsync } = useWriteContract();
-  const { lang } = useI18n();
+  const { lang, setLang } = useI18n();
 
   const [status, setStatus] = useState<GameStatus>('loading');
   const [nfaList, setNfaList] = useState<number[]>([]);
@@ -988,9 +988,18 @@ export default function GamePage() {
 
             <div className="flex items-center justify-between mb-6">
               <p className="text-crt-green/40 text-xs tracking-widest">// SHELTER ACCESS TERMINAL</p>
-              <Link href="/" className="text-xs font-mono text-crt-green/40 hover:text-crt-green/80 transition-colors">
-                ← {lang === 'zh' ? '返回首页' : 'HOME'}
-              </Link>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+                  className="soft-key px-3 py-1 text-xs"
+                  title={lang === 'zh' ? 'Switch to English' : '切换到中文'}
+                >
+                  {lang === 'zh' ? 'EN' : '中'}
+                </button>
+                <Link href="/" className="text-xs font-mono text-crt-green/40 hover:text-crt-green/80 transition-colors">
+                  ← {lang === 'zh' ? '返回首页' : 'HOME'}
+                </Link>
+              </div>
             </div>
 
             {/* 钱包连接 + 同步 */}
