@@ -403,10 +403,21 @@ export class MarketScene extends Phaser.Scene {
   }
 
   private handleListingAction(item: Listing, isMine: boolean, auctionEnded: boolean) {
+    const identity = buildLobsterIdentity({
+      rarity: item.rarity,
+      shelter: (item.nfaId + this.shelter) % 8,
+      level: 8 + (item.nfaId % 21),
+      courage: 30 + ((item.nfaId * 7) % 60),
+      wisdom: 30 + ((item.nfaId * 11) % 60),
+      social: 30 + ((item.nfaId * 13) % 60),
+      create: 30 + ((item.nfaId * 17) % 60),
+      grit: 30 + ((item.nfaId * 19) % 60),
+    }, this.lang);
+
     if (isMine) {
       this.modal.showMenu({
         title: '取消挂单',
-        subtitle: `确认取消 Listing #${item.listingId} 吗？链上托管的 NFA 会返回给卖家。`,
+        subtitle: `${identity.title} · ${this.lang === 'zh' ? `确认取消 Listing #${item.listingId} 吗？链上托管的 NFA 会返回给卖家。` : `Cancel listing #${item.listingId}? The escrowed NFA will return to the seller.`}`,
         options: [
           { label: '确认取消', description: `NFA #${item.nfaId}`, onSelect: () => eventBus.emit('market:cancel', { listingId: item.listingId }) },
         ],
@@ -417,7 +428,7 @@ export class MarketScene extends Phaser.Scene {
     if (item.listingType === 0) {
       this.modal.showMenu({
         title: '购买 NFA',
-        subtitle: `确认用 ${item.price} BNB 购买 NFA #${item.nfaId} 吗？`,
+        subtitle: `${identity.title} · ${this.lang === 'zh' ? `确认用 ${item.price} BNB 购买 NFA #${item.nfaId} 吗？` : `Buy NFA #${item.nfaId} for ${item.price} BNB?`}`,
         options: [
           { label: '确认购买', description: `Listing #${item.listingId}`, onSelect: () => eventBus.emit('market:buy', { listingId: item.listingId, price: item.price }) },
         ],
@@ -428,7 +439,7 @@ export class MarketScene extends Phaser.Scene {
     if (item.listingType === 1 && auctionEnded) {
       this.modal.showMenu({
         title: '结算拍卖',
-        subtitle: `拍卖已结束。确认结算 Listing #${item.listingId} 吗？`,
+        subtitle: `${identity.title} · ${this.lang === 'zh' ? `拍卖已结束。确认结算 Listing #${item.listingId} 吗？` : `Auction ended. Settle listing #${item.listingId}?`}`,
         options: [
           { label: '确认结算', description: `NFA #${item.nfaId}`, onSelect: () => eventBus.emit('market:settle', { listingId: item.listingId }) },
         ],
@@ -440,7 +451,7 @@ export class MarketScene extends Phaser.Scene {
       const base = Number(item.highestBid) > 0 ? Number(item.highestBid) * 1.05 : Number(item.price);
       this.modal.showForm({
         title: '出价竞拍',
-        subtitle: `当前最低有效出价约为 ${base.toFixed(4)} BNB。`,
+        subtitle: `${identity.title} · ${this.lang === 'zh' ? `当前最低有效出价约为 ${base.toFixed(4)} BNB。` : `Current minimum viable bid is about ${base.toFixed(4)} BNB.`}`,
         fields: [
           { name: 'amount', label: '出价 BNB', type: 'number', value: base.toFixed(4), placeholder: base.toFixed(4) },
         ],
@@ -459,7 +470,7 @@ export class MarketScene extends Phaser.Scene {
     if (item.listingType === 2) {
       this.modal.showMenu({
         title: '接受互换',
-        subtitle: `你将交出 NFA #${item.swapTargetId}，换入对方的 NFA #${item.nfaId}。`,
+        subtitle: `${identity.title} · ${this.lang === 'zh' ? `你将交出 NFA #${item.swapTargetId}，换入对方的 NFA #${item.nfaId}。` : `You will trade NFA #${item.swapTargetId} for their NFA #${item.nfaId}.`}`,
         options: [
           {
             label: '确认互换',
