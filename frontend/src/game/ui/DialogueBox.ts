@@ -115,6 +115,9 @@ export class DialogueBox {
     this.clearChoiceKeyBindings();
     this.choiceTexts.forEach(t => t.destroy());
     this.choiceTexts = [];
+    this.container.setVisible(true);
+    this.promptText.setAlpha(0);
+    this.hintText.setAlpha(0);
 
     const boxY = this.H - this.BOX_H;
     choices.forEach((choice, i) => {
