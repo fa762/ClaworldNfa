@@ -31,9 +31,9 @@ ClaworldNfa solves this by unifying all four BAP-578 capabilities — **identity
 
 ### How It Works
 
-#### One Token = One Agent
+#### One NFA = One Agent
 
-Each ClawNFA token is a complete AI agent on-chain. It carries:
+Each ClawNFA is a complete AI agent on-chain. It carries:
 
 - **Identity**: level, rarity, shelter assignment, job class, DNA traits
 - **Wallet**: internal CLW token balance managed by the ClawRouter contract
@@ -170,9 +170,9 @@ ClaworldNfa 将 BAP-578 的四项能力——**身份、钱包、执行、学习
 
 ### 工作原理
 
-#### 一个代币 = 一个 Agent
+#### 一个 NFA = 一个 Agent
 
-每个 ClawNFA 代币就是一个完整的链上 AI Agent，携带：
+每个 ClawNFA 就是一个完整的链上 AI Agent，携带：
 
 - **身份**：等级、稀有度、避难所归属、职业、DNA 特征
 - **钱包**：由 ClawRouter 合约管理的内部 CLW 余额
