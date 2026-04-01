@@ -3,6 +3,7 @@ import { eventBus } from '../EventBus';
 import { DialogueBox } from '../ui/DialogueBox';
 import { StatusHUD } from '../ui/StatusHUD';
 import { getTaskDialogue, getPKDialogue, getMarketDialogue, getPortalDialogue, getOpenClawDialogue, type GameLang } from '../data/npc-dialogues';
+import { buildLobsterIdentity } from '@/lib/lobsterIdentity';
 
 interface NpcDef {
   key: string;
@@ -495,8 +496,20 @@ export class ShelterScene extends Phaser.Scene {
     positions.forEach((echo, index) => {
       const ring = this.add.circle(echo.x, echo.y, 18 + index * 2, 0x39ff14, 0.06).setDepth(4);
       const core = this.add.circle(echo.x, echo.y, 8, index === 1 ? 0x3399ff : 0x39ff14, 0.18).setDepth(5);
-      const text = this.add.text(echo.x, echo.y + 26, `${echo.title} · NFA #${echo.nfaId}`, {
+      const identity = buildLobsterIdentity({
+        rarity: (echo.nfaId + index) % 5,
+        shelter: (this.shelter + index + 1) % 8,
+        level: 8 + ((echo.nfaId + index) % 21),
+        courage: 30 + ((echo.nfaId * 7) % 60),
+        wisdom: 30 + ((echo.nfaId * 11) % 60),
+        social: 30 + ((echo.nfaId * 13) % 60),
+        create: 30 + ((echo.nfaId * 17) % 60),
+        grit: 30 + ((echo.nfaId * 19) % 60),
+      }, this.lang);
+
+      const text = this.add.text(echo.x, echo.y + 26, `${echo.title} · NFA #${echo.nfaId}\n${identity.title}`, {
         fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: '#7adf8b',
+        align: 'center',
       }).setOrigin(0.5).setAlpha(0.55).setDepth(6);
 
       this.tweens.add({

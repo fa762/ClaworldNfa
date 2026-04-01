@@ -46,6 +46,7 @@ import { useI18n } from '@/lib/i18n';
 import { getLobsterName } from '@/lib/mockData';
 import { getRarityName } from '@/lib/rarity';
 import { getShelterName } from '@/lib/shelter';
+import { buildLobsterIdentity } from '@/lib/lobsterIdentity';
 
 type GameStatus = 'loading' | 'ready' | 'connected' | 'booting' | 'no-nfa' | 'select-nfa' | 'loading-nfa' | 'playing' | 'error';
 type PendingTx = { hash: `0x${string}`; label: string } | null;
@@ -893,6 +894,7 @@ export default function GamePage() {
               {activeSummary ? (
                 <div className="space-y-1 text-crt-green/70">
                   <p className="text-crt-green">NFA #{activeSummary.tokenId} · {getLobsterName(activeSummary.tokenId)}</p>
+                  <p className="text-[11px] text-crt-green/50">{buildLobsterIdentity(activeSummary, lang).title}</p>
                   <p>Lv.{activeSummary.level} · {getRarityName(activeSummary.rarity, lang === 'zh')}</p>
                   <p>{getShelterName(activeSummary.shelter)}</p>
                   <p>CLW {activeSummary.clwBalance.toFixed(0)} · {activeSummary.active ? (lang === 'zh' ? '激活' : 'Active') : (lang === 'zh' ? '休眠' : 'Dormant')}</p>
@@ -1091,6 +1093,7 @@ export default function GamePage() {
                       {nfaSummaries[id] ? (
                         (() => {
                           const summary = nfaSummaries[id];
+                          const identity = buildLobsterIdentity(summary, lang);
                           const traits = [
                             { label: lang === 'zh' ? '勇气' : 'Courage', value: summary.courage },
                             { label: lang === 'zh' ? '智慧' : 'Wisdom', value: summary.wisdom },
@@ -1101,6 +1104,7 @@ export default function GamePage() {
 
                           return (
                             <div className="space-y-1 text-xs sm:text-sm text-crt-green/70 break-words">
+                              <div className="text-crt-green/55">{identity.title}</div>
                               <div>Lv.{summary.level} · {getRarityName(summary.rarity, lang === 'zh')}</div>
                               <div>{getShelterName(summary.shelter)}</div>
                               <div>CLW {summary.clwBalance.toFixed(0)} · {summary.active ? (lang === 'zh' ? '激活' : 'Active') : (lang === 'zh' ? '休眠' : 'Dormant')}</div>
