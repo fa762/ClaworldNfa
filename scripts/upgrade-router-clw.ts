@@ -5,7 +5,7 @@ async function main() {
   console.log('Deployer:', deployer.address);
 
   const routerAddress = '0x60C0D5276c007Fd151f2A615c315cb364EF81BD5';
-  const realCLW = '0x82404d91cd6b6cb16b58c650a26122bdc0af7777';
+  const realCLW = '0x3b486c191c74c9945fa944a3ddde24acdd63ffff';
 
   // Upgrade
   console.log('Upgrading ClawRouter...');

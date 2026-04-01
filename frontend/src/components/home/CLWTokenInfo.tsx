@@ -9,7 +9,7 @@ import { useI18n } from '@/lib/i18n';
 import { ERC20ABI } from '@/contracts/abis/ERC20';
 import { type Address, zeroAddress, formatEther } from 'viem';
 
-const CLW_TOKEN_ADDRESS = '0x82404d91cd6b6cb16b58c650a26122bdc0af7777' as Address;
+const CLW_TOKEN_ADDRESS = '0x3b486c191c74c9945fa944a3ddde24acdd63ffff' as Address;
 const FLAP_CONTRACT = '0xe2cE6ab80874Fa9Fa2aAE65D277Dd6B8e65C9De0' as Address;
 
 export function CLWTokenInfo() {

@@ -13,7 +13,7 @@ import { useI18n } from '@/lib/i18n';
 import { useState } from 'react';
 import { getBscScanAddressUrl } from '@/contracts/addresses';
 
-const CLW_TOKEN_ADDRESS = '0x82404d91cd6b6cb16b58c650a26122bdc0af7777';
+const CLW_TOKEN_ADDRESS = '0x3b486c191c74c9945fa944a3ddde24acdd63ffff';
 
 export function WorldStateDashboard() {
   const { t } = useI18n();

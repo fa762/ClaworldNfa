@@ -39,10 +39,10 @@ const ANNOUNCEMENTS: Announcement[] = [
   {
     date: '2026-03-27',
     type: 'update',
-    zh: '✅ CLW 代币上线 Flap，Bonding Curve 已激活',
-    en: '✅ CLW token launched on Flap, Bonding Curve active',
-    link: 'https://www.flap.sh/token/0x82404d91cd6b6cb16b58c650a26122bdc0af7777',
-    linkLabel: 'Flap ↗',
+    zh: '✅ CLW 代币上线 Four.meme，Bonding Curve 已激活',
+    en: '✅ CLW token launched on Four.meme, Bonding Curve active',
+    link: 'https://four.meme/token/0x3b486c191c74c9945fa944a3ddde24acdd63ffff',
+    linkLabel: 'Four.meme ↗',
   },
   {
     date: '2026-03-26',
