@@ -191,7 +191,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
                   <div className="grid grid-cols-2 gap-1 text-[11px]">
                     <div className="term-dim">{cn ? '总任务' : 'Total Tasks'}</div>
                     <div className="term-bright">{Number((taskStats as any)[0] ?? (taskStats as any).total ?? 0)}</div>
-                    <div className="term-dim">{cn ? '累计收益' : 'CLW Earned'}</div>
+                    <div className="term-dim">{cn ? '累计收益' : 'Claworld Earned'}</div>
                     <div className="term-bright">{formatCompact(Number(BigInt((taskStats as any)[1] ?? 0) / 10n**14n) / 10000)}</div>
                     <div className="term-dim">{cn ? '勇气' : 'Courage'}</div><div className="term-dim">{Number((taskStats as any)[2] ?? 0)}</div>
                     <div className="term-dim">{cn ? '智慧' : 'Wisdom'}</div><div className="term-dim">{Number((taskStats as any)[3] ?? 0)}</div>
@@ -234,8 +234,8 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
                             <div className="term-dim">{cn ? '总场次' : 'Battles'}</div><div className="term-bright">{total}</div>
                             <div className="term-dim">{cn ? '胜 / 负' : 'W / L'}</div><div className="term-bright">{wins} / {losses}</div>
                             <div className="term-dim">{cn ? '胜率' : 'Win Rate'}</div><div className={winRate >= 50 ? 'text-crt-green' : 'term-danger'}>{winRate}%</div>
-                            <div className="term-dim">{cn ? '赢得 CLW' : 'CLW Won'}</div><div className="text-crt-green">{formatCompact(clwWon)}</div>
-                            <div className="term-dim">{cn ? '损失 CLW' : 'CLW Lost'}</div><div className="term-danger">{formatCompact(clwLost)}</div>
+                            <div className="term-dim">{cn ? '赢得 Claworld' : 'Claworld Won'}</div><div className="text-crt-green">{formatCompact(clwWon)}</div>
+                            <div className="term-dim">{cn ? '损失 Claworld' : 'Claworld Lost'}</div><div className="term-danger">{formatCompact(clwLost)}</div>
                           </>
                         );
                       })()}
@@ -263,7 +263,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
 
       {/* Bottom mini status bar — sticky at page bottom */}
       <div className="flex items-center justify-between mt-auto pt-2 border-t border-crt-darkest text-xs sticky bottom-0 bg-crt-black pb-1">
-        <span className="term-dim">CLW <span className="term-bright">{formatCLW(balance)}</span></span>
+        <span className="term-dim">Claworld <span className="term-bright">{formatCLW(balance)}</span></span>
         <span className="term-dim">
           Lv.<span className="term-bright">{level}</span>
           {(() => {

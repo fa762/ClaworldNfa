@@ -37,8 +37,8 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
 
   const tabs: { key: Tab; label: string; disabled?: boolean }[] = [
     { key: 'bnb', label: nativeSymbol },
-    { key: 'clw', label: 'CLW' },
-    { key: 'quick', label: `${nativeSymbol}→CLW`, disabled: !buyAndDeposit.graduated },
+    { key: 'clw', label: 'Claworld' },
+    { key: 'quick', label: `${nativeSymbol}?Claworld`, disabled: !buyAndDeposit.graduated },
   ];
 
   const isPending = fundBNB.isPending || depositCLW.isPending || buyAndDeposit.isPending;

@@ -84,7 +84,7 @@ export class ArchiveScene extends Phaser.Scene {
         `${this.lang === 'zh' ? '稀有度' : 'Rarity'}: ${getRarityName(state.rarity, this.lang === 'zh')}`,
         `${this.lang === 'zh' ? '避难所' : 'Shelter'}: ${getShelterName(state.shelter)}`,
         `${this.lang === 'zh' ? '状态' : 'Status'}: ${state.active ? (this.lang === 'zh' ? '激活' : 'Active') : (this.lang === 'zh' ? '休眠' : 'Dormant')}`,
-        `CLW: ${state.clwBalance.toFixed(0)}`,
+        `Claworld: ${state.clwBalance.toFixed(0)}`,
       ];
 
       meta.forEach((line, index) => {

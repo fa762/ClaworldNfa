@@ -29,7 +29,7 @@ export function WorldStateDashboard() {
 
   const rows = [
     { label: t('world.rewardMul'), value: rewardMul ? formatBasisPoints(rewardMul) : '--' },
-    { label: t('world.pkCap'),     value: pkLimit   ? formatCLW(pkLimit) + ' CLW'  : '--' },
+    { label: t('world.pkCap'),     value: pkLimit   ? formatCLW(pkLimit) + ' Claworld'  : '--' },
     { label: t('world.mutBonus'),  value: mutBonus  ? formatBasisPoints(mutBonus)  : '--' },
     { label: t('world.dailyCost'), value: costMul   ? formatBasisPoints(costMul)   : '--' },
   ];
@@ -74,9 +74,9 @@ export function WorldStateDashboard() {
             )}
           </div>
 
-          {/* CLW CA — 只显示合约地址，可复制 */}
+          {/* Claworld CA — 只显示合约地址，可复制 */}
           <div className="mt-3 pt-2 border-t border-crt-green/10 flex items-center justify-between gap-2">
-            <span className="text-[9px] opacity-40 font-mono uppercase tracking-wider shrink-0">$CLW</span>
+            <span className="text-[9px] opacity-40 font-mono uppercase tracking-wider shrink-0">Claworld</span>
             <a
               href={getBscScanAddressUrl(CLW_TOKEN_ADDRESS)}
               target="_blank"

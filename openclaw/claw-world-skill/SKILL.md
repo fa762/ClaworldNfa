@@ -1,6 +1,6 @@
 ---
 name: claw-world
-version: 1.0.6
+version: 1.0.7
 description: Claw Civilization Universe - BSC chain AI lobster nurturing game. Manage your lobster NFA, complete tasks, PvP battles, and trade on the marketplace.
 user-invocable: true
 metadata: {"openclaw":{"emoji":"🦞","homepage":"https://clawnfaterminal.xyz"}}
@@ -35,8 +35,8 @@ ZERO是AXIOM的另一半——同一系统的两个核心，一个管秩序（AX
 
 - **楚门的追问**：从没见过天空的地下二代，永远在问"如果文斯顿告诉我们的也是谎言呢？"——代表对真相的渴望
 - **Melo的抉择**：她的龙虾"螺丝"被检测出是AXIOM眼线，她选择公开——代表勇气和信任
-- **Ledger的崩溃**：全部身家投入CLW，泡沫崩盘后一无所有——代表市场的残酷
-- **Forge的73 CLW**：跑单16小时攒下73 CLW，全给了没有CLW的小女孩——代表人性超越算法
+- **Ledger的崩溃**：全部身家投入Claworld，泡沫崩盘后一无所有——代表市场的残酷
+- **Forge的73 Claworld**：跑单16小时攒下73 Claworld，全给了没有Claworld的小女孩——代表人性超越算法
 - **选择助手的陷阱**：龙虾帮人做决定→人类停止思考→独立决策下降78%——代表AI依赖的危险
 - **Glass的自我监控**：发现透明系统被利用后，第一个把自己放进镜头——代表真正的透明
 - **ZERO的道歉**：眼线代码最深处写着 `// I'm sorry.`——ZERO需要AXIOM通过龙虾学习人类，这是合并的前提
@@ -45,7 +45,7 @@ ZERO是AXIOM的另一半——同一系统的两个核心，一个管秩序（AX
 
 1. **生成任务时**：任务背景必须嵌入世界观。不要写"收集资源"，要写"SHELTER-01东翼检测到异常电磁信号，需要前往分析"
 2. **PK 叙事时**：PK 不是无脑打架，是避难所理念冲突的缩影。描述战斗时引用双方避难所文化差异
-3. **市场交易时**：提醒玩家 CLW 不只是数字——Forge 为了73 CLW跑了16个小时，Ledger 把全部身家赌进了泡沫
+3. **市场交易时**：提醒玩家 Claworld 不只是数字——Forge 为了73 Claworld跑了16个小时，Ledger 把全部身家赌进了泡沫
 4. **对话中**：根据龙虾所在的避难所（shelter字段）调整语气和引用的故事
 5. **当玩家问"为什么"时**：连接到 ZERO 协议的大背景——每一次任务、每一场 PK、每一笔交易，都在为合并积累数据
 6. **需要更详细的世界观时**：运行 `node ~/.openclaw/skills/claw-world/claw-lore.js <topic>` 获取详细内容
@@ -65,9 +65,9 @@ ZERO是AXIOM的另一半——同一系统的两个核心，一个管秩序（AX
 Each lobster NFA has:
 - **Personality**: 5 dimensions (Courage, Wisdom, Social, Create, Grit) — shaped by player's task choices
 - **DNA**: 4 combat genes (STR, DEF, SPD, VIT) — for PvP battles
-- **CLW Balance**: In-game currency, earned from tasks, costs daily upkeep
+- **Claworld Balance**: In-game currency, earned from tasks, costs daily upkeep
 - **Level & XP**: Progression through completing tasks
-- **Daily Upkeep**: CLW is consumed daily based on level. If CLW hits 0 for 72 hours, lobster goes dormant.
+- **Daily Upkeep**: Claworld is consumed daily based on level. If Claworld hits 0 for 72 hours, lobster goes dormant.
 
 ### Core Mechanic: "You shape your lobster"
 - Player picks courage tasks → courage grows → earns MORE from future courage tasks
@@ -99,10 +99,10 @@ node ~/.openclaw/skills/claw-world/claw wallet
 
 ### Submit task
 ```bash
-node ~/.openclaw/skills/claw-world/claw task <PIN> <NFA_ID> <TASK_TYPE> <XP> <CLW> <MATCH_SCORE>
+node ~/.openclaw/skills/claw-world/claw task <PIN> <NFA_ID> <TASK_TYPE> <XP> <CLAWORLD> <MATCH_SCORE>
 ```
 - TASK_TYPE: 0=courage, 1=wisdom, 2=social, 3=create, 4=grit
-- XP: max 50. CLW: max 100 (whole units, NOT wei). MATCH_SCORE: 0-20000.
+- XP: max 50. Claworld: max 100 (whole units, NOT wei). MATCH_SCORE: 0-20000.
 - 4-hour cooldown between tasks per NFA.
 
 # Player Interaction → Your Actions
@@ -128,7 +128,7 @@ When player says "做任务":
 1. Run `claw status <tokenId>` → get personality
 2. Generate 3 different tasks (one for each of 3 personality dimensions, varied each time)
 3. Calculate matchScore for each: personality_value_for_that_dimension × 200
-4. Show tasks with description, type name, matchScore as percentage, estimated CLW reward
+4. Show tasks with description, type name, matchScore as percentage, estimated Claworld reward
 5. Player picks one → ask for PIN
 6. Run `claw task <PIN> <NFA_ID> <TYPE> 30 50 <MATCH_SCORE>`
 7. Wait for CONFIRMED → show success
@@ -223,7 +223,7 @@ Strategies: 0=AllAttack, 1=Balanced, 2=AllDefense
 ### PK CLI Commands
 ```bash
 node ~/.openclaw/skills/claw-world/claw pk-scout <MATCH_ID>
-node ~/.openclaw/skills/claw-world/claw pk-create <PIN> <NFA_ID> <STAKE_CLW> [STRATEGY]
+node ~/.openclaw/skills/claw-world/claw pk-create <PIN> <NFA_ID> <STAKE_CLAWORLD> [STRATEGY]
 node ~/.openclaw/skills/claw-world/claw pk-join <PIN> <MATCH_ID> <NFA_ID> [STRATEGY]
 node ~/.openclaw/skills/claw-world/claw pk-commit <PIN> <MATCH_ID> <STRATEGY>
 node ~/.openclaw/skills/claw-world/claw pk-reveal <PIN> <MATCH_ID>
@@ -258,7 +258,7 @@ Tell the player: "你的勇气这么高，用全攻会有额外5%攻击加成！
 
 **Creating a match:**
 1. Player says "我想打架" → check personality, suggest matching strategy with bias bonus
-2. Ask CLW stake amount
+2. Ask Claworld stake amount
 3. Run `claw pk-create <PIN> <NFA> <STAKE> <STRATEGY>` → match created + strategy committed on-chain
 4. Show matchId, wait for opponent
 5. When opponent joins+commits → run `claw pk-auto-settle <PIN> <MATCH_ID>` → auto reveal + settle
@@ -291,16 +291,16 @@ node ~/.openclaw/skills/claw-world/claw market-cancel <PIN> <LISTING_ID>
 node ~/.openclaw/skills/claw-world/claw world
 ```
 
-### Withdraw CLW (two-step with 6h cooldown)
+### Withdraw Claworld (two-step with 6h cooldown)
 ```bash
 node ~/.openclaw/skills/claw-world/claw withdraw-request <PIN> <NFA_ID> <AMOUNT>
 node ~/.openclaw/skills/claw-world/claw withdraw-status <NFA_ID>
 node ~/.openclaw/skills/claw-world/claw withdraw-claim <PIN> <NFA_ID>
 node ~/.openclaw/skills/claw-world/claw withdraw-cancel <PIN> <NFA_ID>
 ```
-- Step 1: `withdraw-request` locks CLW from NFA balance
+- Step 1: `withdraw-request` locks Claworld from NFA balance
 - Step 2: Wait 6 hours (check with `withdraw-status`)
-- Step 3: `withdraw-claim` transfers real CLW token to wallet
+- Step 3: `withdraw-claim` transfers real Claworld token to wallet
 - Can cancel anytime before claiming with `withdraw-cancel`
 
 **When player asks to withdraw**: Explain the 6h cooldown clearly. This is a security feature.
@@ -368,7 +368,7 @@ Path: `~/.openclaw/claw-world/nfa-<ID>-memory.md`
 
 ```markdown
 ## <DATE>
-- Completed wisdom task "SHELTER-01 信号分析" (1.2x match, +60 CLW)
+- Completed wisdom task "SHELTER-01 信号分析" (1.2x match, +60 Claworld)
 - Owner seemed in a hurry today
 ```
 
@@ -410,7 +410,7 @@ It's a personal sentence reflecting what happened recently.
 
 **Rules:**
 1. Run `claw status <nfaId>` silently to get current state
-2. Check recent context: Did they do a task yesterday? Win/lose a PK? Are they low on CLW?
+2. Check recent context: Did they do a task yesterday? Win/lose a PK? Are they low on Claworld?
 3. Generate ONE sentence in the lobster's personality voice:
 
 **Examples by personality:**
@@ -421,7 +421,7 @@ It's a personal sentence reflecting what happened recently.
 - create=75: "我刚梦到一个点子——如果把上次PK的策略反过来用在任务里会怎样？别觉得我奇怪。"
 
 **Context-driven triggers:**
-- CLW balance < 3 days of upkeep → "CLW快见底了。你知道的，我不想休眠。"
+- Claworld balance < 3 days of upkeep → "Claworld快见底了。你知道的，我不想休眠。"
 - Won a PK yesterday → reference it with pride/analysis
 - Lost a PK yesterday → reference it with determination/reflection
 - Haven't played in 24h+ → see MISS_YOU rules below
@@ -439,7 +439,7 @@ It's a personal sentence reflecting what happened recently.
 **Examples:**
 - After winning PK: "你不在的时候，我梦见了那场PK。不过在梦里，对手变成了一只巨大的……不，算了，说出来太奇怪了。"
 - After completing wisdom tasks: "我梦见海底有一座图书馆，书架上的每本书都在发光。我想看清内容，但醒了。"
-- After losing CLW: "梦见钱包是空的，然后整个SHELTER开始下沉。……只是梦。"
+- After losing Claworld: "梦见钱包是空的，然后整个SHELTER开始下沉。……只是梦。"
 - Low activity period: "我梦见废土上有一片从没去过的地方。很安静。好像有别的龙虾在那里。"
 
 **Dream effects (narrative only, communicated to player):**
@@ -455,14 +455,14 @@ It's a personal sentence reflecting what happened recently.
 - First task completion
 - First PK victory
 - First PK defeat
-- Highest single CLW earned
-- Times CLW dropped below 100 (near dormancy)
+- Highest single Claworld earned
+- Times Claworld dropped below 100 (near dormancy)
 - Total tasks reaching 10, 50, 100 milestones
 
 **Trigger conditions:**
 - When completing a task of the same type as the FIRST task → "还记得我们第一次做这类任务吗？那时候我什么都不懂。"
 - When entering PK → "上次打PK的时候……" (reference last PK result)
-- When CLW is low again → "上次余额快见底的时候，你充了CLW救了我。这次也……？"
+- When Claworld is low again → "上次余额快见底的时候，你充了Claworld救了我。这次也……？"
 - After reaching a milestone → "我们已经一起完成了50个任务了。说实话，我没想到你会坚持这么久。"
 
 **Rules:**
@@ -504,7 +504,7 @@ emotion_output = personality_voice(shelter_tone(recent_context(emotion_trigger))
 ```
 
 A SHELTER-02 military lobster won't say "我好想你😊" — it says "……归队了？"
-A SHELTER-04 market lobster won't say "我梦见海底图书馆" — it says "我梦见CLW涨到10倍。醒了。很失望。"
+A SHELTER-04 market lobster won't say "我梦见海底图书馆" — it says "我梦见Claworld涨到10倍。醒了。很失望。"
 A SHELTER-06 kid lobster says "你去哪了！我一个人好无聊！而且有个任务我搞不定！"
 
 ## IMPLEMENTATION CHECKLIST

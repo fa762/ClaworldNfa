@@ -76,8 +76,8 @@ export function FilterBar({ filters, onChange, walletConnected, viewMode, onView
         <option value="level-asc">{t('filter.levelAsc')}</option>
         <option value="rarity-desc">{t('filter.rarityDesc')}</option>
         <option value="rarity-asc">{t('filter.rarityAsc')}</option>
-        <option value="clw-desc">CLW ↓</option>
-        <option value="clw-asc">CLW ↑</option>
+        <option value="clw-desc">Claworld ↓</option>
+        <option value="clw-asc">Claworld ↑</option>
         <option value="bnb-desc">BNB ↓</option>
         <option value="bnb-asc">BNB ↑</option>
       </select>

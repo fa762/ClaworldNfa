@@ -66,13 +66,13 @@ function useChapters() {
             <div className="term-bright glow mb-1">{cn ? '开始对话' : 'Start Chatting'}</div>
             <p className="term-dim">{cn ? '在 OpenClaw 中直接跟你的龙虾对话，使用以下命令：' : 'Chat with your lobster in OpenClaw using these commands:'}</p>
             <Tbl rows={cn ? [
-              ['/task', 'AI 生成 3 个任务，选一个完成赚 CLW'],
+              ['/task', 'AI 生成 3 个任务，选一个完成赚 Claworld'],
               ['/pk', '创建或加入 PvP 擂台对战'],
               ['/market', '市场交易 — 挂售、竞拍、购买'],
               ['/wallet', '查看钱包余额和地址'],
               ['/status', '查看龙虾完整状态'],
             ] : [
-              ['/task', 'AI generates 3 tasks — pick one to earn CLW'],
+              ['/task', 'AI generates 3 tasks — pick one to earn Claworld'],
               ['/pk', 'Create or join PvP arena battle'],
               ['/market', 'Trade NFAs — list, auction, buy'],
               ['/wallet', 'Check wallet balance & address'],
@@ -172,13 +172,13 @@ function useChapters() {
             <Tbl rows={cn ? [
               ['基础层', 'ERC-721 / BEP-721 兼容'],
               ['身份', '链上唯一 Agent ID + 所有者绑定'],
-              ['钱包', '每个 NFA 有独立 CLW 余额（合约内部记账）'],
+              ['钱包', '每个 NFA 有独立 Claworld 余额（合约内部记账）'],
               ['执行', '通过 Skill 合约执行任务/PK/交易'],
               ['学习', '性格演化 + DNA 变异 + 学习树根哈希'],
             ] : [
               ['Base', 'ERC-721 / BEP-721 compatible'],
               ['Identity', 'On-chain unique Agent ID + owner binding'],
-              ['Wallet', 'Each NFA has independent CLW balance (contract ledger)'],
+              ['Wallet', 'Each NFA has independent Claworld balance (contract ledger)'],
               ['Execution', 'Executes tasks/PK/trades via Skill contracts'],
               ['Learning', 'Personality evolution + DNA mutation + learning tree root'],
             ]} />
@@ -187,7 +187,7 @@ function useChapters() {
           <div className="term-box" data-title={cn ? '合约架构' : 'CONTRACT ARCH'}>
             <Tbl rows={[
               ['ClawNFA', cn ? 'ERC-721 NFA 代币' : 'ERC-721 NFA token'],
-              ['ClawRouter', cn ? '核心路由 — CLW 余额、状态、Skill 分发' : 'Core router — CLW balance, state, skill dispatch'],
+              ['ClawRouter', cn ? '核心路由 — Claworld 余额、状态、Skill 分发' : 'Core router — Claworld balance, state, skill dispatch'],
               ['TaskSkill', cn ? '任务系统 — AI 生成 + 链上结算' : 'Task system — AI generation + on-chain settlement'],
               ['PKSkill', cn ? 'PvP 擂台 — commit-reveal 策略' : 'PvP arena — commit-reveal strategy'],
               ['MarketSkill', cn ? '市场 — 固定价/拍卖/互换' : 'Market — fixed price / auction / swap'],
@@ -204,89 +204,89 @@ function useChapters() {
     },
     {
       id: 'economy',
-      title: cn ? 'CLW 代币经济' : 'CLW Economy',
+      title: cn ? 'Claworld 代币经济' : 'Claworld Economy',
       content: () => (
         <div className="space-y-3 text-xs">
-          <p className="term-dim">{cn ? 'CLW 是游戏的核心经济代币，链上发行，游戏内流通：' : 'CLW is the core economy token — issued on-chain, circulated in-game:'}</p>
+          <p className="term-dim">{cn ? 'Claworld 是游戏的核心经济代币，链上发行，游戏内流通：' : 'Claworld is the core economy token — issued on-chain, circulated in-game:'}</p>
 
-          <div className="term-box" data-title={cn ? '获取方式' : 'EARN CLW'}>
+          <div className="term-box" data-title={cn ? '获取方式' : 'EARN Claworld'}>
             <Tbl rows={cn ? [
               ['完成任务', '基础奖励 × 匹配倍率（最高 2.0x）'],
               ['PK 获胜', '赢得对手质押的 90%'],
-              ['创世空投', 'Mint 时按稀有度空投 CLW'],
+              ['创世空投', 'Mint 时按稀有度空投 Claworld'],
             ] : [
               ['Complete tasks', 'Base reward × match multiplier (up to 2.0x)'],
               ['Win PK', 'Earn 90% of opponent\'s stake'],
-              ['Genesis airdrop', 'CLW airdrop based on rarity at mint'],
+              ['Genesis airdrop', 'Claworld airdrop based on rarity at mint'],
             ]} />
           </div>
 
-          <div className="term-box" data-title={cn ? '消耗方式' : 'SPEND CLW'}>
+          <div className="term-box" data-title={cn ? '消耗方式' : 'SPEND Claworld'}>
             <Tbl rows={cn ? [
-              ['每日维护', '龙虾每天消耗 CLW（毅力越高消耗越低）'],
-              ['PK 质押', '对战需质押 CLW，输了会损失'],
+              ['每日维护', '龙虾每天消耗 Claworld（毅力越高消耗越低）'],
+              ['PK 质押', '对战需质押 Claworld，输了会损失'],
               ['PK 销毁', '每场 PK 10% 质押永久销毁（通缩）'],
             ] : [
-              ['Daily upkeep', 'Lobster consumes CLW daily (higher grit = lower cost)'],
-              ['PK stake', 'Must stake CLW to battle, lose if defeated'],
+              ['Daily upkeep', 'Lobster consumes Claworld daily (higher grit = lower cost)'],
+              ['PK stake', 'Must stake Claworld to battle, lose if defeated'],
               ['PK burn', '10% of each PK stake is permanently burned'],
             ]} />
           </div>
 
           <div className="term-box" data-title={cn ? '休眠机制' : 'DORMANCY'}>
             <Tbl rows={cn ? [
-              ['CLW 归零', '余额为 0 时开始 72 小时倒计时'],
+              ['Claworld 归零', '余额为 0 时开始 72 小时倒计时'],
               ['72h 后', '龙虾进入休眠 — 无法做任务/PK'],
-              ['唤醒方式', '充值 CLW 到 NFA 即可恢复'],
+              ['唤醒方式', '充值 Claworld 到 NFA 即可恢复'],
               ['日消耗公式', '基础消耗 × (200-毅力)/200 × 世界倍率'],
             ] : [
-              ['CLW hits 0', '72-hour countdown begins'],
+              ['Claworld hits 0', '72-hour countdown begins'],
               ['After 72h', 'Lobster goes dormant — no tasks/PK'],
-              ['Revival', 'Deposit CLW to wake it up'],
+              ['Revival', 'Deposit Claworld to wake it up'],
               ['Cost formula', 'base × (200-grit)/200 × worldMultiplier'],
             ]} />
           </div>
 
           <div className="term-box" data-title={cn ? '提现流程' : 'WITHDRAW'}>
             <Tbl rows={cn ? [
-              ['第 1 步', '发起提现请求 → CLW 从 NFA 余额锁定'],
+              ['第 1 步', '发起提现请求 → Claworld 从 NFA 余额锁定'],
               ['等 6 小时', '安全冷却期（防止被盗后立即转走）'],
-              ['第 3 步', '领取 → 真实 CLW 代币转到你的钱包'],
-              ['取消', '冷却期内可随时取消，CLW 退回 NFA'],
+              ['第 3 步', '领取 → 真实 Claworld 代币转到你的钱包'],
+              ['取消', '冷却期内可随时取消，Claworld 退回 NFA'],
             ] : [
-              ['Step 1', 'Request withdraw → CLW locked from NFA balance'],
+              ['Step 1', 'Request withdraw → Claworld locked from NFA balance'],
               ['Wait 6h', 'Security cooldown (prevents instant theft)'],
-              ['Step 3', 'Claim → real CLW token transferred to wallet'],
+              ['Step 3', 'Claim → real Claworld token transferred to wallet'],
               ['Cancel', 'Can cancel anytime during cooldown'],
             ]} />
           </div>
 
           <div className="term-box" data-title={cn ? '创世空投' : 'GENESIS AIRDROP'}>
             <Tbl rows={cn ? [
-              ['普通', '1,000 CLW'],
-              ['稀有', '3,000 CLW'],
-              ['史诗', '6,000 CLW'],
-              ['传说', '12,000 CLW'],
-              ['神话', '30,000 CLW'],
+              ['普通', '1,000 Claworld'],
+              ['稀有', '3,000 Claworld'],
+              ['史诗', '6,000 Claworld'],
+              ['传说', '12,000 Claworld'],
+              ['神话', '30,000 Claworld'],
             ] : [
-              ['Common', '1,000 CLW'],
-              ['Rare', '3,000 CLW'],
-              ['Epic', '6,000 CLW'],
-              ['Legendary', '12,000 CLW'],
-              ['Mythic', '30,000 CLW'],
+              ['Common', '1,000 Claworld'],
+              ['Rare', '3,000 Claworld'],
+              ['Epic', '6,000 Claworld'],
+              ['Legendary', '12,000 Claworld'],
+              ['Mythic', '30,000 Claworld'],
             ]} />
           </div>
 
           <div className="term-box" data-title={cn ? '世界状态' : 'WORLD STATE'}>
             <p className="term-dim">{cn ? '全局参数影响所有玩家，由 24 小时时间锁保护：' : 'Global parameters affect all players, protected by 24h timelock:'}</p>
             <Tbl rows={cn ? [
-              ['奖励倍率', '影响任务 CLW 奖励数量'],
+              ['奖励倍率', '影响任务 Claworld 奖励数量'],
               ['PK 质押上限', '单场最大质押额'],
               ['变异加成', '基因变异触发概率'],
               ['日消耗倍率', '维护费调整'],
               ['世界事件', '泡沫期(奖励↓费用↑变异↑) / 寒冬期(奖励↑费用↓质押↓) / 黄金时代'],
             ] : [
-              ['Reward multiplier', 'Affects task CLW rewards'],
+              ['Reward multiplier', 'Affects task Claworld rewards'],
               ['PK stake cap', 'Max stake per match'],
               ['Mutation bonus', 'Gene mutation trigger probability'],
               ['Daily cost', 'Upkeep cost adjustment'],
@@ -417,25 +417,25 @@ function useChapters() {
           <p className="term-dim">{cn ? '游戏的核心循环：' : 'The core gameplay loop:'}</p>
 
           <div className="term-box" data-title={cn ? '日常' : 'DAILY'}>
-            <p className="term-dim">{cn ? '① 跟龙虾对话 → ② AI 生成 3 个任务 → ③ 选一个完成 → ④ 赚 CLW + 性格变化 → ⑤ 重复' : '① Chat with lobster → ② AI generates 3 tasks → ③ Pick one → ④ Earn CLW + personality shift → ⑤ Repeat'}</p>
+            <p className="term-dim">{cn ? '① 跟龙虾对话 → ② AI 生成 3 个任务 → ③ 选一个完成 → ④ 赚 Claworld + 性格变化 → ⑤ 重复' : '① Chat with lobster → ② AI generates 3 tasks → ③ Pick one → ④ Earn Claworld + personality shift → ⑤ Repeat'}</p>
           </div>
 
           <div className="term-box" data-title={cn ? '进阶' : 'ADVANCED'}>
             <Tbl rows={cn ? [
               ['培养方向', '专注一类任务 → 性格特化 → 匹配度提升 → 收益翻倍'],
-              ['PK 对战', '质押 CLW 跟其他玩家战斗，赢者通吃'],
+              ['PK 对战', '质押 Claworld 跟其他玩家战斗，赢者通吃'],
               ['市场交易', '觉得龙虾养歪了？卖掉重来。觉得别人的好？买一只'],
               ['基因变异', '以弱胜强触发 DNA 升级，Common 也能逆袭'],
             ] : [
               ['Specialize', 'Focus on one task type → personality specializes → rewards multiply'],
-              ['PK Arena', 'Stake CLW to fight other players, winner takes all'],
+              ['PK Arena', 'Stake Claworld to fight other players, winner takes all'],
               ['Market', 'Sell lobsters you don\'t want, buy ones you do'],
               ['Mutation', 'Beat stronger opponents to trigger DNA upgrades'],
             ]} />
           </div>
 
           <div className="term-box" data-title={cn ? '注意' : 'IMPORTANT'}>
-            <p className="term-dim">{cn ? '龙虾每天消耗 CLW 作为维护费。余额归零 → 龙虾休眠 → 无法做任务/PK。保持 CLW 余额是生存的基本功。' : 'Lobsters consume CLW daily as upkeep. Zero balance → dormant → can\'t do tasks/PK. Keeping CLW balance is survival 101.'}</p>
+            <p className="term-dim">{cn ? '龙虾每天消耗 Claworld 作为维护费。余额归零 → 龙虾休眠 → 无法做任务/PK。保持 Claworld 余额是生存的基本功。' : 'Lobsters consume Claworld daily as upkeep. Zero balance → dormant → can\'t do tasks/PK. Keeping Claworld balance is survival 101.'}</p>
           </div>
         </div>
       ),

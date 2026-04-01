@@ -18,7 +18,7 @@
  *   wasteland   - 废土
  *   characters  - 关键角色速查
  *   timeline    - 关键事件时间线
- *   economy     - CLW 经济的叙事意义
+ *   economy     - Claworld 经济的叙事意义
  *   (no args)   - 显示所有可用主题
  */
 

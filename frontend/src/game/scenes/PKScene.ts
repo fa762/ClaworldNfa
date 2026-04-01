@@ -189,7 +189,7 @@ export class PKScene extends Phaser.Scene {
         this.showStatus(this.lang === 'zh' ? `已揭示策略 #${result.matchId}${readyToSettle}` : `Revealed strategy for #${result.matchId}${readyToSettle}`, '#39ff14');
       } else if (result.action === 'settle') {
         if (result.winnerNfaId === this.nfaId) {
-          this.showStatus(this.lang === 'zh' ? `胜利! 获得 ${result.reward || '?'} CLW` : `Victory! Earned ${result.reward || '?'} CLW`, '#39ff14');
+          this.showStatus(this.lang === 'zh' ? `胜利! 获得 ${result.reward || '?'} Claworld` : `Victory! Earned ${result.reward || '?'} Claworld`, '#39ff14');
         } else if (result.loserNfaId === this.nfaId) {
           this.showStatus(this.lang === 'zh' ? '败北... 本场已结算' : 'Defeat... Match settled.', '#ff4444');
         } else {
@@ -242,9 +242,9 @@ export class PKScene extends Phaser.Scene {
   private promptCreate() {
     this.modal.showForm({
       title: this.lang === 'zh' ? '创建擂台' : 'Create match',
-      subtitle: this.lang === 'zh' ? '输入本场要锁定的 CLW 质押。签名后会在链上创建对战。' : 'Enter the CLW stake for this match. Signing will create it onchain.',
+      subtitle: this.lang === 'zh' ? '输入本场要锁定的 Claworld 质押。签名后会在链上创建对战。' : 'Enter the Claworld stake for this match. Signing will create it onchain.',
       fields: [
-        { name: 'stake', label: this.lang === 'zh' ? '质押 CLW' : 'Stake CLW', type: 'number', value: '100', placeholder: '100' },
+        { name: 'stake', label: this.lang === 'zh' ? '质押 Claworld' : 'Stake Claworld', type: 'number', value: '100', placeholder: '100' },
       ],
       submitLabel: this.lang === 'zh' ? '下一步' : 'Next',
       onSubmit: (values) => {
@@ -272,7 +272,7 @@ export class PKScene extends Phaser.Scene {
       subtitle: this.lang === 'zh' ? '选择一场已提交 commit 的对战，公开你的策略与 salt。' : 'Choose a committed match to reveal your strategy and salt.',
       options: revealable.map((match) => ({
         label: `#${match.matchId}  对手 NFA #${match.nfaA === this.nfaId ? match.nfaB : match.nfaA}`,
-        description: `质押 ${match.stake} CLW · ${match.phaseName}`,
+        description: `质押 ${match.stake} Claworld · ${match.phaseName}`,
         onSelect: () => eventBus.emit('pk:reveal', { matchId: match.matchId }),
       })),
     });
@@ -291,7 +291,7 @@ export class PKScene extends Phaser.Scene {
       subtitle: this.lang === 'zh' ? '双方都已揭示策略，选择一场对战执行链上结算。' : 'Both sides revealed. Choose a match to settle onchain.',
       options: settleable.map((match) => ({
         label: `#${match.matchId}  NFA #${match.nfaA} vs NFA #${match.nfaB}`,
-        description: `总质押 ${Number(match.stake) * 2} CLW`,
+        description: `总质押 ${Number(match.stake) * 2} Claworld`,
         onSelect: () => eventBus.emit('pk:settle', { matchId: match.matchId }),
       })),
     });
@@ -312,7 +312,7 @@ export class PKScene extends Phaser.Scene {
       subtitle: this.lang === 'zh' ? '只能取消 OPEN / JOINED / COMMITTED 状态的对战。' : 'Only OPEN / JOINED / COMMITTED matches can be cancelled.',
       options: cancellable.map((match) => ({
         label: `#${match.matchId}  ${match.phaseName}`,
-        description: `NFA #${match.nfaA} vs ${match.nfaB || '-'} · 质押 ${match.stake} CLW`,
+        description: `NFA #${match.nfaA} vs ${match.nfaB || '-'} · 质押 ${match.stake} Claworld`,
         onSelect: () => eventBus.emit('pk:cancel', { matchId: match.matchId }),
       })),
     });
@@ -322,7 +322,7 @@ export class PKScene extends Phaser.Scene {
     this.modal.showMenu({
       title: mode === 'create' ? (this.lang === 'zh' ? '选择战斗策略' : 'Choose battle strategy') : (this.lang === 'zh' ? `加入擂台 #${options.matchId}` : `Join match #${options.matchId}`),
       subtitle: options.stake
-        ? (this.lang === 'zh' ? `本场质押 ${options.stake} CLW。不同策略互相克制，揭示后才能结算。` : `This match stakes ${options.stake} CLW. Strategies counter each other and must be revealed before settlement.`)
+        ? (this.lang === 'zh' ? `本场质押 ${options.stake} Claworld。不同策略互相克制，揭示后才能结算。` : `This match stakes ${options.stake} Claworld. Strategies counter each other and must be revealed before settlement.`)
         : (this.lang === 'zh' ? '选择你的战斗策略。' : 'Choose your battle strategy.'),
       options: (this.lang === 'zh' ? STRATEGIES_ZH : STRATEGIES_EN).map((strategy, index) => ({
         label: strategy.name,
@@ -364,7 +364,7 @@ export class PKScene extends Phaser.Scene {
         y,
         isCompact
           ? this.buildCompactMatchText(match)
-          : `${String(match.matchId).padEnd(6)} ${String(match.nfaA).padEnd(8)} ${String(match.nfaB || '-').padEnd(8)} ${`${match.stake} CLW`.padEnd(12)} ${match.phaseName.padEnd(14)}`,
+          : `${String(match.matchId).padEnd(6)} ${String(match.nfaA).padEnd(8)} ${String(match.nfaB || '-').padEnd(8)} ${`${match.stake} Claworld`.padEnd(12)} ${match.phaseName.padEnd(14)}`,
         { fontSize: isCompact ? '11px' : '12px', fontFamily: 'monospace', color: '#cccccc', lineSpacing: 4 },
       );
 
@@ -422,8 +422,8 @@ export class PKScene extends Phaser.Scene {
       this.modal.showMenu({
         title: this.lang === 'zh' ? `对手 NFA #${nfaId} · ${identity.title}` : `Opponent NFA #${nfaId} · ${identity.title}`,
         subtitle: this.lang === 'zh'
-          ? `Lv.${state.level} · ${state.active ? '激活' : '休眠'} · CLW ${state.clwBalance.toFixed(0)}`
-          : `Lv.${state.level} · ${state.active ? 'Active' : 'Dormant'} · CLW ${state.clwBalance.toFixed(0)}`,
+          ? `Lv.${state.level} · ${state.active ? '激活' : '休眠'} · Claworld ${state.clwBalance.toFixed(0)}`
+          : `Lv.${state.level} · ${state.active ? 'Active' : 'Dormant'} · Claworld ${state.clwBalance.toFixed(0)}`,
         options: [
           { label: identity.subtitle, description: `${dominant[0].label}: ${dominant[0].value} · ${dominant[1].label}: ${dominant[1].value} · ${dominant[2].label}: ${dominant[2].value}`, disabled: true, onSelect: () => {} },
           { label: `STR ${state.str}  DEF ${state.def}  SPD ${state.spd}  VIT ${state.vit}`, description: this.lang === 'zh' ? '链上实时属性快照' : 'Live onchain stat snapshot', disabled: true, onSelect: () => {} },
@@ -457,7 +457,7 @@ export class PKScene extends Phaser.Scene {
       : null;
 
     return this.lang === 'zh'
-      ? `#${match.matchId}  ${match.phaseName}\n对手 NFA ${opponentId || '-'}  ·  ${identity?.title || '未知'}\n质押 ${match.stake} CLW`
-      : `#${match.matchId}  ${match.phaseName}\nOpponent NFA ${opponentId || '-'}  ·  ${identity?.title || 'Unknown'}\nStake ${match.stake} CLW`;
+      ? `#${match.matchId}  ${match.phaseName}\n对手 NFA ${opponentId || '-'}  ·  ${identity?.title || '未知'}\n质押 ${match.stake} Claworld`
+      : `#${match.matchId}  ${match.phaseName}\nOpponent NFA ${opponentId || '-'}  ·  ${identity?.title || 'Unknown'}\nStake ${match.stake} Claworld`;
   }
 }

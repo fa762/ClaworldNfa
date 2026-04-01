@@ -16,9 +16,9 @@ export interface LobsterCardData {
   active: boolean;
   vaultURI: string;
   isOwned: boolean;
-  clwBalance?: string;     // formatted CLW
+  clwBalance?: string;     // formatted Claworld
   ownerBnb?: string;       // formatted BNB/tBNB
-  clwRaw?: number;         // raw CLW for sorting
+  clwRaw?: number;         // raw Claworld for sorting
   bnbRaw?: number;         // raw BNB for sorting
 }
 
@@ -59,7 +59,7 @@ export function LobsterCard({ data }: { data: LobsterCardData }) {
           {/* Assets */}
           {(data.clwBalance || data.ownerBnb) && (
             <div className="flex justify-between term-dim">
-              {data.clwBalance && <span>💰 {data.clwBalance} CLW</span>}
+              {data.clwBalance && <span>💰 {data.clwBalance} Claworld</span>}
               {data.ownerBnb && <span>⛽ {data.ownerBnb} {gasSymbol}</span>}
             </div>
           )}

@@ -6,19 +6,19 @@ import { nativeSymbol } from '@/lib/format';
  */
 export const mockWorldState = {
   rewardMultiplier: '1.20x',
-  pkStakeLimit: '5,000 CLW',
+  pkStakeLimit: '5,000 Claworld',
   mutationBonus: '1.15x',
   dailyCostMultiplier: '0.90x',
   activeEvents: ['GOLDEN_AGE'],
 };
 
 /**
- * Mock CLW token data for demo mode
+ * Mock Claworld token data for demo mode
  */
 export const mockTokenInfo = {
   price: `0.0025 ${nativeSymbol}`,
   graduated: false,
-  totalSupply: '100,000,000 CLW',
+  totalSupply: '100,000,000 Claworld',
   holders: 1_284,
   marketCap: `250,000 ${nativeSymbol}`,
 };

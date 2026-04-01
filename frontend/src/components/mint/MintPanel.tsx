@@ -269,7 +269,7 @@ export function MintPanel() {
                         {isSelected ? '> ' : '  '}
                         {getRarityName(r, isCN)}
                         {' '}{RARITY_PRICES[r]} {nativeSymbol}
-                        {' '}· {t('mint.airdrop')} {RARITY_AIRDROPS[r]} CLW
+                        {' '}· {t('mint.airdrop')} {RARITY_AIRDROPS[r]} Claworld
                         {getRarityStars(r) ? ` ${getRarityStars(r)}` : ''}
                         {soldOut ? ` ${t('mint.soldOut')}` : ''}
                       </button>
@@ -285,7 +285,7 @@ export function MintPanel() {
                   </div>
                   <div className="term-dim">
                     {t('mint.cost')} <span className="term-bright">{RARITY_PRICES[selectedRarity]} {nativeSymbol}</span>
-                    {' '}· {t('mint.airdrop')}: <span className="term-bright">{RARITY_AIRDROPS[selectedRarity]} CLW</span>
+                    {' '}· {t('mint.airdrop')}: <span className="term-bright">{RARITY_AIRDROPS[selectedRarity]} Claworld</span>
                   </div>
                 </div>
 

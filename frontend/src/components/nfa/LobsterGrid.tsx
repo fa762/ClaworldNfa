@@ -81,7 +81,7 @@ export function LobsterGrid() {
             // Agent BNB balance from getAgentState[0] (on-chain balance held by NFA contract)
             const agentBnbRaw = BigInt(state.balance ?? state[0] ?? 0);
 
-            // Format: CLW with commas, BNB to 4 decimals
+            // Format: Claworld with commas, BNB to 4 decimals
             const clwFormatted = Number(clwRaw / 10n**14n) / 10000;  // 18 decimals → 4 dp
             const bnbFormatted = Number(agentBnbRaw / 10n**14n) / 10000;
 
@@ -183,7 +183,7 @@ export function LobsterGrid() {
                     <th>{t('th.level')}</th>
                     <th>{t('th.rarity')}</th>
                     <th className="hidden sm:table-cell">{t('th.shelter')}</th>
-                    <th className="hidden md:table-cell">CLW</th>
+                    <th className="hidden md:table-cell">Claworld</th>
                     <th className="hidden md:table-cell">{isTestnet ? 'tBNB' : 'BNB'}</th>
                     <th>{t('th.status')}</th>
                     <th className="hidden sm:table-cell"></th>

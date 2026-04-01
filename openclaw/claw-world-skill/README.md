@@ -4,11 +4,11 @@ OpenClaw skill for Claw Civilization Universe on BNB Chain.
 
 ## Version
 
-`1.0.6`
+`1.0.7`
 
 ## Highlights
 
-- Mainnet CLW token updated to `0x3b486c191c74c9945fa944a3ddde24acdd63ffff`
+- Mainnet Claworld token updated to `0x3b486c191c74c9945fa944a3ddde24acdd63ffff`
 - OpenClaw skill metadata aligned with current published versioning
 - Mainnet contract address docs corrected for `DepositRouter`, `PersonalityEngine`, and `ClawOracle`
 

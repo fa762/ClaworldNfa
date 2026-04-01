@@ -104,7 +104,7 @@ export function CLWTokenInfo() {
           {clwTotalSupply !== undefined && (
             <div className="mt-2 text-[11px] font-bold flex justify-between">
               <span className="opacity-60">{t('token.supply') || 'Total Supply'}</span>
-              <span className="term-bright">{formatCLW(clwTotalSupply as bigint)} CLW</span>
+              <span className="term-bright">{formatCLW(clwTotalSupply as bigint)} Claworld</span>
             </div>
           )}
 

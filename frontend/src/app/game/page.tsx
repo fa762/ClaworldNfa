@@ -59,7 +59,7 @@ function getErrorMessage(error: unknown): string {
   if (error.message.includes('User rejected')) return 'User rejected transaction';
   if (error.message.includes('Cooldown active')) return 'Task cooldown is still active';
   if (error.message.includes('Not NFA owner')) return 'Current wallet does not own this NFA';
-  if (error.message.includes('Insufficient CLW')) return 'Not enough CLW balance';
+  if (error.message.includes('Insufficient CLW')) return 'Not enough Claworld balance';
   if (error.message.includes('Invalid reveal')) return 'Saved strategy does not match on-chain commit';
 
   return error.message;
@@ -897,7 +897,7 @@ export default function GamePage() {
                   <p className="text-[11px] text-crt-green/50">{buildLobsterIdentity(activeSummary, lang).title}</p>
                   <p>Lv.{activeSummary.level} · {getRarityName(activeSummary.rarity, lang === 'zh')}</p>
                   <p>{getShelterName(activeSummary.shelter)}</p>
-                  <p>CLW {activeSummary.clwBalance.toFixed(0)} · {activeSummary.active ? (lang === 'zh' ? '激活' : 'Active') : (lang === 'zh' ? '休眠' : 'Dormant')}</p>
+                  <p>Claworld {activeSummary.clwBalance.toFixed(0)} · {activeSummary.active ? (lang === 'zh' ? '激活' : 'Active') : (lang === 'zh' ? '休眠' : 'Dormant')}</p>
                 </div>
               ) : (
                 <p className="text-crt-green/30">{lang === 'zh' ? '未选择龙虾' : 'No active lobster'}</p>
@@ -921,7 +921,7 @@ export default function GamePage() {
                   <div>{id === activeNfaIdRef.current ? '▶ ' : '  '}NFA #{id}</div>
                   {nfaSummaries[id] && (
                     <div className="mt-1 text-[11px] text-crt-green/40">
-                      Lv.{nfaSummaries[id].level} · {getRarityName(nfaSummaries[id].rarity, lang === 'zh')} · CLW {nfaSummaries[id].clwBalance.toFixed(0)}
+                      Lv.{nfaSummaries[id].level} · {getRarityName(nfaSummaries[id].rarity, lang === 'zh')} · Claworld {nfaSummaries[id].clwBalance.toFixed(0)}
                     </div>
                   )}
                 </button>
@@ -1107,7 +1107,7 @@ export default function GamePage() {
                               <div className="text-crt-green/55">{identity.title}</div>
                               <div>Lv.{summary.level} · {getRarityName(summary.rarity, lang === 'zh')}</div>
                               <div>{getShelterName(summary.shelter)}</div>
-                              <div>CLW {summary.clwBalance.toFixed(0)} · {summary.active ? (lang === 'zh' ? '激活' : 'Active') : (lang === 'zh' ? '休眠' : 'Dormant')}</div>
+                              <div>Claworld {summary.clwBalance.toFixed(0)} · {summary.active ? (lang === 'zh' ? '激活' : 'Active') : (lang === 'zh' ? '休眠' : 'Dormant')}</div>
                               <div>{lang === 'zh' ? '主性格' : 'Dominant'}: {traits[0].label} {traits[0].value}</div>
                             </div>
                           );

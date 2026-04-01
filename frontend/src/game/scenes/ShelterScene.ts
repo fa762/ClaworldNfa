@@ -148,7 +148,7 @@ export class ShelterScene extends Phaser.Scene {
           'Underground corridor, blue biolight, hydroponic trays',
           'Military steel corridor',
           'Stone walls etched with scripture, warm candlelight',
-          'Container market, CLW price screens',
+          'Container market, Claworld price screens',
           'Glass partitions, surveillance cameras',
           'Graffiti walls, children sketches',
           'Grey sky, ruins, distant city outline',
@@ -256,8 +256,8 @@ export class ShelterScene extends Phaser.Scene {
     const offStats = eventBus.on('nfa:stats', (data: unknown) => {
       const stats = data as { clw: string; level: number; active?: boolean; dailyCost?: string };
       this.hudText.setText(this.lang === 'zh'
-        ? `NFA #${this.nfaId}  |  CLW: ${stats.clw}  |  Lv.${stats.level}  |  ${stats.active ? 'ACTIVE' : 'DORMANT'}  |  UPKEEP ${stats.dailyCost ?? '0'}  |  WASD 移动  |  SPACE 交互`
-        : `NFA #${this.nfaId}  |  CLW: ${stats.clw}  |  Lv.${stats.level}  |  ${stats.active ? 'ACTIVE' : 'DORMANT'}  |  UPKEEP ${stats.dailyCost ?? '0'}  |  WASD Move  |  SPACE Interact`);
+        ? `NFA #${this.nfaId}  |  Claworld: ${stats.clw}  |  Lv.${stats.level}  |  ${stats.active ? 'ACTIVE' : 'DORMANT'}  |  UPKEEP ${stats.dailyCost ?? '0'}  |  WASD 移动  |  SPACE 交互`
+        : `NFA #${this.nfaId}  |  Claworld: ${stats.clw}  |  Lv.${stats.level}  |  ${stats.active ? 'ACTIVE' : 'DORMANT'}  |  UPKEEP ${stats.dailyCost ?? '0'}  |  WASD Move  |  SPACE Interact`);
     });
 
     const offFullStats = eventBus.on('nfa:fullStats', (data: unknown) => {
@@ -599,7 +599,7 @@ export class ShelterScene extends Phaser.Scene {
           `Market feed: new auction and swap requests were written onchain in the last 24h`,
           `Arena channel: the combat terminals are waiting for new reveals and settlements`,
           `Hall of Echoes updated: champion lobster projections synced to this shelter`,
-          `Shelter intel: ${['Underground corridor, blue biolight, hydroponic trays','Military steel corridor','Stone walls etched with scripture, warm candlelight','Container market, CLW price screens','Glass partitions, surveillance cameras','Graffiti walls, children sketches','Grey sky, ruins, distant city outline','Glowing moss, natural cavern, firepit'][this.shelter] ?? ''}`,
+          `Shelter intel: ${['Underground corridor, blue biolight, hydroponic trays','Military steel corridor','Stone walls etched with scripture, warm candlelight','Container market, Claworld price screens','Glass partitions, surveillance cameras','Graffiti walls, children sketches','Grey sky, ruins, distant city outline','Glowing moss, natural cavern, firepit'][this.shelter] ?? ''}`,
         ];
 
     const broadcast = this.add.text(W / 2, 34, broadcastMessages[0], {

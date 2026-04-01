@@ -11,14 +11,14 @@ const features = {
   zh: [
     { key: '1', label: 'AI 对话养成', desc: '与龙虾对话，塑造性格与技能' },
     { key: '2', label: 'DNA 基因系统', desc: '独特基因组，变异进化创造无限可能' },
-    { key: '3', label: 'PK 竞技对战', desc: '质押 CLW，智慧与策略决定胜负' },
-    { key: '4', label: 'CLW 代币经济', desc: '链上代币驱动，参与生态获取收益' },
+    { key: '3', label: 'PK 竞技对战', desc: '质押 Claworld，智慧与策略决定胜负' },
+    { key: '4', label: 'Claworld 代币经济', desc: '链上代币驱动，参与生态获取收益' },
   ],
   en: [
     { key: '1', label: 'AI Dialogue',  desc: 'Chat with your lobster, shape its personality' },
     { key: '2', label: 'DNA System',   desc: 'Unique genes — mutations create infinite possibilities' },
-    { key: '3', label: 'PK Arena',     desc: 'Stake CLW — wit and strategy decide the winner' },
-    { key: '4', label: 'CLW Economy',  desc: 'On-chain token economy — participate to earn' },
+    { key: '3', label: 'PK Arena',     desc: 'Stake Claworld — wit and strategy decide the winner' },
+    { key: '4', label: 'Claworld Economy',  desc: 'On-chain token economy — participate to earn' },
   ],
 };
 

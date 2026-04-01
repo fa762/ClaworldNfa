@@ -44,7 +44,7 @@ export function getTaskDialogue(nfaId: number, personality: { courage: number; w
   return {
     lines: [
       { speaker: lang === 'zh' ? '任务终端' : 'Task Terminal', text: lang === 'zh' ? `NFA #${nfaId} 验证通过。主导属性: ${top.name} (${top.val})` : `NFA #${nfaId} verified. Dominant trait: ${top.name} (${top.val})`, color: '#ffd700' },
-      { speaker: lang === 'zh' ? '任务终端' : 'Task Terminal', text: lang === 'zh' ? '当前有 3 项任务可领取，完成可获得 CLW 奖励。' : 'Three tasks are available. Completing one will grant CLW rewards.', color: '#ffd700' },
+      { speaker: lang === 'zh' ? '任务终端' : 'Task Terminal', text: lang === 'zh' ? '当前有 3 项任务可领取，完成可获得 Claworld 奖励。' : 'Three tasks are available. Completing one will grant Claworld rewards.', color: '#ffd700' },
     ],
     choices: [
       { label: lang === 'zh' ? '查看任务列表' : 'View task list', action: 'task:enter' },
@@ -62,7 +62,7 @@ export function getPKDialogue(nfaId: number, lang: GameLang): DialogueNode {
       { speaker: lang === 'zh' ? '竞技终端' : 'Arena Terminal', text: lang === 'zh' ? '全攻克全防，全防克平衡，平衡克全攻。性格加成可能改变结果。' : 'Aggro beats Guard, Guard beats Balance, Balance beats Aggro. Personality bonuses may change the outcome.', color: '#ff4444' },
     ],
     choices: [
-      { label: lang === 'zh' ? '创建擂台（质押 CLW）' : 'Create match (stake CLW)', action: 'pk:showCreate' },
+      { label: lang === 'zh' ? '创建擂台（质押 Claworld）' : 'Create match (stake Claworld)', action: 'pk:showCreate' },
       { label: lang === 'zh' ? '搜索等待中的擂台' : 'Search open matches', action: 'pk:search' },
       { label: lang === 'zh' ? '离开' : 'Leave', action: 'dialogue:close' },
     ],
@@ -155,11 +155,11 @@ export function getRandomNPCDialogue(_shelter: number, lang: GameLang): Dialogue
         ],
     lang === 'zh'
       ? [
-          { speaker: '商人', text: '最近 CLW 汇率又变了。世界状态倍率调高了，任务赚的多了。' },
+          { speaker: '商人', text: '最近 Claworld 汇率又变了。世界状态倍率调高了，任务赚的多了。' },
           { speaker: '商人', text: '想赚钱？培养一只高匹配度的龙虾，比什么都强。' },
         ]
       : [
-          { speaker: 'Merchant', text: 'The CLW rate moved again. World-state multiplier is up, so tasks pay more.' },
+          { speaker: 'Merchant', text: 'The Claworld rate moved again. World-state multiplier is up, so tasks pay more.' },
           { speaker: 'Merchant', text: 'Want profit? Raise a lobster with high match scores. Nothing beats that.' },
         ],
   ];

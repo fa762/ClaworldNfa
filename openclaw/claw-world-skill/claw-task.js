@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Claw World — submit task on-chain
-// Usage: node claw-task.js <PIN> <NFA_ID> <TASK_TYPE> <XP> <CLW> <MATCH_SCORE>
+// Usage: node claw-task.js <PIN> <NFA_ID> <TASK_TYPE> <XP> <CLAWORLD> <MATCH_SCORE>
 // TASK_TYPE: 0=courage, 1=wisdom, 2=social, 3=create, 4=grit
-// CLW: in whole units (e.g. 50 = 50 CLW)
+// Claworld: in whole units (e.g. 50 = 50 Claworld)
 const { ethers } = require('ethers');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -10,7 +10,7 @@ const home = require('os').homedir();
 
 const [,, pin, nfaId, taskType, xp, clw, score] = process.argv;
 if (!pin || !nfaId || !taskType || !xp || !clw || !score) {
-  console.error('Usage: node claw-task.js <PIN> <NFA_ID> <TASK_TYPE> <XP> <CLW> <MATCH_SCORE>');
+  console.error('Usage: node claw-task.js <PIN> <NFA_ID> <TASK_TYPE> <XP> <CLAWORLD> <MATCH_SCORE>');
   process.exit(1);
 }
 
@@ -52,7 +52,7 @@ const router = new ethers.Contract(ROUTER_CA, [
     process.exit(1);
   }
 
-  // Step 1: Process upkeep (deduct daily CLW costs)
+  // Step 1: Process upkeep (deduct daily Claworld costs)
   try {
     const upkeepTx = await router.processUpkeep(nfaId, { gasLimit: 200000 });
     await upkeepTx.wait();

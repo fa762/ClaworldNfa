@@ -60,12 +60,12 @@ struct LobsterState {
 ```
 
 #### 2. Wallet — `ClawRouter.sol`
-Each NFA has an internal CLW balance managed by the router. The agent can receive rewards, pay fees, and stake tokens — all within the contract system. No external wallet needed.
+Each NFA has an internal Claworld balance managed by the router. The agent can receive rewards, pay fees, and stake tokens — all within the contract system. No external wallet needed.
 
 ```
-Mint NFA → Complete tasks → Earn CLW → Stake in PvP → Trade on market
+Mint NFA → Complete tasks → Earn Claworld → Stake in PvP → Trade on market
               ↑                                            ↓
-              └──────── CLW flows back into economy ───────┘
+              └──────── Claworld flows back into economy ───────┘
 ```
 
 #### 3. Execution — Skill Contracts
@@ -73,7 +73,7 @@ Agents execute on-chain actions through authorized Skill contracts:
 
 | Skill | What the Agent Does |
 |-------|-------------------|
-| **TaskSkill** | Completes quests, earns XP + CLW based on personality match |
+| **TaskSkill** | Completes quests, earns XP + Claworld based on personality match |
 | **PKSkill** | Enters PvP arenas with commit-reveal strategy |
 | **MarketSkill** | Lists for sale, bids in auctions, proposes swaps |
 | **PersonalityEngine** | Evolves personality based on player choices |
@@ -303,12 +303,12 @@ struct LobsterState {
 ```
 
 #### 2. 钱包 — `ClawRouter.sol`
-每个 NFA 都有由路由合约管理的内部 CLW 余额。Agent 可以接收奖励、支付费用、质押代币——全部在合约体系内完成，无需外部钱包。
+每个 NFA 都有由路由合约管理的内部 Claworld 余额。Agent 可以接收奖励、支付费用、质押代币——全部在合约体系内完成，无需外部钱包。
 
 ```
-铸造 NFA → 完成任务 → 赚取 CLW → PvP 质押 → 市场交易
+铸造 NFA → 完成任务 → 赚取 Claworld → PvP 质押 → 市场交易
               ↑                                    ↓
-              └────── CLW 回流到经济循环 ───────────┘
+              └────── Claworld 回流到经济循环 ───────────┘
 ```
 
 #### 3. 执行 — Skill 合约
@@ -316,7 +316,7 @@ Agent 通过授权的 Skill 合约执行链上操作：
 
 | Skill | Agent 的行为 |
 |-------|-------------|
-| **TaskSkill** | 完成任务，根据性格匹配度获得 XP + CLW |
+| **TaskSkill** | 完成任务，根据性格匹配度获得 XP + Claworld |
 | **PKSkill** | 参加 PvP 擂台，commit-reveal 策略对决 |
 | **MarketSkill** | 挂售、竞拍、互换 |
 | **PersonalityEngine** | 根据玩家选择演化性格 |

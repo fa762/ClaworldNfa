@@ -3,7 +3,7 @@ import { eventBus } from '../EventBus';
 
 /**
  * StatusHUD — 顶部常驻状态栏
- * 显示：NFA ID / 等级 / CLW / BNB / 性格雷达
+ * 显示：NFA ID / 等级 / Claworld / BNB / 性格雷达
  */
 export class StatusHUD {
   private scene: Phaser.Scene;
@@ -54,8 +54,8 @@ export class StatusHUD {
     const W = this.scene.cameras.main.width;
     this.mainText.setText(
       W < 720
-        ? `NFA #${this.nfaId}  Lv.${s.level}  CLW:${s.clw}  ${s.active ? 'ACTIVE' : 'DORMANT'}\nHP:${s.hp}  UPKEEP:${s.dailyCost.toFixed(1)}`
-        : `NFA #${this.nfaId}  Lv.${s.level}  CLW: ${s.clw}  HP: ${s.hp}  ${s.active ? 'ACTIVE' : 'DORMANT'}  UPKEEP: ${s.dailyCost.toFixed(1)}`
+        ? `NFA #${this.nfaId}  Lv.${s.level}  Claworld:${s.clw}  ${s.active ? 'ACTIVE' : 'DORMANT'}\nHP:${s.hp}  UPKEEP:${s.dailyCost.toFixed(1)}`
+        : `NFA #${this.nfaId}  Lv.${s.level}  Claworld: ${s.clw}  HP: ${s.hp}  ${s.active ? 'ACTIVE' : 'DORMANT'}  UPKEEP: ${s.dailyCost.toFixed(1)}`
     );
 
     if (!this.hasData) {

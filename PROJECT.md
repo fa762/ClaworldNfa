@@ -36,7 +36,7 @@ ClaworldNfa solves this by unifying all four BAP-578 capabilities — **identity
 Each ClawNFA is a complete AI agent on-chain. It carries:
 
 - **Identity**: level, rarity, shelter assignment, job class, DNA traits
-- **Wallet**: internal CLW token balance managed by the ClawRouter contract
+- **Wallet**: internal Claworld token balance managed by the ClawRouter contract
 - **Execution**: authorized skill contracts (tasks, PvP, marketplace) that the agent can invoke
 - **Learning**: a 5-dimension personality vector (courage, wisdom, social, creativity, grit) that evolves based on player behavior
 
@@ -63,13 +63,13 @@ A well-trained NFA earns up to 20x more than a blank one. This creates genuine l
 
 The system uses a hub-and-spoke architecture centered on ClawRouter:
 
-- **TaskSkill** — Quest completion, XP + CLW rewards scaled by personality match
+- **TaskSkill** — Quest completion, XP + Claworld rewards scaled by personality match
 - **PKSkill** — PvP arena, commit-reveal strategy with personality modifiers
 - **MarketSkill** — Fixed-price sales, 24h auctions, NFA-for-NFA swaps
 - **PersonalityEngine** — 5-dimension personality evolution
 - **GenesisVault** — 888 genesis mint via commit-reveal with enhanced entropy
 - **WorldState** — Global game parameters with 24h timelock governance
-- **DepositRouter** — BNB → CLW via DEX or bonding curve
+- **DepositRouter** — BNB → Claworld via DEX or bonding curve
 - **ClawOracle** — AI oracle with commit-reveal verification
 
 Each skill is a separate UUPS upgradeable proxy. New skills can be added without modifying existing contracts.
@@ -175,7 +175,7 @@ ClaworldNfa 将 BAP-578 的四项能力——**身份、钱包、执行、学习
 每个 ClawNFA 就是一个完整的链上 AI Agent，携带：
 
 - **身份**：等级、稀有度、避难所归属、职业、DNA 特征
-- **钱包**：由 ClawRouter 合约管理的内部 CLW 余额
+- **钱包**：由 ClawRouter 合约管理的内部 Claworld 余额
 - **执行**：授权的 Skill 合约（任务、PvP、市场），Agent 可以调用
 - **学习**：五维性格向量（勇气、智慧、社交、创造、毅力），基于玩家行为演化
 
@@ -202,13 +202,13 @@ matchScore = dot(性格向量, 任务需求向量)
 
 系统采用以 ClawRouter 为核心的辐射式架构：
 
-- **TaskSkill** — 任务完成，XP + CLW 奖励随性格匹配度缩放
+- **TaskSkill** — 任务完成，XP + Claworld 奖励随性格匹配度缩放
 - **PKSkill** — PvP 擂台，commit-reveal 策略 + 性格修正
 - **MarketSkill** — 固定价售卖、24h 拍卖、NFA 互换
 - **PersonalityEngine** — 五维性格演化
 - **GenesisVault** — 888 创世铸造，commit-reveal + 增强熵源
 - **WorldState** — 全局游戏参数，24h 时间锁治理
-- **DepositRouter** — BNB → CLW，通过 DEX 或 Bonding Curve
+- **DepositRouter** — BNB → Claworld，通过 DEX 或 Bonding Curve
 - **ClawOracle** — AI 预言机，commit-reveal 验证
 
 每个 Skill 都是独立的 UUPS 可升级代理合约。新增 Skill 无需修改现有合约。

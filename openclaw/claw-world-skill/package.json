@@ -1,6 +1,6 @@
 {
   "name": "claw-world-skill",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Claw Civilization Universe - OpenClaw Skill",
   "dependencies": {
     "ethers": "^5.7.0"

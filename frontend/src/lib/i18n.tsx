@@ -37,8 +37,8 @@ const translations: Record<string, Record<Lang, string>> = {
   'world.events': { zh: '事件', en: 'EVENTS' },
   'world.sync': { zh: '> 正在同步世界状态...', en: '> RUNNING WORLD_STATE_SYNC.EXE...' },
 
-  // ─── CLW Token ───
-  'token.title': { zh: 'CLW 代币', en: 'CLW_TOKEN' },
+  // ─── Claworld Token ───
+  'token.title': { zh: 'Claworld 代币', en: 'Claworld Token' },
   'token.status': { zh: '状态', en: 'STATUS' },
   'token.graduated': { zh: '已毕业 · PANCAKESWAP', en: 'GRADUATED · PANCAKESWAP' },
   'token.bonding': { zh: '联合曲线 · FLAP', en: 'BONDING CURVE · FLAP' },
@@ -132,7 +132,7 @@ const translations: Record<string, Record<Lang, string>> = {
   'detail.shelter': { zh: '据点', en: 'Shelter' },
   'detail.status': { zh: '状态', en: 'Status' },
   'detail.job': { zh: '职业', en: 'Job Class' },
-  'detail.balance': { zh: 'CLW余额', en: 'CLW Balance' },
+  'detail.balance': { zh: 'Claworld余额', en: 'Claworld Balance' },
   'detail.dailyCost': { zh: '日消耗', en: 'Daily Cost' },
   'detail.sustain': { zh: '可维持', en: 'Sustain' },
   'detail.owner': { zh: '拥有者', en: 'Owner' },
@@ -205,12 +205,12 @@ const translations: Record<string, Record<Lang, string>> = {
   'deposit.connectWallet': { zh: '连接钱包以进行充值', en: 'Connect wallet to deposit' },
   'deposit.mode': { zh: '> 模式:', en: '> Mode:' },
   'deposit.quick': { zh: '> 快选:', en: '> Quick:' },
-  'deposit.clwAmount': { zh: 'CLW 数量', en: 'CLW amount' },
+  'deposit.clwAmount': { zh: 'Claworld 数量', en: 'Claworld amount' },
   'deposit.bnbAmount': { zh: ' 数量', en: ' amount' },
   'deposit.signing': { zh: '签名...', en: 'Signing...' },
   'deposit.confirming': { zh: '确认中...', en: 'Confirming...' },
   'deposit.confirm': { zh: '确认充值', en: 'Confirm Deposit' },
-  'deposit.needApprove': { zh: '[!] 需要先授权 CLW，将弹出两次交易', en: '[!] CLW approval required, two transactions will be prompted' },
+  'deposit.needApprove': { zh: '[!] 需要先授权 Claworld，将弹出两次交易', en: '[!] Claworld approval required, two transactions will be prompted' },
   'deposit.viewTx': { zh: '查看交易 →', en: 'View Transaction →' },
   'deposit.pendingGrad': { zh: '(待毕业)', en: '(pending graduation)' },
 

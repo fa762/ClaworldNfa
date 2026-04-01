@@ -133,7 +133,7 @@ export class TaskScene extends Phaser.Scene {
       desc.setFixedSize(cardW - 24, compact ? 54 : cardH - 146);
 
       // 奖励
-      this.add.text(x + cardW / 2, y + cardH - (compact ? 38 : 50), `CLW: +${task.clw}  XP: +${task.xp}`, {
+      this.add.text(x + cardW / 2, y + cardH - (compact ? 38 : 50), `Claworld: +${task.clw}  XP: +${task.xp}`, {
         fontSize: compact ? '12px' : '13px', fontFamily: 'monospace', color: '#39ff14',
         wordWrap: { width: cardW - 24, useAdvancedWrap: true },
         align: 'center',
@@ -209,7 +209,7 @@ export class TaskScene extends Phaser.Scene {
       wordWrap: { width: 360 },
     }).setOrigin(0.5).setDepth(52);
 
-    this.add.text(W / 2, H / 2 + 5, this.lang === 'zh' ? `CLW +${task.clw}  XP +${task.xp}  匹配 ${task.matchScore.toFixed(2)}x` : `CLW +${task.clw}  XP +${task.xp}  Match ${task.matchScore.toFixed(2)}x`, {
+    this.add.text(W / 2, H / 2 + 5, this.lang === 'zh' ? `Claworld +${task.clw}  XP +${task.xp}  匹配 ${task.matchScore.toFixed(2)}x` : `Claworld +${task.clw}  XP +${task.xp}  Match ${task.matchScore.toFixed(2)}x`, {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setDepth(52);
 
@@ -251,7 +251,7 @@ export class TaskScene extends Phaser.Scene {
 
         if (result.status === 'confirmed') {
           const rewardText = result.actualClw
-            ? (this.lang === 'zh' ? `任务完成! 实际奖励 ${Number(result.actualClw).toFixed(2)} CLW` : `Task complete! Reward ${Number(result.actualClw).toFixed(2)} CLW`)
+            ? (this.lang === 'zh' ? `任务完成! 实际奖励 ${Number(result.actualClw).toFixed(2)} Claworld` : `Task complete! Reward ${Number(result.actualClw).toFixed(2)} Claworld`)
             : (this.lang === 'zh' ? `任务完成! TX: ${result.txHash?.slice(0, 10)}...` : `Task complete! TX: ${result.txHash?.slice(0, 10)}...`);
 
           this.add.text(W / 2, H / 2, rewardText, {
