@@ -4,6 +4,7 @@ import { ShelterScene } from './scenes/ShelterScene';
 import { TaskScene } from './scenes/TaskScene';
 import { PKScene } from './scenes/PKScene';
 import { MarketScene } from './scenes/MarketScene';
+import { ArchiveScene } from './scenes/ArchiveScene';
 
 export function createGame(parent: HTMLElement): Phaser.Game {
   const w = parent.clientWidth;
@@ -27,7 +28,7 @@ export function createGame(parent: HTMLElement): Phaser.Game {
     dom: {
       createContainer: true,
     },
-    scene: [BootScene, ShelterScene, TaskScene, PKScene, MarketScene],
+    scene: [BootScene, ShelterScene, TaskScene, PKScene, MarketScene, ArchiveScene],
   };
 
   return new Phaser.Game(config);

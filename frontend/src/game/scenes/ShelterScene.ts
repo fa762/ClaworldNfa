@@ -54,6 +54,7 @@ export class ShelterScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   private interactKey!: Phaser.Input.Keyboard.Key;
+  private archiveKey!: Phaser.Input.Keyboard.Key;
   private npcs: Phaser.Physics.Arcade.Sprite[] = [];
   private npcDefs: NpcDef[] = [];
   private nearestNpc: Phaser.Physics.Arcade.Sprite | null = null;
@@ -214,6 +215,7 @@ export class ShelterScene extends Phaser.Scene {
       D: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.archiveKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.R);
 
     // ── 交互提示 ──
     this.promptText = this.add.text(W / 2, H - 56, '', {
@@ -225,6 +227,10 @@ export class ShelterScene extends Phaser.Scene {
       align: 'center',
       wordWrap: { width: W - 40 },
     }).setOrigin(0.5).setDepth(100).setAlpha(0.38);
+
+    this.add.text(W - 112, H - 48, this.lang === 'zh' ? '[ R 档案 ]' : '[ R DOSSIER ]', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#7adf8b',
+    }).setOrigin(0.5).setDepth(100).setAlpha(0.5);
 
     // ── HUD ──
     this.hudText = this.add.text(8, H - 22, this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`, {
@@ -352,6 +358,11 @@ export class ShelterScene extends Phaser.Scene {
         && now - this.lastInteractTime > this.INTERACT_COOLDOWN) {
       const def = this.nearestNpc.getData('def') as NpcDef;
       this.handleInteract(def);
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.archiveKey)) {
+      this.scene.start('ArchiveScene', this.buildSceneData());
+      return;
     }
 
     this.registry.set('playerPosition', { x: this.player.x, y: this.player.y });
