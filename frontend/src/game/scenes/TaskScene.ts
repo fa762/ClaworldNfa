@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 import { pickTasks, calcMatchScore } from '../data/task-templates';
 import type { GameLang } from '../data/npc-dialogues';
-import { getShelterSpecialty } from '@/lib/shelter';
+import { getShelterSceneHint, getShelterSpecialty, getShelterTaskBias } from '@/lib/shelter';
 
 interface TaskOption {
   type: number;     // 0=courage 1=wisdom 2=social 3=create 4=grit
@@ -87,6 +87,11 @@ export class TaskScene extends Phaser.Scene {
       fontSize: '11px', fontFamily: 'monospace', color: specialty.color,
     }).setOrigin(0.5).setAlpha(0.75);
 
+    this.add.text(W / 2, 82, getShelterSceneHint(this.shelter, 'task', this.lang), {
+      fontSize: '10px', fontFamily: 'monospace', color: '#9fd39f',
+      wordWrap: { width: W - 40 }, align: 'center',
+    }).setOrigin(0.5).setAlpha(0.62);
+
     // 生成 3 个模板任务（MVP 阶段，后续接 AI）
     this.tasks = this.generateTasks();
 
@@ -98,7 +103,7 @@ export class TaskScene extends Phaser.Scene {
 
     this.tasks.forEach((task, i) => {
       const x = compact ? startX : startX + i * (cardW + gap);
-      const y = compact ? 78 + i * (cardH + gap) : 80;
+      const y = compact ? 94 + i * (cardH + gap) : 96;
 
       // 卡片背景
       const card = this.add.rectangle(x + cardW / 2, y + cardH / 2, cardW, cardH, 0x111122, 0.9);
@@ -272,7 +277,7 @@ export class TaskScene extends Phaser.Scene {
 
   private generateTasks(): TaskOption[] {
     // 根据性格权重从 25 个模板中选取 3 个任务
-    const templates = pickTasks(this.personality);
+    const templates = pickTasks(this.personality, getShelterTaskBias(this.shelter));
     return templates.map(t => ({
       type: t.type,
       title: t.title,

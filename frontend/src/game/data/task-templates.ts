@@ -52,7 +52,10 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
  * 根据性格权重选取 3 个任务
  * 保证类型不完全重复，且高匹配类型出现概率更高
  */
-export function pickTasks(personality: { courage: number; wisdom: number; social: number; create: number; grit: number }): TaskTemplate[] {
+export function pickTasks(
+  personality: { courage: number; wisdom: number; social: number; create: number; grit: number },
+  preferredType?: number,
+): TaskTemplate[] {
   const dims = [
     { type: 0, val: personality.courage },
     { type: 1, val: personality.wisdom },
@@ -64,10 +67,15 @@ export function pickTasks(personality: { courage: number; wisdom: number; social
   // 按性格值排序，确保高匹配类型优先
   const sorted = [...dims].sort((a, b) => b.val - a.val);
 
-  // 选3个不同类型：最高、第二高、随机一个
+  // 选3个不同类型：最高、第二高、第三个受 shelter 偏向影响
   const types = [sorted[0].type, sorted[1].type];
   const remaining = sorted.filter(d => !types.includes(d.type));
-  types.push(remaining[Math.floor(Math.random() * remaining.length)].type);
+
+  if (preferredType !== undefined && !types.includes(preferredType)) {
+    types.push(preferredType);
+  } else {
+    types.push(remaining[Math.floor(Math.random() * remaining.length)].type);
+  }
 
   // 从每个类型中随机选一个模板
   return types.map(t => {
