@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 import { loadPKSalt } from '../chain/contracts';
+import { loadNFAState } from '../chain/wallet';
 import { TerminalModal } from '../ui/TerminalModal';
 import type { GameLang } from '../data/npc-dialogues';
 
@@ -357,6 +358,15 @@ export class PKScene extends Phaser.Scene {
 
       this.rows.push(rowBg, rowText);
 
+      const opponentId = match.nfaA === this.nfaId ? match.nfaB : match.nfaA;
+      if (opponentId > 0) {
+        const inspectBtn = this.add.text(W - (isCompact ? 164 : 152), y + (isCompact ? 18 : 1), this.lang === 'zh' ? '[ 属性 ]' : '[ STATS ]', {
+          fontSize: '11px', fontFamily: 'monospace', color: '#7ad7ff', backgroundColor: '#00131a', padding: { x: 6, y: 4 },
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        inspectBtn.on('pointerdown', () => { void this.showOpponentStats(opponentId); });
+        this.rows.push(inspectBtn);
+      }
+
       if (match.phase === 0) {
         const joinBtn = this.add.text(W - 80, y + (isCompact ? 18 : 1), this.lang === 'zh' ? '[ 加入 ]' : '[ JOIN ]', {
           fontSize: '11px', fontFamily: 'monospace', color: '#ffaa00', backgroundColor: '#1a1a00', padding: { x: 6, y: 4 },
@@ -382,6 +392,36 @@ export class PKScene extends Phaser.Scene {
   private showStatus(text: string, color = '#39ff14') {
     this.statusText.setColor(color);
     this.statusText.setText(text);
+  }
+
+  private async showOpponentStats(nfaId: number) {
+    try {
+      this.showStatus(this.lang === 'zh' ? '读取对手属性中...' : 'Loading opponent stats...', '#7ad7ff');
+      const state = await loadNFAState(nfaId);
+      const dominant = [
+        { label: this.lang === 'zh' ? '勇气' : 'Courage', value: state.courage },
+        { label: this.lang === 'zh' ? '智慧' : 'Wisdom', value: state.wisdom },
+        { label: this.lang === 'zh' ? '社交' : 'Social', value: state.social },
+        { label: this.lang === 'zh' ? '创造' : 'Create', value: state.create },
+        { label: this.lang === 'zh' ? '毅力' : 'Grit', value: state.grit },
+      ].sort((a, b) => b.value - a.value);
+
+      this.modal.showMenu({
+        title: this.lang === 'zh' ? `对手 NFA #${nfaId}` : `Opponent NFA #${nfaId}`,
+        subtitle: this.lang === 'zh'
+          ? `Lv.${state.level} · ${state.active ? '激活' : '休眠'} · CLW ${state.clwBalance.toFixed(0)}`
+          : `Lv.${state.level} · ${state.active ? 'Active' : 'Dormant'} · CLW ${state.clwBalance.toFixed(0)}`,
+        options: [
+          { label: `${dominant[0].label}: ${dominant[0].value}`, description: `${dominant[1].label}: ${dominant[1].value} · ${dominant[2].label}: ${dominant[2].value}`, disabled: true, onSelect: () => {} },
+          { label: `STR ${state.str}  DEF ${state.def}  SPD ${state.spd}  VIT ${state.vit}`, description: this.lang === 'zh' ? '链上实时属性快照' : 'Live onchain stat snapshot', disabled: true, onSelect: () => {} },
+        ],
+        cancelLabel: this.lang === 'zh' ? '关闭' : 'Close',
+      });
+      this.showStatus(this.lang === 'zh' ? '已打开对手属性面板' : 'Opened opponent stats panel', '#39ff14');
+    } catch (error) {
+      this.showStatus(this.lang === 'zh' ? '读取对手属性失败' : 'Failed to load opponent stats', '#ff4444');
+      console.error('Failed to load opponent stats:', error);
+    }
   }
 
   private goBack() {
