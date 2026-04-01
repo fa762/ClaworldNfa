@@ -113,6 +113,7 @@ export default function GamePage() {
   const [bootProgress, setBootProgress] = useState(0);
   const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null);
   const [showSidePanel, setShowSidePanel] = useState(false);
+  const [gameReady, setGameReady] = useState(false);
 
   const walletOptions = useMemo(
     () => connectors.filter((connector) => connector.type === 'injected' || connector.name === 'WalletConnect' || connector.name === 'Coinbase Wallet'),
@@ -230,12 +231,50 @@ export default function GamePage() {
     return ids;
   }, [refreshOwnedNfas]);
 
+  const ensureGame = useCallback(async () => {
+    if (gameRef.current) {
+      return gameRef.current;
+    }
+
+    const waitForPaint = () => new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => resolve());
+    });
+
+    await waitForPaint();
+
+    const container = containerRef.current;
+    if (!container) {
+      throw new Error('Game container not ready');
+    }
+
+    const rect = container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      await waitForPaint();
+    }
+
+    const readyContainer = containerRef.current;
+    if (!readyContainer) {
+      throw new Error('Game container missing');
+    }
+
+    const readyRect = readyContainer.getBoundingClientRect();
+    if (readyRect.width === 0 || readyRect.height === 0) {
+      throw new Error('Game container has zero size');
+    }
+
+    const { createGame } = await import('@/game/main');
+    gameRef.current = createGame(readyContainer);
+    setGameReady(true);
+    return gameRef.current;
+  }, []);
+
   const selectAndEnter = useCallback(async (nfaId: number) => {
     setStatus('loading-nfa');
     activeNfaIdRef.current = nfaId;
     setActiveNfaId(nfaId);
 
     try {
+      await ensureGame();
       const state = await loadNFAState(nfaId);
       emitNfaState(nfaId, state);
       eventBus.emit('nfa:loaded', { nfaId, shelter: state.shelter });
@@ -244,28 +283,16 @@ export default function GamePage() {
       console.error('Failed to load NFA state:', error);
       setStatus('error');
     }
-  }, [emitNfaState]);
+  }, [emitNfaState, ensureGame]);
 
   useEffect(() => {
-    if (!mounted || !containerRef.current || gameRef.current) return;
-
-    import('@/game/main').then(({ createGame }) => {
-      if (containerRef.current && !gameRef.current) {
-        gameRef.current = createGame(containerRef.current);
-        setStatus('ready');
-      }
-    }).catch((error) => {
-      console.error('Phaser init failed:', error);
-      setStatus('error');
-    });
-
     return () => {
       if (gameRef.current) {
         (gameRef.current as { destroy: (removeCanvas?: boolean) => void }).destroy(true);
         gameRef.current = null;
       }
     };
-  }, [mounted]);
+  }, []);
 
   useEffect(() => {
     if (!mounted) return;
@@ -755,6 +782,7 @@ export default function GamePage() {
   }, []);
 
   const isPlaying = status === 'playing';
+  const shouldMountGame = gameReady || status === 'loading-nfa' || status === 'playing';
 
   if (!mounted) {
     return (
@@ -769,7 +797,7 @@ export default function GamePage() {
       {/* Phaser 画布容器 — 始终在 DOM 中，playing 时全屏覆盖，否则隐藏在画面外 */}
       <div
         ref={containerRef}
-        className={isPlaying
+        className={shouldMountGame
           ? 'fixed inset-0 z-[9999] bg-black'
           : 'fixed inset-0 -z-10 opacity-0 pointer-events-none'}
       />
