@@ -1074,7 +1074,7 @@ export default function GamePage() {
                     <button
                       key={id}
                       onClick={() => selectAndEnter(id)}
-                      className="soft-key text-left px-4 sm:px-5 py-3 sm:py-4 min-w-0"
+                      className="min-w-0 rounded border border-crt-green/20 bg-black/70 px-4 sm:px-5 py-3 sm:py-4 text-left transition-all hover:border-crt-green/60 hover:bg-crt-green/5 hover:shadow-[0_0_18px_rgba(57,255,20,0.08)]"
                     >
                       <div className="text-base sm:text-lg text-crt-green mb-1 break-words">NFA #{id}</div>
                       <div className="text-xs text-crt-green/50 mb-2 break-words">{getLobsterName(id)}</div>
