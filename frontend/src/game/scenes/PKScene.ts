@@ -89,6 +89,7 @@ export class PKScene extends Phaser.Scene {
     }).setOrigin(0.5).setAlpha(0.75);
 
     this.modal = new TerminalModal(this);
+    const compactHeader = W < 720;
 
     const buttons = [
       { label: '[ 创建 ]', x: W * 0.18, action: () => this.promptCreate() },
@@ -98,17 +99,22 @@ export class PKScene extends Phaser.Scene {
       { label: '[ 取消 ]', x: W * 0.86, action: () => this.promptCancel() },
     ];
 
-    for (const button of buttons) {
-      this.add.text(button.x, 78, button.label, {
+    buttons.forEach((button, index) => {
+      const col = compactHeader ? index % 3 : index;
+      const row = compactHeader ? Math.floor(index / 3) : 0;
+      const x = compactHeader ? W * (0.22 + col * 0.28) : button.x;
+      const y = compactHeader ? 80 + row * 34 : 78;
+
+      this.add.text(x, y, button.label, {
         fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
         backgroundColor: '#001a00', padding: { x: 10, y: 6 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', button.action);
-    }
+    });
 
-    this.add.text(18, 110, 'ID     A        B        STAKE        PHASE           ACTION', {
+    this.add.text(18, compactHeader ? 144 : 110, 'ID     A        B        STAKE        PHASE           ACTION', {
       fontSize: '11px', fontFamily: 'monospace', color: '#555555',
     });
-    this.add.rectangle(W / 2, 122, W - 32, 1, 0x333333);
+    this.add.rectangle(W / 2, compactHeader ? 156 : 122, W - 32, 1, 0x333333);
 
     this.statusText = this.add.text(W / 2, H - 56, '读取链上擂台中...', {
       fontSize: '14px', fontFamily: 'monospace', color: '#ffaa00', align: 'center',
@@ -314,6 +320,7 @@ export class PKScene extends Phaser.Scene {
 
     const W = this.cameras.main.width;
     const isCompact = W < 720;
+    const compactHeader = W < 720;
 
     if (this.matches.length === 0) {
       const empty = this.add.text(W / 2, 200, '没有活跃中的链上对战', {
@@ -324,7 +331,8 @@ export class PKScene extends Phaser.Scene {
     }
 
     this.matches.slice(0, 6).forEach((match, index) => {
-      const y = isCompact ? 140 + index * 72 : 140 + index * 50;
+      const baseY = compactHeader ? 174 : 140;
+      const y = isCompact ? baseY + index * 72 : baseY + index * 50;
       const rowBg = this.add.rectangle(W / 2, y + (isCompact ? 18 : 10), W - 36, isCompact ? 64 : 40, 0x111122, 0.5).setStrokeStyle(1, 0x222233);
       const rowText = this.add.text(
         18,

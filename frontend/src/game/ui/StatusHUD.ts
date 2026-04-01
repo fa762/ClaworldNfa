@@ -25,16 +25,16 @@ export class StatusHUD {
     this.container = scene.add.container(0, 0).setDepth(150);
 
     // 背景条
-    this.bg = scene.add.rectangle(W / 2, 28, W, 56, 0x0a0a0a, 0.88);
+    this.bg = scene.add.rectangle(W / 2, 32, W, 64, 0x0a0a0a, 0.88);
 
     // 主信息
-    this.mainText = scene.add.text(10, 10, '', {
-      fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
+    this.mainText = scene.add.text(10, 8, '', {
+      fontSize: W < 720 ? '12px' : '16px', fontFamily: 'monospace', color: '#39ff14',
     });
 
     // 性格摘要（右侧）
-    this.personalityText = scene.add.text(W - 10, 10, '', {
-      fontSize: '16px', fontFamily: 'monospace', color: '#888888',
+    this.personalityText = scene.add.text(W - 10, W < 720 ? 28 : 8, '', {
+      fontSize: W < 720 ? '11px' : '16px', fontFamily: 'monospace', color: '#888888',
     }).setOrigin(1, 0);
 
     this.container.add([this.bg, this.mainText, this.personalityText]);
@@ -51,8 +51,11 @@ export class StatusHUD {
 
   refresh() {
     const s = this.stats;
+    const W = this.scene.cameras.main.width;
     this.mainText.setText(
-      `NFA #${this.nfaId}  Lv.${s.level}  CLW: ${s.clw}  HP: ${s.hp}  ${s.active ? 'ACTIVE' : 'DORMANT'}  UPKEEP: ${s.dailyCost.toFixed(1)}`
+      W < 720
+        ? `NFA #${this.nfaId}  Lv.${s.level}  CLW:${s.clw}  ${s.active ? 'ACTIVE' : 'DORMANT'}\nHP:${s.hp}  UPKEEP:${s.dailyCost.toFixed(1)}`
+        : `NFA #${this.nfaId}  Lv.${s.level}  CLW: ${s.clw}  HP: ${s.hp}  ${s.active ? 'ACTIVE' : 'DORMANT'}  UPKEEP: ${s.dailyCost.toFixed(1)}`
     );
 
     if (!this.hasData) {
@@ -70,7 +73,9 @@ export class StatusHUD {
     ];
     const sorted = [...dims].sort((a, b) => b.val - a.val);
     this.personalityText.setText(
-      `${sorted[0].name}:${sorted[0].val}  ${sorted[1].name}:${sorted[1].val}  ${sorted[2].name}:${sorted[2].val}`
+      W < 720
+        ? `${sorted[0].name}:${sorted[0].val}  ${sorted[1].name}:${sorted[1].val}`
+        : `${sorted[0].name}:${sorted[0].val}  ${sorted[1].name}:${sorted[1].val}  ${sorted[2].name}:${sorted[2].val}`
     );
   }
 

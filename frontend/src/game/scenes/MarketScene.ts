@@ -94,6 +94,7 @@ export class MarketScene extends Phaser.Scene {
     }).setOrigin(0.5).setAlpha(0.75);
 
     this.modal = new TerminalModal(this);
+    const compactHeader = W < 760;
 
     const buttons = [
       { label: '[ 固定价挂售 ]', x: W * 0.2, action: () => this.promptList('fixed') },
@@ -102,17 +103,22 @@ export class MarketScene extends Phaser.Scene {
       { label: '[ 刷新列表 ]', x: W * 0.8, action: () => this.requestListings() },
     ];
 
-    for (const button of buttons) {
-      this.add.text(button.x, 70, button.label, {
+    buttons.forEach((button, index) => {
+      const col = compactHeader ? index % 2 : index;
+      const row = compactHeader ? Math.floor(index / 2) : 0;
+      const x = compactHeader ? W * (0.3 + col * 0.4) : button.x;
+      const y = compactHeader ? 72 + row * 34 : 70;
+
+      this.add.text(x, y, button.label, {
         fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
         backgroundColor: '#001a00', padding: { x: 10, y: 6 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', button.action);
-    }
+    });
 
-    this.add.text(14, 98, 'ID     NFA     RARITY      TYPE       PRICE/BID           SELLER        ACTION', {
+    this.add.text(14, compactHeader ? 134 : 98, 'ID     NFA     RARITY      TYPE       PRICE/BID           SELLER        ACTION', {
       fontSize: '11px', fontFamily: 'monospace', color: '#555555',
     });
-    this.add.rectangle(W / 2, 110, W - 28, 1, 0x333333);
+    this.add.rectangle(W / 2, compactHeader ? 146 : 110, W - 28, 1, 0x333333);
 
     const prevBtn = this.add.text(W / 2 - 60, H - 52, '[ ← 上一页 ]', {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
@@ -297,6 +303,7 @@ export class MarketScene extends Phaser.Scene {
 
     const W = this.cameras.main.width;
     const isCompact = W < 760;
+    const compactHeader = W < 760;
     const pageItems = this.listings.slice(this.page * this.PER_PAGE, this.page * this.PER_PAGE + this.PER_PAGE);
 
     if (pageItems.length === 0) {
@@ -311,7 +318,8 @@ export class MarketScene extends Phaser.Scene {
     }
 
     pageItems.forEach((item, index) => {
-      const y = isCompact ? 126 + index * 76 : 126 + index * 48;
+      const baseY = compactHeader ? 164 : 126;
+      const y = isCompact ? baseY + index * 76 : baseY + index * 48;
       const rarityColor = RARITY_COLORS[item.rarity] || '#aaaaaa';
       const sellerShort = `${item.seller.slice(0, 6)}...${item.seller.slice(-4)}`;
       const isMine = Boolean(this.walletAddress) && item.seller.toLowerCase() === this.walletAddress.toLowerCase();

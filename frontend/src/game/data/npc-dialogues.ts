@@ -93,14 +93,13 @@ export function getPortalDialogue(currentShelter: number): DialogueNode {
     }))
     .filter((_, i) => i !== currentShelter);
 
-  // 只显示前4个选择（避免太多）
   return {
     lines: [
       { speaker: '隧道入口', text: '这条地下隧道连接着其他避难所。', color: '#aa44ff' },
       { speaker: '隧道入口', text: `当前位置: SHELTER-0${currentShelter} ${shelterNames[currentShelter]}`, color: '#aa44ff' },
       { speaker: '隧道入口', text: '选择目的地:', color: '#aa44ff' },
     ],
-    choices: choices.slice(0, 4),
+    choices,
   };
 }
 

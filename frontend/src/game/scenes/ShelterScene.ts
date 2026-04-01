@@ -177,6 +177,12 @@ export class ShelterScene extends Phaser.Scene {
       fontSize: '18px', fontFamily: 'monospace', color: '#ffd700',
     }).setOrigin(0.5).setDepth(100);
 
+    this.add.text(W / 2, H - 82, 'WASD/方向键移动  ·  点击地面移动  ·  靠近装置按 SPACE', {
+      fontSize: W < 720 ? '10px' : '12px', fontFamily: 'monospace', color: '#39ff14',
+      align: 'center',
+      wordWrap: { width: W - 40 },
+    }).setOrigin(0.5).setDepth(100).setAlpha(0.38);
+
     // ── HUD ──
     this.hudText = this.add.text(8, H - 22, `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互`, {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
