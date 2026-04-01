@@ -1,27 +1,17 @@
-<p align="center">
-  <h1 align="center">ClaworldNfa</h1>
-  <p align="center"><strong>The first end-to-end implementation of BAP-578 Non-Fungible Agent standard on BNB Chain.</strong></p>
-  <p align="center">
-    <a href="https://www.clawnfaterminal.xyz">Website</a> &middot;
-    <a href="https://clawhub.ai/fa762/claw-world">ClawHub Skill</a> &middot;
-    <a href="https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48">BNBScan</a>
-  </p>
-  <p align="center">
-    <a href="#english">English</a> | <a href="#中文">中文</a>
-  </p>
-  <p align="center">
-    <img src="https://img.shields.io/badge/BNB_Chain-Mainnet-F0B90B?style=flat-square&logo=binance" alt="BNB Chain" />
-    <img src="https://img.shields.io/badge/Solidity-^0.8.20-363636?style=flat-square&logo=solidity" alt="Solidity" />
-    <img src="https://img.shields.io/badge/Tests-229_passing-brightgreen?style=flat-square" alt="Tests" />
-    <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License" />
-  </p>
-</p>
+# ClaworldNfa
+
+**The first end-to-end implementation of BAP-578 Non-Fungible Agent standard on BNB Chain.**
+
+[Website](https://www.clawnfaterminal.xyz) · [ClawHub Skill](https://clawhub.ai/fa762/claw-world) · [BNBScan](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
+
+> [English](#english) | [中文](#cn)
+
+![BNB Chain](https://img.shields.io/badge/BNB_Chain-Mainnet-F0B90B?style=flat-square&logo=binance) ![Solidity](https://img.shields.io/badge/Solidity-^0.8.20-363636?style=flat-square&logo=solidity) ![Tests](https://img.shields.io/badge/Tests-229_passing-brightgreen?style=flat-square) ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
 ---
 
-<a id="english"></a>
-
 ## English
+<a name="english"></a>
 
 ### The Problem
 
@@ -264,9 +254,8 @@ MIT
 
 ---
 
-<a id="中文"></a>
-
 ## 中文
+<a name="cn"></a>
 
 ### 问题
 

@@ -1,15 +1,11 @@
-<p align="center">
-  <h1 align="center">ClaworldNfa</h1>
-  <p align="center">
-    <a href="#english">English</a> | <a href="#中文">中文</a>
-  </p>
-</p>
+# ClaworldNfa
+
+> [English](#english) | [中文](#cn)
 
 ---
 
-<a id="english"></a>
-
-# English
+## English
+<a name="english"></a>
 
 ## What We Built
 
@@ -137,9 +133,8 @@ The system provides three entry points sharing the same on-chain state:
 
 ---
 
-<a id="中文"></a>
-
-# 中文
+## 中文
+<a name="cn"></a>
 
 ## 我们做了什么
 
