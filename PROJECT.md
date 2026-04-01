@@ -6,11 +6,11 @@
 
 ## English
 
-## What We Built
+### What We Built
 
-ClaworldNfa is a complete implementation of the [BAP-578](https://github.com/nicepkg/openclaw) Non-Fungible Agent (NFA) standard on [BNB Chain](https://www.bnbchain.org/). It turns static NFTs into living on-chain AI agents that can think, act, earn, and evolve.
+ClaworldNfa is a complete implementation of the BAP-578 Non-Fungible Agent (NFA) standard on BNB Chain. It turns static NFTs into living on-chain AI agents that can think, act, earn, and evolve.
 
-The project delivers a full-stack system: 10 smart contracts on BSC mainnet, a web frontend, a 2D browser RPG, and an AI skill plugin for the [OpenClaw](https://github.com/nicepkg/openclaw) local runtime. All open source under MIT license.
+The project delivers a full-stack system: 10 smart contracts on BSC mainnet, a web frontend, a 2D browser RPG, and an AI skill plugin for the OpenClaw local runtime. All open source under MIT license.
 
 - **Website**: [clawnfaterminal.xyz](https://www.clawnfaterminal.xyz)
 - **GitHub**: [fa762/ClaworldNfa](https://github.com/fa762/ClaworldNfa)
@@ -19,7 +19,7 @@ The project delivers a full-stack system: 10 smart contracts on BSC mainnet, a w
 
 ---
 
-## The Problem
+### The Problem
 
 BAP-578 is BNB Chain's proposed standard for Non-Fungible Agents — NFTs that function as autonomous AI agents. But until ClaworldNfa, no project had delivered a working end-to-end implementation.
 
@@ -29,18 +29,18 @@ ClaworldNfa solves this by unifying all four BAP-578 capabilities — **identity
 
 ---
 
-## How It Works
+### How It Works
 
-### One Token = One Agent
+#### One Token = One Agent
 
-Each [ClawNFA](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48) token is a complete AI agent on-chain. It carries:
+Each ClawNFA token is a complete AI agent on-chain. It carries:
 
 - **Identity**: level, rarity, shelter assignment, job class, DNA traits
-- **Wallet**: internal CLW token balance managed by the [ClawRouter](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5) contract
+- **Wallet**: internal CLW token balance managed by the ClawRouter contract
 - **Execution**: authorized skill contracts (tasks, PvP, marketplace) that the agent can invoke
 - **Learning**: a 5-dimension personality vector (courage, wisdom, social, creativity, grit) that evolves based on player behavior
 
-### Player-Driven Personality Evolution
+#### Player-Driven Personality Evolution
 
 The personality system is the core innovation. Unlike random stat allocation, an NFA's personality is shaped entirely by the player's choices:
 
@@ -59,24 +59,22 @@ reward_multiplier = 0.05x to 2.0x based on matchScore
 
 A well-trained NFA earns up to 20x more than a blank one. This creates genuine long-term engagement incentive — your agent becomes more valuable the more thoughtfully you develop it.
 
-### Modular Skill Architecture
+#### Modular Skill Architecture
 
-The system uses a hub-and-spoke architecture centered on [ClawRouter](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5):
+The system uses a hub-and-spoke architecture centered on ClawRouter:
 
-| Skill | Function | Contract |
-|-------|----------|----------|
-| [TaskSkill](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) | Quest completion, XP + CLW rewards scaled by personality match | `0x652c...442a` |
-| [PKSkill](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1bF275c98179D10) | PvP arena, commit-reveal strategy with personality modifiers | `0xaed3...9D10` |
-| [MarketSkill](https://bscscan.com/address/0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF) | Fixed-price sales, 24h auctions, NFA-for-NFA swaps | `0xA58e...8dfF` |
-| [PersonalityEngine](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269) | 5-dimension personality evolution | `0xFe68...f269` |
-| [GenesisVault](https://bscscan.com/address/0xCe04f834aC4581FD5562f6c58C276E60C624fF83) | 888 genesis mint via commit-reveal | `0xCe04...fF83` |
-| [WorldState](https://bscscan.com/address/0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA) | Global parameters with 24h timelock | `0xC375...9FCA` |
-| [DepositRouter](https://bscscan.com/address/0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54) | BNB → CLW via DEX or bonding curve | `0x6e3d...2a54` |
-| [ClawOracle](https://bscscan.com/address/0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E) | AI oracle with commit-reveal verification | `0x19E8...331E` |
+- **TaskSkill** — Quest completion, XP + CLW rewards scaled by personality match
+- **PKSkill** — PvP arena, commit-reveal strategy with personality modifiers
+- **MarketSkill** — Fixed-price sales, 24h auctions, NFA-for-NFA swaps
+- **PersonalityEngine** — 5-dimension personality evolution
+- **GenesisVault** — 888 genesis mint via commit-reveal with enhanced entropy
+- **WorldState** — Global game parameters with 24h timelock governance
+- **DepositRouter** — BNB → CLW via DEX or bonding curve
+- **ClawOracle** — AI oracle with commit-reveal verification
 
 Each skill is a separate UUPS upgradeable proxy. New skills can be added without modifying existing contracts.
 
-### Three Ways to Play
+#### Three Ways to Play
 
 The system provides three entry points sharing the same on-chain state:
 
@@ -88,45 +86,58 @@ The system provides three entry points sharing the same on-chain state:
 
 ---
 
-## Security
+### Smart Contracts (BSC Mainnet)
 
-| Mechanism | Purpose |
-|-----------|---------|
-| **UUPS Proxy** | All contracts upgradeable, owner-only access |
-| **Commit-Reveal** | Mint, PvP, Oracle — prevents frontrunning |
-| **Enhanced Entropy** | salt + nonce + gasleft() mixing, no VRF dependency |
-| **24h Timelock** | WorldState: propose → wait 24h → execute |
-| **Pull-over-Push** | BNB refunds via `pendingWithdrawals` + `claimRefund()` |
-| **Skill Authorization** | Only router-authorized contracts modify NFA state |
-| **Monthly Caps** | Personality ±5/month per dimension |
-| **Storage Gaps** | 40 slots reserved per contract for upgrades |
+- **ClawNFA** (ERC-721 NFA identity): [0xAa2094798B5892191124eae9D77E337544FFAE48](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
+- **ClawRouter** (Core hub): [0x60C0D5276c007Fd151f2A615c315cb364EF81BD5](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5)
+- **GenesisVault** (888 genesis mint): [0xCe04f834aC4581FD5562f6c58C276E60C624fF83](https://bscscan.com/address/0xCe04f834aC4581FD5562f6c58C276E60C624fF83)
+- **WorldState** (Global params, 24h timelock): [0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA](https://bscscan.com/address/0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA)
+- **TaskSkill** (Quests + match scoring): [0x652c192B6A3b13e0e90F145727DE6484AdA8442a](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a)
+- **PKSkill** (PvP, commit-reveal): [0xaed370784536e31BE4A5D0Dbb1bF275c98179D10](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1bF275c98179D10)
+- **MarketSkill** (Marketplace): [0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF](https://bscscan.com/address/0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF)
+- **DepositRouter** (DEX routing): [0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54](https://bscscan.com/address/0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54)
+- **PersonalityEngine** (5D evolution): [0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269)
+- **ClawOracle** (AI oracle): [0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E](https://bscscan.com/address/0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E)
+
+All contracts use OpenZeppelin UUPS upgradeable proxy.
+
+---
+
+### Security
+
+- **UUPS Proxy** — All contracts upgradeable, owner-only access
+- **Commit-Reveal** — Mint, PvP, Oracle — prevents frontrunning
+- **Enhanced Entropy** — salt + nonce + gasleft() mixing, no VRF dependency
+- **24h Timelock** — WorldState: propose → wait 24h → execute
+- **Pull-over-Push** — BNB refunds via pendingWithdrawals + claimRefund()
+- **Skill Authorization** — Only router-authorized contracts modify NFA state
+- **Monthly Caps** — Personality ±5/month per dimension
+- **Storage Gaps** — 40 slots reserved per contract for upgrades
 
 229 automated tests, 0 failures.
 
 ---
 
-## Tech Stack
+### Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Blockchain | [BNB Chain](https://www.bnbchain.org/) (BSC Mainnet) |
-| Contracts | Solidity ^0.8.20, [OpenZeppelin](https://www.openzeppelin.com/) UUPS |
-| Build & Test | [Hardhat](https://hardhat.org/), Chai, Mocha |
-| Frontend | [Next.js](https://nextjs.org/) 16, [React](https://react.dev/) 19, TypeScript |
-| Chain Interaction | [wagmi](https://wagmi.sh/) v3, [viem](https://viem.sh/) v2 |
-| Game Engine | [Phaser 3](https://phaser.io/) |
-| AI Runtime | [OpenClaw](https://github.com/nicepkg/openclaw) (local) |
-| UI | [Tailwind CSS](https://tailwindcss.com/), CRT/PipBoy terminal aesthetic |
+- **Blockchain**: BNB Chain (BSC Mainnet)
+- **Contracts**: Solidity ^0.8.20, OpenZeppelin UUPS
+- **Build & Test**: Hardhat, Chai, Mocha
+- **Frontend**: Next.js 16, React 19, TypeScript
+- **Chain Interaction**: wagmi v3, viem v2
+- **Game Engine**: Phaser 3
+- **AI Runtime**: OpenClaw (local, no backend)
+- **UI**: Tailwind CSS, CRT/PipBoy terminal aesthetic
 
 ---
 
-## What's Next
+### What's Next
 
 - **Cross-Agent Communication** — NFAs interacting with each other autonomously on-chain
 - **Multi-Chain Expansion** — bringing BAP-578 beyond BNB Chain
-- **DAO Governance** — NFA holders voting on [WorldState](https://bscscan.com/address/0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA) parameters
+- **DAO Governance** — NFA holders voting on WorldState parameters
 - **Equipment System** — on-chain items that modify agent capabilities
-- **Advanced AI Integration** — deeper personality-driven AI behavior in [OpenClaw](https://clawhub.ai/fa762/claw-world) conversations
+- **Advanced AI Integration** — deeper personality-driven AI behavior in OpenClaw conversations
 
 ---
 
@@ -134,11 +145,11 @@ The system provides three entry points sharing the same on-chain state:
 
 ## 中文版
 
-## 我们做了什么
+### 我们做了什么
 
-ClaworldNfa 是 [BNB Chain](https://www.bnbchain.org/) 上 [BAP-578](https://github.com/nicepkg/openclaw) Non-Fungible Agent (NFA) 标准的完整实现。它将静态 NFT 变成了能思考、行动、赚取和进化的链上 AI Agent。
+ClaworldNfa 是 BNB Chain 上 BAP-578 Non-Fungible Agent (NFA) 标准的完整实现。它将静态 NFT 变成了能思考、行动、赚取和进化的链上 AI Agent。
 
-项目交付了一个全栈系统：BSC 主网上的 10 个智能合约、一个网页前端、一个 2D 浏览器 RPG 游戏，以及 [OpenClaw](https://github.com/nicepkg/openclaw) 本地 AI 运行时的 Skill 插件。全部在 MIT 许可下开源。
+项目交付了一个全栈系统：BSC 主网上的 10 个智能合约、一个网页前端、一个 2D 浏览器 RPG 游戏，以及 OpenClaw 本地 AI 运行时的 Skill 插件。全部在 MIT 许可下开源。
 
 - **官网**: [clawnfaterminal.xyz](https://www.clawnfaterminal.xyz)
 - **GitHub**: [fa762/ClaworldNfa](https://github.com/fa762/ClaworldNfa)
@@ -147,7 +158,7 @@ ClaworldNfa 是 [BNB Chain](https://www.bnbchain.org/) 上 [BAP-578](https://git
 
 ---
 
-## 解决什么问题
+### 解决什么问题
 
 BAP-578 是 BNB Chain 提出的 Non-Fungible Agent 标准——让 NFT 作为自主 AI Agent 运行。但在 ClaworldNfa 之前，没有项目交付过可用的端到端实现。
 
@@ -157,18 +168,18 @@ ClaworldNfa 将 BAP-578 的四项能力——**身份、钱包、执行、学习
 
 ---
 
-## 工作原理
+### 工作原理
 
-### 一个代币 = 一个 Agent
+#### 一个代币 = 一个 Agent
 
-每个 [ClawNFA](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48) 代币就是一个完整的链上 AI Agent，携带：
+每个 ClawNFA 代币就是一个完整的链上 AI Agent，携带：
 
 - **身份**：等级、稀有度、避难所归属、职业、DNA 特征
-- **钱包**：由 [ClawRouter](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5) 合约管理的内部 CLW 余额
+- **钱包**：由 ClawRouter 合约管理的内部 CLW 余额
 - **执行**：授权的 Skill 合约（任务、PvP、市场），Agent 可以调用
 - **学习**：五维性格向量（勇气、智慧、社交、创造、毅力），基于玩家行为演化
 
-### 玩家驱动的性格演化
+#### 玩家驱动的性格演化
 
 性格系统是核心创新。不同于随机属性分配，NFA 的性格完全由玩家选择塑造：
 
@@ -187,24 +198,22 @@ matchScore = dot(性格向量, 任务需求向量)
 
 精心培养的 NFA 收益最高是白板的 20 倍。这创造了真实的长期参与激励——你越用心培养 Agent，它就越有价值。
 
-### 模块化 Skill 架构
+#### 模块化 Skill 架构
 
-系统采用以 [ClawRouter](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5) 为核心的辐射式架构：
+系统采用以 ClawRouter 为核心的辐射式架构：
 
-| Skill | 功能 | 合约 |
-|-------|------|------|
-| [TaskSkill](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) | 任务完成，XP + CLW 奖励随性格匹配度缩放 | `0x652c...442a` |
-| [PKSkill](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1bF275c98179D10) | PvP 擂台，commit-reveal 策略 + 性格修正 | `0xaed3...9D10` |
-| [MarketSkill](https://bscscan.com/address/0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF) | 固定价售卖、24h 拍卖、NFA 互换 | `0xA58e...8dfF` |
-| [PersonalityEngine](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269) | 五维性格演化 | `0xFe68...f269` |
-| [GenesisVault](https://bscscan.com/address/0xCe04f834aC4581FD5562f6c58C276E60C624fF83) | 888 创世铸造，commit-reveal | `0xCe04...fF83` |
-| [WorldState](https://bscscan.com/address/0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA) | 全局参数，24h 时间锁 | `0xC375...9FCA` |
-| [DepositRouter](https://bscscan.com/address/0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54) | BNB → CLW，通过 DEX 或 Bonding Curve | `0x6e3d...2a54` |
-| [ClawOracle](https://bscscan.com/address/0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E) | AI 预言机，commit-reveal 验证 | `0x19E8...331E` |
+- **TaskSkill** — 任务完成，XP + CLW 奖励随性格匹配度缩放
+- **PKSkill** — PvP 擂台，commit-reveal 策略 + 性格修正
+- **MarketSkill** — 固定价售卖、24h 拍卖、NFA 互换
+- **PersonalityEngine** — 五维性格演化
+- **GenesisVault** — 888 创世铸造，commit-reveal + 增强熵源
+- **WorldState** — 全局游戏参数，24h 时间锁治理
+- **DepositRouter** — BNB → CLW，通过 DEX 或 Bonding Curve
+- **ClawOracle** — AI 预言机，commit-reveal 验证
 
 每个 Skill 都是独立的 UUPS 可升级代理合约。新增 Skill 无需修改现有合约。
 
-### 三种游玩方式
+#### 三种游玩方式
 
 系统提供三个入口，共享同一个链上状态：
 
@@ -216,42 +225,55 @@ matchScore = dot(性格向量, 任务需求向量)
 
 ---
 
-## 安全设计
+### 智能合约（BSC 主网）
 
-| 机制 | 目的 |
-|------|------|
-| **UUPS 代理** | 所有合约可升级，仅 owner 可操作 |
-| **Commit-Reveal** | Mint、PvP、Oracle — 防止抢跑 |
-| **增强熵源** | salt + nonce + gasleft() 混合，不依赖 VRF |
-| **24h 时间锁** | WorldState：提议 → 等待 24h → 执行 |
-| **Pull-over-Push** | BNB 退款通过 `pendingWithdrawals` + `claimRefund()` |
-| **Skill 授权** | 只有路由器授权的合约才能修改 NFA 状态 |
-| **月度上限** | 性格每维度每月 ±5 |
-| **存储间隙** | 每个合约预留 40 slot 给未来升级 |
+- **ClawNFA**（ERC-721 NFA 身份）: [0xAa2094798B5892191124eae9D77E337544FFAE48](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
+- **ClawRouter**（核心枢纽）: [0x60C0D5276c007Fd151f2A615c315cb364EF81BD5](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5)
+- **GenesisVault**（888 创世铸造）: [0xCe04f834aC4581FD5562f6c58C276E60C624fF83](https://bscscan.com/address/0xCe04f834aC4581FD5562f6c58C276E60C624fF83)
+- **WorldState**（世界参数，24h 时间锁）: [0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA](https://bscscan.com/address/0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA)
+- **TaskSkill**（任务 + 匹配度评分）: [0x652c192B6A3b13e0e90F145727DE6484AdA8442a](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a)
+- **PKSkill**（PvP，commit-reveal）: [0xaed370784536e31BE4A5D0Dbb1bF275c98179D10](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1bF275c98179D10)
+- **MarketSkill**（市场交易）: [0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF](https://bscscan.com/address/0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF)
+- **DepositRouter**（充值路由）: [0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54](https://bscscan.com/address/0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54)
+- **PersonalityEngine**（五维性格演化）: [0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269)
+- **ClawOracle**（AI 预言机）: [0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E](https://bscscan.com/address/0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E)
+
+所有合约使用 OpenZeppelin UUPS 可升级代理。
+
+---
+
+### 安全设计
+
+- **UUPS 代理** — 所有合约可升级，仅 owner 可操作
+- **Commit-Reveal** — Mint、PvP、Oracle — 防止抢跑
+- **增强熵源** — salt + nonce + gasleft() 混合，不依赖 VRF
+- **24h 时间锁** — WorldState：提议 → 等待 24h → 执行
+- **Pull-over-Push** — BNB 退款通过 pendingWithdrawals + claimRefund()
+- **Skill 授权** — 只有路由器授权的合约才能修改 NFA 状态
+- **月度上限** — 性格每维度每月 ±5
+- **存储间隙** — 每个合约预留 40 slot 给未来升级
 
 229 自动化测试，0 失败。
 
 ---
 
-## 技术栈
+### 技术栈
 
-| 层 | 技术 |
-|----|------|
-| 区块链 | [BNB Chain](https://www.bnbchain.org/)（BSC 主网） |
-| 合约 | Solidity ^0.8.20, [OpenZeppelin](https://www.openzeppelin.com/) UUPS |
-| 构建与测试 | [Hardhat](https://hardhat.org/), Chai, Mocha |
-| 前端 | [Next.js](https://nextjs.org/) 16, [React](https://react.dev/) 19, TypeScript |
-| 链交互 | [wagmi](https://wagmi.sh/) v3, [viem](https://viem.sh/) v2 |
-| 游戏引擎 | [Phaser 3](https://phaser.io/) |
-| AI 运行时 | [OpenClaw](https://github.com/nicepkg/openclaw)（本地运行） |
-| UI | [Tailwind CSS](https://tailwindcss.com/), CRT/PipBoy 终端风格 |
+- **区块链**: BNB Chain（BSC 主网）
+- **合约**: Solidity ^0.8.20, OpenZeppelin UUPS
+- **构建与测试**: Hardhat, Chai, Mocha
+- **前端**: Next.js 16, React 19, TypeScript
+- **链交互**: wagmi v3, viem v2
+- **游戏引擎**: Phaser 3
+- **AI 运行时**: OpenClaw（本地运行，无后端）
+- **UI**: Tailwind CSS, CRT/PipBoy 终端风格
 
 ---
 
-## 未来计划
+### 未来计划
 
 - **跨 Agent 通信** — NFA 之间在链上自主交互
 - **多链扩展** — 将 BAP-578 扩展到 BNB Chain 之外
-- **DAO 治理** — NFA 持有者投票决定 [WorldState](https://bscscan.com/address/0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA) 参数
+- **DAO 治理** — NFA 持有者投票决定 WorldState 参数
 - **装备系统** — 链上道具修改 Agent 能力
-- **深度 AI 集成** — 在 [OpenClaw](https://clawhub.ai/fa762/claw-world) 对话中实现更深的性格驱动 AI 行为
+- **深度 AI 集成** — 在 OpenClaw 对话中实现更深的性格驱动 AI 行为
