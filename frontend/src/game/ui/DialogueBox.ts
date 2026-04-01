@@ -59,8 +59,9 @@ export class DialogueBox {
     // 正文
     this.bodyText = scene.add.text(this.PADDING + 10, boxY + 46, '', {
       fontSize: '17px', fontFamily: 'monospace', color: '#cccccc',
-      wordWrap: { width: this.W - 80 }, lineSpacing: 8,
+      wordWrap: { width: this.W - 96, useAdvancedWrap: true }, lineSpacing: 8,
     });
+    this.bodyText.setFixedSize(this.W - 96, this.BOX_H - 108);
 
     // 继续提示
     this.promptText = scene.add.text(this.W - 32, boxY + this.BOX_H - 20, '▼', {
@@ -120,6 +121,7 @@ export class DialogueBox {
       const y = boxY + 68 + i * 36;
       const text = this.scene.add.text(this.PADDING + 20, y, `[${i + 1}] ${choice.label}`, {
         fontSize: '17px', fontFamily: 'monospace', color: '#39ff14',
+        wordWrap: { width: this.W - 120, useAdvancedWrap: true },
       }).setInteractive({ useHandCursor: true }).setDepth(201);
 
       text.on('pointerover', () => text.setColor('#ffffff'));

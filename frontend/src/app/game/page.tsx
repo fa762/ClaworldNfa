@@ -116,6 +116,7 @@ export default function GamePage() {
   const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null);
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [gameReady, setGameReady] = useState(false);
+  const [showHelpPanel, setShowHelpPanel] = useState(false);
 
   const walletOptions = useMemo(
     () => connectors.filter((connector) => connector.type === 'injected' || connector.name === 'WalletConnect' || connector.name === 'Coinbase Wallet'),
@@ -127,27 +128,10 @@ export default function GamePage() {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    const stopGlobalNav = (e: KeyboardEvent) => {
-      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        return;
-      }
-
-      const target = e.target as HTMLElement | null;
-      const tag = target?.tagName?.toLowerCase();
-      const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || Boolean(target?.isContentEditable);
-      if (isTyping) return;
-
-      e.stopPropagation();
-    };
-
-    window.addEventListener('keydown', stopGlobalNav, true);
-    return () => window.removeEventListener('keydown', stopGlobalNav, true);
-  }, []);
-
-  useEffect(() => {
     if (!isConnected) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Tab') { e.preventDefault(); setShowSidePanel(p => !p); }
+      if (e.key.toLowerCase() === 'h') { e.preventDefault(); setShowHelpPanel(p => !p); }
       if (e.key === 'Escape') setShowSidePanel(false);
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -872,6 +856,13 @@ export default function GamePage() {
             [TAB] {lang === 'zh' ? '菜单' : 'MENU'}
           </button>
 
+          <button
+            onClick={() => setShowHelpPanel(true)}
+            className="pointer-events-auto absolute bottom-4 left-24 font-mono text-xs text-crt-green/40 hover:text-crt-green/70 transition-colors"
+          >
+            [H] {lang === 'zh' ? '帮助' : 'HELP'}
+          </button>
+
           {/* 交易进行中提示 — 右下角 */}
           {pendingTx && (
             <div className="absolute bottom-4 right-3 text-[11px] font-mono text-crt-green/70 animate-pulse text-right bg-black/70 px-3 py-1 border border-crt-green/20">
@@ -953,9 +944,46 @@ export default function GamePage() {
         </div>
       )}
 
+      {showHelpPanel && (
+        <div className="absolute inset-0 z-[45] bg-black/80 p-3 sm:p-6" onClick={() => setShowHelpPanel(false)}>
+          <div
+            className="mx-auto mt-4 sm:mt-10 max-w-2xl border border-crt-green/30 bg-black/95 p-4 sm:p-6 font-mono text-xs sm:text-sm text-crt-green/70 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-crt-green text-sm sm:text-lg">{lang === 'zh' ? '操作与功能总览' : 'Controls & Features'}</p>
+              <button
+                onClick={() => setShowHelpPanel(false)}
+                className="soft-key px-3 py-1 text-xs"
+              >
+                {lang === 'zh' ? '[ 关闭 ]' : '[ CLOSE ]'}
+              </button>
+            </div>
+
+            <div className="border-t border-crt-green/15 pt-3 space-y-2">
+              <p className="term-bright">{lang === 'zh' ? '基础操作' : 'Controls'}</p>
+              <p>{lang === 'zh' ? 'WASD / 方向键：移动' : 'WASD / Arrow keys: move'}</p>
+              <p>{lang === 'zh' ? '点击地面 / 点按屏幕：移动到目标点' : 'Tap/click ground: move to point'}</p>
+              <p>{lang === 'zh' ? 'SPACE：靠近装置后交互' : 'SPACE: interact near terminals'}</p>
+              <p>{lang === 'zh' ? 'TAB：打开系统菜单' : 'TAB: open system menu'}</p>
+              <p>{lang === 'zh' ? 'ESC：关闭面板 / 返回' : 'ESC: close panel / back'}</p>
+            </div>
+
+            <div className="border-t border-crt-green/15 pt-3 space-y-2">
+              <p className="term-bright">{lang === 'zh' ? '合约功能入口' : 'Onchain Functions'}</p>
+              <p>{lang === 'zh' ? '任务终端：生成 3 个任务并链上提交' : 'Task terminal: generate three tasks and submit onchain'}</p>
+              <p>{lang === 'zh' ? '竞技擂台：创建、加入、揭示、结算、取消' : 'Arena: create, join, reveal, settle, cancel'}</p>
+              <p>{lang === 'zh' ? '交易墙：固定价、拍卖、互换、购买、出价、取消、结算' : 'Market wall: fixed price, auction, swap, buy, bid, cancel, settle'}</p>
+              <p>{lang === 'zh' ? '隧道传送：切换避难所' : 'Portal: switch shelters'}</p>
+              <p>{lang === 'zh' ? '意识唤醒舱：进入 OpenClaw 入口' : 'Awakening pod: open OpenClaw entry'}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 大厅 UI — 在 CRT 终端页面内，selecting/booting 等状态显示 */}
       {!isPlaying && (
-        <main className="h-full min-h-0 flex flex-col items-center justify-center px-2 sm:px-4 py-4 sm:py-8">
+        <main className="h-full min-h-0 flex flex-col items-center justify-center px-2 sm:px-4 py-3 sm:py-8 overflow-y-auto">
           <div className="w-full max-w-3xl border border-crt-green/30 bg-black/80 px-4 sm:px-8 py-5 sm:py-8 font-mono shadow-[0_0_40px_rgba(57,255,20,0.06)] overflow-y-auto max-h-full">
 
             <div className="flex items-center justify-between mb-6">
@@ -1046,10 +1074,10 @@ export default function GamePage() {
                     <button
                       key={id}
                       onClick={() => selectAndEnter(id)}
-                      className="soft-key text-left px-4 sm:px-5 py-3 sm:py-4"
+                      className="soft-key text-left px-4 sm:px-5 py-3 sm:py-4 min-w-0"
                     >
-                      <div className="text-base sm:text-lg text-crt-green mb-1">NFA #{id}</div>
-                      <div className="text-xs text-crt-green/50 mb-2">{getLobsterName(id)}</div>
+                      <div className="text-base sm:text-lg text-crt-green mb-1 break-words">NFA #{id}</div>
+                      <div className="text-xs text-crt-green/50 mb-2 break-words">{getLobsterName(id)}</div>
                       {nfaSummaries[id] ? (
                         (() => {
                           const summary = nfaSummaries[id];
@@ -1062,7 +1090,7 @@ export default function GamePage() {
                           ].sort((a, b) => b.value - a.value);
 
                           return (
-                            <div className="space-y-1 text-xs sm:text-sm text-crt-green/70">
+                            <div className="space-y-1 text-xs sm:text-sm text-crt-green/70 break-words">
                               <div>Lv.{summary.level} · {getRarityName(summary.rarity, lang === 'zh')}</div>
                               <div>{getShelterName(summary.shelter)}</div>
                               <div>CLW {summary.clwBalance.toFixed(0)} · {summary.active ? (lang === 'zh' ? '激活' : 'Active') : (lang === 'zh' ? '休眠' : 'Dormant')}</div>
@@ -1099,6 +1127,15 @@ export default function GamePage() {
                 </button>
               </>
             )}
+
+            <div className="mt-6 border-t border-crt-green/15 pt-4 text-xs text-crt-green/60 space-y-2">
+              <p className="term-bright">{lang === 'zh' ? '操作说明' : 'HOW TO PLAY'}</p>
+              <p>1. {lang === 'zh' ? '连接钱包后点击进入游戏' : 'Connect wallet, then enter game'}</p>
+              <p>2. {lang === 'zh' ? '选一只龙虾进入避难所' : 'Choose a lobster to enter shelter'}</p>
+              <p>3. {lang === 'zh' ? 'WASD/方向键或点击地面移动' : 'Move with WASD/arrows or tap the ground'}</p>
+              <p>4. {lang === 'zh' ? '靠近装置后按 SPACE 或直接点击装置交互' : 'Approach terminals, press SPACE or tap them'}</p>
+              <p>5. {lang === 'zh' ? '所有合约功能都在游戏内终端面板完成' : 'All contract actions run inside in-game terminal panels'}</p>
+            </div>
           </div>
         </main>
       )}
