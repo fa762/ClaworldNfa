@@ -127,6 +127,24 @@ export default function GamePage() {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
+    const stopGlobalNav = (e: KeyboardEvent) => {
+      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        return;
+      }
+
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || Boolean(target?.isContentEditable);
+      if (isTyping) return;
+
+      e.stopPropagation();
+    };
+
+    window.addEventListener('keydown', stopGlobalNav, true);
+    return () => window.removeEventListener('keydown', stopGlobalNav, true);
+  }, []);
+
+  useEffect(() => {
     if (!isConnected) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Tab') { e.preventDefault(); setShowSidePanel(p => !p); }
@@ -956,20 +974,22 @@ export default function GamePage() {
                     : (lang === 'zh' ? '请选择并连接钱包' : 'Select and connect a wallet')}
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 mb-5">
-                  {walletOptions.map((connector) => (
-                    <button
-                      key={connector.id}
-                      onClick={() => {
-                        setSelectedConnectorId(connector.id);
-                        connect({ connector });
-                      }}
-                      className={`soft-key py-3 text-xs sm:text-sm ${selectedConnectorId === connector.id ? 'text-white' : ''}`}
-                    >
-                      {connector.name === 'Injected' ? '浏览器钱包 (MetaMask 等)' : connector.name}
-                    </button>
-                  ))}
-                </div>
+                {!isConnected && (
+                  <div className="grid gap-3 sm:grid-cols-2 mb-5">
+                    {walletOptions.map((connector) => (
+                      <button
+                        key={connector.id}
+                        onClick={() => {
+                          setSelectedConnectorId(connector.id);
+                          connect({ connector });
+                        }}
+                        className={`soft-key py-3 text-xs sm:text-sm ${selectedConnectorId === connector.id ? 'text-white' : ''}`}
+                      >
+                        {connector.name === 'Injected' ? '浏览器钱包 (MetaMask 等)' : connector.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 <button
                   onClick={() => void startGameBoot()}

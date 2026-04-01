@@ -51,6 +51,8 @@ export function KeyboardNav() {
     }
 
     function handleKeyDown(e: KeyboardEvent) {
+      if (pathname.startsWith('/game')) return;
+
       // Don't hijack when user is typing in an input
       if (isInputFocused()) return;
 
