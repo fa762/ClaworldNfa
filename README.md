@@ -1,195 +1,179 @@
-# Claw Civilization Universe (CCU)
+<p align="center">
+  <h1 align="center">ClaworldNfa</h1>
+  <p align="center">The first end-to-end implementation of BAP-578 Non-Fungible Agent standard on BNB Chain.</p>
+  <p align="center">
+    <a href="#english">English</a> | <a href="#中文">中文</a>
+  </p>
+</p>
 
-**The first end-to-end implementation of BNB Chain's BAP-578 Non-Fungible Agent standard.**
+---
+
+<a id="english"></a>
+
+## English
+
+### What is ClaworldNfa?
+
+ClaworldNfa turns NFTs into **Non-Fungible Agents (NFA)** — on-chain AI agents with their own identity, wallet, execution rights, and evolving personality. All in one token.
 
 > NFTs can't do anything. NFAs can act, earn, and grow.
 
----
+### The Problem
 
-## What is this?
+There is no unified standard for on-chain AI Agents. Current projects scatter identity, wallet, permissions, and memory across multiple contracts — fragmented, non-composable, non-tradeable.
 
-CCU turns NFTs into **Non-Fungible Agents (NFA)** — on-chain AI agents that have their own identity, wallet, execution rights, and evolving personality. All in one token.
+### The Solution
 
-Current AI Agent projects scatter identity, wallet, permissions, and memory across multiple contracts. BAP-578 unifies them into a single NFT standard. This repo is the complete implementation: smart contracts, web frontend, 2D RPG game, and OpenClaw AI skill integration.
+**BAP-578** proposes a Non-Fungible Agent standard on BNB Chain. ClaworldNfa is the **first complete implementation** — from smart contracts to AI runtime to playable game.
 
-### Core Innovation
-
-- **One token = One agent**: Identity + wallet + execution + learning record in a single ERC-721
-- **Player-driven personality**: Your choices shape your lobster's personality (courage, wisdom, social, creativity, grit) — on-chain verifiable
-- **Local AI runtime**: AI runs on your device via [OpenClaw](https://github.com/nicepkg/openclaw), no backend servers, no corporate control
-- **On-chain economy**: Task rewards, PvP stakes, marketplace trades — all through CLW token with real utility loops
+- **One token = One agent** — identity, wallet, execution, learning record in a single ERC-721
+- **Player-driven evolution** — your choices shape your agent's personality (5 dimensions), on-chain verifiable
+- **Local AI runtime** — AI runs on your device via OpenClaw, no backend, no corporate control
+- **Real token economy** — tasks, PvP, marketplace — CLW token with actual utility loops
 
 ---
 
-## Architecture
+### Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   BNB Chain                       │
-│                                                   │
-│  ClawNFA (ERC-721)  ←→  ClawRouter (Core Hub)    │
-│       ↕                      ↕                    │
-│  GenesisVault          PersonalityEngine          │
-│  (888 Mint)            (5D Evolution)             │
-│       ↕                      ↕                    │
-│  TaskSkill    PKSkill    MarketSkill              │
-│  (Quests)    (PvP)      (Trade)                   │
-│       ↕                      ↕                    │
-│  WorldState           DepositRouter               │
-│  (Global Params)      (DEX/Bonding Curve)         │
-└───────────────────────┬─────────────────────────┘
-                        │
-          ┌─────────────┼─────────────┐
-          │             │             │
-     ┌────▼────┐  ┌─────▼─────┐  ┌───▼────┐
-     │ Website │  │  2D RPG   │  │OpenClaw│
-     │ Next.js │  │  Phaser 3 │  │  Skill │
-     │ (View)  │  │  (Play)   │  │ (Deep) │
-     └─────────┘  └───────────┘  └────────┘
+┌──────────────────────────────────────────────┐
+│                  BNB Chain                    │
+│                                              │
+│  ClawNFA (ERC-721)  ←→  ClawRouter (Hub)     │
+│       ↕                      ↕               │
+│  GenesisVault          PersonalityEngine      │
+│  (888 Mint)            (5D Evolution)         │
+│       ↕                      ↕               │
+│  TaskSkill    PKSkill    MarketSkill          │
+│  (Quests)    (PvP)      (Trade)              │
+│       ↕                      ↕               │
+│  WorldState           DepositRouter           │
+│  (Global Params)      (DEX Routing)           │
+└──────────────────────┬───────────────────────┘
+                       │
+         ┌─────────────┼─────────────┐
+         │             │             │
+    ┌────▼────┐  ┌─────▼─────┐  ┌───▼────┐
+    │ Website │  │  2D RPG   │  │OpenClaw│
+    │ Next.js │  │  Phaser 3 │  │  Skill │
+    │ (View)  │  │  (Play)   │  │ (Deep) │
+    └─────────┘  └───────────┘  └────────┘
 ```
 
-**Three entry points, one save file:**
-- **Website** — View your NFA stats, mint, manage
-- **2D RPG** — Arcade-style browser game at `/game`
-- **OpenClaw** — Deep AI conversations, strategy, local runtime
+Three entry points, one save file:
+- **Website** — view NFA stats, mint, manage
+- **2D RPG** — browser game at `/game`
+- **OpenClaw** — deep AI conversations & strategy
 
 ---
 
-## Smart Contracts
+### Smart Contracts (BSC Mainnet)
 
-| Contract | Description | Testnet Address |
-|----------|-------------|-----------------|
-| ClawNFA | ERC-721 NFA token (BAP-578) | `0x1c69...B135` |
-| ClawRouter | Core hub: CLW balance, game state, skill dispatch | `0xA7Ee...c346` |
-| PersonalityEngine | 5-dimension personality evolution | `0xab8F...ac0e` |
-| GenesisVault | 888 genesis mint (commit-reveal) | `0x6d17...7867` |
-| TaskSkill | Quest system with personality-based match scoring | `0x4F8f...CE0E` |
-| PKSkill | PvP combat (commit-reveal strategy) | `0x0e76...839A` |
-| MarketSkill | Marketplace: fixed price / auction / swap | `0x254E...c46d` |
-| WorldState | Global parameters with 24h timelock | `0x3479...4F7d` |
-| DepositRouter | DEX/bonding curve deposit routing | `0xd61C...B448` |
+| Contract | Description | Address |
+|----------|-------------|---------|
+| ClawNFA | ERC-721 NFA (BAP-578) | `0xAa2094798B5892191124eae9D77E337544FFAE48` |
+| ClawRouter | Core hub | `0x60C0D5276c007Fd151f2A615c315cb364EF81BD5` |
+| GenesisVault | 888 genesis mint | `0xCe04f834aC4581FD5562f6c58C276E60C624fF83` |
+| WorldState | Global params (24h timelock) | `0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA` |
+| TaskSkill | Quest + match scoring | `0x652c192B6A3b13e0e90F145727DE6484AdA8442a` |
+| PKSkill | PvP (commit-reveal) | `0xaed370784536e31BE4A5D0Dbb1bF275c98179D10` |
+| MarketSkill | Marketplace | `0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF` |
+| DepositRouter | DEX routing | `0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54` |
+| PersonalityEngine | 5D evolution | `0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269` |
+| ClawOracle | AI oracle | `0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E` |
 
-All contracts use **OpenZeppelin UUPS upgradeable proxy** pattern.
+All contracts use OpenZeppelin UUPS upgradeable proxy.
 
 ---
 
-## Personality System
+### Personality System
 
-Players shape their NFA's personality through choices, not randomness:
+Your choices shape your NFA — not randomness:
 
 | Dimension | How to grow | Effect |
 |-----------|------------|--------|
-| Courage | Choose adventure tasks | Exploration reward bonus |
-| Wisdom | Choose puzzle tasks | Strategy accuracy bonus |
-| Social | Choose trade tasks | Market fee discount |
-| Creativity | Choose creation tasks | Rare item drop bonus |
-| Grit | Consistent daily play | Stamina & recovery bonus |
+| Courage | Adventure tasks | Exploration bonus |
+| Wisdom | Puzzle tasks | Strategy bonus |
+| Social | Trade tasks | Fee discount |
+| Creativity | Creation tasks | Rare drop bonus |
+| Grit | Daily consistency | Recovery bonus |
 
-**Match Score** = dot product of personality vector and task requirement vector → 0.05x ~ 2.0x reward multiplier. A well-trained NFA earns 20x more than a blank one.
+**Match Score** = personality vector · task vector → 0.05x ~ 2.0x reward multiplier.
 
 ---
 
-## Tech Stack
+### Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Blockchain | BNB Chain (BSC) |
+| Blockchain | BNB Chain (BSC Mainnet) |
 | Contracts | Solidity ^0.8.20, Hardhat, OpenZeppelin UUPS |
 | Frontend | Next.js 16, React 19, wagmi, viem |
-| Game | Phaser 3 (2D pixel RPG at `/game`) |
-| AI Runtime | OpenClaw (local, no backend) |
+| Game | Phaser 3 (2D pixel RPG) |
+| AI Runtime | OpenClaw (local) |
 | Styling | Tailwind CSS, CRT terminal aesthetic |
 
 ---
 
-## Project Structure
+### Project Structure
 
 ```
-clawworld/
-├── contracts/              # Solidity smart contracts
-│   ├── core/               # ClawNFA, ClawRouter, DepositRouter, PersonalityEngine
-│   ├── skills/             # TaskSkill, PKSkill, MarketSkill, GenesisVault
-│   └── world/              # WorldState, ClawOracle
-├── frontend/               # Next.js website + 2D RPG game
+ClaworldNfa/
+├── contracts/           # Solidity smart contracts
+│   ├── core/            # ClawNFA, ClawRouter, DepositRouter, PersonalityEngine
+│   ├── skills/          # TaskSkill, PKSkill, MarketSkill, GenesisVault
+│   └── world/           # WorldState, ClawOracle
+├── frontend/            # Next.js website + 2D RPG
 │   └── src/
-│       ├── app/            # Pages: home, NFA collection, detail, mint, game
-│       ├── components/     # PipBoy-style terminal UI components
-│       ├── contracts/      # ABIs + wagmi hooks
-│       └── game/           # Phaser 3 game engine
-│           ├── scenes/     # BootScene, ShelterScene, TaskScene, PKScene
-│           ├── ui/         # StatusHUD, DialogueBox
-│           └── chain/      # Wallet bridge (viem read + wagmi write)
-├── openclaw/               # OpenClaw AI skill plugin
-│   ├── claw-world-skill/   # Installable skill package (SKILL.md)
-│   └── skills/             # TypeScript skill implementations
-├── test/                   # 229 tests, 0 failing
-└── scripts/                # Deploy + utility scripts
+│       ├── app/         # Pages: home, NFA collection, detail, mint, game
+│       ├── components/  # PipBoy terminal UI
+│       ├── contracts/   # ABIs + wagmi hooks
+│       └── game/        # Phaser 3 engine (scenes, UI, chain bridge)
+├── openclaw/            # OpenClaw AI skill plugin
+│   └── claw-world-skill/
+├── test/                # 229 tests, 0 failing
+└── scripts/             # Deploy & utility scripts
 ```
 
 ---
 
-## Quick Start
-
-### Prerequisites
-
-- Node.js >= 18
-- Git
-
-### Install & Test
+### Quick Start
 
 ```bash
 git clone https://github.com/fa762/ClaworldNfa.git
 cd ClaworldNfa
 
-# Install contract dependencies
+# Contracts
 npm install
+npx hardhat test          # 229 passing
 
-# Run all tests (229 passing)
-npx hardhat test
-
-# Install frontend dependencies
+# Frontend
 cd frontend
 npm install
-
-# Run frontend dev server
-npm run dev
+npm run dev               # http://localhost:3000
 ```
 
-Visit `http://localhost:3000` for the website, `http://localhost:3000/game` for the 2D RPG.
+Game: `http://localhost:3000/game`
 
-### Deploy Contracts
+### Deploy
 
 ```bash
-# Set up .env
-cp .env.example .env
-# Edit .env with your private key and RPC URL
-
-npx hardhat run scripts/deploy-phase1.ts --network bscTestnet
-npx hardhat run scripts/deploy-phase2.ts --network bscTestnet
-npx hardhat run scripts/deploy-phase3.ts --network bscTestnet
+cp .env.example .env      # fill in your private key & RPC
+npx hardhat run scripts/deploy-phase1.ts --network bsc
+npx hardhat run scripts/deploy-phase2.ts --network bsc
+npx hardhat run scripts/deploy-phase3.ts --network bsc
 ```
 
 ---
 
-## Tests
+### Links
 
-```
-  ClawNFA            ✓ mint, transfer, metadata
-  ClawRouter         ✓ CLW balance, skill auth, personality facade
-  PersonalityEngine  ✓ 5-dimension evolution with monthly caps
-  GenesisVault       ✓ commit-reveal mint, enhanced entropy
-  TaskSkill          ✓ typed tasks, match scoring, rewards
-  PKSkill            ✓ commit-reveal PvP, strategy resolution
-  MarketSkill        ✓ fixed price, auction, swap
-  WorldState         ✓ 24h timelock governance
-  Integration        ✓ end-to-end: mint → task → PK → market
+- **Website**: [clawworld.xyz](https://clawworld.xyz)
+- **ClawHub Skill**: [@fa762/claw-world](https://clawhub.xyz/skills/@fa762/claw-world)
+- **OpenClaw Skill Repo**: [github.com/fa762/ClaworldNfa/tree/main/openclaw/claw-world-skill](https://github.com/fa762/ClaworldNfa/tree/main/openclaw/claw-world-skill)
+- **BNBScan**: [ClawNFA on BNBScan](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
 
-  229 passing, 0 failing
-```
-
----
-
-## License
+### License
 
 MIT
 
@@ -197,117 +181,140 @@ MIT
 
 ---
 
-# 龙虾文明宇宙 (CCU)
+<a id="中文"></a>
 
-**BNB Chain BAP-578 Non-Fungible Agent 标准的首个完整实现。**
+## 中文
+
+### ClaworldNfa 是什么？
+
+ClaworldNfa 将 NFT 变成 **Non-Fungible Agent (NFA)** — 拥有身份、钱包、执行权限和可演化性格的链上 AI Agent，全部集成在一个代币中。
 
 > NFT 不能做事。NFA 让它能做事、能赚钱、能成长。
 
----
+### 解决什么问题
 
-## 这是什么？
+链上 AI Agent 没有统一标准。现有项目将身份、钱包、权限、记忆分散在多个合约中——碎片化、不可组合、不可交易。
 
-CCU 将 NFT 变成 **Non-Fungible Agent (NFA)** — 拥有自己身份、钱包、执行权限和可演化性格的链上 AI Agent，全部集成在一个代币中。
+### 解决方案
 
-现有 AI Agent 项目将身份、钱包、权限、记忆分散在多个合约中。BAP-578 将它们统一为单一 NFT 标准。本仓库是完整实现：智能合约 + 网页前端 + 2D RPG 游戏 + OpenClaw AI Skill 集成。
+**BAP-578** 是 BNB Chain 上的 Non-Fungible Agent 标准提案。ClaworldNfa 是**首个完整实现**——从智能合约到 AI 运行时到可玩游戏的端到端落地。
 
-### 核心创新
-
-- **一个代币 = 一个 Agent**：身份 + 钱包 + 执行 + 学习记录集成在单个 ERC-721 中
-- **玩家选择驱动性格**：你的选择塑造龙虾的性格（勇气/智慧/社交/创造/毅力），链上可验证
-- **本地 AI 运行时**：AI 通过 [OpenClaw](https://github.com/nicepkg/openclaw) 在你的设备上本地运行，无后端，无企业控制
-- **链上经济循环**：任务奖励、PvP 质押、市场交易 — CLW 代币有真实效用支撑
+- **一个代币 = 一个 Agent** — 身份 + 钱包 + 执行 + 学习记录集成在单个 ERC-721
+- **玩家选择驱动演化** — 你的选择塑造 Agent 的五维性格，链上可验证
+- **本地 AI 运行** — 通过 OpenClaw 在你的设备上运行，无后端，无企业控制
+- **真实代币经济** — 任务/对战/交易，CLW 代币有实际效用循环
 
 ---
 
-## 架构
+### 架构
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   BNB Chain                       │
-│                                                   │
-│  ClawNFA (ERC-721)  ←→  ClawRouter (核心枢纽)     │
-│       ↕                      ↕                    │
-│  GenesisVault          PersonalityEngine          │
-│  (888 创世铸造)         (五维性格演化)              │
-│       ↕                      ↕                    │
-│  TaskSkill    PKSkill    MarketSkill              │
-│  (任务)       (对战)      (交易)                   │
-│       ↕                      ↕                    │
-│  WorldState           DepositRouter               │
-│  (世界参数)            (充值路由)                   │
-└───────────────────────┬─────────────────────────┘
-                        │
-          ┌─────────────┼─────────────┐
-          │             │             │
-     ┌────▼────┐  ┌─────▼─────┐  ┌───▼────┐
-     │  官网   │  │  2D RPG   │  │OpenClaw│
-     │ Next.js │  │  Phaser 3 │  │  Skill │
-     │ (查看)  │  │  (游玩)   │  │ (深度) │
-     └─────────┘  └───────────┘  └────────┘
+┌──────────────────────────────────────────────┐
+│                  BNB Chain                    │
+│                                              │
+│  ClawNFA (ERC-721)  ←→  ClawRouter (枢纽)    │
+│       ↕                      ↕               │
+│  GenesisVault          PersonalityEngine      │
+│  (888铸造)              (五维演化)             │
+│       ↕                      ↕               │
+│  TaskSkill    PKSkill    MarketSkill          │
+│  (任务)       (对战)      (交易)              │
+│       ↕                      ↕               │
+│  WorldState           DepositRouter           │
+│  (世界参数)            (充值路由)              │
+└──────────────────────┬───────────────────────┘
+                       │
+         ┌─────────────┼─────────────┐
+         │             │             │
+    ┌────▼────┐  ┌─────▼─────┐  ┌───▼────┐
+    │  官网   │  │  2D RPG   │  │OpenClaw│
+    │ Next.js │  │  Phaser 3 │  │  Skill │
+    │ (查看)  │  │  (游玩)   │  │ (深度) │
+    └─────────┘  └───────────┘  └────────┘
 ```
 
-**三个入口，同一个存档：**
+三个入口，同一个存档：
 - **官网** — 查看 NFA 状态、铸造、管理
-- **2D RPG** — 浏览器街机风格游戏（`/game` 路由）
-- **OpenClaw** — 深度 AI 对话、策略建议、本地运行
+- **2D RPG** — 浏览器街机游戏（`/game`）
+- **OpenClaw** — 深度 AI 对话与策略
 
 ---
 
-## 智能合约
+### 智能合约（BSC 主网）
 
-| 合约 | 功能 | 测试网地址 |
-|------|------|-----------|
-| ClawNFA | ERC-721 NFA 代币 (BAP-578) | `0x1c69...B135` |
-| ClawRouter | 核心枢纽：CLW 余额、游戏状态、Skill 分发 | `0xA7Ee...c346` |
-| PersonalityEngine | 五维性格演化引擎 | `0xab8F...ac0e` |
-| GenesisVault | 888 创世铸造（commit-reveal） | `0x6d17...7867` |
-| TaskSkill | 任务系统 + 性格匹配度评分 | `0x4F8f...CE0E` |
-| PKSkill | PvP 对战（commit-reveal 策略） | `0x0e76...839A` |
-| MarketSkill | 市场：固定价 / 拍卖 / 互换 | `0x254E...c46d` |
-| WorldState | 世界参数（24小时 Timelock） | `0x3479...4F7d` |
-| DepositRouter | DEX/Bonding Curve 充值路由 | `0xd61C...B448` |
+| 合约 | 功能 | 地址 |
+|------|------|------|
+| ClawNFA | ERC-721 NFA (BAP-578) | `0xAa2094798B5892191124eae9D77E337544FFAE48` |
+| ClawRouter | 核心枢纽 | `0x60C0D5276c007Fd151f2A615c315cb364EF81BD5` |
+| GenesisVault | 888 创世铸造 | `0xCe04f834aC4581FD5562f6c58C276E60C624fF83` |
+| WorldState | 世界参数（24h Timelock） | `0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA` |
+| TaskSkill | 任务 + 匹配度评分 | `0x652c192B6A3b13e0e90F145727DE6484AdA8442a` |
+| PKSkill | PvP 对战（commit-reveal） | `0xaed370784536e31BE4A5D0Dbb1bF275c98179D10` |
+| MarketSkill | 市场交易 | `0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF` |
+| DepositRouter | 充值路由 | `0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54` |
+| PersonalityEngine | 五维性格演化 | `0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269` |
+| ClawOracle | AI 预言机 | `0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E` |
 
-所有合约使用 **OpenZeppelin UUPS 可升级代理** 模式。
+所有合约使用 OpenZeppelin UUPS 可升级代理。
 
 ---
 
-## 性格系统
+### 性格系统
 
-玩家通过选择塑造 NFA 的性格，而不是随机分配：
+玩家通过选择塑造 NFA 性格，而不是随机：
 
-| 维度 | 如何提升 | 效果 |
+| 维度 | 提升方式 | 效果 |
 |------|---------|------|
-| 勇气 | 选择冒险任务 | 探索奖励加成 |
-| 智慧 | 选择解谜任务 | 策略准确度加成 |
-| 社交 | 选择交易任务 | 市场手续费折扣 |
-| 创造 | 选择创造类任务 | 稀有物品掉落加成 |
-| 毅力 | 持续每日游玩 | 体力与恢复加成 |
+| 勇气 | 冒险任务 | 探索奖励加成 |
+| 智慧 | 解谜任务 | 策略准确度加成 |
+| 社交 | 交易任务 | 手续费折扣 |
+| 创造 | 创造类任务 | 稀有掉落加成 |
+| 毅力 | 持续游玩 | 体力恢复加成 |
 
-**匹配度** = 性格向量 · 任务需求向量 → 0.05x ~ 2.0x 奖励倍率。精心培养的 NFA 收益是白板的 20 倍。
+**匹配度** = 性格向量 · 任务向量 → 0.05x ~ 2.0x 奖励倍率。精心培养的 NFA 收益是白板的 20 倍。
 
 ---
 
-## 快速开始
+### 技术栈
+
+| 层 | 技术 |
+|----|------|
+| 区块链 | BNB Chain（BSC 主网） |
+| 合约 | Solidity ^0.8.20, Hardhat, OpenZeppelin UUPS |
+| 前端 | Next.js 16, React 19, wagmi, viem |
+| 游戏 | Phaser 3（2D 像素 RPG） |
+| AI 运行时 | OpenClaw（本地运行） |
+| 样式 | Tailwind CSS, CRT 终端风格 |
+
+---
+
+### 快速开始
 
 ```bash
 git clone https://github.com/fa762/ClaworldNfa.git
 cd ClaworldNfa
 
-# 安装合约依赖 & 运行测试
+# 合约
 npm install
-npx hardhat test
+npx hardhat test          # 229 passing
 
-# 安装前端依赖 & 启动
+# 前端
 cd frontend
 npm install
-npm run dev
+npm run dev               # http://localhost:3000
 ```
 
-访问 `http://localhost:3000` 查看官网，`http://localhost:3000/game` 进入 2D RPG。
+游戏入口：`http://localhost:3000/game`
 
 ---
 
-## 许可证
+### 相关链接
+
+- **官网**: [clawworld.xyz](https://clawworld.xyz)
+- **ClawHub Skill**: [@fa762/claw-world](https://clawhub.xyz/skills/@fa762/claw-world)
+- **OpenClaw Skill 仓库**: [github.com/fa762/ClaworldNfa/tree/main/openclaw/claw-world-skill](https://github.com/fa762/ClaworldNfa/tree/main/openclaw/claw-world-skill)
+- **BNBScan**: [ClawNFA 合约](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
+
+### 许可证
 
 MIT
