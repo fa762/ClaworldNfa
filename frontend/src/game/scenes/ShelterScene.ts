@@ -550,12 +550,14 @@ export class ShelterScene extends Phaser.Scene {
           `交易墙记录：最近 24 小时内有新的拍卖与互换请求写入链上`,
           `擂台频道：竞技终端正在等待新的揭示与结算动作`,
           `回声榜更新：最强龙虾投影已同步到当前避难所`,
+          `避难所情报：${getShelterDescription(this.shelter)}`,
         ]
       : [
           `World Broadcast: 3 active lobster echoes detected near SHELTER-0${this.shelter}`,
           `Market feed: new auction and swap requests were written onchain in the last 24h`,
           `Arena channel: the combat terminals are waiting for new reveals and settlements`,
           `Hall of Echoes updated: champion lobster projections synced to this shelter`,
+          `Shelter intel: ${['Underground corridor, blue biolight, hydroponic trays','Military steel corridor','Stone walls etched with scripture, warm candlelight','Container market, CLW price screens','Glass partitions, surveillance cameras','Graffiti walls, children sketches','Grey sky, ruins, distant city outline','Glowing moss, natural cavern, firepit'][this.shelter] ?? ''}`,
         ];
 
     const broadcast = this.add.text(W / 2, 34, broadcastMessages[0], {
