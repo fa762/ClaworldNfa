@@ -738,7 +738,7 @@ async function cmdWithdrawStatus(nfaId) {
 
 // ─── Version Check ───
 
-const CURRENT_VERSION = '1.0.5';
+const CURRENT_VERSION = '1.0.6';
 const TG_GROUP = 'https://t.me/Claworldgroup';
 const CLAWHUB_API = 'https://clawhub.ai/api/skills/claw-world';
 

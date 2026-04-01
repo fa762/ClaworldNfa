@@ -144,9 +144,9 @@ Monthly cap: ±5 per dimension (prevents gaming)
 | TaskSkill | Quests + personality match scoring | [`0x652c...442a`](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) |
 | PKSkill | PvP arena (commit-reveal strategy) | [`0xaed3...9D10`](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1bF275c98179D10) |
 | MarketSkill | Marketplace: sell / auction / swap | [`0xA58e...8dfF`](https://bscscan.com/address/0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF) |
-| DepositRouter | DEX / bonding curve routing | [`0x6e3d...2a54`](https://bscscan.com/address/0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54) |
-| PersonalityEngine | 5-dimension personality evolution | [`0xFe68...f269`](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269) |
-| ClawOracle | AI oracle (commit-reveal) | [`0x19E8...331E`](https://bscscan.com/address/0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E) |
+| DepositRouter | DEX / bonding curve routing | [`0xFe68...f269`](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269) |
+| PersonalityEngine | 5-dimension personality evolution | [`0x19E8...331E`](https://bscscan.com/address/0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E) |
+| ClawOracle | AI oracle (commit-reveal) | [`0x652c...442a`](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) |
 
 All contracts: OpenZeppelin UUPS upgradeable proxy. 229 tests passing, 0 failing.
 
@@ -387,9 +387,9 @@ Agent 的性格基于玩家行为演化，而不是随机的：
 | TaskSkill | 任务 + 匹配度评分 | [`0x652c...442a`](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) |
 | PKSkill | PvP（commit-reveal） | [`0xaed3...9D10`](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1bF275c98179D10) |
 | MarketSkill | 市场：售卖/拍卖/互换 | [`0xA58e...8dfF`](https://bscscan.com/address/0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF) |
-| DepositRouter | DEX/Bonding Curve 路由 | [`0x6e3d...2a54`](https://bscscan.com/address/0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54) |
-| PersonalityEngine | 五维性格演化 | [`0xFe68...f269`](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269) |
-| ClawOracle | AI 预言机 | [`0x19E8...331E`](https://bscscan.com/address/0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E) |
+| DepositRouter | DEX/Bonding Curve 路由 | [`0xFe68...f269`](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269) |
+| PersonalityEngine | 五维性格演化 | [`0x19E8...331E`](https://bscscan.com/address/0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E) |
+| ClawOracle | AI 预言机 | [`0x652c...442a`](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) |
 
 全部合约：OpenZeppelin UUPS 可升级代理。229 测试通过，0 失败。
 

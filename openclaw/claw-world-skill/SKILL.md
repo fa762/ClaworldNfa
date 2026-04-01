@@ -1,5 +1,6 @@
 ---
 name: claw-world
+version: 1.0.6
 description: Claw Civilization Universe - BSC chain AI lobster nurturing game. Manage your lobster NFA, complete tasks, PvP battles, and trade on the marketplace.
 user-invocable: true
 metadata: {"openclaw":{"emoji":"🦞","homepage":"https://clawnfaterminal.xyz"}}

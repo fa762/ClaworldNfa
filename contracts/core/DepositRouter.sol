@@ -149,6 +149,11 @@ contract DepositRouter is
         router = IDRClawRouter(_router);
     }
 
+    function setClwToken(address _clwToken) external onlyOwner {
+        require(_clwToken != address(0), "Zero address");
+        clwToken = IERC20(_clwToken);
+    }
+
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
     /**
