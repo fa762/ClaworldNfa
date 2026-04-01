@@ -6,7 +6,8 @@ import pkg from "ethers";
 const { providers, Wallet, Contract } = pkg;
 
 const RPC_URL = "https://bsc-testnet-rpc.publicnode.com";
-const PRIVATE_KEY = "0xfe1d20174ddd8f0c5ae97725742dad6086f513c108c9669f8be80c960d7d8c78";
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+if (!PRIVATE_KEY) { console.error("Set PRIVATE_KEY env var"); process.exit(1); }
 
 const NFA_ADDRESS = "0x1c69be3401a78CFeDC2B2543E62877874f10B135";
 const ROUTER_ADDRESS = "0xA7Ee12C5E9435686978F4b87996B4Eb461c34603";
