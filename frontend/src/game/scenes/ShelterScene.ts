@@ -182,6 +182,7 @@ export class ShelterScene extends Phaser.Scene {
       npc.setImmovable(true);
       npc.setData('def', def);
       npc.setDepth(8);
+      this.applyNpcHitbox(npc, def.key);
 
       // NPC 标签
       this.add.text(def.x, def.y - npc.displayHeight / 2 - 10, def.label, {
@@ -202,6 +203,8 @@ export class ShelterScene extends Phaser.Scene {
     }
 
     this.spawnWorldEchoes(W, H);
+
+    this.physics.add.collider(this.player, this.npcs);
 
     // ── 碰撞 ──
     this.physics.world.setBounds(32, 32, W - 64, H - 64);
@@ -231,6 +234,12 @@ export class ShelterScene extends Phaser.Scene {
     this.add.text(W - 112, H - 48, this.lang === 'zh' ? '[ R 档案 ]' : '[ R DOSSIER ]', {
       fontSize: '11px', fontFamily: 'monospace', color: '#7adf8b',
     }).setOrigin(0.5).setDepth(100).setAlpha(0.5);
+
+    this.add.text(W - 112, H - 28, this.lang === 'zh' ? '[ 点击查看档案 ]' : '[ TAP FOR DOSSIER ]', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#9ed89f', backgroundColor: '#081108', padding: { x: 6, y: 4 },
+    }).setOrigin(0.5).setDepth(100).setAlpha(0.7).setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+      this.scene.start('ArchiveScene', this.buildSceneData());
+    });
 
     // ── HUD ──
     this.hudText = this.add.text(8, H - 22, this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`, {
@@ -517,6 +526,21 @@ export class ShelterScene extends Phaser.Scene {
       playerPosition: { x: this.player.x, y: this.player.y },
       lang: this.lang,
     };
+  }
+
+  private applyNpcHitbox(npc: Phaser.Physics.Arcade.Sprite, key: string) {
+    const body = npc.body as Phaser.Physics.Arcade.Body;
+    const map: Record<string, { width: number; height: number; offsetX: number; offsetY: number }> = {
+      task: { width: 24, height: 12, offsetX: 12, offsetY: 34 },
+      pk: { width: 24, height: 12, offsetX: 12, offsetY: 34 },
+      market: { width: 42, height: 12, offsetX: 11, offsetY: 34 },
+      portal: { width: 18, height: 18, offsetX: 15, offsetY: 24 },
+      openclaw: { width: 24, height: 16, offsetX: 12, offsetY: 30 },
+    };
+
+    const hitbox = map[key] ?? { width: 20, height: 12, offsetX: 14, offsetY: 32 };
+    body.setSize(hitbox.width, hitbox.height);
+    body.setOffset(hitbox.offsetX, hitbox.offsetY);
   }
 
   private spawnWorldEchoes(W: number, H: number) {
