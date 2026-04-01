@@ -64,6 +64,7 @@ export class TaskScene extends Phaser.Scene {
   create() {
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
+    const compact = W < 900;
 
     // 背景
     this.add.rectangle(W / 2, H / 2, W, H, 0x0a0a0a, 0.95);
@@ -81,15 +82,14 @@ export class TaskScene extends Phaser.Scene {
     this.tasks = this.generateTasks();
 
     // 渲染任务卡片
-    const cardW = Math.min(W * 0.28, 250);
-    const gap = 20;
-    const totalW = cardW * 3 + gap * 2;
-    const startX = (W - totalW) / 2;
+    const cardW = compact ? Math.min(W - 28, 420) : Math.min(W * 0.28, 250);
+    const gap = compact ? 14 : 20;
+    const cardH = compact ? 168 : H - 160;
+    const startX = compact ? (W - cardW) / 2 : (W - (cardW * 3 + gap * 2)) / 2;
 
     this.tasks.forEach((task, i) => {
-      const x = startX + i * (cardW + gap);
-      const y = 80;
-      const cardH = H - 160;
+      const x = compact ? startX : startX + i * (cardW + gap);
+      const y = compact ? 78 + i * (cardH + gap) : 80;
 
       // 卡片背景
       const card = this.add.rectangle(x + cardW / 2, y + cardH / 2, cardW, cardH, 0x111122, 0.9);
@@ -102,26 +102,33 @@ export class TaskScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
       // 标题
-      this.add.text(x + cardW / 2, y + 40, task.title, {
-        fontSize: '14px', fontFamily: 'monospace', color: '#ffffff',
-        wordWrap: { width: cardW - 20 }, align: 'center',
+      const title = this.add.text(x + cardW / 2, y + 40, task.title, {
+        fontSize: compact ? '13px' : '14px', fontFamily: 'monospace', color: '#ffffff',
+        wordWrap: { width: cardW - 24, useAdvancedWrap: true }, align: 'center',
+        maxLines: compact ? 2 : 3,
       }).setOrigin(0.5, 0);
+      title.setFixedSize(cardW - 24, compact ? 34 : 46);
 
       // 描述
-      this.add.text(x + 10, y + 75, task.desc, {
-        fontSize: '12px', fontFamily: 'monospace', color: '#aaaaaa',
-        wordWrap: { width: cardW - 20 },
+      const desc = this.add.text(x + 12, y + (compact ? 82 : 75), task.desc, {
+        fontSize: compact ? '11px' : '12px', fontFamily: 'monospace', color: '#aaaaaa',
+        wordWrap: { width: cardW - 24, useAdvancedWrap: true },
+        maxLines: compact ? 3 : 8,
+        lineSpacing: compact ? 4 : 2,
       });
+      desc.setFixedSize(cardW - 24, compact ? 54 : cardH - 146);
 
       // 奖励
-      this.add.text(x + cardW / 2, y + cardH - 50, `CLW: +${task.clw}  XP: +${task.xp}`, {
-        fontSize: '13px', fontFamily: 'monospace', color: '#39ff14',
+      this.add.text(x + cardW / 2, y + cardH - (compact ? 38 : 50), `CLW: +${task.clw}  XP: +${task.xp}`, {
+        fontSize: compact ? '12px' : '13px', fontFamily: 'monospace', color: '#39ff14',
+        wordWrap: { width: cardW - 24, useAdvancedWrap: true },
+        align: 'center',
       }).setOrigin(0.5);
 
       // 匹配度
       const matchColor = task.matchScore >= 1.0 ? '#39ff14' : task.matchScore >= 0.5 ? '#ffaa00' : '#ff4444';
-      this.add.text(x + cardW / 2, y + cardH - 30, `匹配度: ${task.matchScore.toFixed(2)}x`, {
-        fontSize: '13px', fontFamily: 'monospace', color: matchColor,
+      this.add.text(x + cardW / 2, y + cardH - (compact ? 18 : 30), `匹配度: ${task.matchScore.toFixed(2)}x`, {
+        fontSize: compact ? '12px' : '13px', fontFamily: 'monospace', color: matchColor,
       }).setOrigin(0.5);
 
       // 点击选择
@@ -135,7 +142,7 @@ export class TaskScene extends Phaser.Scene {
     });
 
     // 返回按钮
-    const backBtn = this.add.text(W / 2, H - 30, '[ ESC 返回避难所 ]', {
+    const backBtn = this.add.text(W / 2, compact ? H - 18 : H - 30, '[ ESC 返回避难所 ]', {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0.5).setInteractive({ useHandCursor: true });
     backBtn.on('pointerdown', () => this.goBack());
