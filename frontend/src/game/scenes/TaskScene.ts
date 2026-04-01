@@ -24,6 +24,12 @@ interface PlayerPosition {
   y: number;
 }
 
+interface SwitchNfaPayload {
+  nfaId: number;
+  shelter: number;
+  personality: Personality;
+}
+
 const TYPE_NAMES = ['勇气', '智慧', '社交', '创造', '毅力'];
 const TYPE_COLORS = ['#ff4444', '#4488ff', '#ffaa00', '#aa44ff', '#44ff44'];
 
@@ -147,8 +153,19 @@ export class TaskScene extends Phaser.Scene {
       this.registry.set('personality', stats);
     });
 
+    const offSwitchNfa = eventBus.on('game:switchNfa', (data: unknown) => {
+      const payload = data as SwitchNfaPayload;
+      this.scene.start('ShelterScene', {
+        nfaId: payload.nfaId,
+        shelter: payload.shelter,
+        personality: payload.personality,
+        playerPosition: this.playerPosition,
+      });
+    });
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offFullStats();
+      offSwitchNfa();
     });
   }
 

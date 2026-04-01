@@ -22,6 +22,12 @@ interface PlayerPosition {
   y: number;
 }
 
+interface SwitchNfaPayload {
+  nfaId: number;
+  shelter: number;
+  personality: Personality;
+}
+
 interface MatchItem {
   matchId: number;
   nfaA: number;
@@ -172,10 +178,21 @@ export class PKScene extends Phaser.Scene {
       this.registry.set('personality', stats);
     });
 
+    const offSwitchNfa = eventBus.on('game:switchNfa', (data: unknown) => {
+      const payload = data as SwitchNfaPayload;
+      this.scene.start('ShelterScene', {
+        nfaId: payload.nfaId,
+        shelter: payload.shelter,
+        personality: payload.personality,
+        playerPosition: this.playerPosition,
+      });
+    });
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offMatches();
       offResult();
       offFullStats();
+      offSwitchNfa();
       this.modal.destroy();
     });
 
@@ -296,6 +313,7 @@ export class PKScene extends Phaser.Scene {
     this.rows = [];
 
     const W = this.cameras.main.width;
+    const isCompact = W < 720;
 
     if (this.matches.length === 0) {
       const empty = this.add.text(W / 2, 200, '没有活跃中的链上对战', {
@@ -306,29 +324,33 @@ export class PKScene extends Phaser.Scene {
     }
 
     this.matches.slice(0, 6).forEach((match, index) => {
-      const y = 140 + index * 50;
-      const rowBg = this.add.rectangle(W / 2, y + 10, W - 36, 40, 0x111122, 0.5).setStrokeStyle(1, 0x222233);
-      const rowText = this.add.text(18, y,
-        `${String(match.matchId).padEnd(6)} ${String(match.nfaA).padEnd(8)} ${String(match.nfaB || '-').padEnd(8)} ${`${match.stake} CLW`.padEnd(12)} ${match.phaseName.padEnd(14)}`,
-        { fontSize: '12px', fontFamily: 'monospace', color: '#cccccc' },
+      const y = isCompact ? 140 + index * 72 : 140 + index * 50;
+      const rowBg = this.add.rectangle(W / 2, y + (isCompact ? 18 : 10), W - 36, isCompact ? 64 : 40, 0x111122, 0.5).setStrokeStyle(1, 0x222233);
+      const rowText = this.add.text(
+        18,
+        y,
+        isCompact
+          ? `#${match.matchId}  ${match.phaseName}\nNFA ${match.nfaA} vs ${match.nfaB || '-'}\n质押 ${match.stake} CLW`
+          : `${String(match.matchId).padEnd(6)} ${String(match.nfaA).padEnd(8)} ${String(match.nfaB || '-').padEnd(8)} ${`${match.stake} CLW`.padEnd(12)} ${match.phaseName.padEnd(14)}`,
+        { fontSize: isCompact ? '11px' : '12px', fontFamily: 'monospace', color: '#cccccc', lineSpacing: 4 },
       );
 
       this.rows.push(rowBg, rowText);
 
       if (match.phase === 0) {
-        const joinBtn = this.add.text(W - 70, y + 1, '[ 加入 ]', {
+        const joinBtn = this.add.text(W - 80, y + (isCompact ? 18 : 1), '[ 加入 ]', {
           fontSize: '11px', fontFamily: 'monospace', color: '#ffaa00', backgroundColor: '#1a1a00', padding: { x: 6, y: 4 },
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
         joinBtn.on('pointerdown', () => this.showStrategyPicker('join', { matchId: match.matchId }));
         this.rows.push(joinBtn);
       } else if (match.phase === 2) {
-        const revealBtn = this.add.text(W - 70, y + 1, '[ 揭示 ]', {
+        const revealBtn = this.add.text(W - 80, y + (isCompact ? 18 : 1), '[ 揭示 ]', {
           fontSize: '11px', fontFamily: 'monospace', color: '#39ff14', backgroundColor: '#001a00', padding: { x: 6, y: 4 },
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
         revealBtn.on('pointerdown', () => eventBus.emit('pk:reveal', { matchId: match.matchId }));
         this.rows.push(revealBtn);
       } else if (match.phase === 3) {
-        const settleBtn = this.add.text(W - 70, y + 1, '[ 结算 ]', {
+        const settleBtn = this.add.text(W - 80, y + (isCompact ? 18 : 1), '[ 结算 ]', {
           fontSize: '11px', fontFamily: 'monospace', color: '#39ff14', backgroundColor: '#001a00', padding: { x: 6, y: 4 },
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
         settleBtn.on('pointerdown', () => eventBus.emit('pk:settle', { matchId: match.matchId }));

@@ -240,25 +240,24 @@ export default function GamePage() {
       window.requestAnimationFrame(() => resolve());
     });
 
-    await waitForPaint();
+    let readyContainer: HTMLDivElement | null = null;
+    let readyRect: DOMRect | null = null;
 
-    const container = containerRef.current;
-    if (!container) {
-      throw new Error('Game container not ready');
-    }
-
-    const rect = container.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) {
+    for (let attempt = 0; attempt < 8; attempt++) {
       await waitForPaint();
+      readyContainer = containerRef.current;
+      if (!readyContainer) continue;
+      readyRect = readyContainer.getBoundingClientRect();
+      if (readyRect.width > 0 && readyRect.height > 0) {
+        break;
+      }
     }
 
-    const readyContainer = containerRef.current;
     if (!readyContainer) {
       throw new Error('Game container missing');
     }
 
-    const readyRect = readyContainer.getBoundingClientRect();
-    if (readyRect.width === 0 || readyRect.height === 0) {
+    if (!readyRect || readyRect.width === 0 || readyRect.height === 0) {
       throw new Error('Game container has zero size');
     }
 
@@ -269,7 +268,13 @@ export default function GamePage() {
   }, []);
 
   const selectAndEnter = useCallback(async (nfaId: number) => {
+    if (activeNfaIdRef.current === nfaId && status === 'playing') {
+      setShowSidePanel(false);
+      return;
+    }
+
     setStatus('loading-nfa');
+    setShowSidePanel(false);
     activeNfaIdRef.current = nfaId;
     setActiveNfaId(nfaId);
 
@@ -278,6 +283,17 @@ export default function GamePage() {
       const state = await loadNFAState(nfaId);
       emitNfaState(nfaId, state);
       eventBus.emit('nfa:loaded', { nfaId, shelter: state.shelter });
+      eventBus.emit('game:switchNfa', {
+        nfaId,
+        shelter: state.shelter,
+        personality: {
+          courage: state.courage,
+          wisdom: state.wisdom,
+          social: state.social,
+          create: state.create,
+          grit: state.grit,
+        },
+      });
       setStatus('playing');
     } catch (error) {
       console.error('Failed to load NFA state:', error);

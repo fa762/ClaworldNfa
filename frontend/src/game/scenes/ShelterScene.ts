@@ -200,6 +200,22 @@ export class ShelterScene extends Phaser.Scene {
       this.registry.set('personality', this.personality);
     });
 
+    const offSwitchNfa = eventBus.on('game:switchNfa', (data: unknown) => {
+      const payload = data as { nfaId: number; shelter: number; personality: Personality };
+      this.nfaId = payload.nfaId;
+      this.shelter = payload.shelter;
+      this.personality = payload.personality;
+      this.registry.set('nfaId', this.nfaId);
+      this.registry.set('shelter', this.shelter);
+      this.registry.set('personality', this.personality);
+      this.scene.restart({
+        nfaId: this.nfaId,
+        shelter: this.shelter,
+        personality: this.personality,
+        playerPosition: { x: this.player.x, y: this.player.y },
+      });
+    });
+
     this.registry.set('nfaId', this.nfaId);
     this.registry.set('shelter', this.shelter);
     this.registry.set('personality', this.personality);
@@ -208,6 +224,7 @@ export class ShelterScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offStats();
       offFullStats();
+      offSwitchNfa();
       this.dialogueBox.destroy();
       this.statusHUD.destroy();
     });

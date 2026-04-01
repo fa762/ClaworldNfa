@@ -16,6 +16,12 @@ interface PlayerPosition {
   y: number;
 }
 
+interface SwitchNfaPayload {
+  nfaId: number;
+  shelter: number;
+  personality: Personality;
+}
+
 interface Listing {
   listingId: number;
   nfaId: number;
@@ -193,11 +199,22 @@ export class MarketScene extends Phaser.Scene {
       this.walletSummaries = payload.summaries;
     });
 
+    const offSwitchNfa = eventBus.on('game:switchNfa', (data: unknown) => {
+      const payload = data as SwitchNfaPayload;
+      this.scene.start('ShelterScene', {
+        nfaId: payload.nfaId,
+        shelter: payload.shelter,
+        personality: payload.personality,
+        playerPosition: this.playerPosition,
+      });
+    });
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offListings();
       offResult();
       offWallet();
       offWalletNfas();
+      offSwitchNfa();
       this.modal.destroy();
     });
 
@@ -279,6 +296,7 @@ export class MarketScene extends Phaser.Scene {
     this.rows = [];
 
     const W = this.cameras.main.width;
+    const isCompact = W < 760;
     const pageItems = this.listings.slice(this.page * this.PER_PAGE, this.page * this.PER_PAGE + this.PER_PAGE);
 
     if (pageItems.length === 0) {
@@ -293,7 +311,7 @@ export class MarketScene extends Phaser.Scene {
     }
 
     pageItems.forEach((item, index) => {
-      const y = 126 + index * 48;
+      const y = isCompact ? 126 + index * 76 : 126 + index * 48;
       const rarityColor = RARITY_COLORS[item.rarity] || '#aaaaaa';
       const sellerShort = `${item.seller.slice(0, 6)}...${item.seller.slice(-4)}`;
       const isMine = Boolean(this.walletAddress) && item.seller.toLowerCase() === this.walletAddress.toLowerCase();
@@ -305,21 +323,25 @@ export class MarketScene extends Phaser.Scene {
           ? `${item.highestBid} BNB`
           : `${item.price} BNB`;
 
-      const rowBg = this.add.rectangle(W / 2, y + 10, W - 30, 40, 0x111122, 0.5)
+      const rowBg = this.add.rectangle(W / 2, y + (isCompact ? 18 : 10), W - 30, isCompact ? 68 : 40, 0x111122, 0.5)
         .setStrokeStyle(1, 0x222233)
         .setInteractive({ useHandCursor: true });
       rowBg.on('pointerover', () => rowBg.setFillStyle(0x222244, 0.8));
       rowBg.on('pointerout', () => rowBg.setFillStyle(0x111122, 0.5));
 
-      const rowText = this.add.text(16, y,
-        `${String(item.listingId).padEnd(6)} ${String(item.nfaId).padEnd(7)} ${RARITY_NAMES[item.rarity].padEnd(11)} ${TYPE_NAMES[item.listingType].padEnd(10)} ${mainValue.padEnd(18)} ${sellerShort.padEnd(13)}`,
-        { fontSize: '11px', fontFamily: 'monospace', color: rarityColor },
+      const rowText = this.add.text(
+        16,
+        y,
+        isCompact
+          ? `#${item.listingId}  NFA ${item.nfaId}  ${TYPE_NAMES[item.listingType]}\n${RARITY_NAMES[item.rarity]}  ·  ${mainValue}\n卖家 ${sellerShort}`
+          : `${String(item.listingId).padEnd(6)} ${String(item.nfaId).padEnd(7)} ${RARITY_NAMES[item.rarity].padEnd(11)} ${TYPE_NAMES[item.listingType].padEnd(10)} ${mainValue.padEnd(18)} ${sellerShort.padEnd(13)}`,
+        { fontSize: isCompact ? '11px' : '11px', fontFamily: 'monospace', color: rarityColor, lineSpacing: 4 },
       );
 
       this.rows.push(rowBg, rowText);
 
       if (item.listingType === 2) {
-        const swapLabel = this.add.text(W - 72, y + 1, isMine ? '[ 取消 ]' : hasSwapTarget ? '[ 接受 ]' : `[ 需 #${item.swapTargetId} ]`, {
+        const swapLabel = this.add.text(W - 80, y + (isCompact ? 18 : 1), isMine ? '[ 取消 ]' : hasSwapTarget ? '[ 接受 ]' : `[ 需 #${item.swapTargetId} ]`, {
           fontSize: '11px', fontFamily: 'monospace', color: isMine ? '#ff6666' : hasSwapTarget ? '#39ff14' : '#777777', backgroundColor: '#111111', padding: { x: 6, y: 4 },
         }).setOrigin(0.5);
         if (isMine || hasSwapTarget) {
@@ -339,7 +361,7 @@ export class MarketScene extends Phaser.Scene {
             : '[ 出价 ]';
 
       const actionColor = isMine ? '#ff4444' : '#ffd700';
-      const actionBtn = this.add.text(W - 72, y + 1, actionLabel, {
+      const actionBtn = this.add.text(W - 80, y + (isCompact ? 18 : 1), actionLabel, {
         fontSize: '11px', fontFamily: 'monospace', color: actionColor,
         backgroundColor: isMine ? '#1a0000' : '#1a1a00', padding: { x: 6, y: 4 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
