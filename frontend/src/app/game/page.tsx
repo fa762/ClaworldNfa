@@ -908,14 +908,6 @@ export default function GamePage() {
       <div ref={containerRef} className="absolute inset-0 z-[20] rounded bg-black" />
 
       <div className="pointer-events-none absolute inset-0 z-[30]">
-        <div className="pointer-events-auto absolute left-3 top-3 w-[min(92vw,24rem)] rounded border border-crt-green/20 bg-black/82 px-4 py-3 font-mono shadow-[0_0_24px_rgba(57,255,20,0.08)]">
-          <p className="text-[10px] tracking-[0.28em] text-crt-green/40">
-            {lang === 'zh' ? '场景状态' : 'SCENE STATUS'}
-          </p>
-          <p className="mt-1 text-sm text-crt-bright">{compactStatusHeadline}</p>
-          <p className="mt-1 text-xs text-crt-green/60">{compactStatusDetail}</p>
-        </div>
-
         <div className="pointer-events-auto absolute bottom-4 left-3 flex items-center gap-4 font-mono text-xs">
           <button
             onClick={() => setShowSidePanel((current) => !current)}
@@ -1148,7 +1140,7 @@ export default function GamePage() {
             <div className="border-t border-crt-green/15 pt-3 space-y-2">
               <p className="term-bright">{lang === 'zh' ? '链上功能入口' : 'On-chain Functions'}</p>
               <p>{lang === 'zh' ? '任务终端：生成任务并链上提交' : 'Task terminal: generate tasks and submit on-chain'}</p>
-              <p>{lang === 'zh' ? '竞技场：创建、加入、揭示、结算、取消对局' : 'Arena: create, join, reveal, settle, cancel'}</p>
+              <p>{lang === 'zh' ? '竞技场：创建或加入后自动推进对局结果，必要时可取消卡住的对局' : 'Arena: create or join, then auto-advance the match flow; cancel only when stuck'}</p>
               <p>{lang === 'zh' ? '交易墙：固定价、拍卖、互换、购买、出价、取消、结算' : 'Market wall: fixed price, auction, swap, buy, bid, cancel, settle'}</p>
               <p>{lang === 'zh' ? '避难所传送：切换 shelter' : 'Portal: switch shelters'}</p>
               <p>{lang === 'zh' ? 'OpenClaw：打开 AI 入口' : 'OpenClaw: open the AI entry'}</p>

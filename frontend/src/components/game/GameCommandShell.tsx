@@ -193,6 +193,7 @@ export function GameCommandShell({
   const [matchId, setMatchId] = useState('');
   const [listingId, setListingId] = useState('');
   const [portalId, setPortalId] = useState('');
+  const [showNfaPicker, setShowNfaPicker] = useState(false);
   const nextIdRef = useRef(1);
   const initializedRef = useRef(false);
   const lastStatusRef = useRef<GameStatus | null>(null);
@@ -278,6 +279,12 @@ export function GameCommandShell({
     logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [history]);
 
+  useEffect(() => {
+    if (nfaList.length <= 3) {
+      setShowNfaPicker(true);
+    }
+  }, [nfaList.length]);
+
   const runAction = useCallback(async (action: string, value?: string) => {
     if (action === 'sync') {
       if (!isConnected) return pushLog('error', zh ? '请先连接钱包。' : 'Connect wallet first.');
@@ -295,6 +302,7 @@ export function GameCommandShell({
       const nfaId = Number(value);
       if (!Number.isInteger(nfaId) || nfaId <= 0) return pushLog('error', zh ? '请先选择有效 NFA。' : 'Select a valid NFA.');
       onSelectNfa(nfaId);
+      if (nfaList.length > 1) setShowNfaPicker(false);
       return pushLog('ok', `NFA #${nfaId}`);
     }
 
@@ -427,6 +435,26 @@ export function GameCommandShell({
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+        <div className="term-box" data-title={zh ? '控制台' : 'CONSOLE'}>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="text-[11px] text-crt-green/45">{statusText(status, zh)}</div>
+            <button type="button" onClick={() => void runAction('clear')} className="term-link text-[10px]">
+              {zh ? '清空记录' : 'Clear'}
+            </button>
+          </div>
+          <div ref={logRef} className="h-44 space-y-1 overflow-y-auto rounded border border-crt-green/15 bg-black/70 p-3 text-xs">
+            {history.length === 0 ? (
+              <div className="text-crt-green/35">{zh ? '等待操作...' : 'Awaiting action...'}</div>
+            ) : (
+              history.map((entry) => (
+                <div key={entry.id} className={`break-words ${toneClass(entry.tone)}`}>
+                  {entry.text}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         <div className="term-box" data-title={zh ? '当前状态' : 'SESSION'}>
           <div className="space-y-2 text-xs">
             <div className="flex items-center justify-between gap-3">
@@ -493,27 +521,50 @@ export function GameCommandShell({
 
         <div className="term-box" data-title={zh ? '选择 NFA' : 'SELECT NFA'}>
           <div className="space-y-2">
-            {nfaList.length === 0 ? (
-              <div className="text-xs text-crt-green/35">{zh ? '当前钱包没有可用 NFA' : 'No NFA in this wallet'}</div>
-            ) : (
-              nfaList.map((id) => (
+            <div className="flex items-center justify-between gap-3 rounded border border-crt-green/15 bg-black/55 px-3 py-2 text-xs">
+              <div className="text-crt-green/55">
+                {nfaList.length === 0
+                  ? (zh ? '当前钱包没有可用 NFA' : 'No NFA in this wallet')
+                  : (zh
+                    ? `共 ${nfaList.length} 只龙虾${activeNfaId ? `，当前 NFA #${activeNfaId}` : ''}`
+                    : `${nfaList.length} lobsters${activeNfaId ? `, active NFA #${activeNfaId}` : ''}`)}
+              </div>
+              {nfaList.length > 0 && (
                 <button
-                  key={id}
                   type="button"
-                  onClick={() => void runAction('select', String(id))}
-                  className={`${actionButtonClass} w-full ${id === activeNfaId ? 'border-crt-green/60 bg-crt-green/8 text-crt-bright' : ''}`}
+                  onClick={() => setShowNfaPicker((current) => !current)}
+                  className="term-link text-[10px]"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <span>NFA #{id}</span>
-                    {id === activeNfaId && <span className="text-[10px] text-crt-green/55">{zh ? '活跃' : 'Active'}</span>}
-                  </div>
-                  {nfaSummaries[id] && (
-                    <div className="mt-1 text-[11px] text-crt-green/45">
-                      Lv.{nfaSummaries[id].level} | {getRarityName(nfaSummaries[id].rarity, zh)} | Claworld {nfaSummaries[id].clwBalance.toFixed(0)}
-                    </div>
-                  )}
+                  {showNfaPicker ? (zh ? '收起' : 'Collapse') : (zh ? '展开' : 'Expand')}
                 </button>
-              ))
+              )}
+            </div>
+
+            {showNfaPicker && (
+              nfaList.length === 0 ? (
+                <div className="text-xs text-crt-green/35">{zh ? '当前钱包没有可用 NFA' : 'No NFA in this wallet'}</div>
+              ) : (
+                <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                  {nfaList.map((id) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => void runAction('select', String(id))}
+                      className={`${actionButtonClass} w-full ${id === activeNfaId ? 'border-crt-green/60 bg-crt-green/8 text-crt-bright' : ''}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span>NFA #{id}</span>
+                        {id === activeNfaId && <span className="text-[10px] text-crt-green/55">{zh ? '活跃' : 'Active'}</span>}
+                      </div>
+                      {nfaSummaries[id] && (
+                        <div className="mt-1 text-[11px] text-crt-green/45">
+                          Lv.{nfaSummaries[id].level} | {getRarityName(nfaSummaries[id].rarity, zh)} | Claworld {nfaSummaries[id].clwBalance.toFixed(0)}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )
             )}
           </div>
         </div>
@@ -564,26 +615,6 @@ export function GameCommandShell({
             <button type="button" onClick={() => void runAction('home')} className={actionButtonClass}>{zh ? '返回首页' : 'Home'}</button>
             <button type="button" onClick={() => void runAction('help')} className={actionButtonClass}>{zh ? '帮助说明' : 'Help'}</button>
             <button type="button" onClick={() => void runAction('openclaw')} className={`${actionButtonClass} col-span-2`}>OpenClaw</button>
-          </div>
-        </div>
-
-        <div className="term-box" data-title={zh ? '执行记录' : 'ACTIVITY'}>
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="text-[11px] text-crt-green/45">{statusText(status, zh)}</div>
-            <button type="button" onClick={() => void runAction('clear')} className="term-link text-[10px]">
-              {zh ? '清空记录' : 'Clear'}
-            </button>
-          </div>
-          <div ref={logRef} className="h-40 space-y-1 overflow-y-auto rounded border border-crt-green/15 bg-black/70 p-3 text-xs">
-            {history.length === 0 ? (
-              <div className="text-crt-green/35">{zh ? '等待操作...' : 'Awaiting action...'}</div>
-            ) : (
-              history.map((entry) => (
-                <div key={entry.id} className={`break-words ${toneClass(entry.tone)}`}>
-                  {entry.text}
-                </div>
-              ))
-            )}
           </div>
         </div>
       </div>

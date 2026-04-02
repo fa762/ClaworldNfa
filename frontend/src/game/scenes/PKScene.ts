@@ -52,7 +52,7 @@ interface MatchItem {
 
 /**
  * PKScene — 主网真实 PK 流程
- * create/join → reveal → settle 全部走链上
+ * create/join 选策略一步完成，后续由前端自动推进 reveal / settle
  */
 export class PKScene extends Phaser.Scene {
   private nfaId = 0;
@@ -68,6 +68,7 @@ export class PKScene extends Phaser.Scene {
   private showOnlyMine = false;
   private mineFilterButton?: Phaser.GameObjects.Text;
   private matchTableY = 0;
+  private autoProcessingMatches = new Set<number>();
 
   constructor() {
     super({ key: 'PKScene' });
@@ -102,7 +103,7 @@ export class PKScene extends Phaser.Scene {
       fontSize: '14px', fontFamily: 'monospace', color: '#ff6666',
     }).setOrigin(0.5).setAlpha(0.7);
 
-    this.add.text(W / 2, 64, this.lang === 'zh' ? '创建擂台 -> 挑策略 -> 等对手 -> 揭示 -> 结算' : 'Create -> Pick strategy -> Wait -> Reveal -> Settle', {
+    this.add.text(W / 2, 64, this.lang === 'zh' ? '创建或加入 -> 选择策略 -> 等待对手 -> 自动推进结果' : 'Create or join -> Pick strategy -> Wait -> Auto-advance result', {
       fontSize: '12px', fontFamily: 'monospace', color: '#aaaaaa',
     }).setOrigin(0.5).setAlpha(0.75);
 
@@ -120,11 +121,9 @@ export class PKScene extends Phaser.Scene {
     const compactHeader = W < 720;
 
     const buttons = [
-      { label: this.lang === 'zh' ? '[ 创建 ]' : '[ CREATE ]', x: W * 0.18, action: () => this.promptCreate() },
-      { label: this.lang === 'zh' ? '[ 刷新 ]' : '[ REFRESH ]', x: W * 0.35, action: () => this.requestMatches() },
-      { label: this.lang === 'zh' ? '[ 揭示 ]' : '[ REVEAL ]', x: W * 0.52, action: () => this.promptReveal() },
-      { label: this.lang === 'zh' ? '[ 结算 ]' : '[ SETTLE ]', x: W * 0.69, action: () => this.promptSettle() },
-      { label: this.lang === 'zh' ? '[ 取消 ]' : '[ CANCEL ]', x: W * 0.86, action: () => this.promptCancel() },
+      { label: this.lang === 'zh' ? '[ 创建 ]' : '[ CREATE ]', x: W * 0.24, action: () => this.promptCreate() },
+      { label: this.lang === 'zh' ? '[ 刷新 ]' : '[ REFRESH ]', x: W * 0.5, action: () => this.requestMatches() },
+      { label: this.lang === 'zh' ? '[ 取消 ]' : '[ CANCEL ]', x: W * 0.76, action: () => this.promptCancel() },
     ];
 
     buttons.forEach((button, index) => {
@@ -173,6 +172,7 @@ export class PKScene extends Phaser.Scene {
       this.matches = data as MatchItem[];
       this.renderMatches();
       this.showStatus(this.matches.length > 0 ? (this.lang === 'zh' ? '已同步链上对战列表' : 'Loaded onchain matches') : (this.lang === 'zh' ? '当前没有活跃中的对战' : 'No active matches'), this.matches.length > 0 ? '#39ff14' : '#666666');
+      void this.maybeAutoAdvanceFromMatches();
     });
 
     const offResult = eventBus.on('pk:result', (data: unknown) => {
@@ -193,20 +193,30 @@ export class PKScene extends Phaser.Scene {
         return;
       }
 
+      if (result.matchId) {
+        this.autoProcessingMatches.delete(result.matchId);
+      }
+
       if (result.status === 'failed') {
-        this.showStatus(this.lang === 'zh' ? `失败: ${result.error}` : `Failed: ${result.error}`, '#ff4444');
+        if (result.action === 'reveal' && result.matchId && result.error?.includes('Saved strategy')) {
+          localStorage.removeItem(`claw-pk-${result.matchId}`);
+        }
+        const message = result.error?.includes('No saved strategy')
+          ? (this.lang === 'zh' ? '当前浏览器没有保存这场对局的策略记录，无法代你揭示。' : 'This browser has no saved strategy record for this match.')
+          : result.error;
+        this.showStatus(this.lang === 'zh' ? `失败: ${message}` : `Failed: ${message}`, '#ff4444');
         return;
       }
 
       if (result.action === 'create') {
         this.showStatus(this.lang === 'zh' ? `已创建擂台 #${result.matchId}，现在等待对手加入` : `Match #${result.matchId} created. Waiting for opponent.`, '#39ff14');
       } else if (result.action === 'join') {
-        this.showStatus(this.lang === 'zh' ? `已加入擂台 #${result.matchId}，双方都 commit 后请揭示策略` : `Joined match #${result.matchId}. Reveal after both commits.`, '#39ff14');
+        this.showStatus(this.lang === 'zh' ? `已加入擂台 #${result.matchId}，策略已锁定，系统将自动推进结果` : `Joined match #${result.matchId}. Strategy locked, match will auto-advance.`, '#39ff14');
       } else if (result.action === 'reveal') {
-        const readyToSettle = result.phase === 3
-          ? (this.lang === 'zh' ? '，双方已揭示，可立即结算' : ', both revealed. Ready to settle.')
-          : (this.lang === 'zh' ? '，等待对手揭示' : ', waiting for opponent reveal.');
-        this.showStatus(this.lang === 'zh' ? `已揭示策略 #${result.matchId}${readyToSettle}` : `Revealed strategy for #${result.matchId}${readyToSettle}`, '#39ff14');
+        const nextStep = result.phase === 3
+          ? (this.lang === 'zh' ? '，双方已公开，正在自动结算' : ', both revealed. Auto-settling now.')
+          : (this.lang === 'zh' ? '，等待对手公开策略' : ', waiting for opponent reveal.');
+        this.showStatus(this.lang === 'zh' ? `已公开策略 #${result.matchId}${nextStep}` : `Revealed strategy for #${result.matchId}${nextStep}`, '#39ff14');
       } else if (result.action === 'settle') {
         if (result.winnerNfaId === this.nfaId) {
           this.showStatus(this.lang === 'zh' ? `胜利! 获得 ${result.reward || '?'} Claworld` : `Victory! Earned ${result.reward || '?'} Claworld`, '#39ff14');
@@ -221,6 +231,9 @@ export class PKScene extends Phaser.Scene {
       }
 
       this.requestMatches();
+      if (result.matchId) {
+        void this.maybeAutoAdvanceMatch(result.matchId);
+      }
     });
 
     const offFullStats = eventBus.on('nfa:fullStats', (data: unknown) => {
@@ -265,6 +278,55 @@ export class PKScene extends Phaser.Scene {
   private requestMatches() {
       this.showStatus(this.lang === 'zh' ? '读取链上擂台中...' : 'Loading arena matches...', '#ffaa00');
       eventBus.emit('pk:search', { nfaId: this.nfaId });
+  }
+
+  private isMyMatch(match: { nfaA: number; nfaB: number }) {
+    return match.nfaA === this.nfaId || match.nfaB === this.nfaId;
+  }
+
+  private hasMyReveal(match: { nfaA: number; nfaB: number; revealedA: boolean; revealedB: boolean }) {
+    if (match.nfaA === this.nfaId) return match.revealedA;
+    if (match.nfaB === this.nfaId) return match.revealedB;
+    return false;
+  }
+
+  private async maybeAutoAdvanceFromMatches() {
+    const settleable = this.matches.find((match) => this.isMyMatch(match) && match.phase === 3);
+    if (settleable) {
+      await this.maybeAutoAdvanceMatch(settleable.matchId);
+      return;
+    }
+
+    const revealable = this.matches.find((match) =>
+      this.isMyMatch(match) &&
+      match.phase === 2 &&
+      !this.hasMyReveal(match) &&
+      Boolean(loadPKSalt(match.matchId))
+    );
+
+    if (revealable) {
+      await this.maybeAutoAdvanceMatch(revealable.matchId);
+    }
+  }
+
+  private async maybeAutoAdvanceMatch(matchId: number) {
+    if (this.autoProcessingMatches.has(matchId)) return;
+
+    const match = await loadMatch(matchId);
+    if (!match || !this.isMyMatch(match)) return;
+
+    if (match.phase === 3) {
+      this.autoProcessingMatches.add(matchId);
+      this.showStatus(this.lang === 'zh' ? `对局 #${matchId} 双方已公开，正在自动结算...` : `Match #${matchId} fully revealed. Auto-settling...`, '#7ad7ff');
+      eventBus.emit('pk:settle', { matchId });
+      return;
+    }
+
+    if (match.phase === 2 && !this.hasMyReveal(match) && loadPKSalt(matchId)) {
+      this.autoProcessingMatches.add(matchId);
+      this.showStatus(this.lang === 'zh' ? `对局 #${matchId} 已就绪，正在自动公开策略...` : `Match #${matchId} committed. Auto-revealing strategy...`, '#7ad7ff');
+      eventBus.emit('pk:reveal', { matchId });
+    }
   }
 
   private refreshMineFilterButton() {
@@ -355,22 +417,31 @@ export class PKScene extends Phaser.Scene {
       });
     }
 
-    if (isMine && match.phase === 2 && loadPKSalt(match.matchId)) {
+    if (isMine && match.phase === 2 && !this.hasMyReveal(match)) {
+      const hasLocalStrategy = Boolean(loadPKSalt(match.matchId));
       options.push({
-        label: this.lang === 'zh' ? '[ 揭示策略 ]' : '[ REVEAL ]',
-        description: this.lang === 'zh' ? '当前 NFA 已提交 commit，可揭示策略。' : 'The active NFA already committed and can now reveal.',
-        disabled: false,
-        onSelect: () => eventBus.emit('pk:reveal', { matchId: match.matchId }),
+        label: hasLocalStrategy
+          ? (this.lang === 'zh' ? '[ 自动公开策略 ]' : '[ AUTO REVEAL ]')
+          : (this.lang === 'zh' ? '[ 缺少本地策略记录 ]' : '[ NO LOCAL STRATEGY ]'),
+        description: hasLocalStrategy
+          ? (this.lang === 'zh' ? '这场对局会自动公开你的策略，不需要再手动点揭示。' : 'This match will auto-reveal your strategy. No manual reveal is needed.')
+          : (this.lang === 'zh' ? '当前浏览器没有保存这场对局的策略记录，无法代你公开。' : 'This browser does not have the saved strategy record for this match.'),
+        disabled: true,
+        onSelect: () => {},
       });
+      if (hasLocalStrategy) {
+        void this.maybeAutoAdvanceMatch(match.matchId);
+      }
     }
 
-    if (match.phase === 3) {
+    if (isMine && match.phase === 3) {
       options.push({
-        label: this.lang === 'zh' ? '[ 结算此局 ]' : '[ SETTLE ]',
-        description: this.lang === 'zh' ? '双方均已揭示，执行链上结算。' : 'Both sides revealed. Execute on-chain settlement.',
-        disabled: false,
-        onSelect: () => eventBus.emit('pk:settle', { matchId: match.matchId }),
+        label: this.lang === 'zh' ? '[ 自动结算中 ]' : '[ AUTO SETTLE ]',
+        description: this.lang === 'zh' ? '双方都已公开策略，系统会自动发起链上结算。' : 'Both strategies are revealed. Settlement will be triggered automatically.',
+        disabled: true,
+        onSelect: () => {},
       });
+      void this.maybeAutoAdvanceMatch(match.matchId);
     }
 
     if (isMine && match.phase <= 2) {
@@ -385,8 +456,8 @@ export class PKScene extends Phaser.Scene {
     this.modal.showMenu({
       title: this.lang === 'zh' ? `对局 #${match.matchId}` : `Match #${match.matchId}`,
       subtitle: this.lang === 'zh'
-        ? `当前阶段 ${phaseName}。你可以直接在这里查看、加入或结算。`
-        : `Current phase ${phaseName}. Inspect, join, or settle from here.`,
+        ? `当前阶段 ${phaseName}。这里可查看详情或加入对局，揭示与结算会自动推进。`
+        : `Current phase ${phaseName}. Inspect or join here; reveal and settlement auto-advance.`,
       options,
       cancelLabel: this.lang === 'zh' ? '关闭' : 'Close',
     });
@@ -396,7 +467,7 @@ export class PKScene extends Phaser.Scene {
   private promptCreate() {
     this.modal.showForm({
       title: this.lang === 'zh' ? '创建擂台' : 'Create match',
-      subtitle: this.lang === 'zh' ? '输入本场要锁定的 Claworld 质押。签名后会在链上创建对战。' : 'Enter the Claworld stake for this match. Signing will create it onchain.',
+      subtitle: this.lang === 'zh' ? '输入本场要锁定的 Claworld 质押。创建后会等待对手加入，并自动推进结果。' : 'Enter the Claworld stake for this match. After creation it waits for an opponent and auto-advances the result.',
       fields: [
         { name: 'stake', label: this.lang === 'zh' ? '质押 Claworld' : 'Stake Claworld', type: 'number', value: '100', placeholder: '100' },
       ],
@@ -408,46 +479,6 @@ export class PKScene extends Phaser.Scene {
         }
         this.showStrategyPicker('create', { stake: values.stake });
       },
-    });
-  }
-
-  private promptReveal() {
-    const revealable = this.matches.filter((match) =>
-      match.phase === 2 && (match.nfaA === this.nfaId || match.nfaB === this.nfaId) && Boolean(loadPKSalt(match.matchId))
-    );
-
-    if (revealable.length === 0) {
-      this.showStatus(this.lang === 'zh' ? '当前没有可揭示的对战' : 'No revealable matches right now', '#666666');
-      return;
-    }
-
-    this.modal.showMenu({
-      title: this.lang === 'zh' ? '揭示策略' : 'Reveal strategy',
-      subtitle: this.lang === 'zh' ? '选择一场已提交 commit 的对战，公开你的策略与 salt。' : 'Choose a committed match to reveal your strategy and salt.',
-      options: revealable.map((match) => ({
-        label: `#${match.matchId}  对手 NFA #${match.nfaA === this.nfaId ? match.nfaB : match.nfaA}`,
-        description: `质押 ${match.stake} Claworld · ${match.phaseName}`,
-        onSelect: () => eventBus.emit('pk:reveal', { matchId: match.matchId }),
-      })),
-    });
-  }
-
-  private promptSettle() {
-    const settleable = this.matches.filter((match) => match.phase === 3);
-
-    if (settleable.length === 0) {
-      this.showStatus(this.lang === 'zh' ? '当前没有可结算的对战' : 'No settleable matches right now', '#666666');
-      return;
-    }
-
-    this.modal.showMenu({
-      title: this.lang === 'zh' ? '结算对战' : 'Settle match',
-      subtitle: this.lang === 'zh' ? '双方都已揭示策略，选择一场对战执行链上结算。' : 'Both sides revealed. Choose a match to settle onchain.',
-      options: settleable.map((match) => ({
-        label: `#${match.matchId}  NFA #${match.nfaA} vs NFA #${match.nfaB}`,
-        description: `总质押 ${Number(match.stake) * 2} Claworld`,
-        onSelect: () => eventBus.emit('pk:settle', { matchId: match.matchId }),
-      })),
     });
   }
 
@@ -476,8 +507,8 @@ export class PKScene extends Phaser.Scene {
     this.modal.showMenu({
       title: mode === 'create' ? (this.lang === 'zh' ? '选择战斗策略' : 'Choose battle strategy') : (this.lang === 'zh' ? `加入擂台 #${options.matchId}` : `Join match #${options.matchId}`),
       subtitle: options.stake
-        ? (this.lang === 'zh' ? `本场质押 ${options.stake} Claworld。不同策略互相克制，揭示后才能结算。` : `This match stakes ${options.stake} Claworld. Strategies counter each other and must be revealed before settlement.`)
-        : (this.lang === 'zh' ? '选择你的战斗策略。' : 'Choose your battle strategy.'),
+        ? (this.lang === 'zh' ? `本场质押 ${options.stake} Claworld。策略锁定后会由前端自动公开并结算。` : `This match stakes ${options.stake} Claworld. Once the strategy is committed, the frontend auto-reveals and settles when ready.`)
+        : (this.lang === 'zh' ? '选择你的战斗策略，提交后系统会自动推进结果。' : 'Choose your battle strategy. The frontend will auto-advance the result after commit.'),
       options: (this.lang === 'zh' ? STRATEGIES_ZH : STRATEGIES_EN).map((strategy, index) => ({
         label: strategy.name,
         description: strategy.desc,
@@ -526,6 +557,8 @@ export class PKScene extends Phaser.Scene {
 
       this.rows.push(rowBg, rowText);
 
+      const isMine = this.isMyMatch(match);
+      const myReveal = this.hasMyReveal(match);
       const opponentId = match.nfaA === this.nfaId ? match.nfaB : match.nfaA;
       if (opponentId > 0) {
         const inspectBtn = this.add.text(W - (isCompact ? 164 : 152), y + (isCompact ? 18 : 1), this.lang === 'zh' ? '[ 属性 ]' : '[ STATS ]', {
@@ -542,17 +575,31 @@ export class PKScene extends Phaser.Scene {
         joinBtn.on('pointerdown', () => this.showStrategyPicker('join', { matchId: match.matchId }));
         this.rows.push(joinBtn);
       } else if (match.phase === 2) {
-        const revealBtn = this.add.text(W - 80, y + (isCompact ? 18 : 1), this.lang === 'zh' ? '[ 揭示 ]' : '[ REVEAL ]', {
-          fontSize: '11px', fontFamily: 'monospace', color: '#39ff14', backgroundColor: '#001a00', padding: { x: 6, y: 4 },
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-        revealBtn.on('pointerdown', () => eventBus.emit('pk:reveal', { matchId: match.matchId }));
-        this.rows.push(revealBtn);
+        const hasLocalStrategy = Boolean(loadPKSalt(match.matchId));
+        const badge = this.add.text(
+          W - 80,
+          y + (isCompact ? 18 : 1),
+          isMine
+            ? myReveal
+              ? (this.lang === 'zh' ? '[ 等待对手 ]' : '[ WAITING ]')
+              : hasLocalStrategy
+                ? (this.lang === 'zh' ? '[ 自动揭示 ]' : '[ AUTO REVEAL ]')
+                : (this.lang === 'zh' ? '[ 无本地记录 ]' : '[ NO SAVE ]')
+            : (this.lang === 'zh' ? '[ 观战 ]' : '[ WATCH ]'),
+          {
+            fontSize: '11px',
+            fontFamily: 'monospace',
+            color: isMine && hasLocalStrategy ? '#39ff14' : '#cccccc',
+            backgroundColor: isMine && hasLocalStrategy ? '#001a00' : '#141414',
+            padding: { x: 6, y: 4 },
+          },
+        ).setOrigin(0.5).setAlpha(0.92);
+        this.rows.push(badge);
       } else if (match.phase === 3) {
-        const settleBtn = this.add.text(W - 80, y + (isCompact ? 18 : 1), this.lang === 'zh' ? '[ 结算 ]' : '[ SETTLE ]', {
-          fontSize: '11px', fontFamily: 'monospace', color: '#39ff14', backgroundColor: '#001a00', padding: { x: 6, y: 4 },
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-        settleBtn.on('pointerdown', () => eventBus.emit('pk:settle', { matchId: match.matchId }));
-        this.rows.push(settleBtn);
+        const badge = this.add.text(W - 80, y + (isCompact ? 18 : 1), isMine ? (this.lang === 'zh' ? '[ 自动结算 ]' : '[ AUTO SETTLE ]') : (this.lang === 'zh' ? '[ 已公开 ]' : '[ REVEALED ]'), {
+          fontSize: '11px', fontFamily: 'monospace', color: isMine ? '#39ff14' : '#cccccc', backgroundColor: isMine ? '#001a00' : '#141414', padding: { x: 6, y: 4 },
+        }).setOrigin(0.5).setAlpha(0.92);
+        this.rows.push(badge);
       }
     });
   }

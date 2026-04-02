@@ -132,7 +132,6 @@ export class ShelterScene extends Phaser.Scene {
 
     this.add.rectangle(W / 2, H / 2, Math.min(W * 0.55, 440), 12, 0x39ff14, 0.04).setDepth(1);
     this.add.rectangle(W / 2, H / 2 + 78, Math.min(W * 0.4, 320), 8, 0x39ff14, 0.03).setDepth(1);
-    this.spawnHallOfEchoes(W, H);
 
     // ── 标题 ──
     const shelterNames = this.lang === 'zh'
@@ -631,15 +630,13 @@ export class ShelterScene extends Phaser.Scene {
       ? [
           `世界广播：SHELTER-0${this.shelter} 近期检测到 3 个活跃龙虾信号`,
           `交易墙记录：最近 24 小时内有新的拍卖与互换请求写入链上`,
-          `擂台频道：竞技终端正在等待新的揭示与结算动作`,
-          `回声榜更新：最强龙虾投影已同步到当前避难所`,
+          `擂台频道：发现新的链上对局信号，可前往竞技场查看`,
           `避难所情报：${getShelterDescription(this.shelter)}`,
         ]
       : [
           `World Broadcast: 3 active lobster echoes detected near SHELTER-0${this.shelter}`,
           `Market feed: new auction and swap requests were written onchain in the last 24h`,
-          `Arena channel: the combat terminals are waiting for new reveals and settlements`,
-          `Hall of Echoes updated: champion lobster projections synced to this shelter`,
+          `Arena channel: new on-chain match signals detected near the arena terminals`,
           `Shelter intel: ${['Underground corridor, blue biolight, hydroponic trays','Military steel corridor','Stone walls etched with scripture, warm candlelight','Container market, Claworld price screens','Glass partitions, surveillance cameras','Graffiti walls, children sketches','Grey sky, ruins, distant city outline','Glowing moss, natural cavern, firepit'][this.shelter] ?? ''}`,
         ];
 
@@ -658,48 +655,6 @@ export class ShelterScene extends Phaser.Scene {
         broadcastIndex = (broadcastIndex + 1) % broadcastMessages.length;
         broadcast.setText(broadcastMessages[broadcastIndex]);
       },
-    });
-  }
-
-  private spawnHallOfEchoes(W: number, H: number) {
-    const wallX = W - 118;
-    const wallY = H * 0.52;
-    const wall = this.add.rectangle(wallX, wallY, 168, 118, 0x061208, 0.55)
-      .setStrokeStyle(1, 0x39ff14, 0.18)
-      .setDepth(3);
-    const title = this.add.text(wallX, wallY - 46, this.lang === 'zh' ? '[ 回声榜 ]' : '[ HALL OF ECHOES ]', {
-      fontSize: '12px', fontFamily: 'monospace', color: '#39ff14',
-    }).setOrigin(0.5).setDepth(4);
-
-    this.echoes.push(wall, title);
-
-    const champions = [
-      { id: this.nfaId + 88, rank: 1 },
-      { id: this.nfaId + 42, rank: 2 },
-      { id: Math.max(1, this.nfaId - 23), rank: 3 },
-    ];
-
-    champions.forEach((champ, index) => {
-      const identity = buildLobsterIdentity({
-        rarity: (champ.id + index) % 5,
-        shelter: (this.shelter + index + 2) % 8,
-        level: 20 + ((champ.id + index) % 25),
-        courage: 45 + ((champ.id * 7) % 50),
-        wisdom: 45 + ((champ.id * 11) % 50),
-        social: 45 + ((champ.id * 13) % 50),
-        create: 45 + ((champ.id * 17) % 50),
-        grit: 45 + ((champ.id * 19) % 50),
-      }, this.lang);
-
-      const y = wallY - 18 + index * 26;
-      const row = this.add.text(wallX - 66, y, `${champ.rank}. NFA #${champ.id}`, {
-        fontSize: '10px', fontFamily: 'monospace', color: index === 0 ? '#ffd700' : '#9ed89f',
-      }).setDepth(4);
-      const sub = this.add.text(wallX - 6, y, identity.title, {
-        fontSize: '9px', fontFamily: 'monospace', color: '#7adf8b',
-      }).setDepth(4);
-
-      this.echoes.push(row, sub);
     });
   }
 
