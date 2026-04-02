@@ -646,44 +646,37 @@ export class PKScene extends Phaser.Scene {
     };
   }
 
-  private actionBadgeLabel(match: MatchItem) {
+  private getRowAction(match: MatchItem) {
     const isMine = this.isMyMatch(match);
-    const myReveal = this.hasMyReveal(match);
-    const hasLocalStrategy = Boolean(loadPKSalt(match.matchId));
 
-    if (match.phase === 0) {
-      if (isMine) return this.lang === 'zh' ? '[ 等待应战 ]' : '[ WAITING ]';
-      return this.lang === 'zh' ? '[ 加入 ]' : '[ JOIN ]';
+    if (match.phase === 0 && !isMine) {
+      return {
+        label: this.lang === 'zh' ? '[ 加入 ]' : '[ JOIN ]',
+        color: '#ffaa00',
+        backgroundColor: '#1a1a00',
+        onSelect: () => this.showStrategyPicker('join', { matchId: match.matchId }),
+      };
     }
 
-    if (match.phase === 1) {
-      return isMine
-        ? (this.lang === 'zh' ? '[ 待双方提交 ]' : '[ COMMIT ]')
-        : (this.lang === 'zh' ? '[ 对局进行中 ]' : '[ LIVE ]');
-    }
-
-    if (match.phase === 2) {
-      if (!isMine) return this.lang === 'zh' ? '[ 他人对局 ]' : '[ VIEW ]';
-      if (myReveal) return this.lang === 'zh' ? '[ 待对手公开 ]' : '[ OPP REVEAL ]';
-      if (hasLocalStrategy) return this.lang === 'zh' ? '[ 自动公开 ]' : '[ AUTO REVEAL ]';
-      return this.lang === 'zh' ? '[ 策略不在本端 ]' : '[ NO LOCAL SAVE ]';
+    if (isMine && match.phase <= 2) {
+      return {
+        label: this.lang === 'zh' ? '[ 取消 ]' : '[ CANCEL ]',
+        color: '#ff8888',
+        backgroundColor: '#240606',
+        onSelect: () => eventBus.emit('pk:cancel', { matchId: match.matchId }),
+      };
     }
 
     if (match.phase === 3) {
-      return isMine
-        ? (this.lang === 'zh' ? '[ 自动结算 ]' : '[ AUTO SETTLE ]')
-        : (this.lang === 'zh' ? '[ 已公开 ]' : '[ REVEALED ]');
+      return {
+        label: this.lang === 'zh' ? '[ 结算 ]' : '[ SETTLE ]',
+        color: '#39ff14',
+        backgroundColor: '#001a00',
+        onSelect: () => eventBus.emit('pk:settle', { matchId: match.matchId }),
+      };
     }
 
-    if (match.phase === 4) {
-      return this.lang === 'zh' ? '[ 已结算 ]' : '[ SETTLED ]';
-    }
-
-    if (match.phase === 5) {
-      return this.lang === 'zh' ? '[ 已取消 ]' : '[ CANCELLED ]';
-    }
-
-    return this.lang === 'zh' ? '[ 详情 ]' : '[ DETAIL ]';
+    return null;
   }
 
   private promptFindMatch() {
@@ -1230,32 +1223,22 @@ export class PKScene extends Phaser.Scene {
         this.rows.push(inspectBtn);
       }
 
-      if (match.phase === 0) {
-        const actionLabel = isMine ? (this.lang === 'zh' ? '[ 等待应战 ]' : '[ WAITING ]') : (this.lang === 'zh' ? '[ 加入 ]' : '[ JOIN ]');
-        const joinBtn = this.add.text(W - 18, y + (isCompact ? 18 : 1), actionLabel, {
-          fontSize: '11px', fontFamily: 'monospace', color: '#ffaa00', backgroundColor: '#1a1a00', padding: { x: 6, y: 4 },
-        }).setOrigin(1, 0.5);
-        if (!isMine) {
-          joinBtn.setInteractive({ useHandCursor: true });
-          joinBtn.on('pointerdown', () => this.showStrategyPicker('join', { matchId: match.matchId }));
-        } else {
-          joinBtn.setAlpha(0.92);
-        }
-        this.rows.push(joinBtn);
-      } else {
-        const badge = this.add.text(
+      const rowAction = this.getRowAction(match);
+      if (rowAction) {
+        const actionBtn = this.add.text(
           W - 18,
           y + (isCompact ? 18 : 1),
-          this.actionBadgeLabel(match),
+          rowAction.label,
           {
             fontSize: '11px',
             fontFamily: 'monospace',
-            color: isMine && match.phase <= 3 ? '#39ff14' : '#cccccc',
-            backgroundColor: isMine && match.phase <= 3 ? '#001a00' : '#141414',
+            color: rowAction.color,
+            backgroundColor: rowAction.backgroundColor,
             padding: { x: 6, y: 4 },
           },
-        ).setOrigin(1, 0.5).setAlpha(0.92);
-        this.rows.push(badge);
+        ).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
+        actionBtn.on('pointerdown', rowAction.onSelect);
+        this.rows.push(actionBtn);
       }
     });
 
