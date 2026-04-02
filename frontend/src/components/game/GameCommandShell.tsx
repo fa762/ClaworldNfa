@@ -210,6 +210,7 @@ export function GameCommandShell({
   const [marketListings, setMarketListings] = useState<MarketListing[]>([]);
   const [listingScope, setListingScope] = useState<'all' | 'mine'>('all');
   const [loadingListings, setLoadingListings] = useState(false);
+  const [showListingBrowser, setShowListingBrowser] = useState(false);
   const nextIdRef = useRef(1);
   const initializedRef = useRef(false);
   const lastStatusRef = useRef<GameStatus | null>(null);
@@ -333,8 +334,10 @@ export function GameCommandShell({
   }, [nfaList.length]);
 
   useEffect(() => {
-    void refreshListingBrowser(address ? 'mine' : 'all');
-  }, [address, refreshListingBrowser]);
+    if (!showListingBrowser) return;
+    const nextScope = listingScope === 'mine' && !address ? 'all' : listingScope;
+    void refreshListingBrowser(nextScope);
+  }, [address, listingScope, refreshListingBrowser, showListingBrowser]);
 
   const runAction = useCallback(async (action: string, value?: string) => {
     if (action === 'sync') {
@@ -392,6 +395,7 @@ export function GameCommandShell({
     }
 
     if (action === 'listings') {
+      setShowListingBrowser(true);
       const listings = await refreshListingBrowser('all');
       if (!listings.length) return pushLog('warn', zh ? '当前没有有效挂单。' : 'No active listings.');
       eventBus.emit('game:command', { name: 'listings', args: [] });
@@ -401,6 +405,7 @@ export function GameCommandShell({
 
     if (action === 'my-listings') {
       if (!address) return pushLog('error', zh ? '请先连接钱包。' : 'Connect wallet first.');
+      setShowListingBrowser(true);
       const listings = await refreshListingBrowser('mine');
       if (!listings.length) return pushLog('warn', zh ? '当前钱包没有挂单。' : 'This wallet has no active listings.');
       eventBus.emit('game:command', { name: 'my-listings', args: [] });
@@ -581,6 +586,24 @@ export function GameCommandShell({
             </button>
           </div>
           <div className="mt-3 rounded border border-crt-green/15 bg-black/55 p-3">
+            <div className="flex items-center justify-between gap-3 text-[11px]">
+              <span className="text-crt-green/45">
+                {showListingBrowser
+                  ? (zh ? '挂单列表已展开' : 'Listing browser expanded')
+                  : (zh ? '挂单列表已收起' : 'Listing browser collapsed')}
+              </span>
+              <button type="button" onClick={() => setShowListingBrowser((current) => !current)} className="term-link text-[10px]">
+                {showListingBrowser
+                  ? (zh ? '收起列表' : 'Collapse')
+                  : (zh ? '展开列表' : 'Expand')}
+              </button>
+            </div>
+            {!showListingBrowser ? (
+              <div className="mt-2 text-xs text-crt-green/35">
+                {zh ? '默认收起，点“展开列表”后再显示挂单列表。' : 'Collapsed by default. Expand to show the listing browser.'}
+              </div>
+            ) : (
+              <>
             <div className="mb-2 flex items-center justify-between gap-3 text-[11px]">
               <span className="text-crt-green/45">
                 {loadingListings
@@ -603,7 +626,7 @@ export function GameCommandShell({
                   : (zh ? '当前没有活跃挂单。' : 'No active listings.')}
               </div>
             ) : (
-              <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+              <div className="mt-2 max-h-64 space-y-2 overflow-y-auto pr-1">
                 {marketListings.map((listing) => {
                   const isMine = !!address && listing.seller.toLowerCase() === address.toLowerCase();
                   const rarityName = getRarityName(listing.rarity, zh);
@@ -685,6 +708,8 @@ export function GameCommandShell({
                   );
                 })}
               </div>
+            )}
+              </>
             )}
           </div>
         </div>
