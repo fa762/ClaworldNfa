@@ -19,6 +19,7 @@ type GameLang = 'zh' | 'en';
  * 支持：逐字显示、多行对话、选择分支
  */
 export class DialogueBox {
+  private readonly DEPTH = 2000;
   private scene: Phaser.Scene;
   private container: Phaser.GameObjects.Container;
   private bg: Phaser.GameObjects.Rectangle;
@@ -36,7 +37,7 @@ export class DialogueBox {
   private onComplete?: () => void;
   private readonly W: number;
   private readonly H: number;
-  private readonly BOX_H = 230;
+  private readonly BOX_H = 236;
   private readonly PADDING = 24;
   private readonly pointerHandler: () => void;
   private readonly spaceHandler: () => void;
@@ -52,30 +53,30 @@ export class DialogueBox {
 
     const boxY = this.H - this.BOX_H;
 
-    this.container = scene.add.container(0, 0).setDepth(200);
+    this.container = scene.add.container(0, 0).setDepth(this.DEPTH);
 
     // 半透明背景
-    this.bg = scene.add.rectangle(this.W / 2, boxY + this.BOX_H / 2, this.W - 28, this.BOX_H, 0x0a0a1a, 0.94);
+    this.bg = scene.add.rectangle(this.W / 2, boxY + this.BOX_H / 2, this.W - 28, this.BOX_H, 0x0a0a1a, 0.96);
     this.bg.setStrokeStyle(1, 0x39ff14, 0.5);
 
-    this.portraitFrame = scene.add.rectangle(this.PADDING + 52, boxY + 72, 96, 76, 0x111418, 0.92)
+    this.portraitFrame = scene.add.rectangle(this.PADDING + 62, boxY + 78, 124, 96, 0x111418, 0.92)
       .setStrokeStyle(1, 0x39ff14, 0.28)
       .setVisible(false);
-    this.portraitImage = scene.add.image(this.PADDING + 42, boxY + 72, 'player')
+    this.portraitImage = scene.add.image(this.PADDING + 62, boxY + 78, 'player')
       .setOrigin(0.5)
       .setVisible(false);
 
     // 说话者名字
-    this.speakerText = scene.add.text(this.PADDING + 108, boxY + 14, '', {
+    this.speakerText = scene.add.text(this.PADDING + 146, boxY + 14, '', {
       fontSize: '20px', fontFamily: 'monospace', color: '#ffd700',
     });
 
     // 正文
-    this.bodyText = scene.add.text(this.PADDING + 108, boxY + 44, '', {
+    this.bodyText = scene.add.text(this.PADDING + 146, boxY + 44, '', {
       fontSize: '17px', fontFamily: 'monospace', color: '#cccccc',
-      wordWrap: { width: this.W - 188, useAdvancedWrap: true }, lineSpacing: 8,
+      wordWrap: { width: this.W - 230, useAdvancedWrap: true }, lineSpacing: 8,
     });
-    this.bodyText.setFixedSize(this.W - 188, 92);
+    this.bodyText.setFixedSize(this.W - 230, 92);
 
     // 继续提示
     this.promptText = scene.add.text(this.W - 32, boxY + this.BOX_H - 20, '▼', {
@@ -135,11 +136,11 @@ export class DialogueBox {
 
     const boxY = this.H - this.BOX_H;
     choices.forEach((choice, i) => {
-      const y = boxY + 128 + i * 24;
+      const y = boxY + 136 + i * 24;
       const text = this.scene.add.text(this.PADDING + 20, y, `[${i + 1}] ${choice.label}`, {
         fontSize: '15px', fontFamily: 'monospace', color: '#39ff14',
         wordWrap: { width: this.W - 64, useAdvancedWrap: true },
-      }).setInteractive({ useHandCursor: true }).setDepth(201);
+      }).setInteractive({ useHandCursor: true }).setDepth(this.DEPTH + 1);
 
       text.on('pointerover', () => text.setColor('#ffffff'));
       text.on('pointerout', () => text.setColor('#39ff14'));
@@ -192,8 +193,8 @@ export class DialogueBox {
     if (line.portraitKey && this.scene.textures.exists(line.portraitKey)) {
       this.portraitImage.setTexture(line.portraitKey);
       const frame = this.scene.textures.get(line.portraitKey).getSourceImage() as { width: number; height: number };
-      const maxW = 88;
-      const maxH = 68;
+      const maxW = 112;
+      const maxH = 86;
       const scale = Math.min(maxW / frame.width, maxH / frame.height);
       this.portraitImage.setDisplaySize(frame.width * scale, frame.height * scale).setVisible(true);
       this.portraitFrame.setVisible(true);
