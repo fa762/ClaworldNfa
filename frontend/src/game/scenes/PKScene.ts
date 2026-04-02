@@ -809,8 +809,8 @@ export class PKScene extends Phaser.Scene {
             ? `胜者 NFA #${resolution.winnerNfaId} · 败者 NFA #${resolution.loserNfaId}`
             : `Winner NFA #${resolution.winnerNfaId} · Loser NFA #${resolution.loserNfaId}`,
           this.lang === 'zh'
-            ? `奖励 ${Number(resolution.reward) / 1e18} Claworld · 销毁 ${Number(resolution.burned) / 1e18}`
-            : `Reward ${Number(resolution.reward) / 1e18} Claworld · Burned ${Number(resolution.burned) / 1e18}`,
+            ? `胜者实得 ${Number(resolution.reward) / 1e18} Claworld · 本场销毁 ${Number(resolution.burned) / 1e18}`
+            : `Winner received ${Number(resolution.reward) / 1e18} Claworld · Burned ${Number(resolution.burned) / 1e18}`,
           this.lang === 'zh'
             ? `区块 ${resolution.blockNumber}`
             : `Block ${resolution.blockNumber}`,
@@ -834,15 +834,40 @@ export class PKScene extends Phaser.Scene {
       const predictedWinner = breakdown.winner === 'A' ? match.nfaA : match.nfaB;
       sections.push({
         title: this.lang === 'zh' ? '战报结论' : 'Battle verdict',
-        tone: 'accent',
-        lines: [
-          this.lang === 'zh'
-            ? `按合约公式复盘，预计胜者 NFA #${predictedWinner}`
-            : `Formula replay predicts winner NFA #${predictedWinner}`,
-          this.lang === 'zh'
-            ? '胜负比较的是双方伤害分，不是单看攻击或等级。'
-            : 'Outcome compares damage score, not raw ATK or level alone.',
-        ],
+        tone: resolution?.type === 'settled'
+          ? (resolution.winnerNfaId === this.nfaId ? 'success' : resolution.loserNfaId === this.nfaId ? 'danger' : 'accent')
+          : resolution?.type === 'cancelled'
+            ? 'danger'
+            : 'accent',
+        lines: resolution?.type === 'settled'
+          ? [
+              this.lang === 'zh'
+                ? `本场实际胜者：NFA #${resolution.winnerNfaId}`
+                : `Actual winner: NFA #${resolution.winnerNfaId}`,
+              this.lang === 'zh'
+                ? `胜者获得 ${Number(resolution.reward) / 1e18} Claworld，系统销毁 ${Number(resolution.burned) / 1e18} Claworld`
+                : `Winner received ${Number(resolution.reward) / 1e18} Claworld, system burned ${Number(resolution.burned) / 1e18} Claworld`,
+              this.lang === 'zh'
+                ? '下方是按合约公式复盘的双方计算过程。'
+                : 'Below is the formula replay for both sides.',
+            ]
+          : resolution?.type === 'cancelled'
+            ? [
+                this.lang === 'zh'
+                  ? '本场已取消，没有胜者，也没有奖励发放。'
+                  : 'This match was cancelled. No winner and no reward payout.',
+                this.lang === 'zh'
+                  ? '下方保留双方数据，仅供查看当时的对局面板。'
+                  : 'Stats below are shown for reference only.',
+              ]
+            : [
+                this.lang === 'zh'
+                  ? `本场尚未结算，按当前公式推演会由 NFA #${predictedWinner} 占优`
+                  : `This match is not settled yet. Formula replay currently favors NFA #${predictedWinner}`,
+                this.lang === 'zh'
+                  ? '未结算前，这只是推演，不是最终链上结果。'
+                  : 'Before settlement, this is only a projection, not the final on-chain result.',
+              ],
       });
       sections.push({
         title: this.lang === 'zh' ? `发起方 A · NFA #${match.nfaA}` : `Side A · NFA #${match.nfaA}`,
