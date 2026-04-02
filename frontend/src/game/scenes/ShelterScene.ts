@@ -169,8 +169,8 @@ export class ShelterScene extends Phaser.Scene {
     this.npcDefs = [
       { key: 'task',     texture: 'npc-task',     artTexture: 'npc-task-art',     label: this.lang === 'zh' ? '[ 任务终端 ]' : '[ TASK ]',        x: W * 0.25,  y: H * 0.3,  action: 'TaskScene' },
       { key: 'pk',       texture: 'npc-pk',       artTexture: 'npc-pk-art',       label: this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]',       x: W * 0.75,  y: H * 0.3,  action: 'PKScene' },
-      { key: 'market',   texture: 'npc-market',   artTexture: 'npc-market-art',   label: this.lang === 'zh' ? '[ SABLE / 撮合墙 ]' : '[ SABLE / MATCH WALL ]', x: W * 0.5,   y: H * 0.2,  action: 'MarketScene' },
-      { key: 'sable',    texture: 'npc-sable-art', artTexture: 'npc-sable-art',   label: this.lang === 'zh' ? '[ SABLE ]' : '[ SABLE ]', x: W * 0.64, y: H * 0.24, action: 'event:sable' },
+      { key: 'market',   texture: 'npc-market',   artTexture: 'npc-market-art',   label: this.lang === 'zh' ? '[ 撮合墙 ]' : '[ MATCH WALL ]', x: W * 0.46,   y: H * 0.18,  action: 'MarketScene' },
+      { key: 'sable',    texture: 'npc-sable-art', artTexture: 'npc-sable-art',   label: this.lang === 'zh' ? '[ SABLE / 清算员 ]' : '[ SABLE / CLEARER ]', x: W * 0.68, y: H * 0.30, action: 'event:sable' },
       { key: 'portal',   texture: 'portal',       artTexture: 'portal-art',       label: this.lang === 'zh' ? '[ 隧道传送 ]' : '[ PORTAL ]',      x: W * 0.15,  y: H * 0.7,  action: 'event:portal' },
       { key: 'openclaw', texture: 'npc-openclaw', artTexture: 'npc-openclaw-art', label: this.lang === 'zh' ? '[ 意识唤醒舱 ]' : '[ AWAKENING ]', x: W * 0.85,  y: H * 0.7,  action: 'event:openclaw' },
     ];
