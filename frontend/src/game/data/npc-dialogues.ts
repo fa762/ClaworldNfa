@@ -73,11 +73,30 @@ export function getPKDialogue(nfaId: number, lang: GameLang): DialogueNode {
 export function getMarketDialogue(lang: GameLang): DialogueNode {
   return {
     lines: [
-      { speaker: lang === 'zh' ? '交易墙' : 'Market Wall', text: lang === 'zh' ? '这面墙上贴满了交易信息。' : 'This wall is covered with trade offers.', color: '#3399ff' },
-      { speaker: lang === 'zh' ? '交易墙' : 'Market Wall', text: lang === 'zh' ? '有人在卖龙虾，有人在拍卖。价高者得。' : 'Some are selling lobsters, others are auctioning them. Highest bid wins.', color: '#3399ff' },
+      {
+        speaker: lang === 'zh' ? 'Sable' : 'Sable',
+        text: lang === 'zh'
+          ? '欢迎来到撮合墙。我负责这里的挂单、清算和失控价格。'
+          : 'Welcome to the Match Wall. I manage listings, settlement, and runaway prices here.',
+        color: '#ffd34d',
+      },
+      {
+        speaker: lang === 'zh' ? 'Sable' : 'Sable',
+        text: lang === 'zh'
+          ? '这不是普通市场，而是旧时代币安中继塔残留下来的结算网络。'
+          : 'This is not a normal market. It is the surviving settlement mesh of an old Binance relay tower.',
+        color: '#ffd34d',
+      },
+      {
+        speaker: lang === 'zh' ? 'Sable' : 'Sable',
+        text: lang === 'zh'
+          ? 'BSC 中继链路还在运转。价格屏、挂牌和清算回执，都是从这里同步出去的。'
+          : 'The BSC relay path is still alive. Price boards, listings, and settlement receipts are synchronized from here.',
+        color: '#ffd34d',
+      },
     ],
     choices: [
-      { label: lang === 'zh' ? '浏览市场' : 'Browse market', action: 'market:browse' },
+      { label: lang === 'zh' ? '进入撮合墙' : 'Open match wall', action: 'market:browse' },
       { label: lang === 'zh' ? '挂售我的 NFA' : 'List my NFA', action: 'market:list' },
       { label: lang === 'zh' ? '离开' : 'Leave', action: 'dialogue:close' },
     ],

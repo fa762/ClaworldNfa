@@ -46,6 +46,10 @@ const TYPE_NAMES_ZH = ['固定价', '拍卖', '互换'];
 const TYPE_NAMES_EN = ['Fixed', 'Auction', 'Swap'];
 const STATUS_NAMES_ZH = ['进行中', '已成交', '已取消'];
 const STATUS_NAMES_EN = ['ACTIVE', 'SOLD', 'CANCELLED'];
+const MARKET_PRIMARY = '#ffd34d';
+const MARKET_SOFT = '#ffe7a3';
+const MARKET_BG = 0x161108;
+const MARKET_PANEL = 0x1f1709;
 
 /**
  * MarketScene — 全真链上市场
@@ -94,18 +98,18 @@ export class MarketScene extends Phaser.Scene {
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
 
-    this.add.rectangle(W / 2, H / 2, W, H, 0x101014, 0.9);
+    this.add.rectangle(W / 2, H / 2, W, H, MARKET_BG, 0.94);
 
-    this.add.text(W / 2, 24, this.lang === 'zh' ? '[ 交易墙 ]' : '[ MARKET WALL ]', {
-      fontSize: '24px', fontFamily: 'monospace', color: '#3399ff',
+    this.add.text(W / 2, 24, this.lang === 'zh' ? '[ 撮合墙 ]' : '[ MATCH WALL ]', {
+      fontSize: '24px', fontFamily: 'monospace', color: MARKET_PRIMARY,
     }).setOrigin(0.5);
 
-    this.add.text(W / 2, 46, this.lang === 'zh' ? `NFA #${this.nfaId} — 全真链上市场` : `NFA #${this.nfaId} — Full Onchain Market`, {
-      fontSize: '14px', fontFamily: 'monospace', color: '#3399ff',
+    this.add.text(W / 2, 46, this.lang === 'zh' ? `NFA #${this.nfaId} — Sable 管理的中继市场` : `NFA #${this.nfaId} — Sable's Relay Market`, {
+      fontSize: '14px', fontFamily: 'monospace', color: MARKET_PRIMARY,
     }).setOrigin(0.5).setAlpha(0.6);
 
-    this.add.text(W / 2, 62, this.lang === 'zh' ? '固定价 / 拍卖 / 互换 都在链上结算' : 'Fixed / Auction / Swap all settle onchain', {
-      fontSize: '12px', fontFamily: 'monospace', color: '#9fb7ff',
+    this.add.text(W / 2, 62, this.lang === 'zh' ? '固定价 / 拍卖 / 互换 都通过 BSC 中继链路写入链上' : 'Fixed / Auction / Swap all settle through the BSC relay path', {
+      fontSize: '12px', fontFamily: 'monospace', color: MARKET_SOFT,
     }).setOrigin(0.5).setAlpha(0.75);
 
     const specialty = getShelterSpecialty(this.shelter, this.lang);
@@ -114,9 +118,23 @@ export class MarketScene extends Phaser.Scene {
     }).setOrigin(0.5).setAlpha(0.75);
 
     this.add.text(W / 2, 94, getShelterSceneHint(this.shelter, 'market', this.lang), {
-      fontSize: '10px', fontFamily: 'monospace', color: '#9fb7ff',
+      fontSize: '10px', fontFamily: 'monospace', color: MARKET_SOFT,
       align: 'center', wordWrap: { width: W - 40 },
     }).setOrigin(0.5).setAlpha(0.62);
+
+    this.add.rectangle(W / 2, 120, W - 28, 30, MARKET_PANEL, 0.94).setStrokeStyle(1, 0x5a4712, 0.7);
+    this.add.text(
+      W / 2,
+      120,
+      this.lang === 'zh'
+        ? '币安中继塔: 在线  ·  BSC 链路: 稳定  ·  清算员: Sable  ·  回执: 可追溯'
+        : 'Binance relay: online  ·  BSC route: stable  ·  Operator: Sable  ·  Receipts: traceable',
+      {
+        fontSize: '11px',
+        fontFamily: 'monospace',
+        color: MARKET_PRIMARY,
+      },
+    ).setOrigin(0.5).setAlpha(0.85);
 
     this.modal = new TerminalModal(this);
     const compactHeader = W < 760;
@@ -132,30 +150,30 @@ export class MarketScene extends Phaser.Scene {
       const col = compactHeader ? index % 2 : index;
       const row = compactHeader ? Math.floor(index / 2) : 0;
       const x = compactHeader ? W * (0.3 + col * 0.4) : button.x;
-      const y = compactHeader ? 106 + row * 34 : 104;
+      const y = compactHeader ? 154 + row * 34 : 150;
 
       this.add.text(x, y, button.label, {
-        fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
-        backgroundColor: '#001a00', padding: { x: 10, y: 6 },
+        fontSize: '14px', fontFamily: 'monospace', color: '#201700',
+        backgroundColor: MARKET_PRIMARY, padding: { x: 10, y: 6 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', button.action);
     });
 
-    const toolsY = compactHeader ? 176 : 140;
+    const toolsY = compactHeader ? 224 : 186;
     this.listingFilterButton = this.add.text(14, toolsY, '', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#39ff14',
-      backgroundColor: '#001a00', padding: { x: 8, y: 4 },
+      fontSize: '11px', fontFamily: 'monospace', color: MARKET_PRIMARY,
+      backgroundColor: '#171105', padding: { x: 8, y: 4 },
     }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleListingFilter());
 
     this.add.text(W - 14, toolsY, this.lang === 'zh' ? '[ 搜索挂单 ]' : '[ FIND ID ]', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#7ad7ff',
-      backgroundColor: '#00131a', padding: { x: 8, y: 4 },
+      fontSize: '11px', fontFamily: 'monospace', color: MARKET_SOFT,
+      backgroundColor: '#171105', padding: { x: 8, y: 4 },
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.promptFindListing());
 
     const headerY = toolsY + 28;
-    this.add.text(14, headerY, this.lang === 'zh' ? 'ID     NFA     稀有度      类型       价格/出价          卖家          操作' : 'ID     NFA     RARITY      TYPE       PRICE/BID           SELLER        ACTION', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#555555',
+    this.add.text(14, headerY, this.lang === 'zh' ? 'ID     NFA     身份称号      类型       挂单/最高价        卖家          操作' : 'ID     NFA     IDENTITY    TYPE       PRICE/BID           SELLER        ACTION', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#8a7a4f',
     });
-    this.add.rectangle(W / 2, headerY + 12, W - 28, 1, 0x333333);
+    this.add.rectangle(W / 2, headerY + 12, W - 28, 1, 0x5a4712);
     this.listingTableY = headerY + 22;
     this.refreshListingFilterButton();
 
@@ -179,7 +197,7 @@ export class MarketScene extends Phaser.Scene {
       }
     });
 
-    this.statusText = this.add.text(W / 2, H - 76, this.lang === 'zh' ? '读取链上市场中...' : 'Loading onchain market...', {
+    this.statusText = this.add.text(W / 2, H - 76, this.lang === 'zh' ? '读取中继塔市场中...' : 'Loading relay market...', {
       fontSize: '14px', fontFamily: 'monospace', color: '#ffaa00',
       align: 'center', wordWrap: { width: W - 40 },
     }).setOrigin(0.5);
@@ -193,7 +211,7 @@ export class MarketScene extends Phaser.Scene {
       this.listings = data as Listing[];
       this.page = 0;
       this.renderListings();
-      this.showStatus(this.listings.length > 0 ? (this.lang === 'zh' ? '已同步链上挂单列表' : 'Loaded onchain listings') : (this.lang === 'zh' ? '当前没有活跃挂单' : 'No active listings'), this.listings.length > 0 ? '#39ff14' : '#666666');
+      this.showStatus(this.listings.length > 0 ? (this.lang === 'zh' ? '已同步中继塔挂单列表' : 'Loaded relay listings') : (this.lang === 'zh' ? '当前没有活跃挂单' : 'No active listings'), this.listings.length > 0 ? '#39ff14' : '#666666');
     });
 
     const offResult = eventBus.on('market:result', (data: unknown) => {
@@ -282,7 +300,7 @@ export class MarketScene extends Phaser.Scene {
   private promptListingMode() {
     this.modal.showMenu({
       title: this.lang === 'zh' ? '选择挂售模式' : 'Choose listing mode',
-      subtitle: this.lang === 'zh' ? '固定价立即成交，拍卖持续 24 小时，互换指定另一只 NFA。' : 'Fixed price sells instantly, auctions last 24 hours, swaps target another NFA.',
+      subtitle: this.lang === 'zh' ? '撮合墙会把挂单广播到 BSC 中继链路，固定价、拍卖和互换都保留链上清算回执。' : 'The match wall broadcasts listings across the BSC relay path, preserving on-chain settlement receipts for fixed, auction, and swap orders.',
       options: [
         { label: this.lang === 'zh' ? '固定价挂售' : 'Fixed price listing', description: this.lang === 'zh' ? '输入一个 BNB 价格，任何人都能直接购买。' : 'Set a BNB price for instant purchase.', onSelect: () => this.promptList('fixed') },
         { label: this.lang === 'zh' ? '拍卖挂售' : 'Auction listing', description: this.lang === 'zh' ? '设置起拍价，24 小时后由最高出价者成交。' : 'Set a start price; highest bid wins after 24h.', onSelect: () => this.promptList('auction') },
@@ -292,7 +310,7 @@ export class MarketScene extends Phaser.Scene {
   }
 
   private requestListings() {
-    this.showStatus(this.lang === 'zh' ? '读取链上市场中...' : 'Loading onchain market...', '#ffaa00');
+    this.showStatus(this.lang === 'zh' ? '读取中继塔市场中...' : 'Loading relay market...', '#ffaa00');
     eventBus.emit('market:requestListings');
   }
 
@@ -354,7 +372,7 @@ export class MarketScene extends Phaser.Scene {
   private promptFindListing() {
     this.modal.showForm({
       title: this.lang === 'zh' ? '搜索挂单' : 'Find listing',
-      subtitle: this.lang === 'zh' ? '输入 listing id，查看这条市场挂单的链上详情。' : 'Enter a listing id to inspect the on-chain market entry.',
+      subtitle: this.lang === 'zh' ? '输入 listing id，Sable 会从中继塔回读这条挂单的链上记录。' : 'Enter a listing id and Sable will pull the on-chain entry from the relay tower.',
       fields: [
         { name: 'listingId', label: this.lang === 'zh' ? '挂单 ID' : 'Listing ID', type: 'number', placeholder: '1' },
       ],
@@ -436,10 +454,10 @@ export class MarketScene extends Phaser.Scene {
     }
 
     this.modal.showMenu({
-      title: this.lang === 'zh' ? `挂单 #${listingId}` : `Listing #${listingId}`,
+      title: this.lang === 'zh' ? `撮合墙记录 #${listingId}` : `Match Wall Entry #${listingId}`,
       subtitle: this.lang === 'zh'
-        ? '你可以在这里查看挂单状态，并直接执行买入、出价、结算或取消。'
-        : 'Inspect the listing and directly buy, bid, settle, or cancel from here.',
+        ? '这里展示的是中继塔回读的链上挂单状态，你可以直接执行买入、出价、结算或取消。'
+        : 'This is the relay tower readout of the on-chain listing. You can buy, bid, settle, or cancel from here.',
       options,
       cancelLabel: this.lang === 'zh' ? '关闭' : 'Close',
     });
@@ -456,7 +474,7 @@ export class MarketScene extends Phaser.Scene {
 
       this.modal.showMenu({
         title: this.lang === 'zh' ? '互换挂售' : 'Swap listing',
-        subtitle: this.lang === 'zh' ? `当前挂出的 NFA 是 #${this.nfaId}。选择你想换到手的目标 NFA。` : `You are listing NFA #${this.nfaId}. Choose the NFA you want in return.`,
+        subtitle: this.lang === 'zh' ? `当前挂出的 NFA 是 #${this.nfaId}。撮合墙会把你的互换需求广播到 BSC 中继链路。` : `You are listing NFA #${this.nfaId}. The match wall will broadcast your swap order across the BSC relay path.`,
         options: candidates.map((id) => ({
           label: `目标 NFA #${id}`,
           description: this.walletSummaries[id]
@@ -473,7 +491,7 @@ export class MarketScene extends Phaser.Scene {
       title: mode === 'fixed' ? (this.lang === 'zh' ? '固定价挂售' : 'Fixed price listing') : (this.lang === 'zh' ? '拍卖挂售' : 'Auction listing'),
       subtitle: mode === 'fixed'
         ? (this.lang === 'zh' ? `挂售 NFA #${this.nfaId}，输入你希望收到的 BNB 固定价。` : `List NFA #${this.nfaId} and set the BNB fixed price you want.`)
-        : (this.lang === 'zh' ? `挂售 NFA #${this.nfaId}，输入拍卖起拍价。拍卖持续 24 小时。` : `List NFA #${this.nfaId} and set the starting price. Auction lasts 24 hours.`),
+        : (this.lang === 'zh' ? `挂售 NFA #${this.nfaId}，输入拍卖起拍价。拍卖持续 24 小时，成交后会生成清算回执。` : `List NFA #${this.nfaId} and set the starting price. The auction lasts 24 hours and generates a settlement receipt.`),
       fields: [
         {
           name: 'price',
@@ -508,7 +526,7 @@ export class MarketScene extends Phaser.Scene {
         fontSize: '16px', fontFamily: 'monospace', color: '#666666',
       }).setOrigin(0.5);
       const pageInfo = this.add.text(W / 2, this.cameras.main.height - 96, '第 0 / 0 页', {
-        fontSize: '12px', fontFamily: 'monospace', color: '#555555',
+        fontSize: '12px', fontFamily: 'monospace', color: '#8a7a4f',
       }).setOrigin(0.5);
       this.rows.push(empty, pageInfo);
       return;
@@ -538,11 +556,11 @@ export class MarketScene extends Phaser.Scene {
         grit: 30 + ((item.nfaId * 19) % 60),
       }, this.lang);
 
-      const rowBg = this.add.rectangle(W / 2, y + (isCompact ? 18 : 10), W - 30, isCompact ? 68 : 40, 0x111122, 0.5)
-        .setStrokeStyle(1, 0x222233)
+      const rowBg = this.add.rectangle(W / 2, y + (isCompact ? 18 : 10), W - 30, isCompact ? 68 : 40, 0x17130c, 0.72)
+        .setStrokeStyle(1, 0x5a4712)
         .setInteractive({ useHandCursor: true });
-      rowBg.on('pointerover', () => rowBg.setFillStyle(0x222244, 0.8));
-      rowBg.on('pointerout', () => rowBg.setFillStyle(0x111122, 0.5));
+      rowBg.on('pointerover', () => rowBg.setFillStyle(0x261c0d, 0.92));
+      rowBg.on('pointerout', () => rowBg.setFillStyle(0x17130c, 0.72));
 
       const rowText = this.add.text(
         16,
@@ -588,7 +606,7 @@ export class MarketScene extends Phaser.Scene {
     const totalPages = Math.ceil(visibleListings.length / this.PER_PAGE);
     const pageInfo = this.add.text(W / 2, this.cameras.main.height - 96,
       `第 ${this.page + 1} / ${totalPages} 页  (共 ${visibleListings.length} 条)`, {
-        fontSize: '12px', fontFamily: 'monospace', color: '#555555',
+        fontSize: '12px', fontFamily: 'monospace', color: '#8a7a4f',
       }).setOrigin(0.5);
     this.rows.push(pageInfo);
   }

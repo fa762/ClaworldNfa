@@ -119,7 +119,7 @@ export class ShelterScene extends Phaser.Scene {
     const zoneDefs = [
       { key: 'task', x: W * 0.25, y: H * 0.3, w: 160, h: 92, color: 0xffd34d },
       { key: 'pk', x: W * 0.75, y: H * 0.3, w: 160, h: 92, color: 0xff4d4d },
-      { key: 'market', x: W * 0.5, y: H * 0.2, w: 220, h: 84, color: 0x4da3ff },
+      { key: 'market', x: W * 0.5, y: H * 0.2, w: 220, h: 84, color: 0xffd34d },
       { key: 'portal', x: W * 0.15, y: H * 0.7, w: 132, h: 84, color: 0xaa66ff },
       { key: 'openclaw', x: W * 0.85, y: H * 0.7, w: 148, h: 92, color: 0x66ffcc },
     ];
@@ -169,7 +169,7 @@ export class ShelterScene extends Phaser.Scene {
     this.npcDefs = [
       { key: 'task',     texture: 'npc-task',     artTexture: 'npc-task-art',     label: this.lang === 'zh' ? '[ 任务终端 ]' : '[ TASK ]',        x: W * 0.25,  y: H * 0.3,  action: 'TaskScene' },
       { key: 'pk',       texture: 'npc-pk',       artTexture: 'npc-pk-art',       label: this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]',       x: W * 0.75,  y: H * 0.3,  action: 'PKScene' },
-      { key: 'market',   texture: 'npc-market',   artTexture: 'npc-market-art',   label: this.lang === 'zh' ? '[ 交易墙 ]' : '[ MARKET ]',      x: W * 0.5,   y: H * 0.2,  action: 'MarketScene' },
+      { key: 'market',   texture: 'npc-market',   artTexture: 'npc-market-art',   label: this.lang === 'zh' ? '[ SABLE / 撮合墙 ]' : '[ SABLE / MATCH WALL ]', x: W * 0.5,   y: H * 0.2,  action: 'MarketScene' },
       { key: 'portal',   texture: 'portal',       artTexture: 'portal-art',       label: this.lang === 'zh' ? '[ 隧道传送 ]' : '[ PORTAL ]',      x: W * 0.15,  y: H * 0.7,  action: 'event:portal' },
       { key: 'openclaw', texture: 'npc-openclaw', artTexture: 'npc-openclaw-art', label: this.lang === 'zh' ? '[ 意识唤醒舱 ]' : '[ AWAKENING ]', x: W * 0.85,  y: H * 0.7,  action: 'event:openclaw' },
     ];
