@@ -133,7 +133,7 @@ function statusText(status: GameStatus, zh: boolean) {
     ready: zh ? '控制台已就绪，先连接钱包。' : 'Console ready. Connect wallet first.',
     connected: zh ? '钱包已连接，点击同步读取链上数据。' : 'Wallet linked. Click sync to read chain data.',
     booting: zh ? '正在同步链上状态与 NFA 清单。' : 'Syncing on-chain state and NFAs.',
-    'no-nfa': zh ? '当前钱包没有 NFA，需先铸造。' : 'No NFA found for this wallet.',
+    'no-nfa': zh ? '当前钱包没有可进入游戏的 NFA；已挂售的龙虾可在控制台直接管理挂单。' : 'No playable NFA found; active listings can still be managed from the console.',
     'select-nfa': zh ? '同步完成，请选择一只龙虾进入避难所。' : 'Sync complete. Select a lobster to enter.',
     'loading-nfa': zh ? '正在读取龙虾状态并进入场景。' : 'Reading lobster state and entering scene.',
     playing: zh ? '已进入游戏，可直接切换任务、PK、市场和档案。' : 'In session. Use buttons to switch systems.',
@@ -381,6 +381,26 @@ export function GameCommandShell({
       return;
     }
 
+    if (action === 'cancel-listing') {
+      if (!address) return pushLog('error', zh ? '请先连接钱包。' : 'Connect wallet first.');
+      const target = Number(value ?? listingId);
+      if (!Number.isInteger(target) || target <= 0) return pushLog('error', zh ? '请输入有效的挂单 ID。' : 'Enter a valid listing id.');
+      const listing = await loadMarketListing(target);
+      if (!listing) return pushLog('error', zh ? '未找到该挂单。' : 'Listing not found.');
+      if (listing.seller.toLowerCase() !== address.toLowerCase()) {
+        return pushLog('error', zh ? '当前钱包不是这条挂单的卖家。' : 'This wallet is not the seller of that listing.');
+      }
+      if (listing.status !== 0) {
+        return pushLog('warn', zh ? '这条挂单已经不是进行中状态。' : 'This listing is no longer active.');
+      }
+      if (listing.listingType === 1 && listing.highestBidder !== '0x0000000000000000000000000000000000000000') {
+        return pushLog('warn', zh ? '这条拍卖已经有人出价，不能直接取消。' : 'This auction already has bids and cannot be cancelled directly.');
+      }
+
+      eventBus.emit('market:cancel', { listingId: target });
+      return pushLog('warn', zh ? `已提交取消挂单 #${target} 请求。` : `Cancel request sent for listing #${target}.`);
+    }
+
     if (action === 'portal') {
       if (!activeNfaId) return pushLog('error', zh ? '请先选择一只龙虾。' : 'Select an NFA first.');
       const shelter = Number(value ?? portalId);
@@ -504,6 +524,9 @@ export function GameCommandShell({
           <div className="mt-2 flex gap-2">
             <input value={listingId} onChange={(event) => setListingId(event.target.value)} className={inputClass} placeholder={zh ? '挂单 ID' : 'Listing ID'} inputMode="numeric" />
             <button type="button" onClick={() => void runAction('listing')} className={`${actionButtonClass} shrink-0`}>{zh ? '查看挂单' : 'View Listing'}</button>
+            <button type="button" onClick={() => void runAction('cancel-listing')} className={`${actionButtonClass} shrink-0 border-red-400/25 text-red-300 hover:border-red-300/60 hover:bg-red-500/10 hover:text-red-200`}>
+              {zh ? '取消挂单' : 'Cancel Listing'}
+            </button>
           </div>
         </div>
 
