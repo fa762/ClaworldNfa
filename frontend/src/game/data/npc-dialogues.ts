@@ -34,6 +34,8 @@ export type SableNode =
   | 'past'
   | 'whyStay'
   | 'jobs'
+  | 'custody'
+  | 'operators'
   | 'secret';
 
 // ── 性格描述映射 ──
@@ -249,8 +251,24 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
         { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '别迷信屏幕上的价格。真正该看的，是谁在推价，谁在撤单，谁在等你犯错。' : 'Do not worship the board price. Watch who pushes, who pulls, and who waits for your mistake.' },
       ],
       choices: [
+        { label: lang === 'zh' ? '怎么守住用户资产' : 'How do you protect user assets', action: 'sable:custody' },
         { label: lang === 'zh' ? '她以前见过什么？' : 'What has she seen before?', action: 'sable:past' },
         { label: lang === 'zh' ? '回到开场' : 'Back to intro', action: 'sable:intro' },
+        { label: close, action: 'dialogue:close' },
+      ],
+    };
+  }
+
+  if (node === 'custody') {
+    return {
+      lines: [
+        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '先分开。热钱包归热钱包，冷钱包归冷钱包。流动性的钱，和保命的钱，不能睡在一张床上。' : 'Separate first. Hot wallets stay hot. Cold wallets stay cold. Liquidity money and survival money do not sleep in the same bed.' },
+        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '黑天鹅来的时候，先证明钱还在，再谈价格。先给回执，再谈脸面。很多系统死就死在这一步顺序错了。' : 'When the black swan lands, prove the assets exist first, argue about price later. Issue the receipt first, protect your pride later. A lot of systems died because they reversed that order.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '外行喜欢看涨幅，真正的守夜人先看资产隔离和提款通道还在不在。' : 'Outsiders stare at upside. Real keepers first check whether asset segregation and withdrawal paths still exist.' },
+      ],
+      choices: [
+        { label: lang === 'zh' ? '谁把这些规矩留下来的' : 'Who left these rules behind', action: 'sable:operators' },
+        { label: lang === 'zh' ? '回到风险分支' : 'Back to risk', action: 'sable:risk' },
         { label: close, action: 'dialogue:close' },
       ],
     };
@@ -281,7 +299,23 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
       ],
       choices: [
         { label: lang === 'zh' ? '继续' : 'Continue', action: 'sable:jobs' },
+        { label: lang === 'zh' ? '谁把这些规矩留下来的' : 'Who left these rules behind', action: 'sable:operators' },
         { label: back, action: 'sable:past' },
+        { label: close, action: 'dialogue:close' },
+      ],
+    };
+  }
+
+  if (node === 'operators') {
+    return {
+      lines: [
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '旧时代有一批人，真把交易系统当基础设施在守。不是嘴上说说，是在市场最乱的时候也先把用户资产摆在前面。' : 'There was a generation that treated trading systems as infrastructure. Not in speeches, but by putting user assets first when the market was at its ugliest.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '后来人们会记住 CZ，会记住一姐，不是因为谁喊得最响，而是因为有人在黑天鹅压下来时还守着那条底线。' : 'People later remembered CZ and Yi-jie not because they shouted the loudest, but because someone held the line when the black swan finally came down.' },
+        { speaker, portraitKey: 'sable-portrait-default', color: '#ffd34d', text: lang === 'zh' ? '市场最后记住的，从来不是某一次疯涨。它记住的是谁在最乱的时候还知道什么该先守。' : 'Markets do not remember every manic rally. They remember who still knew what had to be protected first when everything was breaking.' },
+      ],
+      choices: [
+        { label: lang === 'zh' ? '回到她的过去' : 'Back to her past', action: 'sable:past' },
+        { label: lang === 'zh' ? '继续任务线' : 'Continue to the job line', action: 'sable:jobs' },
         { label: close, action: 'dialogue:close' },
       ],
     };
@@ -326,6 +360,7 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
       { label: lang === 'zh' ? '教我怎么用市场' : 'Teach me the market', action: 'sable:tutorial' },
       { label: lang === 'zh' ? '这里有什么风险' : 'Show me the risks', action: 'sable:risk' },
       { label: lang === 'zh' ? '你以前到底做什么' : 'What did you do before', action: 'sable:past' },
+      { label: lang === 'zh' ? '旧交易守夜人是谁' : 'Who were the old keepers', action: 'sable:operators' },
     ],
   };
 }
