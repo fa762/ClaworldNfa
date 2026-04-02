@@ -683,6 +683,9 @@ export class ShelterScene extends Phaser.Scene {
 
   private setupTouchControls() {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.dialogueBox.isVisible()) {
+        return;
+      }
       // 如果点击在 NPC 附近，当作交互
       for (const npc of this.npcs) {
         const npcDist = Phaser.Math.Distance.Between(pointer.x, pointer.y, npc.x, npc.y);
