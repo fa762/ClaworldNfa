@@ -2,10 +2,11 @@ import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 import { loadPKSalt } from '../chain/contracts';
 import { loadMatch, loadMatchResolution, loadNFAState } from '../chain/wallet';
-import { TerminalModal } from '../ui/TerminalModal';
+import { TerminalModal, type ReportSection } from '../ui/TerminalModal';
 import type { GameLang } from '../data/npc-dialogues';
 import { buildIdentityFromState, buildLobsterIdentity } from '@/lib/lobsterIdentity';
 import { getShelterSceneHint, getShelterSpecialty } from '@/lib/shelter';
+import { getBscScanTxUrl } from '@/contracts/addresses';
 
 const STRATEGIES_ZH = [
   { name: '全攻', desc: '攻击 150% / 防御 50%', color: '#ff4444' },
@@ -527,6 +528,18 @@ export class PKScene extends Phaser.Scene {
     return names[strategy] ?? String(strategy);
   }
 
+  private formatClaw(amount: number) {
+    if (!Number.isFinite(amount)) return '0';
+    if (Math.abs(amount - Math.round(amount)) < 0.000001) return String(Math.round(amount));
+    if (amount >= 100) return amount.toFixed(1).replace(/\.0$/, '');
+    return amount.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+  }
+
+  private shortHash(hash: string) {
+    if (hash.length <= 14) return hash;
+    return `${hash.slice(0, 10)}...${hash.slice(-6)}`;
+  }
+
   private getBiasBonusText(state: LobsterStateSnapshot, strategy: number) {
     if (strategy === 0 && state.courage >= 70) {
       return this.lang === 'zh' ? '勇气匹配 +5% 攻击' : 'Courage match +5% ATK';
@@ -782,201 +795,237 @@ export class PKScene extends Phaser.Scene {
     const isMine = this.isMyMatch(match);
     const phaseName = this.phaseName(match.phase);
     const opponentId = match.nfaA === this.nfaId ? match.nfaB : match.nfaA;
-    const computedBurned = Number(match.stake) / 1e18 * 0.2;
-    const computedReward = Number(match.stake) / 1e18 * 1.8;
-    const sections: Array<{ title: string; lines: string[]; tone?: 'normal' | 'accent' | 'success' | 'danger' }> = [
+    const hasOpponent = match.nfaB > 0;
+    const stakePerSide = Number(match.stake) / 1e18;
+    const currentPot = hasOpponent ? stakePerSide * 2 : stakePerSide;
+    const fullPot = stakePerSide * 2;
+    const computedBurned = hasOpponent ? fullPot * 0.1 : 0;
+    const computedReward = hasOpponent ? fullPot - computedBurned : 0;
+    const breakdown = stateA && stateB && hasOpponent ? this.buildCombatBreakdown(match, stateA, stateB) : null;
+    const replayWinnerId = breakdown ? (breakdown.winner === 'A' ? match.nfaA : match.nfaB) : null;
+    const replayTone: ReportSection['tone'] = replayWinnerId === null
+      ? 'accent'
+      : replayWinnerId === this.nfaId
+        ? 'success'
+        : isMine
+          ? 'danger'
+          : 'accent';
+    const sections: ReportSection[] = [
       {
-        title: this.lang === 'zh' ? '对局概览' : 'Overview',
+        title: this.lang === 'zh' ? '本场概览' : 'Match snapshot',
         tone: 'accent',
+        chips: [
+          this.lang === 'zh' ? `阶段 ${phaseName}` : `Phase ${phaseName}`,
+          this.lang === 'zh' ? `发起方质押 ${this.formatClaw(stakePerSide)} Claworld` : `Creator stake ${this.formatClaw(stakePerSide)} Claworld`,
+          hasOpponent
+            ? (this.lang === 'zh' ? `应战方质押 ${this.formatClaw(stakePerSide)} Claworld` : `Challenger stake ${this.formatClaw(stakePerSide)} Claworld`)
+            : (this.lang === 'zh' ? '应战方质押 待加入' : 'Challenger stake pending'),
+          this.lang === 'zh' ? `当前奖池 ${this.formatClaw(currentPot)} Claworld` : `Current pot ${this.formatClaw(currentPot)} Claworld`,
+          hasOpponent
+            ? (this.lang === 'zh' ? `胜者到账 ${this.formatClaw(computedReward)} Claworld` : `Winner payout ${this.formatClaw(computedReward)} Claworld`)
+            : (this.lang === 'zh' ? `满池奖池 ${this.formatClaw(fullPot)} Claworld` : `Full pot ${this.formatClaw(fullPot)} Claworld`),
+          hasOpponent
+            ? (this.lang === 'zh' ? `系统销毁 ${this.formatClaw(computedBurned)} Claworld` : `Burn ${this.formatClaw(computedBurned)} Claworld`)
+            : (this.lang === 'zh' ? '系统销毁 待结算' : 'Burn pending'),
+        ],
         lines: [
-          this.lang === 'zh'
-            ? `对阵 NFA #${match.nfaA} vs NFA #${match.nfaB || '-'}`
-            : `NFA #${match.nfaA} vs NFA #${match.nfaB || '-'}`,
-          this.lang === 'zh'
-            ? `阶段 ${phaseName} · 质押 ${Number(match.stake) / 1e18} Claworld`
-            : `Phase ${phaseName} · Stake ${Number(match.stake) / 1e18} Claworld`,
-          this.lang === 'zh'
-            ? `公开状态 A:${match.revealedA ? '已公开' : '未公开'} · B:${match.revealedB ? '已公开' : '未公开'}`
-            : `Reveal status A:${match.revealedA ? 'YES' : 'NO'} · B:${match.revealedB ? 'YES' : 'NO'}`,
+          `NFA #${match.nfaA} vs NFA #${match.nfaB || '-'}`,
+          hasOpponent
+            ? (this.lang === 'zh'
+              ? `公开状态 A ${match.revealedA ? '已公开' : '未公开'} · B ${match.revealedB ? '已公开' : '未公开'}`
+              : `Reveal A ${match.revealedA ? 'YES' : 'NO'} · B ${match.revealedB ? 'YES' : 'NO'}`)
+            : (this.lang === 'zh' ? '当前仍在等待应战。' : 'Waiting for a challenger.'),
         ],
       },
     ];
 
     if (resolution?.type === 'settled') {
       sections.push({
-        title: this.lang === 'zh' ? '链上结算结果' : 'On-chain settlement',
+        title: this.lang === 'zh' ? '链上结果' : 'On-chain result',
         tone: resolution.winnerNfaId === this.nfaId ? 'success' : resolution.loserNfaId === this.nfaId ? 'danger' : 'accent',
-        lines: [
-          this.lang === 'zh'
-            ? `胜者 NFA #${resolution.winnerNfaId} · 败者 NFA #${resolution.loserNfaId}`
-            : `Winner NFA #${resolution.winnerNfaId} · Loser NFA #${resolution.loserNfaId}`,
-          this.lang === 'zh'
-            ? `胜者实得 ${Number(resolution.reward) / 1e18} Claworld · 本场销毁 ${Number(resolution.burned) / 1e18}`
-            : `Winner received ${Number(resolution.reward) / 1e18} Claworld · Burned ${Number(resolution.burned) / 1e18}`,
-          this.lang === 'zh'
-            ? `区块 ${resolution.blockNumber}`
-            : `Block ${resolution.blockNumber}`,
-          resolution.transactionHash,
+        chips: [
+          this.lang === 'zh' ? `实际胜者 NFA #${resolution.winnerNfaId}` : `Winner NFA #${resolution.winnerNfaId}`,
+          this.lang === 'zh' ? `败者 NFA #${resolution.loserNfaId}` : `Loser NFA #${resolution.loserNfaId}`,
+          this.lang === 'zh' ? `胜者到账 ${this.formatClaw(Number(resolution.reward) / 1e18)} Claworld` : `Reward ${this.formatClaw(Number(resolution.reward) / 1e18)} Claworld`,
+          this.lang === 'zh' ? `系统销毁 ${this.formatClaw(Number(resolution.burned) / 1e18)} Claworld` : `Burn ${this.formatClaw(Number(resolution.burned) / 1e18)} Claworld`,
+          this.lang === 'zh' ? `区块 #${resolution.blockNumber}` : `Block #${resolution.blockNumber}`,
+        ],
+        links: [
+          {
+            label: this.lang === 'zh'
+              ? `查看交易 ${this.shortHash(resolution.transactionHash)}`
+              : `View tx ${this.shortHash(resolution.transactionHash)}`,
+            href: getBscScanTxUrl(resolution.transactionHash),
+          },
         ],
       });
     } else if (resolution?.type === 'cancelled') {
       sections.push({
         title: this.lang === 'zh' ? '链上结果' : 'On-chain result',
         tone: 'danger',
-        lines: [
-          this.lang === 'zh' ? '本场对局已取消' : 'This match was cancelled',
-          this.lang === 'zh' ? `取消区块 ${resolution.blockNumber}` : `Cancelled at block ${resolution.blockNumber}`,
-          resolution.transactionHash,
+        chips: [
+          this.lang === 'zh' ? '状态 已取消' : 'Status Cancelled',
+          this.lang === 'zh' ? '胜者 无' : 'Winner None',
+          this.lang === 'zh' ? '奖励 0 Claworld' : 'Reward 0 Claworld',
+          this.lang === 'zh' ? '销毁 0 Claworld' : 'Burn 0 Claworld',
+          this.lang === 'zh' ? `区块 #${resolution.blockNumber}` : `Block #${resolution.blockNumber}`,
         ],
+        links: [
+          {
+            label: this.lang === 'zh'
+              ? `查看交易 ${this.shortHash(resolution.transactionHash)}`
+              : `View tx ${this.shortHash(resolution.transactionHash)}`,
+            href: getBscScanTxUrl(resolution.transactionHash),
+          },
+        ],
+      });
+    } else if (!hasOpponent) {
+      sections.push({
+        title: this.lang === 'zh' ? '当前状态' : 'Current state',
+        tone: 'accent',
+        chips: [
+          this.lang === 'zh' ? '状态 等待应战' : 'Status Waiting',
+          this.lang === 'zh' ? `发起方已锁定 ${this.formatClaw(stakePerSide)} Claworld` : `Creator locked ${this.formatClaw(stakePerSide)} Claworld`,
+          this.lang === 'zh' ? `应战加入后奖池 ${this.formatClaw(fullPot)} Claworld` : `Full pot after join ${this.formatClaw(fullPot)} Claworld`,
+        ],
+      });
+    } else if (match.phase === 5) {
+      sections.push({
+        title: this.lang === 'zh' ? '链上结果' : 'On-chain result',
+        tone: 'danger',
+        chips: [
+          this.lang === 'zh' ? '状态 已取消' : 'Status Cancelled',
+          this.lang === 'zh' ? '胜者 无' : 'Winner None',
+          this.lang === 'zh' ? '奖励 0 Claworld' : 'Reward 0 Claworld',
+          this.lang === 'zh' ? '销毁 0 Claworld' : 'Burn 0 Claworld',
+        ],
+        lines: [
+          this.lang === 'zh'
+            ? '公共 RPC 未返回取消事件，当前按合约状态展示。'
+            : 'Public RPC did not return the cancel event; showing contract state.',
+        ],
+      });
+    } else if (breakdown && replayWinnerId !== null) {
+      sections.push({
+        title: this.lang === 'zh' ? '当前战况' : 'Current verdict',
+        tone: match.phase === 4 ? replayTone : 'accent',
+        chips: [
+          match.phase === 4
+            ? (this.lang === 'zh' ? `已结算 · 复盘胜者 NFA #${replayWinnerId}` : `Settled · Replay winner NFA #${replayWinnerId}`)
+            : (this.lang === 'zh' ? `当前占优 NFA #${replayWinnerId}` : `Advantage NFA #${replayWinnerId}`),
+          this.lang === 'zh' ? `胜者到账 ${this.formatClaw(computedReward)} Claworld` : `Winner payout ${this.formatClaw(computedReward)} Claworld`,
+          this.lang === 'zh' ? `系统销毁 ${this.formatClaw(computedBurned)} Claworld` : `Burn ${this.formatClaw(computedBurned)} Claworld`,
+        ],
+        lines: match.phase === 4
+          ? [
+              this.lang === 'zh'
+                ? '公共 RPC 未返回结算事件，当前按合约公式复盘展示。'
+                : 'Public RPC did not return the settlement event; showing formula replay.',
+            ]
+          : [
+              this.lang === 'zh'
+                ? '未结算前，以下为实时公式推演，不是最终链上结果。'
+                : 'Before settlement, this is a live formula replay, not the final on-chain result.',
+            ],
       });
     }
 
-    if (stateA && stateB && match.nfaB > 0) {
-      const breakdown = this.buildCombatBreakdown(match, stateA, stateB);
-      const predictedWinner = breakdown.winner === 'A' ? match.nfaA : match.nfaB;
-      const fallbackWinner = predictedWinner;
-      const fallbackTone = fallbackWinner === this.nfaId ? 'success' : isMine ? 'danger' : 'accent';
-
-      if (!resolution && match.phase === 4) {
-        sections.push({
-          title: this.lang === 'zh' ? '链上结算结果' : 'On-chain settlement',
-          tone: fallbackTone,
-          lines: [
-            this.lang === 'zh'
-              ? `合约状态显示本场已结算，复盘胜者 NFA #${fallbackWinner}`
-              : `Contract state shows this match is settled. Replay winner NFA #${fallbackWinner}`,
-            this.lang === 'zh'
-              ? `胜者应得 ${computedReward.toFixed(2)} Claworld · 本场销毁 ${computedBurned.toFixed(2)}`
-              : `Winner payout ${computedReward.toFixed(2)} Claworld · Burned ${computedBurned.toFixed(2)}`,
-            this.lang === 'zh'
-              ? '当前公共 RPC 未返回结算事件，所以上面按合约公式复盘展示结果。'
-              : 'Current public RPC did not return the settlement event, so the result above is shown via formula replay.',
-          ],
-        });
-      } else if (!resolution && match.phase === 5) {
-        sections.push({
-          title: this.lang === 'zh' ? '链上结果' : 'On-chain result',
-          tone: 'danger',
-          lines: [
-            this.lang === 'zh'
-              ? '合约状态显示本场已取消。'
-              : 'Contract state shows this match was cancelled.',
-            this.lang === 'zh'
-              ? '当前公共 RPC 未返回取消事件。'
-              : 'Current public RPC did not return the cancel event.',
-          ],
-        });
-      }
-      sections.push({
-        title: this.lang === 'zh' ? '战报结论' : 'Battle verdict',
-        tone: resolution?.type === 'settled'
-          ? (resolution.winnerNfaId === this.nfaId ? 'success' : resolution.loserNfaId === this.nfaId ? 'danger' : 'accent')
-          : resolution?.type === 'cancelled'
+    if (breakdown && stateA && stateB && hasOpponent) {
+      const settledWinnerId = resolution?.type === 'settled'
+        ? resolution.winnerNfaId
+        : match.phase === 4
+          ? replayWinnerId
+          : null;
+      const toneA: ReportSection['tone'] = match.phase === 5
+        ? 'normal'
+        : settledWinnerId === match.nfaA
+          ? 'success'
+          : settledWinnerId === match.nfaB
             ? 'danger'
-            : match.phase === 4
-              ? fallbackTone
-              : match.phase === 5
-                ? 'danger'
-            : 'accent',
-        lines: resolution?.type === 'settled'
-          ? [
-              this.lang === 'zh'
-                ? `本场实际胜者：NFA #${resolution.winnerNfaId}`
-                : `Actual winner: NFA #${resolution.winnerNfaId}`,
-              this.lang === 'zh'
-                ? `胜者获得 ${Number(resolution.reward) / 1e18} Claworld，系统销毁 ${Number(resolution.burned) / 1e18} Claworld`
-                : `Winner received ${Number(resolution.reward) / 1e18} Claworld, system burned ${Number(resolution.burned) / 1e18} Claworld`,
-              this.lang === 'zh'
-                ? '下方是按合约公式复盘的双方计算过程。'
-                : 'Below is the formula replay for both sides.',
-            ]
-          : resolution?.type === 'cancelled'
-            ? [
-                this.lang === 'zh'
-                  ? '本场已取消，没有胜者，也没有奖励发放。'
-                  : 'This match was cancelled. No winner and no reward payout.',
-                this.lang === 'zh'
-                  ? '下方保留双方数据，仅供查看当时的对局面板。'
-                  : 'Stats below are shown for reference only.',
-              ]
-            : match.phase === 4
-              ? [
-                  this.lang === 'zh'
-                    ? `本场已结算，按对局参数复盘胜者为 NFA #${fallbackWinner}`
-                    : `This match is settled. Replay winner is NFA #${fallbackWinner}`,
-                  this.lang === 'zh'
-                    ? `胜者应得 ${computedReward.toFixed(2)} Claworld，系统销毁 ${computedBurned.toFixed(2)} Claworld`
-                    : `Winner payout ${computedReward.toFixed(2)} Claworld, system burned ${computedBurned.toFixed(2)} Claworld`,
-                  this.lang === 'zh'
-                    ? '下方是按合约公式复盘的双方计算过程。'
-                    : 'Below is the formula replay for both sides.',
-                ]
-              : match.phase === 5
-                ? [
-                    this.lang === 'zh'
-                      ? '本场已取消，没有胜者，也没有奖励发放。'
-                      : 'This match was cancelled. No winner and no reward payout.',
-                    this.lang === 'zh'
-                      ? '下方保留双方数据，仅供查看当时的对局面板。'
-                      : 'Stats below are shown for reference only.',
-                  ]
-            : [
-                this.lang === 'zh'
-                  ? `本场尚未结算，按当前公式推演会由 NFA #${predictedWinner} 占优`
-                  : `This match is not settled yet. Formula replay currently favors NFA #${predictedWinner}`,
-                this.lang === 'zh'
-                  ? '未结算前，这只是推演，不是最终链上结果。'
-                  : 'Before settlement, this is only a projection, not the final on-chain result.',
-              ],
-      });
+            : breakdown.winner === 'A'
+              ? 'accent'
+              : 'normal';
+      const toneB: ReportSection['tone'] = match.phase === 5
+        ? 'normal'
+        : settledWinnerId === match.nfaB
+          ? 'success'
+          : settledWinnerId === match.nfaA
+            ? 'danger'
+            : breakdown.winner === 'B'
+              ? 'accent'
+              : 'normal';
+
       sections.push({
-        title: this.lang === 'zh' ? `发起方 A · NFA #${match.nfaA}` : `Side A · NFA #${match.nfaA}`,
+        title: this.lang === 'zh' ? `发起方 · NFA #${match.nfaA}` : `Creator · NFA #${match.nfaA}`,
+        tone: toneA,
+        layout: 'half',
+        chips: [
+          this.lang === 'zh' ? `质押 ${this.formatClaw(stakePerSide)} Claworld` : `Stake ${this.formatClaw(stakePerSide)} Claworld`,
+          this.lang === 'zh' ? `策略 ${breakdown.nfaA.strategyName}` : `Strategy ${breakdown.nfaA.strategyName}`,
+          this.lang === 'zh' ? `攻倍 ${breakdown.nfaA.atkMulPct}%` : `ATK ${breakdown.nfaA.atkMulPct}%`,
+          this.lang === 'zh' ? `防倍 ${breakdown.nfaA.defMulPct}%` : `DEF ${breakdown.nfaA.defMulPct}%`,
+          breakdown.nfaA.speedBoost
+            ? (this.lang === 'zh' ? '先手 +10%' : 'Speed +10%')
+            : (this.lang === 'zh' ? '无先手加成' : 'No speed bonus'),
+        ],
         lines: [
           this.lang === 'zh'
-            ? `策略 ${breakdown.nfaA.strategyName} · 攻倍 ${breakdown.nfaA.atkMulPct}% · 防倍 ${breakdown.nfaA.defMulPct}%`
-            : `Strategy ${breakdown.nfaA.strategyName} · ATK ${breakdown.nfaA.atkMulPct}% · DEF ${breakdown.nfaA.defMulPct}%`,
+            ? `STR / DEF / SPD / VIT：${stateA.str} / ${stateA.def} / ${stateA.spd} / ${stateA.vit}`
+            : `STR / DEF / SPD / VIT: ${stateA.str} / ${stateA.def} / ${stateA.spd} / ${stateA.vit}`,
           this.lang === 'zh'
-            ? `STR ${stateA.str} · DEF ${stateA.def} · SPD ${stateA.spd} · VIT ${stateA.vit}`
-            : `STR ${stateA.str} · DEF ${stateA.def} · SPD ${stateA.spd} · VIT ${stateA.vit}`,
+            ? `有效攻 / 防：${breakdown.nfaA.effStr} / ${breakdown.nfaA.effDef}`
+            : `Effective ATK / DEF: ${breakdown.nfaA.effStr} / ${breakdown.nfaA.effDef}`,
+          this.lang === 'zh'
+            ? `原伤 / HP：${breakdown.nfaA.rawDamage} / ${breakdown.nfaA.hp}`
+            : `Raw damage / HP: ${breakdown.nfaA.rawDamage} / ${breakdown.nfaA.hp}`,
+          this.lang === 'zh'
+            ? `伤害分：${breakdown.nfaA.damageScore.toFixed(2)}`
+            : `Damage score: ${breakdown.nfaA.damageScore.toFixed(2)}`,
           breakdown.nfaA.biasText,
-          this.lang === 'zh'
-            ? `有效攻 ${breakdown.nfaA.effStr} · 有效防 ${breakdown.nfaA.effDef} · 原伤 ${breakdown.nfaA.rawDamage}`
-            : `Eff ATK ${breakdown.nfaA.effStr} · Eff DEF ${breakdown.nfaA.effDef} · Raw ${breakdown.nfaA.rawDamage}`,
-          this.lang === 'zh'
-            ? `HP ${breakdown.nfaA.hp} · 伤害分 ${breakdown.nfaA.damageScore.toFixed(2)}${breakdown.nfaA.speedBoost ? ' · 速度加成 +10%' : ''}`
-            : `HP ${breakdown.nfaA.hp} · Score ${breakdown.nfaA.damageScore.toFixed(2)}${breakdown.nfaA.speedBoost ? ' · SPD +10%' : ''}`,
         ],
       });
       sections.push({
-        title: this.lang === 'zh' ? `应战方 B · NFA #${match.nfaB}` : `Side B · NFA #${match.nfaB}`,
+        title: this.lang === 'zh' ? `应战方 · NFA #${match.nfaB}` : `Challenger · NFA #${match.nfaB}`,
+        tone: toneB,
+        layout: 'half',
+        chips: [
+          this.lang === 'zh' ? `质押 ${this.formatClaw(stakePerSide)} Claworld` : `Stake ${this.formatClaw(stakePerSide)} Claworld`,
+          this.lang === 'zh' ? `策略 ${breakdown.nfaB.strategyName}` : `Strategy ${breakdown.nfaB.strategyName}`,
+          this.lang === 'zh' ? `攻倍 ${breakdown.nfaB.atkMulPct}%` : `ATK ${breakdown.nfaB.atkMulPct}%`,
+          this.lang === 'zh' ? `防倍 ${breakdown.nfaB.defMulPct}%` : `DEF ${breakdown.nfaB.defMulPct}%`,
+          breakdown.nfaB.speedBoost
+            ? (this.lang === 'zh' ? '先手 +10%' : 'Speed +10%')
+            : (this.lang === 'zh' ? '无先手加成' : 'No speed bonus'),
+        ],
         lines: [
           this.lang === 'zh'
-            ? `策略 ${breakdown.nfaB.strategyName} · 攻倍 ${breakdown.nfaB.atkMulPct}% · 防倍 ${breakdown.nfaB.defMulPct}%`
-            : `Strategy ${breakdown.nfaB.strategyName} · ATK ${breakdown.nfaB.atkMulPct}% · DEF ${breakdown.nfaB.defMulPct}%`,
+            ? `STR / DEF / SPD / VIT：${stateB.str} / ${stateB.def} / ${stateB.spd} / ${stateB.vit}`
+            : `STR / DEF / SPD / VIT: ${stateB.str} / ${stateB.def} / ${stateB.spd} / ${stateB.vit}`,
           this.lang === 'zh'
-            ? `STR ${stateB.str} · DEF ${stateB.def} · SPD ${stateB.spd} · VIT ${stateB.vit}`
-            : `STR ${stateB.str} · DEF ${stateB.def} · SPD ${stateB.spd} · VIT ${stateB.vit}`,
+            ? `有效攻 / 防：${breakdown.nfaB.effStr} / ${breakdown.nfaB.effDef}`
+            : `Effective ATK / DEF: ${breakdown.nfaB.effStr} / ${breakdown.nfaB.effDef}`,
+          this.lang === 'zh'
+            ? `原伤 / HP：${breakdown.nfaB.rawDamage} / ${breakdown.nfaB.hp}`
+            : `Raw damage / HP: ${breakdown.nfaB.rawDamage} / ${breakdown.nfaB.hp}`,
+          this.lang === 'zh'
+            ? `伤害分：${breakdown.nfaB.damageScore.toFixed(2)}`
+            : `Damage score: ${breakdown.nfaB.damageScore.toFixed(2)}`,
           breakdown.nfaB.biasText,
-          this.lang === 'zh'
-            ? `有效攻 ${breakdown.nfaB.effStr} · 有效防 ${breakdown.nfaB.effDef} · 原伤 ${breakdown.nfaB.rawDamage}`
-            : `Eff ATK ${breakdown.nfaB.effStr} · Eff DEF ${breakdown.nfaB.effDef} · Raw ${breakdown.nfaB.rawDamage}`,
-          this.lang === 'zh'
-            ? `HP ${breakdown.nfaB.hp} · 伤害分 ${breakdown.nfaB.damageScore.toFixed(2)}${breakdown.nfaB.speedBoost ? ' · 速度加成 +10%' : ''}`
-            : `HP ${breakdown.nfaB.hp} · Score ${breakdown.nfaB.damageScore.toFixed(2)}${breakdown.nfaB.speedBoost ? ' · SPD +10%' : ''}`,
         ],
       });
     }
 
     sections.push({
-      title: this.lang === 'zh' ? '结算公式说明' : 'Formula notes',
+      title: this.lang === 'zh' ? '结算公式' : 'Formula',
       tone: 'accent',
+      layout: 'full',
       lines: this.lang === 'zh'
         ? [
-            '有效攻击 = STR × 攻击倍率',
-            '有效防御 = DEF × 防御倍率',
-            '原始伤害 = max(1, 有效攻击 - 对手有效防御)',
-            '速度更高的一方，原始伤害再加成 10%',
-            '伤害分 = 原始伤害 ÷ 对手 HP，伤害分更高者获胜',
+            '有效攻 = STR × 攻击倍率',
+            '有效防 = DEF × 防御倍率',
+            '原伤 = max(1, 有效攻 - 对手有效防)',
+            '速度更快的一方额外获得 10% 原伤',
+            '伤害分 = 原伤 ÷ 对手 HP，分高者胜',
           ]
         : [
             'Effective ATK = STR × ATK multiplier',
@@ -1043,8 +1092,8 @@ export class PKScene extends Phaser.Scene {
     this.modal.showReport({
       title: this.lang === 'zh' ? `PK 战报 #${match.matchId}` : `PK Report #${match.matchId}`,
       subtitle: this.lang === 'zh'
-        ? `当前阶段 ${phaseName}。这里展示链上结果、双方对照和公式复盘。`
-        : `Current phase ${phaseName}. Review on-chain result, side-by-side stats, and formula replay.`,
+        ? `阶段 ${phaseName}。上方先看胜负与质押，再看左右对照与公式复盘。`
+        : `Current phase ${phaseName}. Review result, stakes, side-by-side stats, and formula replay.`,
       sections,
       actions,
       cancelLabel: this.lang === 'zh' ? '关闭' : 'Close',

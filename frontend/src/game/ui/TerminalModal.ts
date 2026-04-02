@@ -33,10 +33,20 @@ type FormConfig = {
   onSubmit: (values: Record<string, string>) => void;
 };
 
-type ReportSection = {
+export type ReportTone = 'normal' | 'accent' | 'success' | 'danger';
+
+export type ReportLink = {
+  label: string;
+  href: string;
+};
+
+export type ReportSection = {
   title: string;
-  lines: string[];
-  tone?: 'normal' | 'accent' | 'success' | 'danger';
+  lines?: string[];
+  chips?: string[];
+  links?: ReportLink[];
+  tone?: ReportTone;
+  layout?: 'full' | 'half';
 };
 
 type ReportConfig = {
@@ -205,26 +215,45 @@ export class TerminalModal {
 
     this.overlay = this.scene.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.78).setDepth(500);
 
-    const toneBorder = (tone?: ReportSection['tone']) => {
+    const toneBorder = (tone?: ReportTone) => {
       if (tone === 'success') return 'rgba(57,255,20,0.35)';
       if (tone === 'danger') return 'rgba(255,102,102,0.35)';
       if (tone === 'accent') return 'rgba(122,215,255,0.35)';
       return 'rgba(57,255,20,0.18)';
     };
 
-    const toneTitle = (tone?: ReportSection['tone']) => {
+    const toneTitle = (tone?: ReportTone) => {
       if (tone === 'success') return '#39ff14';
       if (tone === 'danger') return '#ff8080';
       if (tone === 'accent') return '#7ad7ff';
       return '#ffffff';
     };
 
+    const toneChip = (tone?: ReportTone) => {
+      if (tone === 'success') return 'rgba(57,255,20,0.12)';
+      if (tone === 'danger') return 'rgba(255,102,102,0.12)';
+      if (tone === 'accent') return 'rgba(122,215,255,0.12)';
+      return 'rgba(255,255,255,0.05)';
+    };
+
     const sectionsHtml = config.sections.map((section) => `
-      <section style="border:1px solid ${toneBorder(section.tone)}; background:rgba(9,14,9,0.88); padding:10px 12px;">
-        <div style="font-size:13px; color:${toneTitle(section.tone)}; margin-bottom:6px; letter-spacing:0.04em;">${escapeHtml(section.title)}</div>
-        <div style="display:flex; flex-direction:column; gap:4px;">
-          ${section.lines.map((line) => `<div style="font-size:11px; color:rgba(255,255,255,0.82); line-height:1.42; word-break:break-word;">${escapeHtml(line)}</div>`).join('')}
-        </div>
+      <section style="${section.layout === 'half' ? '' : 'grid-column:1 / -1;'} border:1px solid ${toneBorder(section.tone)}; background:linear-gradient(180deg, rgba(9,14,9,0.96), rgba(7,10,7,0.92)); padding:12px 13px; border-radius:10px; display:flex; flex-direction:column; gap:8px; min-width:0;">
+        <div style="font-size:12px; color:${toneTitle(section.tone)}; letter-spacing:0.08em; text-transform:uppercase;">${escapeHtml(section.title)}</div>
+        ${section.chips && section.chips.length > 0 ? `
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            ${section.chips.map((chip) => `<span style="display:inline-flex; align-items:center; min-height:24px; padding:4px 8px; border-radius:999px; border:1px solid ${toneBorder(section.tone)}; background:${toneChip(section.tone)}; color:${toneTitle(section.tone)}; font-size:11px; line-height:1.2;">${escapeHtml(chip)}</span>`).join('')}
+          </div>
+        ` : ''}
+        ${section.lines && section.lines.length > 0 ? `
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            ${section.lines.map((line) => `<div style="font-size:11px; color:rgba(255,255,255,0.82); line-height:1.42; word-break:break-word;">${escapeHtml(line)}</div>`).join('')}
+          </div>
+        ` : ''}
+        ${section.links && section.links.length > 0 ? `
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            ${section.links.map((link) => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer" style="display:inline-flex; align-items:center; gap:6px; color:#7ad7ff; font-size:11px; text-decoration:none; border:1px solid rgba(122,215,255,0.28); padding:6px 8px; border-radius:999px; background:rgba(122,215,255,0.08);">${escapeHtml(link.label)}</a>`).join('')}
+          </div>
+        ` : ''}
       </section>
     `).join('');
 
@@ -240,10 +269,10 @@ export class TerminalModal {
     }).join('');
 
     const html = `
-      <div style="width:min(760px, 92vw); max-height:min(84vh, 860px); background:rgba(4,7,4,0.98); border:1px solid rgba(57,255,20,0.35); box-shadow:0 0 40px rgba(57,255,20,0.08); color:#39ff14; font-family:monospace; padding:16px; display:flex; flex-direction:column; overflow:hidden;">
-        <div style="font-size:22px; line-height:1.15; margin-bottom:6px; color:#ffffff;">${escapeHtml(config.title)}</div>
+      <div style="width:min(980px, 94vw); max-height:min(86vh, 900px); background:rgba(4,7,4,0.98); border:1px solid rgba(57,255,20,0.35); box-shadow:0 0 40px rgba(57,255,20,0.08); color:#39ff14; font-family:monospace; padding:16px; display:flex; flex-direction:column; overflow:hidden; border-radius:14px;">
+        <div style="font-size:24px; line-height:1.1; margin-bottom:6px; color:#ffffff;">${escapeHtml(config.title)}</div>
         ${config.subtitle ? `<div style="font-size:12px; margin-bottom:12px; color:rgba(57,255,20,0.65); line-height:1.42; word-break:break-word;">${escapeHtml(config.subtitle)}</div>` : ''}
-        <div style="display:flex; flex-direction:column; gap:10px; overflow:auto; max-height:min(62vh, 620px); padding-right:4px;">${sectionsHtml}</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:10px; overflow:auto; max-height:min(64vh, 660px); padding-right:4px;">${sectionsHtml}</div>
         <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; flex-shrink:0;">
           <span style="font-size:12px; color:rgba(57,255,20,0.45); margin-right:auto;">[ESC 关闭]</span>
           ${actionsHtml}
