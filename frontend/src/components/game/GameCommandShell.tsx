@@ -606,23 +606,61 @@ export function GameCommandShell({
               <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
                 {marketListings.map((listing) => {
                   const isMine = !!address && listing.seller.toLowerCase() === address.toLowerCase();
-                  const valueText = listing.listingType === 2
-                    ? (zh ? `互换 #${listing.swapTargetId}` : `swap #${listing.swapTargetId}`)
+                  const rarityName = getRarityName(listing.rarity, zh);
+                  const sellerShort = shortenAddress(listing.seller);
+                  const amountLabel = listing.listingType === 2
+                    ? (zh ? '目标互换' : 'Swap target')
+                    : listing.listingType === 1 && listing.highestBid > 0n
+                      ? (zh ? '当前最高价' : 'Highest bid')
+                      : (zh ? '当前价格' : 'Current price');
+                  const amountValue = listing.listingType === 2
+                    ? `NFA #${listing.swapTargetId}`
                     : listing.listingType === 1 && listing.highestBid > 0n
                       ? `${Number(formatEther(listing.highestBid)).toFixed(3)} BNB`
                       : `${Number(formatEther(listing.price)).toFixed(3)} BNB`;
+                  const secondaryLabel = listing.listingType === 1
+                    ? (zh ? '起拍价' : 'Start price')
+                    : (zh ? '卖家' : 'Seller');
+                  const secondaryValue = listing.listingType === 1
+                    ? `${Number(formatEther(listing.price)).toFixed(3)} BNB`
+                    : sellerShort;
 
                   return (
-                    <div key={listing.listingId} className="rounded border border-crt-green/15 bg-black/65 px-3 py-2 text-xs">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-crt-bright">
-                          #{listing.listingId} · NFA #{listing.nfaId} · {listingTypeName(listing.listingType, zh)}
+                    <div key={listing.listingId} className="rounded border border-crt-green/15 bg-black/65 px-3 py-3 text-xs shadow-[0_0_18px_rgba(82,255,82,0.05)]">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-crt-bright">
+                            #{listing.listingId} · NFA #{listing.nfaId}
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-2 text-[10px] text-crt-green/55">
+                            <span className="rounded border border-crt-green/15 px-2 py-1">{listingTypeName(listing.listingType, zh)}</span>
+                            <span className="rounded border border-crt-green/15 px-2 py-1">{rarityName}</span>
+                            {isMine && <span className="rounded border border-crt-green/25 px-2 py-1 text-crt-bright">{zh ? '我的挂单' : 'Mine'}</span>}
+                          </div>
                         </div>
-                        <div className="text-crt-green/45">{listingStatusName(listing.status, zh)}</div>
+                        <div className="rounded border border-crt-green/15 px-2 py-1 text-[10px] text-crt-green/55">
+                          {listingStatusName(listing.status, zh)}
+                        </div>
                       </div>
-                      <div className="mt-1 text-[11px] text-crt-green/55">
-                        {valueText} · {zh ? '卖家' : 'Seller'} {shortenAddress(listing.seller)}
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <div className="rounded border border-crt-green/10 bg-black/45 px-2 py-2">
+                          <div className="text-[10px] text-crt-green/35">{amountLabel}</div>
+                          <div className="mt-1 text-[11px] text-crt-bright">{amountValue}</div>
+                        </div>
+                        <div className="rounded border border-crt-green/10 bg-black/45 px-2 py-2">
+                          <div className="text-[10px] text-crt-green/35">{secondaryLabel}</div>
+                          <div className="mt-1 text-[11px] text-crt-green/75">{secondaryValue}</div>
+                        </div>
                       </div>
+
+                      <div className="mt-2 text-[10px] text-crt-green/35">
+                        {zh ? '卖家地址' : 'Seller'} {sellerShort}
+                        {listing.listingType === 1 && listing.highestBidder !== '0x0000000000000000000000000000000000000000'
+                          ? ` · ${zh ? '最高出价者' : 'Top bidder'} ${shortenAddress(listing.highestBidder)}`
+                          : ''}
+                      </div>
+
                       <div className="mt-2 flex flex-wrap gap-2">
                         <button type="button" onClick={() => void runAction('listing', String(listing.listingId))} className={actionButtonClass}>
                           {zh ? '查看' : 'View'}
