@@ -43,6 +43,9 @@ import { MarketSkillABI } from '@/contracts/abis/MarketSkill';
 import { PKSkillABI } from '@/contracts/abis/PKSkill';
 import { TaskSkillABI } from '@/contracts/abis/TaskSkill';
 import { useI18n } from '@/lib/i18n';
+import { getLobsterName } from '@/lib/mockData';
+import { getRarityName } from '@/lib/rarity';
+import { getShelterName } from '@/lib/shelter';
 
 type GameStatus = 'loading' | 'ready' | 'connected' | 'booting' | 'no-nfa' | 'select-nfa' | 'loading-nfa' | 'playing' | 'error';
 type PendingTx = { hash: `0x${string}`; label: string } | null;
@@ -856,8 +859,11 @@ export default function GamePage() {
   }, []);
 
   const shellWalletOptions = walletOptions.map((item) => ({ id: item.id, name: item.name }));
+  const showStartupCard = status !== 'playing';
   const compactStatusHeadline = (() => {
     if (lang === 'zh') {
+      if (status === 'ready') return '请先连接钱包';
+      if (status === 'connected') return '钱包已连接，请点击同步读取龙虾';
       if (!isConnected) return '按 Tab 打开控制台，先连接钱包';
       if (status === 'booting') return `正在同步链上数据 ${bootProgress}%`;
       if (status === 'no-nfa') return '当前钱包没有 NFA，请先铸造';
@@ -865,9 +871,11 @@ export default function GamePage() {
       if (status === 'loading-nfa') return '正在载入龙虾状态';
       if (status === 'playing' && activeSummary) return `已进入 NFA #${activeSummary.tokenId}`;
       if (status === 'error') return '会话加载失败，请刷新后重试';
-      return '游戏场景已启动';
+      return '等待进入会话';
     }
 
+    if (status === 'ready') return 'Connect wallet first';
+    if (status === 'connected') return 'Wallet connected. Click sync to fetch NFAs';
     if (!isConnected) return 'Press Tab to connect your wallet';
     if (status === 'booting') return `Syncing on-chain data ${bootProgress}%`;
     if (status === 'no-nfa') return 'No NFA found for this wallet';
@@ -875,15 +883,15 @@ export default function GamePage() {
     if (status === 'loading-nfa') return 'Loading lobster state';
     if (status === 'playing' && activeSummary) return `Entered with NFA #${activeSummary.tokenId}`;
     if (status === 'error') return 'Session failed. Refresh and retry';
-    return 'Game scene ready';
+    return 'Waiting to enter session';
   })();
   const compactStatusDetail = activeSummary
     ? (lang === 'zh'
       ? `等级 ${activeSummary.level} · Claworld ${activeSummary.clwBalance.toFixed(0)}`
       : `Lv.${activeSummary.level} · Claworld ${activeSummary.clwBalance.toFixed(0)}`)
     : (lang === 'zh'
-      ? '原始游戏场景仍保留，控制台仅作为侧边抽屉。'
-      : 'The original game scene stays active. The console is only a side drawer.');
+      ? '同步后请直接在这里选择龙虾，进入避难所。'
+      : 'Sync first, then select an NFA here to enter the shelter.');
 
   if (!mounted) {
     return (
@@ -930,6 +938,153 @@ export default function GamePage() {
           </div>
         )}
       </div>
+
+      {showStartupCard && (
+        <div className="pointer-events-none absolute inset-0 z-[35] flex items-center justify-center p-4">
+          <div className="pointer-events-auto w-[min(92vw,36rem)] rounded border border-crt-green/25 bg-black/90 font-mono shadow-[0_0_36px_rgba(57,255,20,0.08)]">
+            <div className="border-b border-crt-green/15 px-4 py-4">
+              <p className="text-[10px] tracking-[0.28em] text-crt-green/40">
+                {lang === 'zh' ? '进入流程' : 'SESSION FLOW'}
+              </p>
+              <p className="mt-1 text-sm text-crt-bright">{compactStatusHeadline}</p>
+              <p className="mt-1 text-xs text-crt-green/55">{compactStatusDetail}</p>
+            </div>
+
+            <div className="space-y-4 px-4 py-4">
+              {(status === 'ready' || status === 'connected' || status === 'booting') && (
+                <>
+                  <div className="text-xs text-crt-green/65">
+                    {isConnected && address
+                      ? `${lang === 'zh' ? '已连接钱包' : 'Connected wallet'}: ${address.slice(0, 6)}...${address.slice(-4)}`
+                      : (lang === 'zh' ? '请先选择并连接钱包' : 'Select and connect a wallet first')}
+                  </div>
+
+                  {!isConnected && (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {walletOptions.map((connector) => (
+                        <button
+                          key={connector.id}
+                          onClick={() => connectWallet(connector.name)}
+                          className="soft-key py-3 text-xs sm:text-sm"
+                        >
+                          {connector.name === 'Injected'
+                            ? (lang === 'zh' ? '浏览器钱包' : 'Browser Wallet')
+                            : connector.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => void startGameBoot()}
+                    disabled={!isConnected || status === 'booting'}
+                    className="soft-key w-full py-3 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {status === 'booting'
+                      ? (lang === 'zh' ? '[ 同步中... ]' : '[ SYNCING... ]')
+                      : (lang === 'zh' ? '[ 同步并读取龙虾 ]' : '[ SYNC AND LOAD NFA ]')}
+                  </button>
+
+                  <div>
+                    <div className="h-2 w-full border border-crt-green/20 bg-black/70">
+                      <div
+                        className="h-full bg-crt-green/70 transition-all duration-100"
+                        style={{ width: `${bootProgress}%` }}
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-crt-green/45">
+                      {status === 'booting'
+                        ? (lang === 'zh' ? `正在同步链上数据 ${bootProgress}%` : `Syncing on-chain data ${bootProgress}%`)
+                        : (lang === 'zh' ? '同步完成后会出现龙虾选择' : 'NFA selection will appear after sync')}
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {status === 'no-nfa' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-crt-green">
+                    {lang === 'zh' ? '未检测到龙虾 NFA' : 'No lobster NFA detected'}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => router.push('/mint')}
+                      className="soft-key px-4 py-2 text-xs"
+                    >
+                      {lang === 'zh' ? '[ 去铸造 ]' : '[ MINT ]'}
+                    </button>
+                    <button
+                      onClick={() => setShowSidePanel(true)}
+                      className="soft-key px-4 py-2 text-xs"
+                    >
+                      {lang === 'zh' ? '[ 打开控制台 ]' : '[ OPEN CONSOLE ]'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {status === 'select-nfa' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-crt-green">
+                    {lang === 'zh' ? '选择你的龙虾进入避难所' : 'Choose your lobster to enter the shelter'}
+                  </p>
+                  <div className="grid max-h-[52vh] gap-2 overflow-y-auto pr-1">
+                    {nfaList.map((id) => {
+                      const summary = nfaSummaries[id];
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => void selectAndEnter(id)}
+                          className="rounded border border-crt-green/20 bg-black/70 px-3 py-3 text-left transition-colors hover:border-crt-green/60 hover:bg-crt-green/5"
+                        >
+                          <div className="text-sm text-crt-bright">NFA #{id}</div>
+                          <div className="mt-1 text-[11px] text-crt-green/45">{getLobsterName(id)}</div>
+                          {summary && (
+                            <div className="mt-2 text-xs text-crt-green/65">
+                              <div>Lv.{summary.level} · {getRarityName(summary.rarity, lang === 'zh')}</div>
+                              <div>{getShelterName(summary.shelter)} · Claworld {summary.clwBalance.toFixed(0)}</div>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {(status === 'loading' || status === 'loading-nfa') && (
+                <div className="space-y-2 text-sm text-crt-green animate-pulse">
+                  <p>
+                    {status === 'loading-nfa'
+                      ? (lang === 'zh' ? '正在读取龙虾状态并进入避难所...' : 'Loading lobster state and entering shelter...')
+                      : (lang === 'zh' ? '正在初始化引擎...' : 'Initializing engine...')}
+                  </p>
+                </div>
+              )}
+
+              {status === 'error' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-red-400">
+                    {lang === 'zh' ? '加载失败，请重试' : 'Load failed. Retry.'}
+                  </p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="soft-key px-4 py-2 text-xs"
+                  >
+                    {lang === 'zh' ? '[ 刷新重试 ]' : '[ REFRESH ]'}
+                  </button>
+                </div>
+              )}
+
+              <div className="border-t border-crt-green/15 pt-3 text-[11px] text-crt-green/45">
+                {lang === 'zh'
+                  ? '原始游戏场景已保留。你也可以按 Tab 打开侧边控制台操作。'
+                  : 'The original game scene stays active. You can also press Tab to use the side console.'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showSidePanel && (
         <div className="absolute inset-0 z-[40] bg-black/35" onClick={() => setShowSidePanel(false)}>

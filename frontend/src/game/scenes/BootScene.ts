@@ -47,7 +47,7 @@ export class BootScene extends Phaser.Scene {
       color: '#39ff14',
     }).setOrigin(0.5);
 
-    this.add.text(cx, cy - 45, 'TERMINAL ONLINE', {
+    this.add.text(cx, cy - 45, 'AWAITING LINK', {
       fontSize: '12px',
       fontFamily: 'monospace',
       color: '#39ff14',
@@ -61,7 +61,7 @@ export class BootScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // 底部提示
-    this.add.text(cx, cy + 80, '[ SHELTER LINK ESTABLISHED ]', {
+    this.add.text(cx, cy + 80, '[ PRESS TAB TO LINK NFA ]', {
       fontSize: '11px',
       fontFamily: 'monospace',
       color: '#39ff14',
@@ -78,7 +78,7 @@ export class BootScene extends Phaser.Scene {
     });
 
     // 初始化状态
-    this.statusText.setText('SYNC COMPLETE');
+    this.statusText.setText('AWAITING WALLET SYNC');
 
     // 缓存性格数据
     let cachedPersonality: { courage: number; wisdom: number; social: number; create: number; grit: number } | undefined;
@@ -93,7 +93,7 @@ export class BootScene extends Phaser.Scene {
       const { nfaId, shelter } = data as { nfaId: number; shelter: number };
       this.registry.set('nfaId', nfaId);
       this.registry.set('shelter', shelter);
-      this.statusText.setText(`NFA #${nfaId} LOADED — SHELTER-0${shelter}`);
+      this.statusText.setText(`NFA #${nfaId} LINKED - SHELTER-0${shelter}`);
       this.scene.start('ShelterScene', { nfaId, shelter, personality: cachedPersonality });
     });
 
