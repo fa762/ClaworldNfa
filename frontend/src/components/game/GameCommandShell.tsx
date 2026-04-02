@@ -207,6 +207,9 @@ export function GameCommandShell({
   const [listingId, setListingId] = useState('');
   const [portalId, setPortalId] = useState('');
   const [showNfaPicker, setShowNfaPicker] = useState(false);
+  const [marketListings, setMarketListings] = useState<MarketListing[]>([]);
+  const [listingScope, setListingScope] = useState<'all' | 'mine'>('all');
+  const [loadingListings, setLoadingListings] = useState(false);
   const nextIdRef = useRef(1);
   const initializedRef = useRef(false);
   const lastStatusRef = useRef<GameStatus | null>(null);
@@ -242,6 +245,36 @@ export function GameCommandShell({
     pushLog('warn', `${txLabel(pendingTx.label, zh)} ${pendingTx.hash.slice(0, 12)}...`);
   }, [pendingTx, pushLog, zh]);
 
+  const canCancelListing = useCallback((listing: MarketListing) => {
+    if (!address) return false;
+    if (listing.status !== 0) return false;
+    if (listing.seller.toLowerCase() !== address.toLowerCase()) return false;
+    if (listing.listingType === 1 && listing.highestBidder !== '0x0000000000000000000000000000000000000000') {
+      return false;
+    }
+    return true;
+  }, [address]);
+
+  const canSettleListing = useCallback((listing: MarketListing) => {
+    if (listing.status !== 0 || listing.listingType !== 1 || !listing.endTime) return false;
+    return Math.floor(Date.now() / 1000) >= listing.endTime;
+  }, []);
+
+  const refreshListingBrowser = useCallback(async (scope: 'all' | 'mine') => {
+    setListingScope(scope);
+    setLoadingListings(true);
+    try {
+      const listings = await loadMarketListings();
+      const filtered = scope === 'mine' && address
+        ? listings.filter((listing) => listing.seller.toLowerCase() === address.toLowerCase())
+        : listings;
+      setMarketListings(filtered);
+      return filtered;
+    } finally {
+      setLoadingListings(false);
+    }
+  }, [address]);
+
   useEffect(() => {
     const offScene = eventBus.on('game:scene', (payload: unknown) => {
       const nextScene = (payload as { scene?: string }).scene ?? null;
@@ -275,6 +308,7 @@ export function GameCommandShell({
       const result = payload as { status: 'pending' | 'confirmed' | 'failed'; error?: string; listingId?: number };
       if (result.status === 'confirmed') {
         pushLog('ok', zh ? `市场操作已确认${result.listingId ? ` #${result.listingId}` : ''}` : `Market action confirmed${result.listingId ? ` #${result.listingId}` : ''}`);
+        void refreshListingBrowser(listingScope);
       } else if (result.status === 'failed') {
         pushLog('error', result.error ?? (zh ? '市场操作失败' : 'Market action failed'));
       }
@@ -285,7 +319,7 @@ export function GameCommandShell({
       offPk();
       offMarket();
     };
-  }, [pushLog, status, zh]);
+  }, [listingScope, pushLog, refreshListingBrowser, status, zh]);
 
   useEffect(() => {
     if (!logRef.current) return;
@@ -297,6 +331,10 @@ export function GameCommandShell({
       setShowNfaPicker(true);
     }
   }, [nfaList.length]);
+
+  useEffect(() => {
+    void refreshListingBrowser(address ? 'mine' : 'all');
+  }, [address, refreshListingBrowser]);
 
   const runAction = useCallback(async (action: string, value?: string) => {
     if (action === 'sync') {
@@ -354,19 +392,19 @@ export function GameCommandShell({
     }
 
     if (action === 'listings') {
-      const listings = await loadMarketListings();
+      const listings = await refreshListingBrowser('all');
       if (!listings.length) return pushLog('warn', zh ? '当前没有有效挂单。' : 'No active listings.');
       eventBus.emit('game:command', { name: 'listings', args: [] });
-      listings.slice(0, 8).forEach((listing) => pushLog('system', formatListingLine(listing, zh)));
+      pushLog('ok', zh ? `已载入 ${listings.length} 条挂单。` : `Loaded ${listings.length} listings.`);
       return;
     }
 
     if (action === 'my-listings') {
       if (!address) return pushLog('error', zh ? '请先连接钱包。' : 'Connect wallet first.');
-      const listings = (await loadMarketListings()).filter((listing) => listing.seller.toLowerCase() === address.toLowerCase());
+      const listings = await refreshListingBrowser('mine');
       if (!listings.length) return pushLog('warn', zh ? '当前钱包没有挂单。' : 'This wallet has no active listings.');
       eventBus.emit('game:command', { name: 'my-listings', args: [] });
-      listings.forEach((listing) => pushLog('system', formatListingLine(listing, zh)));
+      pushLog('ok', zh ? `已载入你的 ${listings.length} 条挂单。` : `Loaded your ${listings.length} listings.`);
       return;
     }
 
@@ -401,6 +439,18 @@ export function GameCommandShell({
       return pushLog('warn', zh ? `已提交取消挂单 #${target} 请求。` : `Cancel request sent for listing #${target}.`);
     }
 
+    if (action === 'settle-listing') {
+      const target = Number(value ?? listingId);
+      if (!Number.isInteger(target) || target <= 0) return pushLog('error', zh ? '请输入有效的挂单 ID。' : 'Enter a valid listing id.');
+      const listing = await loadMarketListing(target);
+      if (!listing) return pushLog('error', zh ? '未找到该挂单。' : 'Listing not found.');
+      if (!canSettleListing(listing)) {
+        return pushLog('warn', zh ? '这条挂单当前还不能结算。' : 'This listing cannot be settled yet.');
+      }
+      eventBus.emit('market:settle', { listingId: target });
+      return pushLog('warn', zh ? `已提交结算挂单 #${target} 请求。` : `Settlement request sent for listing #${target}.`);
+    }
+
     if (action === 'portal') {
       if (!activeNfaId) return pushLog('error', zh ? '请先选择一只龙虾。' : 'Select an NFA first.');
       const shelter = Number(value ?? portalId);
@@ -430,6 +480,7 @@ export function GameCommandShell({
   }, [
     activeNfaId,
     address,
+    canSettleListing,
     isConnected,
     listingId,
     matchId,
@@ -444,6 +495,7 @@ export function GameCommandShell({
     onToggleLang,
     portalId,
     pushLog,
+    refreshListingBrowser,
     status,
     zh,
   ]);
@@ -510,7 +562,7 @@ export function GameCommandShell({
           </div>
         </div>
 
-        <div className="term-box" data-title={zh ? '检索' : 'SEARCH'}>
+        <div className="term-box" data-title={zh ? '检索与挂单' : 'SEARCH & LISTINGS'}>
           <div className="grid grid-cols-2 gap-2">
             <button type="button" onClick={() => void runAction('matches')} className={actionButtonClass}>{zh ? '全部对局' : 'All Matches'}</button>
             <button type="button" onClick={() => void runAction('my-matches')} className={actionButtonClass}>{zh ? '我的对局' : 'My Matches'}</button>
@@ -527,6 +579,75 @@ export function GameCommandShell({
             <button type="button" onClick={() => void runAction('cancel-listing')} className={`${actionButtonClass} shrink-0 border-red-400/25 text-red-300 hover:border-red-300/60 hover:bg-red-500/10 hover:text-red-200`}>
               {zh ? '取消挂单' : 'Cancel Listing'}
             </button>
+          </div>
+          <div className="mt-3 rounded border border-crt-green/15 bg-black/55 p-3">
+            <div className="mb-2 flex items-center justify-between gap-3 text-[11px]">
+              <span className="text-crt-green/45">
+                {loadingListings
+                  ? (zh ? '正在读取挂单列表...' : 'Loading listings...')
+                  : listingScope === 'mine'
+                    ? (zh ? `我的挂单 ${marketListings.length} 条` : `My listings ${marketListings.length}`)
+                    : (zh ? `全部挂单 ${marketListings.length} 条` : `All listings ${marketListings.length}`)}
+              </span>
+              <button type="button" onClick={() => void runAction(listingScope === 'mine' ? 'my-listings' : 'listings')} className="term-link text-[10px]">
+                {zh ? '刷新' : 'Refresh'}
+              </button>
+            </div>
+
+            {loadingListings ? (
+              <div className="text-xs text-crt-green/35">{zh ? '正在同步链上挂单...' : 'Syncing on-chain listings...'}</div>
+            ) : marketListings.length === 0 ? (
+              <div className="text-xs text-crt-green/35">
+                {listingScope === 'mine'
+                  ? (zh ? '当前钱包没有活跃挂单。' : 'This wallet has no active listings.')
+                  : (zh ? '当前没有活跃挂单。' : 'No active listings.')}
+              </div>
+            ) : (
+              <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                {marketListings.map((listing) => {
+                  const isMine = !!address && listing.seller.toLowerCase() === address.toLowerCase();
+                  const valueText = listing.listingType === 2
+                    ? (zh ? `互换 #${listing.swapTargetId}` : `swap #${listing.swapTargetId}`)
+                    : listing.listingType === 1 && listing.highestBid > 0n
+                      ? `${Number(formatEther(listing.highestBid)).toFixed(3)} BNB`
+                      : `${Number(formatEther(listing.price)).toFixed(3)} BNB`;
+
+                  return (
+                    <div key={listing.listingId} className="rounded border border-crt-green/15 bg-black/65 px-3 py-2 text-xs">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-crt-bright">
+                          #{listing.listingId} · NFA #{listing.nfaId} · {listingTypeName(listing.listingType, zh)}
+                        </div>
+                        <div className="text-crt-green/45">{listingStatusName(listing.status, zh)}</div>
+                      </div>
+                      <div className="mt-1 text-[11px] text-crt-green/55">
+                        {valueText} · {zh ? '卖家' : 'Seller'} {shortenAddress(listing.seller)}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button type="button" onClick={() => void runAction('listing', String(listing.listingId))} className={actionButtonClass}>
+                          {zh ? '查看' : 'View'}
+                        </button>
+                        {canCancelListing(listing) && (
+                          <button type="button" onClick={() => void runAction('cancel-listing', String(listing.listingId))} className={`${actionButtonClass} border-red-400/25 text-red-300 hover:border-red-300/60 hover:bg-red-500/10 hover:text-red-200`}>
+                            {zh ? '取消' : 'Cancel'}
+                          </button>
+                        )}
+                        {canSettleListing(listing) && (
+                          <button type="button" onClick={() => void runAction('settle-listing', String(listing.listingId))} className={`${actionButtonClass} border-amber-300/25 text-amber-200 hover:border-amber-200/60 hover:bg-amber-400/10`}>
+                            {zh ? '结算' : 'Settle'}
+                          </button>
+                        )}
+                        {isMine && !canCancelListing(listing) && listing.listingType === 1 && listing.highestBid > 0n && (
+                          <span className="px-2 py-2 text-[10px] text-crt-green/35">
+                            {zh ? '已有出价，等待结算' : 'Bid placed, wait to settle'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
