@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 
+import { eventBus } from '../EventBus';
 import { loadNFAState } from '../chain/wallet';
 import type { GameLang } from '../data/npc-dialogues';
 import { buildIdentityFromState } from '@/lib/lobsterIdentity';
@@ -47,6 +48,8 @@ export class ArchiveScene extends Phaser.Scene {
   }
 
   create() {
+    eventBus.emit('game:scene', { scene: 'archive', nfaId: this.nfaId, shelter: this.shelter });
+
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
 
@@ -120,6 +123,50 @@ export class ArchiveScene extends Phaser.Scene {
         fontSize: '12px', fontFamily: 'monospace', color: '#8ea694',
         wordWrap: { width: 160 },
       });
+
+      const dominantTraits = [
+        { label: this.lang === 'zh' ? '勇气' : 'Courage', value: state.courage, focus: this.lang === 'zh' ? '竞技场' : 'Arena' },
+        { label: this.lang === 'zh' ? '智慧' : 'Wisdom', value: state.wisdom, focus: this.lang === 'zh' ? '任务终端' : 'Task terminal' },
+        { label: this.lang === 'zh' ? '社交' : 'Social', value: state.social, focus: this.lang === 'zh' ? '交易墙' : 'Market wall' },
+        { label: this.lang === 'zh' ? '创造' : 'Create', value: state.create, focus: this.lang === 'zh' ? '任务终端' : 'Task terminal' },
+        { label: this.lang === 'zh' ? '毅力' : 'Grit', value: state.grit, focus: this.lang === 'zh' ? '竞技场' : 'Arena' },
+      ].sort((a, b) => b.value - a.value);
+
+      const recommendation = this.lang === 'zh'
+        ? `主导特征 ${dominantTraits[0].label} ${dominantTraits[0].value}。建议优先前往 ${dominantTraits[0].focus}。`
+        : `Dominant trait ${dominantTraits[0].label} ${dominantTraits[0].value}. Recommended next stop: ${dominantTraits[0].focus}.`;
+
+      this.add.text(W - 196, 352, recommendation, {
+        fontSize: '12px', fontFamily: 'monospace', color: '#b3c5b7',
+        wordWrap: { width: 160 },
+      });
+
+      const actions = [
+        { label: this.lang === 'zh' ? '[ 任务 ]' : '[ TASK ]', x: W - 196, y: H - 86, scene: 'TaskScene' },
+        { label: this.lang === 'zh' ? '[ 竞技场 ]' : '[ ARENA ]', x: W - 104, y: H - 86, scene: 'PKScene' },
+        { label: this.lang === 'zh' ? '[ 市场 ]' : '[ MARKET ]', x: W - 196, y: H - 52, scene: 'MarketScene' },
+        { label: this.lang === 'zh' ? '[ 避难所 ]' : '[ SHELTER ]', x: W - 104, y: H - 52, scene: 'ShelterScene' },
+      ];
+
+      actions.forEach((action) => {
+        this.add.text(action.x, action.y, action.label, {
+          fontSize: '11px', fontFamily: 'monospace', color: '#39ff14',
+          backgroundColor: '#091009', padding: { x: 8, y: 5 },
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+          if (action.scene === 'ShelterScene') {
+            this.goBack();
+            return;
+          }
+
+          this.scene.start(action.scene, {
+            nfaId: this.nfaId,
+            shelter: this.shelter,
+            personality: this.personality,
+            playerPosition: this.playerPosition,
+            lang: this.lang,
+          });
+        });
+      });
     })().catch((error) => {
       console.error('Failed to load dossier:', error);
       loading.setText(this.lang === 'zh' ? '读取档案失败' : 'Failed to load dossier');
@@ -131,6 +178,16 @@ export class ArchiveScene extends Phaser.Scene {
     }).setOrigin(0.5).setAlpha(0.6).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.goBack());
 
     this.input.keyboard?.on('keydown-ESC', () => this.goBack());
+
+    const offCommand = eventBus.on('game:command', (data: unknown) => {
+      const payload = data as { name?: string; args?: string[] };
+      if (!payload.name) return;
+      this.handleCliCommand(payload.name, payload.args ?? []);
+    });
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      offCommand();
+    });
   }
 
   private renderBar(x: number, y: number, label: string, value: number, color: number) {
@@ -152,5 +209,45 @@ export class ArchiveScene extends Phaser.Scene {
       playerPosition: this.playerPosition,
       lang: this.lang,
     });
+  }
+
+  private handleCliCommand(name: string, args: string[]) {
+    const sceneData = {
+      nfaId: this.nfaId,
+      shelter: this.shelter,
+      personality: this.personality,
+      playerPosition: this.playerPosition,
+      lang: this.lang,
+    };
+
+    switch (name) {
+      case 'task':
+        this.scene.start('TaskScene', sceneData);
+        break;
+      case 'pk':
+        this.scene.start('PKScene', sceneData);
+        break;
+      case 'market':
+        this.scene.start('MarketScene', sceneData);
+        break;
+      case 'archive':
+        this.scene.restart(sceneData);
+        break;
+      case 'shelter':
+        this.scene.start('ShelterScene', sceneData);
+        break;
+      case 'portal': {
+        const targetShelter = Number(args[0]);
+        if (Number.isInteger(targetShelter) && targetShelter >= 0 && targetShelter <= 7) {
+          this.scene.start('ShelterScene', { ...sceneData, shelter: targetShelter });
+        }
+        break;
+      }
+      case 'openclaw':
+        eventBus.emit('game:openclaw');
+        break;
+      default:
+        break;
+    }
   }
 }

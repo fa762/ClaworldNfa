@@ -324,6 +324,18 @@ export interface MarketListing {
   rarity: number;
 }
 
+type RawMarketListing = {
+  nfaId: bigint;
+  seller: string;
+  listingType: number;
+  price: bigint;
+  highestBid: bigint;
+  highestBidder: string;
+  endTime: bigint;
+  swapTargetId: bigint;
+  status: number;
+};
+
 function isEmptyListing(listing: {
   nfaId: bigint;
   seller: string;
@@ -344,6 +356,33 @@ function isEmptyListing(listing: {
     listing.swapTargetId === 0n &&
     listing.status === 0
   );
+}
+
+async function enrichMarketListing(
+  listingId: number,
+  listing: RawMarketListing,
+): Promise<MarketListing> {
+  let rarity = 0;
+  try {
+    const state = await loadNFAState(Number(listing.nfaId));
+    rarity = state.rarity;
+  } catch {
+    rarity = 0;
+  }
+
+  return {
+    listingId,
+    nfaId: Number(listing.nfaId),
+    seller: listing.seller,
+    listingType: listing.listingType,
+    price: listing.price,
+    highestBid: listing.highestBid,
+    highestBidder: listing.highestBidder,
+    endTime: Number(listing.endTime),
+    swapTargetId: Number(listing.swapTargetId),
+    status: listing.status,
+    rarity,
+  };
 }
 
 export async function loadMarketListings(): Promise<MarketListing[]> {
@@ -373,17 +412,7 @@ export async function loadMarketListings(): Promise<MarketListing[]> {
         break;
       }
 
-      const listing = result.result as {
-        nfaId: bigint;
-        seller: string;
-        listingType: number;
-        price: bigint;
-        highestBid: bigint;
-        highestBidder: string;
-        endTime: bigint;
-        swapTargetId: bigint;
-        status: number;
-      };
+      const listing = result.result as RawMarketListing;
 
       if (isEmptyListing(listing)) {
         reachedEnd = true;
@@ -408,17 +437,44 @@ export async function loadMarketListings(): Promise<MarketListing[]> {
   }
 
   const enriched = await Promise.all(activeListings.map(async (listing) => {
-    let rarity = 0;
-    try {
-      const state = await loadNFAState(listing.nfaId);
-      rarity = state.rarity;
-    } catch {
-      rarity = 0;
-    }
-    return { ...listing, rarity };
+    const enrichedListing = await enrichMarketListing(listing.listingId, {
+      nfaId: BigInt(listing.nfaId),
+      seller: listing.seller,
+      listingType: listing.listingType,
+      price: listing.price,
+      highestBid: listing.highestBid,
+      highestBidder: listing.highestBidder,
+      endTime: BigInt(listing.endTime),
+      swapTargetId: BigInt(listing.swapTargetId),
+      status: listing.status,
+    });
+    return enrichedListing;
   }));
 
   return enriched.sort((a, b) => b.listingId - a.listingId);
+}
+
+export async function loadMarketListing(listingId: number): Promise<MarketListing | null> {
+  if (!Number.isInteger(listingId) || listingId <= 0) {
+    return null;
+  }
+
+  try {
+    const listing = await publicClient.readContract({
+      address: CONTRACTS.marketSkill,
+      abi: MARKET_GET_LISTING_ABI,
+      functionName: 'getListing',
+      args: [BigInt(listingId)],
+    }) as RawMarketListing;
+
+    if (isEmptyListing(listing)) {
+      return null;
+    }
+
+    return await enrichMarketListing(listingId, listing);
+  } catch {
+    return null;
+  }
 }
 
 // ─── PK 读取 ───

@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 import { TerminalModal } from '../ui/TerminalModal';
-import type { NFASummary } from '../chain/wallet';
+import { loadMarketListing, type NFASummary } from '../chain/wallet';
 import type { GameLang } from '../data/npc-dialogues';
 import { buildLobsterIdentity } from '@/lib/lobsterIdentity';
 import { getShelterSceneHint, getShelterSpecialty } from '@/lib/shelter';
@@ -63,6 +63,9 @@ export class MarketScene extends Phaser.Scene {
   private walletSummaries: Record<number, NFASummary> = {};
   private modal!: TerminalModal;
   private lang: GameLang = 'zh';
+  private showOnlyMine = false;
+  private listingFilterButton?: Phaser.GameObjects.Text;
+  private listingTableY = 0;
 
   constructor() {
     super({ key: 'MarketScene' });
@@ -83,6 +86,8 @@ export class MarketScene extends Phaser.Scene {
   }
 
   create() {
+    eventBus.emit('game:scene', { scene: 'market', nfaId: this.nfaId, shelter: this.shelter });
+
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
 
@@ -132,10 +137,24 @@ export class MarketScene extends Phaser.Scene {
       }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', button.action);
     });
 
-    this.add.text(14, compactHeader ? 168 : 132, 'ID     NFA     RARITY      TYPE       PRICE/BID           SELLER        ACTION', {
+    const toolsY = compactHeader ? 176 : 140;
+    this.listingFilterButton = this.add.text(14, toolsY, '', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#39ff14',
+      backgroundColor: '#001a00', padding: { x: 8, y: 4 },
+    }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleListingFilter());
+
+    this.add.text(W - 14, toolsY, this.lang === 'zh' ? '[ 搜索 ID ]' : '[ FIND ID ]', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#7ad7ff',
+      backgroundColor: '#00131a', padding: { x: 8, y: 4 },
+    }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.promptFindListing());
+
+    const headerY = toolsY + 28;
+    this.add.text(14, headerY, 'ID     NFA     RARITY      TYPE       PRICE/BID           SELLER        ACTION', {
       fontSize: '11px', fontFamily: 'monospace', color: '#555555',
     });
-    this.add.rectangle(W / 2, compactHeader ? 180 : 144, W - 28, 1, 0x333333);
+    this.add.rectangle(W / 2, headerY + 12, W - 28, 1, 0x333333);
+    this.listingTableY = headerY + 22;
+    this.refreshListingFilterButton();
 
     const prevBtn = this.add.text(W / 2 - 60, H - 52, this.lang === 'zh' ? '[ ← 上一页 ]' : '[ ← PREV ]', {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
@@ -151,7 +170,7 @@ export class MarketScene extends Phaser.Scene {
       }
     });
     nextBtn.on('pointerdown', () => {
-      if ((this.page + 1) * this.PER_PAGE < this.listings.length) {
+      if ((this.page + 1) * this.PER_PAGE < this.getVisibleListings().length) {
         this.page++;
         this.renderListings();
       }
@@ -233,12 +252,19 @@ export class MarketScene extends Phaser.Scene {
       });
     });
 
+    const offCommand = eventBus.on('game:command', (data: unknown) => {
+      const payload = data as { name?: string; args?: string[] };
+      if (!payload.name) return;
+      this.handleCliCommand(payload.name, payload.args ?? []);
+    });
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offListings();
       offResult();
       offWallet();
       offWalletNfas();
       offSwitchNfa();
+      offCommand();
       this.modal.destroy();
     });
 
@@ -265,6 +291,131 @@ export class MarketScene extends Phaser.Scene {
   private requestListings() {
     this.showStatus(this.lang === 'zh' ? '读取链上市场中...' : 'Loading onchain market...', '#ffaa00');
     eventBus.emit('market:requestListings');
+  }
+
+  private getVisibleListings() {
+    if (!this.showOnlyMine || !this.walletAddress) {
+      return this.listings;
+    }
+
+    const owner = this.walletAddress.toLowerCase();
+    return this.listings.filter((item) => item.seller.toLowerCase() === owner);
+  }
+
+  private refreshListingFilterButton() {
+    this.listingFilterButton?.setText(
+      this.showOnlyMine
+        ? (this.lang === 'zh' ? '[ 我的挂单 ]' : '[ MY LISTINGS ]')
+        : (this.lang === 'zh' ? '[ 全部挂单 ]' : '[ ALL LISTINGS ]')
+    );
+  }
+
+  private toggleListingFilter() {
+    this.showOnlyMine = !this.showOnlyMine;
+    this.page = 0;
+    this.refreshListingFilterButton();
+    this.renderListings();
+    this.showStatus(
+      this.showOnlyMine
+        ? (this.lang === 'zh' ? '仅显示当前钱包的挂单' : 'Showing listings from the connected wallet')
+        : (this.lang === 'zh' ? '显示全部活跃挂单' : 'Showing all active listings'),
+      '#39ff14',
+    );
+  }
+
+  private promptFindListing() {
+    this.modal.showForm({
+      title: this.lang === 'zh' ? '搜索挂单' : 'Find listing',
+      subtitle: this.lang === 'zh' ? '输入 listing id，查看这条市场挂单的链上详情。' : 'Enter a listing id to inspect the on-chain market entry.',
+      fields: [
+        { name: 'listingId', label: this.lang === 'zh' ? '挂单 ID' : 'Listing ID', type: 'number', placeholder: '1' },
+      ],
+      submitLabel: this.lang === 'zh' ? '查看' : 'Inspect',
+      onSubmit: (values) => {
+        const listingId = Number(values.listingId);
+        if (!Number.isInteger(listingId) || listingId <= 0) {
+          this.showStatus(this.lang === 'zh' ? '请输入有效的挂单 ID' : 'Enter a valid listing id', '#ff4444');
+          return;
+        }
+        void this.inspectListing(listingId);
+      },
+    });
+  }
+
+  private async inspectListing(listingId: number) {
+    this.showStatus(this.lang === 'zh' ? `读取挂单 #${listingId} 中...` : `Loading listing #${listingId}...`, '#7ad7ff');
+
+    const listing = await loadMarketListing(listingId);
+    if (!listing) {
+      this.showStatus(this.lang === 'zh' ? `未找到挂单 #${listingId}` : `Listing #${listingId} not found`, '#ff4444');
+      return;
+    }
+
+    const item: Listing = {
+      listingId: listing.listingId,
+      nfaId: listing.nfaId,
+      seller: listing.seller,
+      listingType: listing.listingType,
+      price: (Number(listing.price) / 1e18).toFixed(4),
+      highestBid: (Number(listing.highestBid) / 1e18).toFixed(4),
+      highestBidder: listing.highestBidder,
+      endTime: listing.endTime,
+      swapTargetId: listing.swapTargetId,
+      rarity: listing.rarity,
+    };
+
+    const isMine = Boolean(this.walletAddress) && item.seller.toLowerCase() === this.walletAddress.toLowerCase();
+    const auctionEnded = item.listingType === 1 && item.endTime > 0 && Math.floor(Date.now() / 1000) >= item.endTime;
+    const typeName = this.getTypeNames()[item.listingType] ?? `TYPE ${item.listingType}`;
+    const valueText = item.listingType === 2
+      ? `NFA #${item.swapTargetId}`
+      : item.listingType === 1 && Number(item.highestBid) > 0
+        ? `${item.highestBid} BNB`
+        : `${item.price} BNB`;
+
+    const options: Array<{ label: string; description?: string; disabled?: boolean; onSelect: () => void }> = [
+      {
+        label: `NFA #${item.nfaId} | ${typeName}`,
+        description: this.lang === 'zh'
+          ? `状态 ${['ACTIVE', 'SOLD', 'CANCELLED'][listing.status] ?? listing.status} | ${valueText}`
+          : `Status ${['ACTIVE', 'SOLD', 'CANCELLED'][listing.status] ?? listing.status} | ${valueText}`,
+        disabled: true,
+        onSelect: () => {},
+      },
+      {
+        label: `${this.lang === 'zh' ? '卖家' : 'Seller'} ${item.seller.slice(0, 6)}...${item.seller.slice(-4)}`,
+        description: item.listingType === 1
+          ? `${this.lang === 'zh' ? '最高出价' : 'Highest bid'} ${item.highestBid} BNB`
+          : `${this.lang === 'zh' ? '稀有度' : 'Rarity'} ${item.rarity}`,
+        disabled: true,
+        onSelect: () => {},
+      },
+    ];
+
+    if (listing.status === 0) {
+      options.push({
+        label: isMine
+          ? (this.lang === 'zh' ? '[ 操作此挂单 ]' : '[ MANAGE LISTING ]')
+          : item.listingType === 0
+            ? (this.lang === 'zh' ? '[ 购买 ]' : '[ BUY ]')
+            : item.listingType === 1
+              ? (auctionEnded ? (this.lang === 'zh' ? '[ 结算 ]' : '[ SETTLE ]') : (this.lang === 'zh' ? '[ 出价 ]' : '[ BID ]'))
+              : (this.lang === 'zh' ? '[ 互换 ]' : '[ SWAP ]'),
+        description: this.lang === 'zh' ? '打开该挂单的可执行操作。' : 'Open the actions available for this listing.',
+        disabled: false,
+        onSelect: () => this.handleListingAction(item, isMine, auctionEnded),
+      });
+    }
+
+    this.modal.showMenu({
+      title: this.lang === 'zh' ? `挂单 #${listingId}` : `Listing #${listingId}`,
+      subtitle: this.lang === 'zh'
+        ? '你可以在这里查看挂单状态，并直接执行买入、出价、结算或取消。'
+        : 'Inspect the listing and directly buy, bid, settle, or cancel from here.',
+      options,
+      cancelLabel: this.lang === 'zh' ? '关闭' : 'Close',
+    });
+    this.showStatus(this.lang === 'zh' ? `已打开挂单 #${listingId}` : `Opened listing #${listingId}`, '#39ff14');
   }
 
   private promptList(mode: 'fixed' | 'auction' | 'swap') {
@@ -321,11 +472,11 @@ export class MarketScene extends Phaser.Scene {
 
     const W = this.cameras.main.width;
     const isCompact = W < 760;
-    const compactHeader = W < 760;
-    const pageItems = this.listings.slice(this.page * this.PER_PAGE, this.page * this.PER_PAGE + this.PER_PAGE);
+    const visibleListings = this.getVisibleListings();
+    const pageItems = visibleListings.slice(this.page * this.PER_PAGE, this.page * this.PER_PAGE + this.PER_PAGE);
 
     if (pageItems.length === 0) {
-      const empty = this.add.text(W / 2, 180, '没有活跃中的链上挂单', {
+      const empty = this.add.text(W / 2, this.listingTableY + 24, this.showOnlyMine ? (this.lang === 'zh' ? '当前钱包没有活跃挂单' : 'This wallet has no active listings') : '没有活跃中的链上挂单', {
         fontSize: '16px', fontFamily: 'monospace', color: '#666666',
       }).setOrigin(0.5);
       const pageInfo = this.add.text(W / 2, this.cameras.main.height - 96, '第 0 / 0 页', {
@@ -336,7 +487,7 @@ export class MarketScene extends Phaser.Scene {
     }
 
     pageItems.forEach((item, index) => {
-      const baseY = compactHeader ? 164 : 126;
+      const baseY = this.listingTableY;
       const y = isCompact ? baseY + index * 76 : baseY + index * 48;
       const rarityColor = RARITY_COLORS[item.rarity] || '#aaaaaa';
       const sellerShort = `${item.seller.slice(0, 6)}...${item.seller.slice(-4)}`;
@@ -406,9 +557,9 @@ export class MarketScene extends Phaser.Scene {
       this.rows.push(actionBtn);
     });
 
-    const totalPages = Math.ceil(this.listings.length / this.PER_PAGE);
+    const totalPages = Math.ceil(visibleListings.length / this.PER_PAGE);
     const pageInfo = this.add.text(W / 2, this.cameras.main.height - 96,
-      `第 ${this.page + 1} / ${totalPages} 页  (共 ${this.listings.length} 条)`, {
+      `第 ${this.page + 1} / ${totalPages} 页  (共 ${visibleListings.length} 条)`, {
         fontSize: '12px', fontFamily: 'monospace', color: '#555555',
       }).setOrigin(0.5);
     this.rows.push(pageInfo);
@@ -501,6 +652,65 @@ export class MarketScene extends Phaser.Scene {
 
   private goBack() {
     this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition, lang: this.lang });
+  }
+
+  private handleCliCommand(name: string, args: string[]) {
+    const sceneData = {
+      nfaId: this.nfaId,
+      shelter: this.shelter,
+      personality: this.personality,
+      playerPosition: this.playerPosition,
+      lang: this.lang,
+    };
+
+    switch (name) {
+      case 'task':
+        this.scene.start('TaskScene', sceneData);
+        break;
+      case 'pk':
+        this.scene.start('PKScene', sceneData);
+        break;
+      case 'market':
+        this.scene.restart(sceneData);
+        break;
+      case 'listings':
+        this.showOnlyMine = false;
+        this.page = 0;
+        this.refreshListingFilterButton();
+        this.requestListings();
+        break;
+      case 'my-listings':
+        this.showOnlyMine = true;
+        this.page = 0;
+        this.refreshListingFilterButton();
+        this.requestListings();
+        break;
+      case 'listing': {
+        const listingId = Number(args[0]);
+        if (Number.isInteger(listingId) && listingId > 0) {
+          void this.inspectListing(listingId);
+        }
+        break;
+      }
+      case 'archive':
+        this.scene.start('ArchiveScene', sceneData);
+        break;
+      case 'shelter':
+        this.scene.start('ShelterScene', sceneData);
+        break;
+      case 'portal': {
+        const targetShelter = Number(args[0]);
+        if (Number.isInteger(targetShelter) && targetShelter >= 0 && targetShelter <= 7) {
+          this.scene.start('ShelterScene', { ...sceneData, shelter: targetShelter });
+        }
+        break;
+      }
+      case 'openclaw':
+        eventBus.emit('game:openclaw');
+        break;
+      default:
+        break;
+    }
   }
 
   private getTypeNames() {

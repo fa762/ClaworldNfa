@@ -6,6 +6,7 @@ import { useAccount, useConnect, useWriteContract } from 'wagmi';
 import { decodeEventLog, formatEther, parseEther, type Address, type TransactionReceipt } from 'viem';
 import Link from 'next/link';
 
+import { GameCommandShell } from '@/components/game/GameCommandShell';
 import { eventBus } from '@/game/EventBus';
 import {
   loadMatch,
@@ -125,6 +126,29 @@ export default function GamePage() {
   );
 
   const activeSummary = activeNfaId ? nfaSummaries[activeNfaId] : undefined;
+
+  const connectWallet = useCallback((query?: string) => {
+    if (walletOptions.length === 0) {
+      return false;
+    }
+
+    const normalized = query?.toLowerCase().replace(/\s+/g, '');
+    const connector = normalized
+      ? walletOptions.find((item) => {
+          const id = item.id.toLowerCase().replace(/\s+/g, '');
+          const name = item.name.toLowerCase().replace(/\s+/g, '');
+          return id.includes(normalized) || name.includes(normalized);
+        })
+      : walletOptions[0];
+
+    if (!connector) {
+      return false;
+    }
+
+    setSelectedConnectorId(connector.id);
+    connect({ connector });
+    return true;
+  }, [connect, walletOptions]);
 
   useEffect(() => setMounted(true), []);
 
@@ -308,6 +332,7 @@ export default function GamePage() {
       const state = await loadNFAState(nfaId);
       emitNfaState(nfaId, state);
       eventBus.emit('nfa:loaded', { nfaId, shelter: state.shelter });
+      eventBus.emit('game:scene', { scene: 'shelter', nfaId, shelter: state.shelter });
       eventBus.emit('game:switchNfa', {
         nfaId,
         shelter: state.shelter,
@@ -849,6 +874,31 @@ export default function GamePage() {
       {/* 游戏内叠加层 */}
       {isPlaying && (
         <div className="absolute inset-0 z-[30] pointer-events-none">
+          <GameCommandShell
+            floating
+            lang={lang}
+            status={status}
+            isConnected={isConnected}
+            address={address}
+            bootProgress={bootProgress}
+            walletOptions={walletOptions.map((item) => ({ id: item.id, name: item.name }))}
+            selectedConnectorId={selectedConnectorId}
+            nfaList={nfaList}
+            nfaSummaries={nfaSummaries}
+            activeNfaId={activeNfaId}
+            activeSummary={activeSummary}
+            pendingTx={pendingTx}
+            onConnectWallet={connectWallet}
+            onSync={() => { void startGameBoot(); }}
+            onSelectNfa={(nfaId) => { void selectAndEnter(nfaId); }}
+            onToggleMenu={() => setShowSidePanel((current) => !current)}
+            onOpenHelp={() => setShowHelpPanel(true)}
+            onOpenHome={() => router.push('/')}
+            onOpenMint={() => router.push('/mint')}
+            onOpenNfa={() => router.push('/nfa')}
+            onOpenOpenClaw={() => setShowOpenClaw(true)}
+            onToggleLang={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+          />
 
           {/* TAB 提示 — 左下角，不遮状态栏 */}
           <button
@@ -986,6 +1036,34 @@ export default function GamePage() {
 
       {/* 大厅 UI — 在 CRT 终端页面内，selecting/booting 等状态显示 */}
       {!isPlaying && (
+        <>
+          <main className="h-full min-h-0 flex items-center justify-center px-2 sm:px-4 py-3 sm:py-8 overflow-y-auto">
+            <GameCommandShell
+              lang={lang}
+              status={status}
+              isConnected={isConnected}
+              address={address}
+              bootProgress={bootProgress}
+              walletOptions={walletOptions.map((item) => ({ id: item.id, name: item.name }))}
+              selectedConnectorId={selectedConnectorId}
+              nfaList={nfaList}
+              nfaSummaries={nfaSummaries}
+              activeNfaId={activeNfaId}
+              activeSummary={activeSummary}
+              pendingTx={pendingTx}
+              onConnectWallet={connectWallet}
+              onSync={() => { void startGameBoot(); }}
+              onSelectNfa={(nfaId) => { void selectAndEnter(nfaId); }}
+              onToggleMenu={() => setShowSidePanel((current) => !current)}
+              onOpenHelp={() => setShowHelpPanel(true)}
+              onOpenHome={() => router.push('/')}
+              onOpenMint={() => router.push('/mint')}
+              onOpenNfa={() => router.push('/nfa')}
+              onOpenOpenClaw={() => setShowOpenClaw(true)}
+              onToggleLang={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+            />
+          </main>
+          <div className="hidden">
         <main className="h-full min-h-0 flex flex-col items-center justify-center px-2 sm:px-4 py-3 sm:py-8 overflow-y-auto">
           <div className="w-full max-w-3xl border border-crt-green/30 bg-black/80 px-4 sm:px-8 py-5 sm:py-8 font-mono shadow-[0_0_40px_rgba(57,255,20,0.06)] overflow-y-auto max-h-full">
 
@@ -1152,6 +1230,8 @@ export default function GamePage() {
             </div>
           </div>
         </main>
+          </div>
+        </>
       )}
 
       {/* OpenClaw 弹窗 */}

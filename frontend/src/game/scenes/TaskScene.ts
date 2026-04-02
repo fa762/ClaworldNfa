@@ -66,6 +66,8 @@ export class TaskScene extends Phaser.Scene {
   }
 
   create() {
+    eventBus.emit('game:scene', { scene: 'task', nfaId: this.nfaId, shelter: this.shelter });
+
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
     const compact = W < 900;
@@ -185,9 +187,16 @@ export class TaskScene extends Phaser.Scene {
       });
     });
 
+    const offCommand = eventBus.on('game:command', (data: unknown) => {
+      const payload = data as { name?: string; args?: string[] };
+      if (!payload.name) return;
+      this.handleCliCommand(payload.name, payload.args ?? []);
+    });
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offFullStats();
       offSwitchNfa();
+      offCommand();
     });
   }
 
@@ -290,6 +299,46 @@ export class TaskScene extends Phaser.Scene {
 
   private goBack() {
     this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition, lang: this.lang });
+  }
+
+  private handleCliCommand(name: string, args: string[]) {
+    const sceneData = {
+      nfaId: this.nfaId,
+      shelter: this.shelter,
+      personality: this.personality,
+      playerPosition: this.playerPosition,
+      lang: this.lang,
+    };
+
+    switch (name) {
+      case 'task':
+        this.scene.restart(sceneData);
+        break;
+      case 'pk':
+        this.scene.start('PKScene', sceneData);
+        break;
+      case 'market':
+        this.scene.start('MarketScene', sceneData);
+        break;
+      case 'archive':
+        this.scene.start('ArchiveScene', sceneData);
+        break;
+      case 'shelter':
+        this.scene.start('ShelterScene', sceneData);
+        break;
+      case 'portal': {
+        const targetShelter = Number(args[0]);
+        if (Number.isInteger(targetShelter) && targetShelter >= 0 && targetShelter <= 7) {
+          this.scene.start('ShelterScene', { ...sceneData, shelter: targetShelter });
+        }
+        break;
+      }
+      case 'openclaw':
+        eventBus.emit('game:openclaw');
+        break;
+      default:
+        break;
+    }
   }
 
   private getTypeNames() {

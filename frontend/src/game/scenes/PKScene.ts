@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 import { loadPKSalt } from '../chain/contracts';
-import { loadNFAState } from '../chain/wallet';
+import { loadMatch, loadNFAState } from '../chain/wallet';
 import { TerminalModal } from '../ui/TerminalModal';
 import type { GameLang } from '../data/npc-dialogues';
 import { buildIdentityFromState, buildLobsterIdentity } from '@/lib/lobsterIdentity';
@@ -17,6 +17,7 @@ const STRATEGIES_EN = [
   { name: 'Balance', desc: 'ATK 100% / DEF 100%', color: '#ffaa00' },
   { name: 'Guard', desc: 'ATK 50% / DEF 150%', color: '#4488ff' },
 ];
+const PK_PHASE_NAMES = ['OPEN', 'JOINED', 'COMMITTED', 'REVEALED', 'SETTLED', 'CANCELLED'];
 
 interface Personality {
   courage: number;
@@ -64,6 +65,9 @@ export class PKScene extends Phaser.Scene {
   private entryAction?: string;
   private modal!: TerminalModal;
   private lang: GameLang = 'zh';
+  private showOnlyMine = false;
+  private mineFilterButton?: Phaser.GameObjects.Text;
+  private matchTableY = 0;
 
   constructor() {
     super({ key: 'PKScene' });
@@ -83,6 +87,8 @@ export class PKScene extends Phaser.Scene {
   }
 
   create() {
+    eventBus.emit('game:scene', { scene: 'pk', nfaId: this.nfaId, shelter: this.shelter });
+
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
 
@@ -133,10 +139,24 @@ export class PKScene extends Phaser.Scene {
       }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', button.action);
     });
 
-    this.add.text(18, compactHeader ? 176 : 142, 'ID     A        B        STAKE        PHASE           ACTION', {
+    const toolsY = compactHeader ? 182 : 144;
+    this.mineFilterButton = this.add.text(18, toolsY, '', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#39ff14',
+      backgroundColor: '#001a00', padding: { x: 8, y: 4 },
+    }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleMineFilter());
+
+    this.add.text(W - 18, toolsY, this.lang === 'zh' ? '[ 搜索 ID ]' : '[ FIND ID ]', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#7ad7ff',
+      backgroundColor: '#00131a', padding: { x: 8, y: 4 },
+    }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.promptFindMatch());
+
+    const headerY = toolsY + 28;
+    this.add.text(18, headerY, 'ID     A        B        STAKE        PHASE           ACTION', {
       fontSize: '11px', fontFamily: 'monospace', color: '#555555',
     });
-    this.add.rectangle(W / 2, compactHeader ? 188 : 154, W - 32, 1, 0x333333);
+    this.add.rectangle(W / 2, headerY + 12, W - 32, 1, 0x333333);
+    this.matchTableY = headerY + 24;
+    this.refreshMineFilterButton();
 
     this.statusText = this.add.text(W / 2, H - 56, this.lang === 'zh' ? '读取链上擂台中...' : 'Loading arena matches...', {
       fontSize: '14px', fontFamily: 'monospace', color: '#ffaa00', align: 'center',
@@ -195,6 +215,7 @@ export class PKScene extends Phaser.Scene {
         } else {
           this.showStatus(this.lang === 'zh' ? `对战 #${result.matchId} 已结算` : `Match #${result.matchId} settled`, '#39ff14');
         }
+        this.showSettlementReport(result);
       } else if (result.action === 'cancel') {
         this.showStatus(this.lang === 'zh' ? `对战 #${result.matchId} 已取消` : `Match #${result.matchId} cancelled`, '#39ff14');
       }
@@ -219,11 +240,18 @@ export class PKScene extends Phaser.Scene {
       });
     });
 
+    const offCommand = eventBus.on('game:command', (data: unknown) => {
+      const payload = data as { name?: string; args?: string[] };
+      if (!payload.name) return;
+      this.handleCliCommand(payload.name, payload.args ?? []);
+    });
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offMatches();
       offResult();
       offFullStats();
       offSwitchNfa();
+      offCommand();
       this.modal.destroy();
     });
 
@@ -237,6 +265,132 @@ export class PKScene extends Phaser.Scene {
   private requestMatches() {
       this.showStatus(this.lang === 'zh' ? '读取链上擂台中...' : 'Loading arena matches...', '#ffaa00');
       eventBus.emit('pk:search', { nfaId: this.nfaId });
+  }
+
+  private refreshMineFilterButton() {
+    this.mineFilterButton?.setText(
+      this.showOnlyMine
+        ? (this.lang === 'zh' ? '[ 我的对局 ]' : '[ MY MATCHES ]')
+        : (this.lang === 'zh' ? '[ 全部对局 ]' : '[ ALL MATCHES ]')
+    );
+  }
+
+  private toggleMineFilter() {
+    this.showOnlyMine = !this.showOnlyMine;
+    this.refreshMineFilterButton();
+    this.renderMatches();
+    this.showStatus(
+      this.showOnlyMine
+        ? (this.lang === 'zh' ? `仅显示 NFA #${this.nfaId} 的对局` : `Showing matches for NFA #${this.nfaId} only`)
+        : (this.lang === 'zh' ? '显示全部活跃对局' : 'Showing all active matches'),
+      '#39ff14',
+    );
+  }
+
+  private promptFindMatch() {
+    this.modal.showForm({
+      title: this.lang === 'zh' ? '搜索对局' : 'Find match',
+      subtitle: this.lang === 'zh' ? '输入 match id，查看该场 PK 的实时链上状态。' : 'Enter a match id to inspect its live on-chain state.',
+      fields: [
+        { name: 'matchId', label: this.lang === 'zh' ? '对局 ID' : 'Match ID', type: 'number', placeholder: '1' },
+      ],
+      submitLabel: this.lang === 'zh' ? '查看' : 'Inspect',
+      onSubmit: (values) => {
+        const matchId = Number(values.matchId);
+        if (!Number.isInteger(matchId) || matchId <= 0) {
+          this.showStatus(this.lang === 'zh' ? '请输入有效的对局 ID' : 'Enter a valid match id', '#ff4444');
+          return;
+        }
+        void this.inspectMatch(matchId);
+      },
+    });
+  }
+
+  private async inspectMatch(matchId: number) {
+    this.showStatus(this.lang === 'zh' ? `读取对局 #${matchId} 中...` : `Loading match #${matchId}...`, '#7ad7ff');
+
+    const match = await loadMatch(matchId);
+    if (!match) {
+      this.showStatus(this.lang === 'zh' ? `未找到对局 #${matchId}` : `Match #${matchId} not found`, '#ff4444');
+      return;
+    }
+
+    const isMine = match.nfaA === this.nfaId || match.nfaB === this.nfaId;
+    const opponentId = match.nfaA === this.nfaId ? match.nfaB : match.nfaA;
+    const phaseName = PK_PHASE_NAMES[match.phase] ?? `PHASE ${match.phase}`;
+    const options = [
+      {
+        label: `NFA #${match.nfaA} vs NFA #${match.nfaB || '-'}`,
+        description: this.lang === 'zh'
+          ? `阶段 ${phaseName} | 质押 ${Number(match.stake) / 1e18} Claworld`
+          : `Phase ${phaseName} | Stake ${Number(match.stake) / 1e18} Claworld`,
+        disabled: true,
+        onSelect: () => {},
+      },
+      {
+        label: `Reveal A ${match.revealedA ? 'YES' : 'NO'} | Reveal B ${match.revealedB ? 'YES' : 'NO'}`,
+        description: isMine
+          ? (this.lang === 'zh' ? '该对局包含当前 NFA。' : 'This match includes the active NFA.')
+          : (this.lang === 'zh' ? '该对局不属于当前 NFA。' : 'This match does not belong to the active NFA.'),
+        disabled: true,
+        onSelect: () => {},
+      },
+    ];
+
+    if (opponentId > 0) {
+      options.push({
+        label: this.lang === 'zh' ? `[ 查看 NFA #${opponentId} ]` : `[ VIEW NFA #${opponentId} ]`,
+        description: this.lang === 'zh' ? '读取对手属性与人格倾向。' : 'Inspect opponent stats and personality bias.',
+        disabled: false,
+        onSelect: () => { void this.showOpponentStats(opponentId); },
+      });
+    }
+
+    if (!isMine && match.phase === 0) {
+      options.push({
+        label: this.lang === 'zh' ? '[ 加入此对局 ]' : '[ JOIN MATCH ]',
+        description: this.lang === 'zh' ? '选择你的策略后加入当前开放对局。' : 'Choose your strategy and join this open match.',
+        disabled: false,
+        onSelect: () => this.showStrategyPicker('join', { matchId: match.matchId }),
+      });
+    }
+
+    if (isMine && match.phase === 2 && loadPKSalt(match.matchId)) {
+      options.push({
+        label: this.lang === 'zh' ? '[ 揭示策略 ]' : '[ REVEAL ]',
+        description: this.lang === 'zh' ? '当前 NFA 已提交 commit，可揭示策略。' : 'The active NFA already committed and can now reveal.',
+        disabled: false,
+        onSelect: () => eventBus.emit('pk:reveal', { matchId: match.matchId }),
+      });
+    }
+
+    if (match.phase === 3) {
+      options.push({
+        label: this.lang === 'zh' ? '[ 结算此局 ]' : '[ SETTLE ]',
+        description: this.lang === 'zh' ? '双方均已揭示，执行链上结算。' : 'Both sides revealed. Execute on-chain settlement.',
+        disabled: false,
+        onSelect: () => eventBus.emit('pk:settle', { matchId: match.matchId }),
+      });
+    }
+
+    if (isMine && match.phase <= 2) {
+      options.push({
+        label: this.lang === 'zh' ? '[ 取消此局 ]' : '[ CANCEL ]',
+        description: this.lang === 'zh' ? '取消当前可撤销的对局。' : 'Cancel this match while it is still cancellable.',
+        disabled: false,
+        onSelect: () => eventBus.emit('pk:cancel', { matchId: match.matchId }),
+      });
+    }
+
+    this.modal.showMenu({
+      title: this.lang === 'zh' ? `对局 #${match.matchId}` : `Match #${match.matchId}`,
+      subtitle: this.lang === 'zh'
+        ? `当前阶段 ${phaseName}。你可以直接在这里查看、加入或结算。`
+        : `Current phase ${phaseName}. Inspect, join, or settle from here.`,
+      options,
+      cancelLabel: this.lang === 'zh' ? '关闭' : 'Close',
+    });
+    this.showStatus(this.lang === 'zh' ? `已打开对局 #${match.matchId}` : `Opened match #${match.matchId}`, '#39ff14');
   }
 
   private promptCreate() {
@@ -345,9 +499,11 @@ export class PKScene extends Phaser.Scene {
 
     const W = this.cameras.main.width;
     const isCompact = W < 720;
-    const compactHeader = W < 720;
+    const visibleMatches = this.showOnlyMine
+      ? this.matches.filter((match) => match.nfaA === this.nfaId || match.nfaB === this.nfaId)
+      : this.matches;
 
-    if (this.matches.length === 0) {
+    if (visibleMatches.length === 0) {
       const empty = this.add.text(W / 2, 200, this.lang === 'zh' ? '没有活跃中的链上对战' : 'No active onchain matches', {
         fontSize: '16px', fontFamily: 'monospace', color: '#666666',
       }).setOrigin(0.5);
@@ -355,8 +511,8 @@ export class PKScene extends Phaser.Scene {
       return;
     }
 
-    this.matches.slice(0, 6).forEach((match, index) => {
-      const baseY = compactHeader ? 174 : 140;
+    visibleMatches.slice(0, 6).forEach((match, index) => {
+      const baseY = this.matchTableY;
       const y = isCompact ? baseY + index * 72 : baseY + index * 50;
       const rowBg = this.add.rectangle(W / 2, y + (isCompact ? 18 : 10), W - 36, isCompact ? 64 : 40, 0x111122, 0.5).setStrokeStyle(1, 0x222233);
       const rowText = this.add.text(
@@ -406,6 +562,39 @@ export class PKScene extends Phaser.Scene {
     this.statusText.setText(text);
   }
 
+  private showSettlementReport(result: {
+    matchId?: number;
+    winnerNfaId?: number;
+    loserNfaId?: number;
+    reward?: string;
+  }) {
+    const title = result.winnerNfaId === this.nfaId
+      ? (this.lang === 'zh' ? 'PK 结算完成: 胜利' : 'PK Settled: Victory')
+      : result.loserNfaId === this.nfaId
+        ? (this.lang === 'zh' ? 'PK 结算完成: 失败' : 'PK Settled: Defeat')
+        : (this.lang === 'zh' ? 'PK 结算完成' : 'PK Settled');
+
+    this.modal.showMenu({
+      title,
+      subtitle: this.lang === 'zh'
+        ? `对局 #${result.matchId ?? '-'} 已链上结算。`
+        : `Match #${result.matchId ?? '-'} has been settled on-chain.`,
+      options: [
+        {
+          label: this.lang === 'zh'
+            ? `胜者 NFA #${result.winnerNfaId ?? '-'} | 败者 NFA #${result.loserNfaId ?? '-'}`
+            : `Winner NFA #${result.winnerNfaId ?? '-'} | Loser NFA #${result.loserNfaId ?? '-'}`,
+          description: this.lang === 'zh'
+            ? `奖励 ${result.reward ?? '?'} Claworld`
+            : `Reward ${result.reward ?? '?'} Claworld`,
+          disabled: true,
+          onSelect: () => {},
+        },
+      ],
+      cancelLabel: this.lang === 'zh' ? '关闭' : 'Close',
+    });
+  }
+
   private async showOpponentStats(nfaId: number) {
     try {
       this.showStatus(this.lang === 'zh' ? '读取对手属性中...' : 'Loading opponent stats...', '#7ad7ff');
@@ -439,6 +628,63 @@ export class PKScene extends Phaser.Scene {
 
   private goBack() {
     this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition, lang: this.lang });
+  }
+
+  private handleCliCommand(name: string, args: string[]) {
+    const sceneData = {
+      nfaId: this.nfaId,
+      shelter: this.shelter,
+      personality: this.personality,
+      playerPosition: this.playerPosition,
+      lang: this.lang,
+    };
+
+    switch (name) {
+      case 'task':
+        this.scene.start('TaskScene', sceneData);
+        break;
+      case 'pk':
+        this.scene.restart(sceneData);
+        break;
+      case 'matches':
+        this.showOnlyMine = false;
+        this.refreshMineFilterButton();
+        this.requestMatches();
+        break;
+      case 'my-matches':
+        this.showOnlyMine = true;
+        this.refreshMineFilterButton();
+        this.requestMatches();
+        break;
+      case 'match': {
+        const matchId = Number(args[0]);
+        if (Number.isInteger(matchId) && matchId > 0) {
+          void this.inspectMatch(matchId);
+        }
+        break;
+      }
+      case 'market':
+        this.scene.start('MarketScene', sceneData);
+        break;
+      case 'archive':
+        this.scene.start('ArchiveScene', sceneData);
+        break;
+      case 'shelter':
+        this.scene.start('ShelterScene', sceneData);
+        break;
+      case 'portal': {
+        const targetShelter = Number(args[0]);
+        if (Number.isInteger(targetShelter) && targetShelter >= 0 && targetShelter <= 7) {
+          this.scene.start('ShelterScene', { ...sceneData, shelter: targetShelter });
+        }
+        break;
+      }
+      case 'openclaw':
+        eventBus.emit('game:openclaw');
+        break;
+      default:
+        break;
+    }
   }
 
   private buildCompactMatchText(match: MatchItem) {

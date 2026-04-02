@@ -54,7 +54,6 @@ export class ShelterScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   private interactKey!: Phaser.Input.Keyboard.Key;
-  private archiveKey!: Phaser.Input.Keyboard.Key;
   private npcs: Phaser.Physics.Arcade.Sprite[] = [];
   private npcDefs: NpcDef[] = [];
   private nearestNpc: Phaser.Physics.Arcade.Sprite | null = null;
@@ -92,6 +91,8 @@ export class ShelterScene extends Phaser.Scene {
   }
 
   create() {
+    eventBus.emit('game:scene', { scene: 'shelter', nfaId: this.nfaId, shelter: this.shelter });
+
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
     const floorTexture = this.textures.exists('tile-floor-art') ? 'tile-floor-art' : 'tile-floor';
@@ -218,7 +219,6 @@ export class ShelterScene extends Phaser.Scene {
       D: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-    this.archiveKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.R);
 
     // ── 交互提示 ──
     this.promptText = this.add.text(W / 2, H - 56, '', {
@@ -231,7 +231,7 @@ export class ShelterScene extends Phaser.Scene {
       wordWrap: { width: W - 40 },
     }).setOrigin(0.5).setDepth(100).setAlpha(0.38);
 
-    this.add.text(W - 112, H - 48, this.lang === 'zh' ? '[ R 档案 ]' : '[ R DOSSIER ]', {
+    this.add.text(W - 112, H - 48, this.lang === 'zh' ? '[ 档案 ]' : '[ DOSSIER ]', {
       fontSize: '11px', fontFamily: 'monospace', color: '#7adf8b',
     }).setOrigin(0.5).setDepth(100).setAlpha(0.5);
 
@@ -240,6 +240,11 @@ export class ShelterScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(100).setAlpha(0.7).setInteractive({ useHandCursor: true }).on('pointerdown', () => {
       this.scene.start('ArchiveScene', this.buildSceneData());
     });
+
+    this.add.rectangle(W - 112, H - 48, 136, 20, 0x0a0a0a, 0).setOrigin(0.5).setDepth(100);
+    this.add.text(W - 112, H - 48, this.lang === 'zh' ? '[ 妗ｆ ]' : '[ DOSSIER ]', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#7adf8b',
+    }).setOrigin(0.5).setDepth(101).setAlpha(0);
 
     // ── HUD ──
     this.hudText = this.add.text(8, H - 22, this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`, {
@@ -282,6 +287,12 @@ export class ShelterScene extends Phaser.Scene {
       });
     });
 
+    const offCommand = eventBus.on('game:command', (data: unknown) => {
+      const payload = data as { name?: string; args?: string[] };
+      if (!payload.name) return;
+      this.handleCliCommand(payload.name, payload.args ?? []);
+    });
+
     this.registry.set('nfaId', this.nfaId);
     this.registry.set('shelter', this.shelter);
     this.registry.set('personality', this.personality);
@@ -291,6 +302,7 @@ export class ShelterScene extends Phaser.Scene {
       offStats();
       offFullStats();
       offSwitchNfa();
+      offCommand();
       this.dialogueBox.destroy();
       this.statusHUD.destroy();
       this.echoes.forEach((echo) => echo.destroy());
@@ -367,11 +379,6 @@ export class ShelterScene extends Phaser.Scene {
         && now - this.lastInteractTime > this.INTERACT_COOLDOWN) {
       const def = this.nearestNpc.getData('def') as NpcDef;
       this.handleInteract(def);
-    }
-
-    if (Phaser.Input.Keyboard.JustDown(this.archiveKey)) {
-      this.scene.start('ArchiveScene', this.buildSceneData());
-      return;
     }
 
     this.registry.set('playerPosition', { x: this.player.x, y: this.player.y });
@@ -526,6 +533,40 @@ export class ShelterScene extends Phaser.Scene {
       playerPosition: { x: this.player.x, y: this.player.y },
       lang: this.lang,
     };
+  }
+
+  private handleCliCommand(name: string, args: string[]) {
+    const sceneData = this.buildSceneData();
+
+    switch (name) {
+      case 'task':
+        this.scene.start('TaskScene', sceneData);
+        break;
+      case 'pk':
+        this.scene.start('PKScene', sceneData);
+        break;
+      case 'market':
+        this.scene.start('MarketScene', sceneData);
+        break;
+      case 'archive':
+        this.scene.start('ArchiveScene', sceneData);
+        break;
+      case 'shelter':
+        this.scene.restart(sceneData);
+        break;
+      case 'portal': {
+        const targetShelter = Number(args[0]);
+        if (Number.isInteger(targetShelter) && targetShelter >= 0 && targetShelter <= 7) {
+          this.scene.start('ShelterScene', { ...sceneData, shelter: targetShelter });
+        }
+        break;
+      }
+      case 'openclaw':
+        eventBus.emit('game:openclaw');
+        break;
+      default:
+        break;
+    }
   }
 
   private applyNpcHitbox(npc: Phaser.Physics.Arcade.Sprite, key: string) {
