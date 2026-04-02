@@ -782,6 +782,8 @@ export class PKScene extends Phaser.Scene {
     const isMine = this.isMyMatch(match);
     const phaseName = this.phaseName(match.phase);
     const opponentId = match.nfaA === this.nfaId ? match.nfaB : match.nfaA;
+    const computedBurned = Number(match.stake) / 1e18 * 0.2;
+    const computedReward = Number(match.stake) / 1e18 * 1.8;
     const sections: Array<{ title: string; lines: string[]; tone?: 'normal' | 'accent' | 'success' | 'danger' }> = [
       {
         title: this.lang === 'zh' ? '对局概览' : 'Overview',
@@ -832,12 +834,49 @@ export class PKScene extends Phaser.Scene {
     if (stateA && stateB && match.nfaB > 0) {
       const breakdown = this.buildCombatBreakdown(match, stateA, stateB);
       const predictedWinner = breakdown.winner === 'A' ? match.nfaA : match.nfaB;
+      const fallbackWinner = predictedWinner;
+      const fallbackTone = fallbackWinner === this.nfaId ? 'success' : isMine ? 'danger' : 'accent';
+
+      if (!resolution && match.phase === 4) {
+        sections.push({
+          title: this.lang === 'zh' ? '链上结算结果' : 'On-chain settlement',
+          tone: fallbackTone,
+          lines: [
+            this.lang === 'zh'
+              ? `合约状态显示本场已结算，复盘胜者 NFA #${fallbackWinner}`
+              : `Contract state shows this match is settled. Replay winner NFA #${fallbackWinner}`,
+            this.lang === 'zh'
+              ? `胜者应得 ${computedReward.toFixed(2)} Claworld · 本场销毁 ${computedBurned.toFixed(2)}`
+              : `Winner payout ${computedReward.toFixed(2)} Claworld · Burned ${computedBurned.toFixed(2)}`,
+            this.lang === 'zh'
+              ? '当前公共 RPC 未返回结算事件，所以上面按合约公式复盘展示结果。'
+              : 'Current public RPC did not return the settlement event, so the result above is shown via formula replay.',
+          ],
+        });
+      } else if (!resolution && match.phase === 5) {
+        sections.push({
+          title: this.lang === 'zh' ? '链上结果' : 'On-chain result',
+          tone: 'danger',
+          lines: [
+            this.lang === 'zh'
+              ? '合约状态显示本场已取消。'
+              : 'Contract state shows this match was cancelled.',
+            this.lang === 'zh'
+              ? '当前公共 RPC 未返回取消事件。'
+              : 'Current public RPC did not return the cancel event.',
+          ],
+        });
+      }
       sections.push({
         title: this.lang === 'zh' ? '战报结论' : 'Battle verdict',
         tone: resolution?.type === 'settled'
           ? (resolution.winnerNfaId === this.nfaId ? 'success' : resolution.loserNfaId === this.nfaId ? 'danger' : 'accent')
           : resolution?.type === 'cancelled'
             ? 'danger'
+            : match.phase === 4
+              ? fallbackTone
+              : match.phase === 5
+                ? 'danger'
             : 'accent',
         lines: resolution?.type === 'settled'
           ? [
@@ -860,6 +899,27 @@ export class PKScene extends Phaser.Scene {
                   ? '下方保留双方数据，仅供查看当时的对局面板。'
                   : 'Stats below are shown for reference only.',
               ]
+            : match.phase === 4
+              ? [
+                  this.lang === 'zh'
+                    ? `本场已结算，按对局参数复盘胜者为 NFA #${fallbackWinner}`
+                    : `This match is settled. Replay winner is NFA #${fallbackWinner}`,
+                  this.lang === 'zh'
+                    ? `胜者应得 ${computedReward.toFixed(2)} Claworld，系统销毁 ${computedBurned.toFixed(2)} Claworld`
+                    : `Winner payout ${computedReward.toFixed(2)} Claworld, system burned ${computedBurned.toFixed(2)} Claworld`,
+                  this.lang === 'zh'
+                    ? '下方是按合约公式复盘的双方计算过程。'
+                    : 'Below is the formula replay for both sides.',
+                ]
+              : match.phase === 5
+                ? [
+                    this.lang === 'zh'
+                      ? '本场已取消，没有胜者，也没有奖励发放。'
+                      : 'This match was cancelled. No winner and no reward payout.',
+                    this.lang === 'zh'
+                      ? '下方保留双方数据，仅供查看当时的对局面板。'
+                      : 'Stats below are shown for reference only.',
+                  ]
             : [
                 this.lang === 'zh'
                   ? `本场尚未结算，按当前公式推演会由 NFA #${predictedWinner} 占优`

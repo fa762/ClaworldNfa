@@ -5,7 +5,7 @@
 import { eventBus } from '../EventBus';
 import { createPublicClient, http, parseAbiItem, type Address } from 'viem';
 import { bsc, bscTestnet } from 'viem/chains';
-import { addresses, chainId, rpcUrl } from '@/contracts/addresses';
+import { addresses, chainId, deployBlock, rpcUrl } from '@/contracts/addresses';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const BATCH_SIZE = 40;
@@ -524,6 +524,49 @@ const PK_MATCH_SETTLED_EVENT = parseAbiItem(
 const PK_MATCH_CANCELLED_EVENT = parseAbiItem(
   'event MatchCancelled(uint256 indexed matchId)',
 );
+const LOG_CHUNK_SIZE = 10000n;
+
+type SettledMatchLog = {
+  args: {
+    winner?: bigint;
+    loser?: bigint;
+    reward?: bigint;
+    burned?: bigint;
+  };
+  blockNumber: bigint | null;
+  transactionHash: `0x${string}` | null;
+};
+
+type CancelledMatchLog = {
+  blockNumber: bigint | null;
+  transactionHash: `0x${string}` | null;
+};
+
+async function findLatestPkLogInChunks(params: {
+  event: typeof PK_MATCH_SETTLED_EVENT | typeof PK_MATCH_CANCELLED_EVENT;
+  matchId: bigint;
+}) {
+  const latestBlock = await publicClient.getBlockNumber();
+  let toBlock = latestBlock;
+
+  while (toBlock >= deployBlock) {
+    const fromBlock = toBlock > LOG_CHUNK_SIZE ? toBlock - LOG_CHUNK_SIZE : deployBlock;
+    const chunk = await publicClient.getLogs({
+      address: CONTRACTS.pkSkill,
+      event: params.event,
+      args: { matchId: params.matchId },
+      fromBlock,
+      toBlock,
+    });
+    if (chunk.length > 0) {
+      return chunk.at(-1) ?? null;
+    }
+    if (fromBlock === deployBlock) break;
+    toBlock = fromBlock - 1n;
+  }
+
+  return null;
+}
 
 export async function loadMatch(matchId: number): Promise<PKMatch | null> {
   try {
@@ -659,43 +702,40 @@ export async function loadMatchResolution(matchId: number): Promise<PKMatchResol
 
   try {
     const [settledLogs, cancelledLogs] = await Promise.all([
-      publicClient.getLogs({
-        address: CONTRACTS.pkSkill,
+      findLatestPkLogInChunks({
         event: PK_MATCH_SETTLED_EVENT,
-        args: { matchId: BigInt(matchId) },
-        fromBlock: 0n,
-        toBlock: 'latest',
+        matchId: BigInt(matchId),
       }),
-      publicClient.getLogs({
-        address: CONTRACTS.pkSkill,
+      findLatestPkLogInChunks({
         event: PK_MATCH_CANCELLED_EVENT,
-        args: { matchId: BigInt(matchId) },
-        fromBlock: 0n,
-        toBlock: 'latest',
+        matchId: BigInt(matchId),
       }),
     ]);
 
-    const settledLog = settledLogs.at(-1);
+    const settledLog = settledLogs as SettledMatchLog | null;
     if (settledLog) {
+      const winner = settledLog.args.winner;
+      const loser = settledLog.args.loser;
       const reward = settledLog.args.reward;
       const burned = settledLog.args.burned;
-      if (reward === undefined || burned === undefined) {
+      const transactionHash = settledLog.transactionHash;
+      if (winner === undefined || loser === undefined || reward === undefined || burned === undefined || !transactionHash || settledLog.blockNumber === null) {
         return null;
       }
       return {
         type: 'settled',
         matchId,
-        winnerNfaId: Number(settledLog.args.winner),
-        loserNfaId: Number(settledLog.args.loser),
+        winnerNfaId: Number(winner),
+        loserNfaId: Number(loser),
         reward,
         burned,
         blockNumber: Number(settledLog.blockNumber),
-        transactionHash: settledLog.transactionHash,
+        transactionHash,
       };
     }
 
-    const cancelledLog = cancelledLogs.at(-1);
-    if (cancelledLog) {
+    const cancelledLog = cancelledLogs as CancelledMatchLog | null;
+    if (cancelledLog && cancelledLog.blockNumber !== null && cancelledLog.transactionHash) {
       return {
         type: 'cancelled',
         matchId,
