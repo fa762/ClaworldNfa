@@ -240,11 +240,6 @@ export class ShelterScene extends Phaser.Scene {
       this.scene.start('ArchiveScene', this.buildSceneData());
     });
 
-    this.add.rectangle(W - 112, H - 48, 136, 20, 0x0a0a0a, 0).setOrigin(0.5).setDepth(100);
-    this.add.text(W - 112, H - 48, this.lang === 'zh' ? '[ 妗ｆ ]' : '[ DOSSIER ]', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#7adf8b',
-    }).setOrigin(0.5).setDepth(101).setAlpha(0);
-
     // ── HUD ──
     this.hudText = this.add.text(8, H - 22, this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`, {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
