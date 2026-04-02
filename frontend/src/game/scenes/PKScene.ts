@@ -263,6 +263,16 @@ export class PKScene extends Phaser.Scene {
         if (result.action === 'reveal' && result.matchId && result.error?.includes('Saved strategy')) {
           localStorage.removeItem(`claw-pk-${result.matchId}`);
         }
+        if (this.isPkPhaseDrift(result.action, result.error)) {
+          this.showStatus(
+            this.lang === 'zh'
+              ? `对局 #${result.matchId ?? '?'} 状态已变化，正在重新同步链上结果...`
+              : `Match #${result.matchId ?? '?'} already advanced. Resyncing on-chain state...`,
+            '#ffaa00',
+          );
+          this.requestMatches();
+          return;
+        }
         const message = result.error?.includes('No saved strategy')
           ? (this.lang === 'zh' ? '当前浏览器没有保存这场对局的策略记录，无法代你揭示。' : 'This browser has no saved strategy record for this match.')
           : result.error;
@@ -293,9 +303,6 @@ export class PKScene extends Phaser.Scene {
       }
 
       this.requestMatches();
-      if (result.matchId) {
-        void this.maybeAutoAdvanceMatch(result.matchId);
-      }
     });
 
     const offFullStats = eventBus.on('nfa:fullStats', (data: unknown) => {
@@ -358,6 +365,25 @@ export class PKScene extends Phaser.Scene {
       cancel: '取消对局',
     };
     return labels[action] ?? action;
+  }
+
+  private isPkPhaseDrift(action: string, error?: string) {
+    if (!error) return false;
+    const normalized = error.toLowerCase();
+    if (action === 'reveal') {
+      return normalized.includes('not in reveal phase')
+        || normalized.includes('already revealed')
+        || normalized.includes('phase changed')
+        || normalized.includes('state changed');
+    }
+    if (action === 'settle') {
+      return normalized.includes('cannot settle')
+        || normalized.includes('not revealed')
+        || normalized.includes('already settled')
+        || normalized.includes('phase changed')
+        || normalized.includes('state changed');
+    }
+    return false;
   }
 
   private isMyMatch(match: { nfaA: number; nfaB: number }) {
@@ -742,9 +768,6 @@ export class PKScene extends Phaser.Scene {
         disabled: true,
         onSelect: () => {},
       });
-      if (hasLocalStrategy) {
-        void this.maybeAutoAdvanceMatch(match.matchId);
-      }
     }
 
     if (isMine && match.phase === 3) {
@@ -754,7 +777,6 @@ export class PKScene extends Phaser.Scene {
         disabled: true,
         onSelect: () => {},
       });
-      void this.maybeAutoAdvanceMatch(match.matchId);
     }
 
     if (isMine && match.phase <= 2) {
@@ -1066,9 +1088,6 @@ export class PKScene extends Phaser.Scene {
         disabled: true,
         onSelect: () => {},
       });
-      if (hasLocalStrategy) {
-        void this.maybeAutoAdvanceMatch(match.matchId);
-      }
     }
 
     if (isMine && match.phase === 3) {
@@ -1078,7 +1097,6 @@ export class PKScene extends Phaser.Scene {
         disabled: true,
         onSelect: () => {},
       });
-      void this.maybeAutoAdvanceMatch(match.matchId);
     }
 
     if (isMine && match.phase <= 2) {

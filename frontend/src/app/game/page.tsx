@@ -610,7 +610,7 @@ export default function GamePage() {
         });
       } catch (error) {
         console.error('PK join failed:', error);
-        eventBus.emit('pk:result', { status: 'failed', action: 'join', error: getErrorMessage(error) });
+        eventBus.emit('pk:result', { status: 'failed', action: 'join', matchId: data.matchId, error: getErrorMessage(error) });
       }
     });
 
@@ -648,7 +648,7 @@ export default function GamePage() {
         });
       } catch (error) {
         console.error('PK reveal failed:', error);
-        eventBus.emit('pk:result', { status: 'failed', action: 'reveal', error: getErrorMessage(error) });
+        eventBus.emit('pk:result', { status: 'failed', action: 'reveal', matchId: data.matchId, error: getErrorMessage(error) });
       }
     });
 
@@ -676,7 +676,7 @@ export default function GamePage() {
         });
       } catch (error) {
         console.error('PK settle failed:', error);
-        eventBus.emit('pk:result', { status: 'failed', action: 'settle', error: getErrorMessage(error) });
+        eventBus.emit('pk:result', { status: 'failed', action: 'settle', matchId: data.matchId, error: getErrorMessage(error) });
       }
     });
 
@@ -704,7 +704,7 @@ export default function GamePage() {
         });
       } catch (error) {
         console.error('PK cancel failed:', error);
-        eventBus.emit('pk:result', { status: 'failed', action: 'cancel', error: getErrorMessage(error) });
+        eventBus.emit('pk:result', { status: 'failed', action: 'cancel', matchId: data.matchId, error: getErrorMessage(error) });
       }
     });
 
