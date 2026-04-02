@@ -141,6 +141,13 @@ export class TerminalModal {
       cancelButton.addEventListener('click', cancelHandler);
       this.cleanup.push(() => cancelButton.removeEventListener('click', cancelHandler));
     }
+
+    const backButton = root.querySelector<HTMLButtonElement>('button[data-action="back"]');
+    if (backButton) {
+      const backHandler = () => this.close();
+      backButton.addEventListener('click', backHandler);
+      this.cleanup.push(() => backButton.removeEventListener('click', backHandler));
+    }
   }
 
   showForm(config: FormConfig) {
@@ -270,7 +277,10 @@ export class TerminalModal {
 
     const html = `
       <div style="width:min(980px, 94vw); max-height:min(86vh, 900px); background:rgba(4,7,4,0.98); border:1px solid rgba(57,255,20,0.35); box-shadow:0 0 40px rgba(57,255,20,0.08); color:#39ff14; font-family:monospace; padding:16px; display:flex; flex-direction:column; overflow:hidden; border-radius:14px;">
-        <div style="font-size:24px; line-height:1.1; margin-bottom:6px; color:#ffffff;">${escapeHtml(config.title)}</div>
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:6px;">
+          <button data-action="back" style="background:#0a140a;border:1px solid rgba(57,255,20,0.28);color:#39ff14;padding:7px 10px;font:12px monospace;cursor:pointer;flex-shrink:0;">[ 返回 ]</button>
+          <div style="font-size:24px; line-height:1.1; color:#ffffff; text-align:right; flex:1;">${escapeHtml(config.title)}</div>
+        </div>
         ${config.subtitle ? `<div style="font-size:12px; margin-bottom:12px; color:rgba(57,255,20,0.65); line-height:1.42; word-break:break-word;">${escapeHtml(config.subtitle)}</div>` : ''}
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:10px; overflow:auto; max-height:min(64vh, 660px); padding-right:4px;">${sectionsHtml}</div>
         <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; flex-shrink:0;">
