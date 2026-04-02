@@ -127,8 +127,8 @@ export class MarketScene extends Phaser.Scene {
       W / 2,
       120,
       this.lang === 'zh'
-        ? '币安中继塔: 在线  ·  BSC 链路: 稳定  ·  清算员: Sable  ·  回执: 可追溯'
-        : 'Binance relay: online  ·  BSC route: stable  ·  Operator: Sable  ·  Receipts: traceable',
+        ? '币安中继塔: 在线  ·  BSC 链路: 稳定  ·  资产隔离: 生效  ·  黑天鹅保护: 待命'
+        : 'Binance relay: online  ·  BSC route: stable  ·  Asset segregation: active  ·  Black swan guard: armed',
       {
         fontSize: '11px',
         fontFamily: 'monospace',
