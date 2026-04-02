@@ -190,7 +190,7 @@ export class DialogueBox {
     this.speakerText.setText(line.speaker);
     if (line.color) this.speakerText.setColor(line.color);
     if (line.portraitKey && this.scene.textures.exists(line.portraitKey)) {
-      this.portraitImage.setTexture(line.portraitKey).setVisible(true);
+      this.portraitImage.setTexture(line.portraitKey).setDisplaySize(64, 64).setVisible(true);
       this.portraitFrame.setVisible(true);
     } else {
       this.portraitImage.setVisible(false);
