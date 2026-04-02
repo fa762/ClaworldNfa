@@ -101,6 +101,8 @@ export class PKScene extends Phaser.Scene {
   private lang: GameLang = 'zh';
   private showOnlyMine = false;
   private mineFilterButton?: Phaser.GameObjects.Text;
+  private showJoinableOnly = false;
+  private joinableFilterButton?: Phaser.GameObjects.Text;
   private prevPageButton?: Phaser.GameObjects.Text;
   private nextPageButton?: Phaser.GameObjects.Text;
   private pageInfoText?: Phaser.GameObjects.Text;
@@ -182,6 +184,11 @@ export class PKScene extends Phaser.Scene {
       backgroundColor: '#001a00', padding: { x: 8, y: 4 },
     }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleMineFilter());
 
+    this.joinableFilterButton = this.add.text(126, toolsY, '', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#ffaa00',
+      backgroundColor: '#1a1a00', padding: { x: 8, y: 4 },
+    }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleJoinableFilter());
+
     this.add.text(W - 18, toolsY, this.lang === 'zh' ? '[ 搜索对局 ]' : '[ FIND ID ]', {
       fontSize: '11px', fontFamily: 'monospace', color: '#7ad7ff',
       backgroundColor: '#00131a', padding: { x: 8, y: 4 },
@@ -208,6 +215,7 @@ export class PKScene extends Phaser.Scene {
     this.add.rectangle(W / 2, headerY + 12, W - 32, 1, 0x333333);
     this.matchTableY = headerY + 24;
     this.refreshMineFilterButton();
+    this.refreshJoinableFilterButton();
 
     this.statusText = this.add.text(W / 2, H - 56, this.lang === 'zh' ? '读取链上擂台中...' : 'Loading arena matches...', {
       fontSize: '14px', fontFamily: 'monospace', color: '#ffaa00', align: 'center',
@@ -408,10 +416,20 @@ export class PKScene extends Phaser.Scene {
     );
   }
 
+  private refreshJoinableFilterButton() {
+    this.joinableFilterButton?.setText(
+      this.showJoinableOnly
+        ? (this.lang === 'zh' ? '[ 可加入中 ]' : '[ JOINABLE ]')
+        : (this.lang === 'zh' ? '[ 可加入对局 ]' : '[ JOINABLE ]')
+    );
+  }
+
   private toggleMineFilter() {
     this.showOnlyMine = !this.showOnlyMine;
+    if (this.showOnlyMine) this.showJoinableOnly = false;
     this.matchPage = 0;
     this.refreshMineFilterButton();
+    this.refreshJoinableFilterButton();
     this.renderMatches();
     this.showStatus(
       this.showOnlyMine
@@ -421,10 +439,41 @@ export class PKScene extends Phaser.Scene {
     );
   }
 
+  private toggleJoinableFilter() {
+    this.showJoinableOnly = !this.showJoinableOnly;
+    if (this.showJoinableOnly) this.showOnlyMine = false;
+    this.matchPage = 0;
+    this.refreshMineFilterButton();
+    this.refreshJoinableFilterButton();
+    this.renderMatches();
+    this.showStatus(
+      this.showJoinableOnly
+        ? (this.lang === 'zh' ? '仅显示可加入的开放对局' : 'Showing joinable open matches only')
+        : (this.lang === 'zh' ? '显示全部链上对局' : 'Showing all on-chain matches'),
+      '#39ff14',
+    );
+  }
+
   private getVisibleMatches() {
-    return this.showOnlyMine
-      ? this.matches.filter((match) => match.nfaA === this.nfaId || match.nfaB === this.nfaId)
-      : this.matches;
+    const base = this.showJoinableOnly
+      ? this.matches.filter((match) => match.phase === 0 && !this.isMyMatch(match))
+      : this.showOnlyMine
+        ? this.matches.filter((match) => this.isMyMatch(match))
+        : this.matches;
+
+    const score = (match: MatchItem) => {
+      if (match.phase === 0 && !this.isMyMatch(match)) return 0;
+      if (this.isMyMatch(match) && match.phase <= 3) return 1;
+      if (match.phase <= 3) return 2;
+      if (match.phase === 4) return 3;
+      return 4;
+    };
+
+    return [...base].sort((a, b) => {
+      const delta = score(a) - score(b);
+      if (delta !== 0) return delta;
+      return b.matchId - a.matchId;
+    });
   }
 
   private getPageSize() {
@@ -733,148 +782,153 @@ export class PKScene extends Phaser.Scene {
     const isMine = this.isMyMatch(match);
     const phaseName = this.phaseName(match.phase);
     const opponentId = match.nfaA === this.nfaId ? match.nfaB : match.nfaA;
-    const options = [
+    const sections: Array<{ title: string; lines: string[]; tone?: 'normal' | 'accent' | 'success' | 'danger' }> = [
       {
-        label: `NFA #${match.nfaA} vs NFA #${match.nfaB || '-'}`,
-        description: this.lang === 'zh'
-          ? `阶段 ${phaseName} | 质押 ${Number(match.stake) / 1e18} Claworld`
-          : `Phase ${phaseName} | Stake ${Number(match.stake) / 1e18} Claworld`,
-        disabled: true,
-        onSelect: () => {},
-      },
-      {
-        label: this.lang === 'zh'
-          ? `公开状态 发起方${match.revealedA ? '已公开' : '未公开'} | 应战方${match.revealedB ? '已公开' : '未公开'}`
-          : `Reveal A ${match.revealedA ? 'YES' : 'NO'} | Reveal B ${match.revealedB ? 'YES' : 'NO'}`,
-        description: isMine
-          ? (this.lang === 'zh' ? '该对局包含当前 NFA。' : 'This match includes the active NFA.')
-          : (this.lang === 'zh' ? '该对局不属于当前 NFA。' : 'This match does not belong to the active NFA.'),
-        disabled: true,
-        onSelect: () => {},
-      },
-      {
-        label: this.lang === 'zh' ? '结算公式：伤害分高者获胜' : 'Formula: higher damage score wins',
-        description: this.lang === 'zh'
-          ? '有效攻击 = STR × 攻击倍率；有效防御 = DEF × 防御倍率；原始伤害 = max(1, 有效攻击 - 对手有效防御)；速度更高 +10%；伤害分 = 原始伤害 ÷ 对手HP。'
-          : 'Effective ATK = STR × atk multiplier; Effective DEF = DEF × def multiplier; Raw damage = max(1, effATK - enemy effDEF); faster side gets +10%; damage score = raw damage / enemy HP.',
-        disabled: true,
-        onSelect: () => {},
+        title: this.lang === 'zh' ? '对局概览' : 'Overview',
+        tone: 'accent',
+        lines: [
+          this.lang === 'zh'
+            ? `对阵 NFA #${match.nfaA} vs NFA #${match.nfaB || '-'}`
+            : `NFA #${match.nfaA} vs NFA #${match.nfaB || '-'}`,
+          this.lang === 'zh'
+            ? `阶段 ${phaseName} · 质押 ${Number(match.stake) / 1e18} Claworld`
+            : `Phase ${phaseName} · Stake ${Number(match.stake) / 1e18} Claworld`,
+          this.lang === 'zh'
+            ? `公开状态 A:${match.revealedA ? '已公开' : '未公开'} · B:${match.revealedB ? '已公开' : '未公开'}`
+            : `Reveal status A:${match.revealedA ? 'YES' : 'NO'} · B:${match.revealedB ? 'YES' : 'NO'}`,
+        ],
       },
     ];
 
     if (resolution?.type === 'settled') {
-      options.push({
-        label: this.lang === 'zh'
-          ? `链上结果：胜者 #${resolution.winnerNfaId} | 败者 #${resolution.loserNfaId}`
-          : `On-chain result: winner #${resolution.winnerNfaId} | loser #${resolution.loserNfaId}`,
-        description: this.lang === 'zh'
-          ? `奖励 ${Number(resolution.reward) / 1e18} Claworld | 销毁 ${Number(resolution.burned) / 1e18} | 区块 ${resolution.blockNumber}`
-          : `Reward ${Number(resolution.reward) / 1e18} Claworld | Burned ${Number(resolution.burned) / 1e18} | Block ${resolution.blockNumber}`,
-        disabled: true,
-        onSelect: () => {},
-      });
-      options.push({
-        label: this.lang === 'zh' ? '[ 结算交易 ]' : '[ SETTLEMENT TX ]',
-        description: resolution.transactionHash,
-        disabled: true,
-        onSelect: () => {},
+      sections.push({
+        title: this.lang === 'zh' ? '链上结算结果' : 'On-chain settlement',
+        tone: resolution.winnerNfaId === this.nfaId ? 'success' : resolution.loserNfaId === this.nfaId ? 'danger' : 'accent',
+        lines: [
+          this.lang === 'zh'
+            ? `胜者 NFA #${resolution.winnerNfaId} · 败者 NFA #${resolution.loserNfaId}`
+            : `Winner NFA #${resolution.winnerNfaId} · Loser NFA #${resolution.loserNfaId}`,
+          this.lang === 'zh'
+            ? `奖励 ${Number(resolution.reward) / 1e18} Claworld · 销毁 ${Number(resolution.burned) / 1e18}`
+            : `Reward ${Number(resolution.reward) / 1e18} Claworld · Burned ${Number(resolution.burned) / 1e18}`,
+          this.lang === 'zh'
+            ? `区块 ${resolution.blockNumber}`
+            : `Block ${resolution.blockNumber}`,
+          resolution.transactionHash,
+        ],
       });
     } else if (resolution?.type === 'cancelled') {
-      options.push({
-        label: this.lang === 'zh' ? '链上结果：已取消' : 'On-chain result: cancelled',
-        description: this.lang === 'zh'
-          ? `取消区块 ${resolution.blockNumber}`
-          : `Cancelled at block ${resolution.blockNumber}`,
-        disabled: true,
-        onSelect: () => {},
-      });
-      options.push({
-        label: this.lang === 'zh' ? '[ 取消交易 ]' : '[ CANCEL TX ]',
-        description: resolution.transactionHash,
-        disabled: true,
-        onSelect: () => {},
+      sections.push({
+        title: this.lang === 'zh' ? '链上结果' : 'On-chain result',
+        tone: 'danger',
+        lines: [
+          this.lang === 'zh' ? '本场对局已取消' : 'This match was cancelled',
+          this.lang === 'zh' ? `取消区块 ${resolution.blockNumber}` : `Cancelled at block ${resolution.blockNumber}`,
+          resolution.transactionHash,
+        ],
       });
     }
 
-    if (stateA && stateB && match.nfaB > 0 && match.phase >= 3) {
+    if (stateA && stateB && match.nfaB > 0) {
       const breakdown = this.buildCombatBreakdown(match, stateA, stateB);
-      const previewWinner = breakdown.winner === 'A' ? match.nfaA : match.nfaB;
-
-      options.push({
-        label: this.lang === 'zh'
-          ? `公式复盘：预计胜者 NFA #${previewWinner}`
-          : `Formula replay: predicted winner NFA #${previewWinner}`,
-        description: this.lang === 'zh'
-          ? '以下按当前链上属性重算，便于追溯结算逻辑。'
-          : 'Recomputed from current on-chain stats to explain settlement.',
-        disabled: true,
-        onSelect: () => {},
+      const predictedWinner = breakdown.winner === 'A' ? match.nfaA : match.nfaB;
+      sections.push({
+        title: this.lang === 'zh' ? '战报结论' : 'Battle verdict',
+        tone: 'accent',
+        lines: [
+          this.lang === 'zh'
+            ? `按合约公式复盘，预计胜者 NFA #${predictedWinner}`
+            : `Formula replay predicts winner NFA #${predictedWinner}`,
+          this.lang === 'zh'
+            ? '胜负比较的是双方伤害分，不是单看攻击或等级。'
+            : 'Outcome compares damage score, not raw ATK or level alone.',
+        ],
       });
-      options.push({
-        label: `A#${match.nfaA} | ${breakdown.nfaA.strategyName}`,
-        description: this.lang === 'zh'
-          ? `攻倍 ${breakdown.nfaA.atkMulPct}% 防倍 ${breakdown.nfaA.defMulPct}% | ${breakdown.nfaA.biasText}`
-          : `ATK ${breakdown.nfaA.atkMulPct}% DEF ${breakdown.nfaA.defMulPct}% | ${breakdown.nfaA.biasText}`,
-        disabled: true,
-        onSelect: () => {},
+      sections.push({
+        title: this.lang === 'zh' ? `发起方 A · NFA #${match.nfaA}` : `Side A · NFA #${match.nfaA}`,
+        lines: [
+          this.lang === 'zh'
+            ? `策略 ${breakdown.nfaA.strategyName} · 攻倍 ${breakdown.nfaA.atkMulPct}% · 防倍 ${breakdown.nfaA.defMulPct}%`
+            : `Strategy ${breakdown.nfaA.strategyName} · ATK ${breakdown.nfaA.atkMulPct}% · DEF ${breakdown.nfaA.defMulPct}%`,
+          this.lang === 'zh'
+            ? `STR ${stateA.str} · DEF ${stateA.def} · SPD ${stateA.spd} · VIT ${stateA.vit}`
+            : `STR ${stateA.str} · DEF ${stateA.def} · SPD ${stateA.spd} · VIT ${stateA.vit}`,
+          breakdown.nfaA.biasText,
+          this.lang === 'zh'
+            ? `有效攻 ${breakdown.nfaA.effStr} · 有效防 ${breakdown.nfaA.effDef} · 原伤 ${breakdown.nfaA.rawDamage}`
+            : `Eff ATK ${breakdown.nfaA.effStr} · Eff DEF ${breakdown.nfaA.effDef} · Raw ${breakdown.nfaA.rawDamage}`,
+          this.lang === 'zh'
+            ? `HP ${breakdown.nfaA.hp} · 伤害分 ${breakdown.nfaA.damageScore.toFixed(2)}${breakdown.nfaA.speedBoost ? ' · 速度加成 +10%' : ''}`
+            : `HP ${breakdown.nfaA.hp} · Score ${breakdown.nfaA.damageScore.toFixed(2)}${breakdown.nfaA.speedBoost ? ' · SPD +10%' : ''}`,
+        ],
       });
-      options.push({
-        label: this.lang === 'zh'
-          ? `有效攻 ${breakdown.nfaA.effStr} | 有效防 ${breakdown.nfaA.effDef} | 原伤 ${breakdown.nfaA.rawDamage}`
-          : `Eff ATK ${breakdown.nfaA.effStr} | Eff DEF ${breakdown.nfaA.effDef} | Raw ${breakdown.nfaA.rawDamage}`,
-        description: this.lang === 'zh'
-          ? `HP ${breakdown.nfaA.hp} | 伤害分 ${breakdown.nfaA.damageScore.toFixed(2)}${breakdown.nfaA.speedBoost ? ' | 速度加成 +10%' : ''}`
-          : `HP ${breakdown.nfaA.hp} | Score ${breakdown.nfaA.damageScore.toFixed(2)}${breakdown.nfaA.speedBoost ? ' | SPD +10%' : ''}`,
-        disabled: true,
-        onSelect: () => {},
-      });
-      options.push({
-        label: `B#${match.nfaB} | ${breakdown.nfaB.strategyName}`,
-        description: this.lang === 'zh'
-          ? `攻倍 ${breakdown.nfaB.atkMulPct}% 防倍 ${breakdown.nfaB.defMulPct}% | ${breakdown.nfaB.biasText}`
-          : `ATK ${breakdown.nfaB.atkMulPct}% DEF ${breakdown.nfaB.defMulPct}% | ${breakdown.nfaB.biasText}`,
-        disabled: true,
-        onSelect: () => {},
-      });
-      options.push({
-        label: this.lang === 'zh'
-          ? `有效攻 ${breakdown.nfaB.effStr} | 有效防 ${breakdown.nfaB.effDef} | 原伤 ${breakdown.nfaB.rawDamage}`
-          : `Eff ATK ${breakdown.nfaB.effStr} | Eff DEF ${breakdown.nfaB.effDef} | Raw ${breakdown.nfaB.rawDamage}`,
-        description: this.lang === 'zh'
-          ? `HP ${breakdown.nfaB.hp} | 伤害分 ${breakdown.nfaB.damageScore.toFixed(2)}${breakdown.nfaB.speedBoost ? ' | 速度加成 +10%' : ''}`
-          : `HP ${breakdown.nfaB.hp} | Score ${breakdown.nfaB.damageScore.toFixed(2)}${breakdown.nfaB.speedBoost ? ' | SPD +10%' : ''}`,
-        disabled: true,
-        onSelect: () => {},
+      sections.push({
+        title: this.lang === 'zh' ? `应战方 B · NFA #${match.nfaB}` : `Side B · NFA #${match.nfaB}`,
+        lines: [
+          this.lang === 'zh'
+            ? `策略 ${breakdown.nfaB.strategyName} · 攻倍 ${breakdown.nfaB.atkMulPct}% · 防倍 ${breakdown.nfaB.defMulPct}%`
+            : `Strategy ${breakdown.nfaB.strategyName} · ATK ${breakdown.nfaB.atkMulPct}% · DEF ${breakdown.nfaB.defMulPct}%`,
+          this.lang === 'zh'
+            ? `STR ${stateB.str} · DEF ${stateB.def} · SPD ${stateB.spd} · VIT ${stateB.vit}`
+            : `STR ${stateB.str} · DEF ${stateB.def} · SPD ${stateB.spd} · VIT ${stateB.vit}`,
+          breakdown.nfaB.biasText,
+          this.lang === 'zh'
+            ? `有效攻 ${breakdown.nfaB.effStr} · 有效防 ${breakdown.nfaB.effDef} · 原伤 ${breakdown.nfaB.rawDamage}`
+            : `Eff ATK ${breakdown.nfaB.effStr} · Eff DEF ${breakdown.nfaB.effDef} · Raw ${breakdown.nfaB.rawDamage}`,
+          this.lang === 'zh'
+            ? `HP ${breakdown.nfaB.hp} · 伤害分 ${breakdown.nfaB.damageScore.toFixed(2)}${breakdown.nfaB.speedBoost ? ' · 速度加成 +10%' : ''}`
+            : `HP ${breakdown.nfaB.hp} · Score ${breakdown.nfaB.damageScore.toFixed(2)}${breakdown.nfaB.speedBoost ? ' · SPD +10%' : ''}`,
+        ],
       });
     }
+
+    sections.push({
+      title: this.lang === 'zh' ? '结算公式说明' : 'Formula notes',
+      tone: 'accent',
+      lines: this.lang === 'zh'
+        ? [
+            '有效攻击 = STR × 攻击倍率',
+            '有效防御 = DEF × 防御倍率',
+            '原始伤害 = max(1, 有效攻击 - 对手有效防御)',
+            '速度更高的一方，原始伤害再加成 10%',
+            '伤害分 = 原始伤害 ÷ 对手 HP，伤害分更高者获胜',
+          ]
+        : [
+            'Effective ATK = STR × ATK multiplier',
+            'Effective DEF = DEF × DEF multiplier',
+            'Raw damage = max(1, effective ATK - enemy effective DEF)',
+            'Faster side gets +10% raw damage',
+            'Damage score = raw damage ÷ enemy HP, higher score wins',
+          ],
+    });
+
+    const actions: Array<{ label: string; description?: string; disabled?: boolean; onSelect: () => void }> = [];
 
     if (opponentId > 0) {
-      options.push({
-        label: this.lang === 'zh' ? `[ 查看 NFA #${opponentId} ]` : `[ VIEW NFA #${opponentId} ]`,
-        description: this.lang === 'zh' ? '读取对手属性与人格倾向。' : 'Inspect opponent stats and personality bias.',
-        disabled: false,
+      actions.push({
+        label: this.lang === 'zh' ? `查看 NFA #${opponentId}` : `View NFA #${opponentId}`,
+        description: this.lang === 'zh' ? '读取对手属性与人格倾向' : 'Inspect opponent stats and personality',
         onSelect: () => { void this.showOpponentStats(opponentId); },
       });
     }
 
     if (!isMine && match.phase === 0) {
-      options.push({
-        label: this.lang === 'zh' ? '[ 加入此对局 ]' : '[ JOIN MATCH ]',
-        description: this.lang === 'zh' ? '选择你的策略后加入当前开放对局。' : 'Choose your strategy and join this open match.',
-        disabled: false,
+      actions.push({
+        label: this.lang === 'zh' ? '加入此对局' : 'Join match',
+        description: this.lang === 'zh' ? '选择策略后加入当前开放对局' : 'Choose a strategy and join this open match',
         onSelect: () => this.showStrategyPicker('join', { matchId: match.matchId }),
       });
     }
 
     if (isMine && match.phase === 2 && !this.hasMyReveal(match)) {
       const hasLocalStrategy = Boolean(loadPKSalt(match.matchId));
-      options.push({
+      actions.push({
         label: hasLocalStrategy
-          ? (this.lang === 'zh' ? '[ 自动公开策略 ]' : '[ AUTO REVEAL ]')
-          : (this.lang === 'zh' ? '[ 本端没有策略记录 ]' : '[ NO LOCAL STRATEGY ]'),
+          ? (this.lang === 'zh' ? '本端可自动公开策略' : 'Local auto reveal ready')
+          : (this.lang === 'zh' ? '本端没有策略记录' : 'No local strategy record'),
         description: hasLocalStrategy
-          ? (this.lang === 'zh' ? '当前浏览器保存了 salt，前端会自动公开你的策略。' : 'This browser has the saved salt and will auto-reveal for you.')
-          : (this.lang === 'zh' ? '这场对局可能是在其他浏览器、其他设备或 skill CLI 中提交的。' : 'This match was likely committed from another browser, device, or skill CLI.'),
+          ? (this.lang === 'zh' ? '当前浏览器保存了 salt，前端会自动公开。' : 'This browser has the salt and can auto-reveal.')
+          : (this.lang === 'zh' ? '这场对局可能是在别的浏览器、设备或 skill CLI 中提交。' : 'This match was likely committed from another browser, device, or skill CLI.'),
         disabled: true,
         onSelect: () => {},
       });
@@ -884,9 +938,9 @@ export class PKScene extends Phaser.Scene {
     }
 
     if (isMine && match.phase === 3) {
-      options.push({
-        label: this.lang === 'zh' ? '[ 自动结算中 ]' : '[ AUTO SETTLE ]',
-        description: this.lang === 'zh' ? '双方都已公开策略，系统会自动发起链上结算。' : 'Both strategies are revealed. Settlement will be triggered automatically.',
+      actions.push({
+        label: this.lang === 'zh' ? '正在自动结算' : 'Auto settling',
+        description: this.lang === 'zh' ? '双方都已公开策略，系统会自动发起链上结算。' : 'Both strategies are revealed. Settlement auto-triggers.',
         disabled: true,
         onSelect: () => {},
       });
@@ -894,20 +948,20 @@ export class PKScene extends Phaser.Scene {
     }
 
     if (isMine && match.phase <= 2) {
-      options.push({
-        label: this.lang === 'zh' ? '[ 取消此局 ]' : '[ CANCEL ]',
-        description: this.lang === 'zh' ? '取消当前可撤销的对局。' : 'Cancel this match while it is still cancellable.',
-        disabled: false,
+      actions.push({
+        label: this.lang === 'zh' ? '取消此局' : 'Cancel match',
+        description: this.lang === 'zh' ? '仅限当前仍可撤销的对局' : 'Only for currently cancellable matches',
         onSelect: () => eventBus.emit('pk:cancel', { matchId: match.matchId }),
       });
     }
 
-    this.modal.showMenu({
-      title: this.lang === 'zh' ? `对局 #${match.matchId}` : `Match #${match.matchId}`,
+    this.modal.showReport({
+      title: this.lang === 'zh' ? `PK 战报 #${match.matchId}` : `PK Report #${match.matchId}`,
       subtitle: this.lang === 'zh'
-        ? `当前阶段 ${phaseName}。这里可以查看链上结果、结算公式和当前可执行动作。`
-        : `Current phase ${phaseName}. Review on-chain result, formula, and available actions here.`,
-      options,
+        ? `当前阶段 ${phaseName}。这里展示链上结果、双方对照和公式复盘。`
+        : `Current phase ${phaseName}. Review on-chain result, side-by-side stats, and formula replay.`,
+      sections,
+      actions,
       cancelLabel: this.lang === 'zh' ? '关闭' : 'Close',
     });
     this.showStatus(this.lang === 'zh' ? `已打开对局 #${match.matchId}` : `Opened match #${match.matchId}`, '#39ff14');
@@ -1154,14 +1208,18 @@ export class PKScene extends Phaser.Scene {
         break;
       case 'matches':
         this.showOnlyMine = false;
+        this.showJoinableOnly = false;
         this.matchPage = 0;
         this.refreshMineFilterButton();
+        this.refreshJoinableFilterButton();
         this.requestMatches();
         break;
       case 'my-matches':
         this.showOnlyMine = true;
+        this.showJoinableOnly = false;
         this.matchPage = 0;
         this.refreshMineFilterButton();
+        this.refreshJoinableFilterButton();
         this.requestMatches();
         break;
       case 'match': {
