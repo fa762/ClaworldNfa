@@ -504,6 +504,7 @@ export default function GamePage() {
         stake: formatEther(match.stake),
         phase: match.phase,
         phaseName: PK_PHASE_NAMES[match.phase] || String(match.phase),
+        phaseTimestamp: match.phaseTimestamp,
         revealedA: match.revealedA,
         revealedB: match.revealedB,
       })));

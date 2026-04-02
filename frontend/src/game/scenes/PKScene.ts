@@ -20,6 +20,8 @@ const STRATEGIES_EN = [
 ];
 const PK_PHASE_NAMES_ZH = ['开放中', '已加入', '已提交', '已公开', '已结算', '已取消'];
 const PK_PHASE_NAMES_EN = ['OPEN', 'JOINED', 'COMMITTED', 'REVEALED', 'SETTLED', 'CANCELLED'];
+const COMMIT_TIMEOUT_SECONDS = 60 * 60;
+const REVEAL_TIMEOUT_SECONDS = 30 * 60;
 
 const STRATEGY_ATK_MUL = [15000, 10000, 5000];
 const STRATEGY_DEF_MUL = [5000, 10000, 15000];
@@ -51,9 +53,19 @@ interface MatchItem {
   stake: string;
   phase: number;
   phaseName: string;
+  phaseTimestamp: number;
   revealedA: boolean;
   revealedB: boolean;
 }
+
+type MatchPhaseSnapshot = {
+  phase: number;
+  phaseTimestamp: number;
+  revealedA: boolean;
+  revealedB: boolean;
+  nfaA: number;
+  nfaB: number;
+};
 
 type LobsterStateSnapshot = Awaited<ReturnType<typeof loadNFAState>>;
 
@@ -386,6 +398,25 @@ export class PKScene extends Phaser.Scene {
     return false;
   }
 
+  private getPhaseAgeSeconds(match: MatchPhaseSnapshot) {
+    return Math.max(0, Math.floor(Date.now() / 1000) - match.phaseTimestamp);
+  }
+
+  private canCancelMatch(match: MatchPhaseSnapshot) {
+    if (match.phase === 0) return this.isMyMatch(match);
+    if (match.phase === 1) return this.getPhaseAgeSeconds(match) > COMMIT_TIMEOUT_SECONDS;
+    if (match.phase === 2) {
+      return this.getPhaseAgeSeconds(match) > REVEAL_TIMEOUT_SECONDS && !match.revealedA && !match.revealedB;
+    }
+    return false;
+  }
+
+  private canSettleMatch(match: MatchPhaseSnapshot) {
+    if (match.phase === 3) return true;
+    if (match.phase !== 2) return false;
+    return this.getPhaseAgeSeconds(match) > REVEAL_TIMEOUT_SECONDS && (match.revealedA || match.revealedB);
+  }
+
   private isMyMatch(match: { nfaA: number; nfaB: number }) {
     return match.nfaA === this.nfaId || match.nfaB === this.nfaId;
   }
@@ -658,7 +689,7 @@ export class PKScene extends Phaser.Scene {
       };
     }
 
-    if (isMine && match.phase <= 2) {
+    if (this.canCancelMatch(match)) {
       return {
         label: this.lang === 'zh' ? '[ 取消 ]' : '[ CANCEL ]',
         color: '#ff8888',
@@ -667,7 +698,7 @@ export class PKScene extends Phaser.Scene {
       };
     }
 
-    if (match.phase === 3) {
+    if (this.canSettleMatch(match)) {
       return {
         label: this.lang === 'zh' ? '[ 结算 ]' : '[ SETTLE ]',
         color: '#39ff14',
@@ -763,16 +794,16 @@ export class PKScene extends Phaser.Scene {
       });
     }
 
-    if (isMine && match.phase === 3) {
+    if (this.canSettleMatch(match)) {
       options.push({
-        label: this.lang === 'zh' ? '[ 自动结算中 ]' : '[ AUTO SETTLE ]',
-        description: this.lang === 'zh' ? '双方都已公开策略，系统会自动发起链上结算。' : 'Both strategies are revealed. Settlement will be triggered automatically.',
-        disabled: true,
-        onSelect: () => {},
+        label: this.lang === 'zh' ? '[ 结算此局 ]' : '[ SETTLE ]',
+        description: this.lang === 'zh' ? '按链上当前状态执行结算。' : 'Settle this match using the current on-chain state.',
+        disabled: false,
+        onSelect: () => eventBus.emit('pk:settle', { matchId: match.matchId }),
       });
     }
 
-    if (isMine && match.phase <= 2) {
+    if (this.canCancelMatch(match)) {
       options.push({
         label: this.lang === 'zh' ? '[ 取消此局 ]' : '[ CANCEL ]',
         description: this.lang === 'zh' ? '取消当前可撤销的对局。' : 'Cancel this match while it is still cancellable.',
@@ -1083,16 +1114,15 @@ export class PKScene extends Phaser.Scene {
       });
     }
 
-    if (isMine && match.phase === 3) {
+    if (this.canSettleMatch(match)) {
       actions.push({
-        label: this.lang === 'zh' ? '正在自动结算' : 'Auto settling',
-        description: this.lang === 'zh' ? '双方都已公开策略，系统会自动发起链上结算。' : 'Both strategies are revealed. Settlement auto-triggers.',
-        disabled: true,
-        onSelect: () => {},
+        label: this.lang === 'zh' ? '结算此局' : 'Settle match',
+        description: this.lang === 'zh' ? '当链上已满足条件时执行结算' : 'Settle when the on-chain conditions are met',
+        onSelect: () => eventBus.emit('pk:settle', { matchId: match.matchId }),
       });
     }
 
-    if (isMine && match.phase <= 2) {
+    if (this.canCancelMatch(match)) {
       actions.push({
         label: this.lang === 'zh' ? '取消此局' : 'Cancel match',
         description: this.lang === 'zh' ? '仅限当前仍可撤销的对局' : 'Only for currently cancellable matches',
@@ -1132,7 +1162,7 @@ export class PKScene extends Phaser.Scene {
 
   private promptCancel() {
     const cancellable = this.matches.filter((match) =>
-      match.phase <= 2 && (match.nfaA === this.nfaId || match.nfaB === this.nfaId)
+      this.canCancelMatch(match)
     );
 
     if (cancellable.length === 0) {
@@ -1142,7 +1172,7 @@ export class PKScene extends Phaser.Scene {
 
     this.modal.showMenu({
       title: this.lang === 'zh' ? '取消对战' : 'Cancel match',
-      subtitle: this.lang === 'zh' ? '只能取消 OPEN / JOINED / COMMITTED 状态的对战。' : 'Only OPEN / JOINED / COMMITTED matches can be cancelled.',
+      subtitle: this.lang === 'zh' ? '仅显示当前链上条件下真正可取消的对战。' : 'Only matches that are truly cancellable on-chain are listed here.',
       options: cancellable.map((match) => ({
         label: `#${match.matchId}  ${this.phaseName(match.phase)}`,
         description: `NFA #${match.nfaA} vs ${match.nfaB || '-'} · 质押 ${match.stake} Claworld`,
