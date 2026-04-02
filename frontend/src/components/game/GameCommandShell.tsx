@@ -71,6 +71,23 @@ const actionButtonClass =
 const inputClass =
   'w-full rounded border border-crt-green/20 bg-black/75 px-3 py-2 text-xs text-crt-bright outline-none placeholder:text-crt-green/25';
 
+function matchPhaseName(phase: number, zh: boolean) {
+  const names = zh
+    ? ['开放中', '已加入', '已提交', '已公开', '已结算', '已取消']
+    : ['OPEN', 'JOINED', 'COMMITTED', 'REVEALED', 'SETTLED', 'CANCELLED'];
+  return names[phase] ?? `PHASE-${phase}`;
+}
+
+function listingTypeName(type: number, zh: boolean) {
+  const names = zh ? ['固定价', '拍卖', '互换'] : ['FIXED', 'AUCTION', 'SWAP'];
+  return names[type] ?? `TYPE-${type}`;
+}
+
+function listingStatusName(status: number, zh: boolean) {
+  const names = zh ? ['进行中', '已成交', '已取消'] : ['ACTIVE', 'SOLD', 'CANCELLED'];
+  return names[status] ?? `STATUS-${status}`;
+}
+
 function shortenAddress(address?: string) {
   if (!address) return '';
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -139,19 +156,15 @@ function sceneLabel(scene: string | null, status: GameStatus, zh: boolean) {
 }
 
 function formatMatchLine(match: PKMatch, zh: boolean) {
-  const phaseName = match.phase <= 3
-    ? ['OPEN', 'JOINED', 'COMMITTED', 'REVEALED'][match.phase]
-    : match.phase === 4
-      ? 'SETTLED'
-      : 'CANCELLED';
+  const phaseName = matchPhaseName(match.phase, zh);
   return zh
     ? `对局 #${match.matchId} | ${phaseName} | NFA ${match.nfaA} vs ${match.nfaB || '-'} | 赌注 ${Number(formatEther(match.stake)).toFixed(2)} Claworld`
     : `#${match.matchId} | ${phaseName} | NFA ${match.nfaA} vs ${match.nfaB || '-'} | stake ${Number(formatEther(match.stake)).toFixed(2)} Claworld`;
 }
 
 function formatListingLine(listing: MarketListing, zh: boolean) {
-  const typeName = ['FIXED', 'AUCTION', 'SWAP'][listing.listingType] ?? `TYPE-${listing.listingType}`;
-  const statusName = ['ACTIVE', 'SOLD', 'CANCELLED'][listing.status] ?? `STATUS-${listing.status}`;
+  const typeName = listingTypeName(listing.listingType, zh);
+  const statusName = listingStatusName(listing.status, zh);
   const valueText = listing.listingType === 2
     ? (zh ? `互换 #${listing.swapTargetId}` : `swap for #${listing.swapTargetId}`)
     : listing.listingType === 1 && listing.highestBid > 0n
@@ -336,7 +349,7 @@ export function GameCommandShell({
       if (!match) return pushLog('error', zh ? '未找到该对局。' : 'Match not found.');
       eventBus.emit('game:command', { name: 'match', args: [String(target)] });
       pushLog('system', formatMatchLine(match, zh));
-      pushLog('system', zh ? `揭示状态 A:${match.revealedA ? '是' : '否'} B:${match.revealedB ? '是' : '否'}` : `Reveal A:${match.revealedA ? 'YES' : 'NO'} B:${match.revealedB ? 'YES' : 'NO'}`);
+      pushLog('system', zh ? `公开状态 发起方:${match.revealedA ? '是' : '否'} 应战方:${match.revealedB ? '是' : '否'}` : `Reveal A:${match.revealedA ? 'YES' : 'NO'} B:${match.revealedB ? 'YES' : 'NO'}`);
       return;
     }
 
@@ -418,8 +431,8 @@ export function GameCommandShell({
   const identity = activeSummary ? buildLobsterIdentity(activeSummary, lang) : null;
 
   return (
-    <section className="flex h-full flex-col bg-black/96 font-mono text-crt-green/80">
-      <div className="flex items-start justify-between gap-3 border-b border-crt-green/20 px-4 py-4">
+    <section className="flex h-full flex-col bg-black/90 font-mono text-crt-green/90">
+      <div className="flex items-start justify-between gap-3 border-b border-crt-green/30 px-4 py-4">
         <div>
           <p className="text-[10px] tracking-[0.28em] text-crt-green/40">{zh ? '快捷控制台' : 'QUICK CONSOLE'}</p>
           <p className="mt-1 text-xs text-crt-green/65">{zh ? 'Tab 打开 / 收起，按钮直接调用同一套链上逻辑' : 'Tab toggle. Buttons call the same on-chain flows.'}</p>
@@ -442,7 +455,7 @@ export function GameCommandShell({
               {zh ? '清空记录' : 'Clear'}
             </button>
           </div>
-          <div ref={logRef} className="h-44 space-y-1 overflow-y-auto rounded border border-crt-green/15 bg-black/70 p-3 text-xs">
+          <div ref={logRef} className="h-44 space-y-1 overflow-y-auto rounded border border-crt-green/25 bg-black/55 p-3 text-xs">
             {history.length === 0 ? (
               <div className="text-crt-green/35">{zh ? '等待操作...' : 'Awaiting action...'}</div>
             ) : (
@@ -452,6 +465,45 @@ export function GameCommandShell({
                 </div>
               ))
             )}
+          </div>
+        </div>
+
+        <div className="term-box" data-title={zh ? '场景切换' : 'SCENE'}>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { key: 'shelter', label: zh ? '避难所' : 'Shelter' },
+              { key: 'task', label: zh ? '任务' : 'Task' },
+              { key: 'pk', label: zh ? '竞技场' : 'Arena' },
+              { key: 'market', label: zh ? '市场' : 'Market' },
+              { key: 'archive', label: zh ? '档案' : 'Archive' },
+            ].map((item) => (
+              <button key={item.key} type="button" onClick={() => void runAction('scene', item.key)} className={actionButtonClass}>
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 flex gap-2">
+            <input value={portalId} onChange={(event) => setPortalId(event.target.value)} className={inputClass} placeholder={zh ? '避难所 0-7' : 'Shelter 0-7'} inputMode="numeric" />
+            <button type="button" onClick={() => void runAction('portal')} className={`${actionButtonClass} shrink-0`}>
+              {zh ? '切换避难所' : 'Portal'}
+            </button>
+          </div>
+        </div>
+
+        <div className="term-box" data-title={zh ? '检索' : 'SEARCH'}>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => void runAction('matches')} className={actionButtonClass}>{zh ? '全部对局' : 'All Matches'}</button>
+            <button type="button" onClick={() => void runAction('my-matches')} className={actionButtonClass}>{zh ? '我的对局' : 'My Matches'}</button>
+            <button type="button" onClick={() => void runAction('listings')} className={actionButtonClass}>{zh ? '全部挂单' : 'All Listings'}</button>
+            <button type="button" onClick={() => void runAction('my-listings')} className={actionButtonClass}>{zh ? '我的挂单' : 'My Listings'}</button>
+          </div>
+          <div className="mt-2 flex gap-2">
+            <input value={matchId} onChange={(event) => setMatchId(event.target.value)} className={inputClass} placeholder={zh ? '对局 ID' : 'Match ID'} inputMode="numeric" />
+            <button type="button" onClick={() => void runAction('match')} className={`${actionButtonClass} shrink-0`}>{zh ? '查看对局' : 'View Match'}</button>
+          </div>
+          <div className="mt-2 flex gap-2">
+            <input value={listingId} onChange={(event) => setListingId(event.target.value)} className={inputClass} placeholder={zh ? '挂单 ID' : 'Listing ID'} inputMode="numeric" />
+            <button type="button" onClick={() => void runAction('listing')} className={`${actionButtonClass} shrink-0`}>{zh ? '查看挂单' : 'View Listing'}</button>
           </div>
         </div>
 
@@ -566,45 +618,6 @@ export function GameCommandShell({
                 </div>
               )
             )}
-          </div>
-        </div>
-
-        <div className="term-box" data-title={zh ? '场景切换' : 'SCENE'}>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { key: 'shelter', label: zh ? '避难所' : 'Shelter' },
-              { key: 'task', label: zh ? '任务' : 'Task' },
-              { key: 'pk', label: zh ? 'PK' : 'Arena' },
-              { key: 'market', label: zh ? '市场' : 'Market' },
-              { key: 'archive', label: zh ? '档案' : 'Archive' },
-            ].map((item) => (
-              <button key={item.key} type="button" onClick={() => void runAction('scene', item.key)} className={actionButtonClass}>
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <div className="mt-2 flex gap-2">
-            <input value={portalId} onChange={(event) => setPortalId(event.target.value)} className={inputClass} placeholder={zh ? '避难所 0-7' : 'Shelter 0-7'} inputMode="numeric" />
-            <button type="button" onClick={() => void runAction('portal')} className={`${actionButtonClass} shrink-0`}>
-              {zh ? '切换避难所' : 'Portal'}
-            </button>
-          </div>
-        </div>
-
-        <div className="term-box" data-title={zh ? '检索' : 'SEARCH'}>
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => void runAction('matches')} className={actionButtonClass}>{zh ? '全部对局' : 'All Matches'}</button>
-            <button type="button" onClick={() => void runAction('my-matches')} className={actionButtonClass}>{zh ? '我的对局' : 'My Matches'}</button>
-            <button type="button" onClick={() => void runAction('listings')} className={actionButtonClass}>{zh ? '全部挂单' : 'All Listings'}</button>
-            <button type="button" onClick={() => void runAction('my-listings')} className={actionButtonClass}>{zh ? '我的挂单' : 'My Listings'}</button>
-          </div>
-          <div className="mt-2 flex gap-2">
-            <input value={matchId} onChange={(event) => setMatchId(event.target.value)} className={inputClass} placeholder={zh ? '对局 ID' : 'Match ID'} inputMode="numeric" />
-            <button type="button" onClick={() => void runAction('match')} className={`${actionButtonClass} shrink-0`}>{zh ? '查看对局' : 'View Match'}</button>
-          </div>
-          <div className="mt-2 flex gap-2">
-            <input value={listingId} onChange={(event) => setListingId(event.target.value)} className={inputClass} placeholder={zh ? '挂单 ID' : 'Listing ID'} inputMode="numeric" />
-            <button type="button" onClick={() => void runAction('listing')} className={`${actionButtonClass} shrink-0`}>{zh ? '查看挂单' : 'View Listing'}</button>
           </div>
         </div>
 

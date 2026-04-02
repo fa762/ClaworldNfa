@@ -8,16 +8,17 @@ import { buildIdentityFromState, buildLobsterIdentity } from '@/lib/lobsterIdent
 import { getShelterSceneHint, getShelterSpecialty } from '@/lib/shelter';
 
 const STRATEGIES_ZH = [
-  { name: '全攻', desc: 'ATK 150% / DEF 50%', color: '#ff4444' },
-  { name: '平衡', desc: 'ATK 100% / DEF 100%', color: '#ffaa00' },
-  { name: '全防', desc: 'ATK 50% / DEF 150%', color: '#4488ff' },
+  { name: '全攻', desc: '攻击 150% / 防御 50%', color: '#ff4444' },
+  { name: '平衡', desc: '攻击 100% / 防御 100%', color: '#ffaa00' },
+  { name: '全防', desc: '攻击 50% / 防御 150%', color: '#4488ff' },
 ];
 const STRATEGIES_EN = [
   { name: 'Aggro', desc: 'ATK 150% / DEF 50%', color: '#ff4444' },
   { name: 'Balance', desc: 'ATK 100% / DEF 100%', color: '#ffaa00' },
   { name: 'Guard', desc: 'ATK 50% / DEF 150%', color: '#4488ff' },
 ];
-const PK_PHASE_NAMES = ['OPEN', 'JOINED', 'COMMITTED', 'REVEALED', 'SETTLED', 'CANCELLED'];
+const PK_PHASE_NAMES_ZH = ['开放中', '已加入', '已提交', '已公开', '已结算', '已取消'];
+const PK_PHASE_NAMES_EN = ['OPEN', 'JOINED', 'COMMITTED', 'REVEALED', 'SETTLED', 'CANCELLED'];
 
 interface Personality {
   courage: number;
@@ -93,7 +94,7 @@ export class PKScene extends Phaser.Scene {
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
 
-    this.add.rectangle(W / 2, H / 2, W, H, 0x0a0a0a, 0.95);
+    this.add.rectangle(W / 2, H / 2, W, H, 0x101010, 0.9);
 
     this.add.text(W / 2, 26, this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]', {
       fontSize: '24px', fontFamily: 'monospace', color: '#ff3333',
@@ -134,7 +135,7 @@ export class PKScene extends Phaser.Scene {
 
       this.add.text(x, y, button.label, {
         fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
-        backgroundColor: '#001a00', padding: { x: 10, y: 6 },
+        backgroundColor: '#062406', padding: { x: 10, y: 6 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', button.action);
     });
 
@@ -144,13 +145,13 @@ export class PKScene extends Phaser.Scene {
       backgroundColor: '#001a00', padding: { x: 8, y: 4 },
     }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleMineFilter());
 
-    this.add.text(W - 18, toolsY, this.lang === 'zh' ? '[ 搜索 ID ]' : '[ FIND ID ]', {
+    this.add.text(W - 18, toolsY, this.lang === 'zh' ? '[ 搜索对局 ]' : '[ FIND ID ]', {
       fontSize: '11px', fontFamily: 'monospace', color: '#7ad7ff',
       backgroundColor: '#00131a', padding: { x: 8, y: 4 },
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.promptFindMatch());
 
     const headerY = toolsY + 28;
-    this.add.text(18, headerY, 'ID     A        B        STAKE        PHASE           ACTION', {
+    this.add.text(18, headerY, this.lang === 'zh' ? 'ID     发起方   应战方   赌注         阶段           操作' : 'ID     A        B        STAKE        PHASE           ACTION', {
       fontSize: '11px', fontFamily: 'monospace', color: '#555555',
     });
     this.add.rectangle(W / 2, headerY + 12, W - 32, 1, 0x333333);
@@ -189,7 +190,7 @@ export class PKScene extends Phaser.Scene {
       };
 
       if (result.status === 'pending') {
-        this.showStatus(`${result.action.toUpperCase()} 提交中... ${result.txHash?.slice(0, 10)}...`, '#ffaa00');
+        this.showStatus(`${this.pendingActionText(result.action)} ${this.lang === 'zh' ? '提交中' : 'pending'}... ${result.txHash?.slice(0, 10)}...`, '#ffaa00');
         return;
       }
 
@@ -278,6 +279,24 @@ export class PKScene extends Phaser.Scene {
   private requestMatches() {
       this.showStatus(this.lang === 'zh' ? '读取链上擂台中...' : 'Loading arena matches...', '#ffaa00');
       eventBus.emit('pk:search', { nfaId: this.nfaId });
+  }
+
+  private phaseName(phase: number) {
+    return this.lang === 'zh'
+      ? (PK_PHASE_NAMES_ZH[phase] ?? `阶段 ${phase}`)
+      : (PK_PHASE_NAMES_EN[phase] ?? `PHASE ${phase}`);
+  }
+
+  private pendingActionText(action: string) {
+    if (this.lang !== 'zh') return action.toUpperCase();
+    const labels: Record<string, string> = {
+      create: '创建对局',
+      join: '加入对局',
+      reveal: '公开策略',
+      settle: '结算对局',
+      cancel: '取消对局',
+    };
+    return labels[action] ?? action;
   }
 
   private isMyMatch(match: { nfaA: number; nfaB: number }) {
@@ -379,7 +398,7 @@ export class PKScene extends Phaser.Scene {
 
     const isMine = match.nfaA === this.nfaId || match.nfaB === this.nfaId;
     const opponentId = match.nfaA === this.nfaId ? match.nfaB : match.nfaA;
-    const phaseName = PK_PHASE_NAMES[match.phase] ?? `PHASE ${match.phase}`;
+    const phaseName = this.phaseName(match.phase);
     const options = [
       {
         label: `NFA #${match.nfaA} vs NFA #${match.nfaB || '-'}`,
@@ -390,7 +409,9 @@ export class PKScene extends Phaser.Scene {
         onSelect: () => {},
       },
       {
-        label: `Reveal A ${match.revealedA ? 'YES' : 'NO'} | Reveal B ${match.revealedB ? 'YES' : 'NO'}`,
+        label: this.lang === 'zh'
+          ? `公开状态 发起方:${match.revealedA ? '是' : '否'} | 应战方:${match.revealedB ? '是' : '否'}`
+          : `Reveal A ${match.revealedA ? 'YES' : 'NO'} | Reveal B ${match.revealedB ? 'YES' : 'NO'}`,
         description: isMine
           ? (this.lang === 'zh' ? '该对局包含当前 NFA。' : 'This match includes the active NFA.')
           : (this.lang === 'zh' ? '该对局不属于当前 NFA。' : 'This match does not belong to the active NFA.'),
@@ -496,7 +517,7 @@ export class PKScene extends Phaser.Scene {
       title: this.lang === 'zh' ? '取消对战' : 'Cancel match',
       subtitle: this.lang === 'zh' ? '只能取消 OPEN / JOINED / COMMITTED 状态的对战。' : 'Only OPEN / JOINED / COMMITTED matches can be cancelled.',
       options: cancellable.map((match) => ({
-        label: `#${match.matchId}  ${match.phaseName}`,
+        label: `#${match.matchId}  ${this.phaseName(match.phase)}`,
         description: `NFA #${match.nfaA} vs ${match.nfaB || '-'} · 质押 ${match.stake} Claworld`,
         onSelect: () => eventBus.emit('pk:cancel', { matchId: match.matchId }),
       })),
@@ -551,7 +572,7 @@ export class PKScene extends Phaser.Scene {
         y,
         isCompact
           ? this.buildCompactMatchText(match)
-          : `${String(match.matchId).padEnd(6)} ${String(match.nfaA).padEnd(8)} ${String(match.nfaB || '-').padEnd(8)} ${`${match.stake} Claworld`.padEnd(12)} ${match.phaseName.padEnd(14)}`,
+          : `${String(match.matchId).padEnd(6)} ${String(match.nfaA).padEnd(8)} ${String(match.nfaB || '-').padEnd(8)} ${`${match.stake} Claworld`.padEnd(12)} ${this.phaseName(match.phase).padEnd(14)}`,
         { fontSize: isCompact ? '11px' : '12px', fontFamily: 'monospace', color: '#cccccc', lineSpacing: 4 },
       );
 
@@ -656,13 +677,13 @@ export class PKScene extends Phaser.Scene {
       ].sort((a, b) => b.value - a.value);
 
       this.modal.showMenu({
-        title: this.lang === 'zh' ? `对手 NFA #${nfaId} · ${identity.title}` : `Opponent NFA #${nfaId} · ${identity.title}`,
-        subtitle: this.lang === 'zh'
-          ? `Lv.${state.level} · ${state.active ? '激活' : '休眠'} · Claworld ${state.clwBalance.toFixed(0)}`
-          : `Lv.${state.level} · ${state.active ? 'Active' : 'Dormant'} · Claworld ${state.clwBalance.toFixed(0)}`,
-        options: [
-          { label: identity.subtitle, description: `${dominant[0].label}: ${dominant[0].value} · ${dominant[1].label}: ${dominant[1].value} · ${dominant[2].label}: ${dominant[2].value}`, disabled: true, onSelect: () => {} },
-          { label: `STR ${state.str}  DEF ${state.def}  SPD ${state.spd}  VIT ${state.vit}`, description: this.lang === 'zh' ? '链上实时属性快照' : 'Live onchain stat snapshot', disabled: true, onSelect: () => {} },
+      title: this.lang === 'zh' ? `对手 NFA #${nfaId} · ${identity.title}` : `Opponent NFA #${nfaId} · ${identity.title}`,
+      subtitle: this.lang === 'zh'
+        ? `等级 ${state.level} · ${state.active ? '激活' : '休眠'} · Claworld ${state.clwBalance.toFixed(0)}`
+        : `Lv.${state.level} · ${state.active ? 'Active' : 'Dormant'} · Claworld ${state.clwBalance.toFixed(0)}`,
+      options: [
+          { label: identity.subtitle, description: `${dominant[0].label}:${dominant[0].value} · ${dominant[1].label}:${dominant[1].value} · ${dominant[2].label}:${dominant[2].value}`, disabled: true, onSelect: () => {} },
+          { label: this.lang === 'zh' ? `攻击 ${state.str}  防御 ${state.def}  速度 ${state.spd}  体力 ${state.vit}` : `STR ${state.str}  DEF ${state.def}  SPD ${state.spd}  VIT ${state.vit}`, description: this.lang === 'zh' ? '链上实时属性快照' : 'Live onchain stat snapshot', disabled: true, onSelect: () => {} },
         ],
         cancelLabel: this.lang === 'zh' ? '关闭' : 'Close',
       });
@@ -750,7 +771,7 @@ export class PKScene extends Phaser.Scene {
       : null;
 
     return this.lang === 'zh'
-      ? `#${match.matchId}  ${match.phaseName}\n对手 NFA ${opponentId || '-'}  ·  ${identity?.title || '未知'}\n质押 ${match.stake} Claworld`
+      ? `#${match.matchId}  ${this.phaseName(match.phase)}\n对手 NFA ${opponentId || '-'}  ·  ${identity?.title || '未知'}\n质押 ${match.stake} Claworld`
       : `#${match.matchId}  ${match.phaseName}\nOpponent NFA ${opponentId || '-'}  ·  ${identity?.title || 'Unknown'}\nStake ${match.stake} Claworld`;
   }
 }

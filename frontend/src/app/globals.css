@@ -8,11 +8,11 @@
   --color-crt-surface-low: #1B1B1B;
   --color-crt-surface-high: #20201F;
   --color-crt-surface-highest: #353535;
-  --color-crt-green: #26ff26;
-  --color-crt-bright: #7fff7f;
-  --color-crt-dim: #2F8E1C;
+  --color-crt-green: #52ff52;
+  --color-crt-bright: #b8ffb8;
+  --color-crt-dim: #46b438;
   --color-crt-darkest: #0f3d1a;
-  --color-crt-glow: rgba(38, 255, 38, 0.6);
+  --color-crt-glow: rgba(82, 255, 82, 0.82);
 
   /* Hardware palette */
   --color-hw-olive: #5B5B3D;
@@ -22,7 +22,7 @@
   --color-hw-screw: #42422c;
 
   /* Rarity colors */
-  --color-rarity-common: #26ff26;
+  --color-rarity-common: #52ff52;
   --color-rarity-rare: #33CCFF;
   --color-rarity-epic: #CC66FF;
   --color-rarity-legendary: #FFCC33;
@@ -31,10 +31,10 @@
   /* Semantic */
   --color-term-danger: #FFB4AB;
   --color-term-warn: #F1C100;
-  --color-term-success: #26ff26;
+  --color-term-success: #52ff52;
 
   --color-background: #0a0a05;
-  --color-foreground: #26ff26;
+  --color-foreground: #52ff52;
 
   --font-mono: var(--font-jetbrains), 'JetBrains Mono', 'Courier New', monospace;
 }
@@ -365,11 +365,11 @@
 
 .term-box {
   position: relative;
-  border: 1px solid rgba(38, 255, 38, 0.25);
+  border: 1px solid rgba(82, 255, 82, 0.36);
   padding: 14px 16px;
   margin: 0;
-  background: rgba(38, 255, 38, 0.02);
-  box-shadow: 0 0 8px rgba(38, 255, 38, 0.05), inset 0 0 12px rgba(0, 0, 0, 0.3);
+  background: rgba(82, 255, 82, 0.045);
+  box-shadow: 0 0 16px rgba(82, 255, 82, 0.1), inset 0 0 18px rgba(0, 0, 0, 0.22);
 }
 
 .term-box[data-title]::before {
@@ -380,7 +380,7 @@
   transform: translateY(-50%);
   padding: 0 4px;
   background: var(--color-crt-black);
-  color: rgba(38, 255, 38, 0.5);
+  color: rgba(184, 255, 184, 0.72);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -484,8 +484,8 @@
   justify-content: center;
   gap: 4px;
   padding: 5px 16px;
-  border: 1px solid rgba(38, 255, 38, 0.3);
-  background: rgba(38, 255, 38, 0.04);
+  border: 1px solid rgba(82, 255, 82, 0.42);
+  background: rgba(82, 255, 82, 0.08);
   color: var(--color-crt-green);
   cursor: pointer;
   transition: all 50ms;

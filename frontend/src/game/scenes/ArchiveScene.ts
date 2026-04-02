@@ -53,7 +53,7 @@ export class ArchiveScene extends Phaser.Scene {
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
 
-    this.add.rectangle(W / 2, H / 2, W, H, 0x070909, 0.96);
+    this.add.rectangle(W / 2, H / 2, W, H, 0x101414, 0.9);
     this.add.text(W / 2, 28, this.lang === 'zh' ? '[ 龙虾档案 ]' : '[ LOBSTER DOSSIER ]', {
       fontSize: '24px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5);
@@ -73,8 +73,8 @@ export class ArchiveScene extends Phaser.Scene {
       const identity = buildIdentityFromState(state, this.lang);
       const specialty = getShelterSpecialty(state.shelter, this.lang);
 
-      this.add.rectangle(W / 2, H / 2 + 8, Math.min(W - 28, 560), Math.min(H - 120, 420), 0x10151a, 0.92)
-        .setStrokeStyle(1, 0x39ff14, 0.25);
+      this.add.rectangle(W / 2, H / 2 + 8, Math.min(W - 28, 560), Math.min(H - 120, 420), 0x141b20, 0.9)
+        .setStrokeStyle(1, 0x52ff52, 0.35);
 
       this.add.text(32, 86, identity.title, {
         fontSize: '22px', fontFamily: 'monospace', color: '#ffffff',
@@ -106,13 +106,13 @@ export class ArchiveScene extends Phaser.Scene {
       this.renderBar(32, 380, this.lang === 'zh' ? '创造' : 'Create', state.create, 0xc081ff);
       this.renderBar(32, 410, this.lang === 'zh' ? '毅力' : 'Grit', state.grit, 0x66ff99);
 
-      this.add.text(W - 196, 152, 'STR', { fontSize: '14px', fontFamily: 'monospace', color: '#ff8585' });
+      this.add.text(W - 196, 152, this.lang === 'zh' ? '攻击' : 'STR', { fontSize: '14px', fontFamily: 'monospace', color: '#ff8585' });
       this.add.text(W - 120, 152, String(state.str), { fontSize: '14px', fontFamily: 'monospace', color: '#ffffff' });
-      this.add.text(W - 196, 180, 'DEF', { fontSize: '14px', fontFamily: 'monospace', color: '#89d4ff' });
+      this.add.text(W - 196, 180, this.lang === 'zh' ? '防御' : 'DEF', { fontSize: '14px', fontFamily: 'monospace', color: '#89d4ff' });
       this.add.text(W - 120, 180, String(state.def), { fontSize: '14px', fontFamily: 'monospace', color: '#ffffff' });
-      this.add.text(W - 196, 208, 'SPD', { fontSize: '14px', fontFamily: 'monospace', color: '#ffe084' });
+      this.add.text(W - 196, 208, this.lang === 'zh' ? '速度' : 'SPD', { fontSize: '14px', fontFamily: 'monospace', color: '#ffe084' });
       this.add.text(W - 120, 208, String(state.spd), { fontSize: '14px', fontFamily: 'monospace', color: '#ffffff' });
-      this.add.text(W - 196, 236, 'VIT', { fontSize: '14px', fontFamily: 'monospace', color: '#8cffb5' });
+      this.add.text(W - 196, 236, this.lang === 'zh' ? '体力' : 'VIT', { fontSize: '14px', fontFamily: 'monospace', color: '#8cffb5' });
       this.add.text(W - 120, 236, String(state.vit), { fontSize: '14px', fontFamily: 'monospace', color: '#ffffff' });
 
       const summary = this.lang === 'zh'

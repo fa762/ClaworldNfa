@@ -54,8 +54,8 @@ export class StatusHUD {
     const W = this.scene.cameras.main.width;
     this.mainText.setText(
       W < 720
-        ? `NFA #${this.nfaId}  Lv.${s.level}  Claworld:${s.clw}  ${s.active ? 'ACTIVE' : 'DORMANT'}\nHP:${s.hp}  UPKEEP:${s.dailyCost.toFixed(1)}`
-        : `NFA #${this.nfaId}  Lv.${s.level}  Claworld: ${s.clw}  HP: ${s.hp}  ${s.active ? 'ACTIVE' : 'DORMANT'}  UPKEEP: ${s.dailyCost.toFixed(1)}`
+        ? `NFA #${this.nfaId}  等级.${s.level}  Claworld:${s.clw}  ${s.active ? '活跃' : '休眠'}\n生命:${s.hp}  维护:${s.dailyCost.toFixed(1)}`
+        : `NFA #${this.nfaId}  等级.${s.level}  Claworld:${s.clw}  生命:${s.hp}  ${s.active ? '活跃' : '休眠'}  维护:${s.dailyCost.toFixed(1)}`
     );
 
     if (!this.hasData) {

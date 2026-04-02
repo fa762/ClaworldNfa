@@ -52,6 +52,29 @@ type PendingTx = { hash: `0x${string}`; label: string } | null;
 
 const PK_PHASE_NAMES = ['OPEN', 'JOINED', 'COMMITTED', 'REVEALED', 'SETTLED', 'CANCELLED'];
 
+function txLabel(label: string, zh: boolean) {
+  const labels: Record<string, string> = {
+    'PROCESSING UPKEEP': zh ? '结算日常维护' : 'Processing upkeep',
+    'SUBMITTING TASK': zh ? '提交任务' : 'Submitting task',
+    'CREATING PK MATCH': zh ? '创建 PK 对局' : 'Creating PK match',
+    'JOINING PK MATCH': zh ? '加入 PK 对局' : 'Joining PK match',
+    'REVEALING STRATEGY': zh ? '公开策略' : 'Revealing strategy',
+    'SETTLING PK MATCH': zh ? '结算 PK 对局' : 'Settling PK match',
+    'CANCELLING PK MATCH': zh ? '取消 PK 对局' : 'Cancelling PK match',
+    'BUYING NFA': zh ? '购买 NFA' : 'Buying NFA',
+    'PLACING BID': zh ? '提交出价' : 'Placing bid',
+    'SETTLING AUCTION': zh ? '结算拍卖' : 'Settling auction',
+    'CANCELLING LISTING': zh ? '取消挂单' : 'Cancelling listing',
+    'APPROVING SWAP NFA': zh ? '授权互换 NFA' : 'Approving swap NFA',
+    'ACCEPTING SWAP': zh ? '接受互换' : 'Accepting swap',
+    'APPROVING NFA': zh ? '授权 NFA' : 'Approving NFA',
+    'LISTING SWAP': zh ? '创建互换挂单' : 'Creating swap listing',
+    'CREATING AUCTION': zh ? '创建拍卖挂单' : 'Creating auction',
+    'LISTING NFA': zh ? '创建固定价挂单' : 'Listing NFA',
+  };
+  return labels[label] ?? label;
+}
+
 function getErrorMessage(error: unknown): string {
   if (!(error instanceof Error)) return 'Transaction failed';
 
@@ -911,21 +934,21 @@ export default function GamePage() {
         <div className="pointer-events-auto absolute bottom-4 left-3 flex items-center gap-4 font-mono text-xs">
           <button
             onClick={() => setShowSidePanel((current) => !current)}
-            className="text-crt-green/45 transition-colors hover:text-crt-green/75"
+            className="text-crt-green/70 transition-colors hover:text-crt-bright"
           >
             [TAB] {lang === 'zh' ? '控制台' : 'CONSOLE'}
           </button>
           <button
             onClick={() => setShowHelpPanel(true)}
-            className="text-crt-green/45 transition-colors hover:text-crt-green/75"
+            className="text-crt-green/70 transition-colors hover:text-crt-bright"
           >
             [H] {lang === 'zh' ? '帮助' : 'HELP'}
           </button>
         </div>
 
         {pendingTx && (
-          <div className="pointer-events-auto absolute bottom-4 right-3 border border-crt-green/20 bg-black/75 px-3 py-2 font-mono text-[11px] text-right text-crt-green/70 animate-pulse">
-            <div>{pendingTx.label}</div>
+          <div className="pointer-events-auto absolute bottom-4 right-3 border border-crt-green/30 bg-black/58 px-3 py-2 font-mono text-[11px] text-right text-crt-green/85 shadow-[0_0_18px_rgba(82,255,82,0.12)] animate-pulse">
+            <div>{txLabel(pendingTx.label, lang === 'zh')}</div>
             <div className="text-crt-green/40">{pendingTx.hash.slice(0, 12)}...</div>
           </div>
         )}
@@ -933,8 +956,8 @@ export default function GamePage() {
 
       {showStartupCard && (
         <div className="pointer-events-none absolute inset-0 z-[35] flex items-center justify-center p-4">
-          <div className="pointer-events-auto w-[min(92vw,36rem)] rounded border border-crt-green/25 bg-black/90 font-mono shadow-[0_0_36px_rgba(57,255,20,0.08)]">
-            <div className="border-b border-crt-green/15 px-4 py-4">
+          <div className="pointer-events-auto w-[min(92vw,36rem)] rounded border border-crt-green/35 bg-black/80 font-mono shadow-[0_0_40px_rgba(82,255,82,0.14)]">
+            <div className="border-b border-crt-green/25 px-4 py-4">
               <p className="text-[10px] tracking-[0.28em] text-crt-green/40">
                 {lang === 'zh' ? '进入流程' : 'SESSION FLOW'}
               </p>
@@ -1081,7 +1104,7 @@ export default function GamePage() {
       {showSidePanel && (
         <div className="absolute inset-0 z-[40] bg-black/35" onClick={() => setShowSidePanel(false)}>
           <div
-            className="absolute left-0 top-0 h-full w-[min(92vw,24rem)] border-r border-crt-green/30 bg-black/97 shadow-[0_0_40px_rgba(0,0,0,0.4)]"
+            className="absolute left-0 top-0 h-full w-[min(92vw,24rem)] border-r border-crt-green/35 bg-black/90 shadow-[0_0_40px_rgba(0,0,0,0.4)]"
             onClick={(e) => e.stopPropagation()}
           >
             <GameCommandShell

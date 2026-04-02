@@ -40,9 +40,12 @@ interface Listing {
 }
 
 const RARITY_COLORS = ['#aaaaaa', '#3399ff', '#aa44ff', '#ffd700', '#ff4444'];
-const RARITY_NAMES = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
+const RARITY_NAMES_ZH = ['普通', '稀有', '史诗', '传说', '神话'];
+const RARITY_NAMES_EN = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
 const TYPE_NAMES_ZH = ['固定价', '拍卖', '互换'];
 const TYPE_NAMES_EN = ['Fixed', 'Auction', 'Swap'];
+const STATUS_NAMES_ZH = ['进行中', '已成交', '已取消'];
+const STATUS_NAMES_EN = ['ACTIVE', 'SOLD', 'CANCELLED'];
 
 /**
  * MarketScene — 全真链上市场
@@ -91,7 +94,7 @@ export class MarketScene extends Phaser.Scene {
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
 
-    this.add.rectangle(W / 2, H / 2, W, H, 0x0a0a0a, 0.95);
+    this.add.rectangle(W / 2, H / 2, W, H, 0x101014, 0.9);
 
     this.add.text(W / 2, 24, this.lang === 'zh' ? '[ 交易墙 ]' : '[ MARKET WALL ]', {
       fontSize: '24px', fontFamily: 'monospace', color: '#3399ff',
@@ -143,13 +146,13 @@ export class MarketScene extends Phaser.Scene {
       backgroundColor: '#001a00', padding: { x: 8, y: 4 },
     }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleListingFilter());
 
-    this.add.text(W - 14, toolsY, this.lang === 'zh' ? '[ 搜索 ID ]' : '[ FIND ID ]', {
+    this.add.text(W - 14, toolsY, this.lang === 'zh' ? '[ 搜索挂单 ]' : '[ FIND ID ]', {
       fontSize: '11px', fontFamily: 'monospace', color: '#7ad7ff',
       backgroundColor: '#00131a', padding: { x: 8, y: 4 },
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.promptFindListing());
 
     const headerY = toolsY + 28;
-    this.add.text(14, headerY, 'ID     NFA     RARITY      TYPE       PRICE/BID           SELLER        ACTION', {
+    this.add.text(14, headerY, this.lang === 'zh' ? 'ID     NFA     稀有度      类型       价格/出价          卖家          操作' : 'ID     NFA     RARITY      TYPE       PRICE/BID           SELLER        ACTION', {
       fontSize: '11px', fontFamily: 'monospace', color: '#555555',
     });
     this.add.rectangle(W / 2, headerY + 12, W - 28, 1, 0x333333);
@@ -203,7 +206,7 @@ export class MarketScene extends Phaser.Scene {
       };
 
       if (result.status === 'pending') {
-        this.showStatus(`${result.action.toUpperCase()} 提交中... ${result.txHash?.slice(0, 10)}...`, '#ffaa00');
+        this.showStatus(`${this.pendingActionText(result.action)} ${this.lang === 'zh' ? '提交中' : 'pending'}... ${result.txHash?.slice(0, 10)}...`, '#ffaa00');
         return;
       }
 
@@ -293,6 +296,31 @@ export class MarketScene extends Phaser.Scene {
     eventBus.emit('market:requestListings');
   }
 
+  private typeName(type: number) {
+    return (this.lang === 'zh' ? TYPE_NAMES_ZH : TYPE_NAMES_EN)[type] ?? `TYPE ${type}`;
+  }
+
+  private rarityName(rarity: number) {
+    return (this.lang === 'zh' ? RARITY_NAMES_ZH : RARITY_NAMES_EN)[rarity] ?? `${rarity}`;
+  }
+
+  private statusName(status: number) {
+    return (this.lang === 'zh' ? STATUS_NAMES_ZH : STATUS_NAMES_EN)[status] ?? `${status}`;
+  }
+
+  private pendingActionText(action: string) {
+    if (this.lang !== 'zh') return action.toUpperCase();
+    const labels: Record<string, string> = {
+      list: '创建挂单',
+      buy: '购买',
+      bid: '出价',
+      settle: '结算拍卖',
+      cancel: '取消挂单',
+      acceptSwap: '接受互换',
+    };
+    return labels[action] ?? action;
+  }
+
   private getVisibleListings() {
     if (!this.showOnlyMine || !this.walletAddress) {
       return this.listings;
@@ -366,7 +394,7 @@ export class MarketScene extends Phaser.Scene {
 
     const isMine = Boolean(this.walletAddress) && item.seller.toLowerCase() === this.walletAddress.toLowerCase();
     const auctionEnded = item.listingType === 1 && item.endTime > 0 && Math.floor(Date.now() / 1000) >= item.endTime;
-    const typeName = this.getTypeNames()[item.listingType] ?? `TYPE ${item.listingType}`;
+    const typeName = this.typeName(item.listingType);
     const valueText = item.listingType === 2
       ? `NFA #${item.swapTargetId}`
       : item.listingType === 1 && Number(item.highestBid) > 0
@@ -377,7 +405,7 @@ export class MarketScene extends Phaser.Scene {
       {
         label: `NFA #${item.nfaId} | ${typeName}`,
         description: this.lang === 'zh'
-          ? `状态 ${['ACTIVE', 'SOLD', 'CANCELLED'][listing.status] ?? listing.status} | ${valueText}`
+          ? `状态 ${this.statusName(listing.status)} | ${valueText}`
           : `Status ${['ACTIVE', 'SOLD', 'CANCELLED'][listing.status] ?? listing.status} | ${valueText}`,
         disabled: true,
         onSelect: () => {},
@@ -386,7 +414,7 @@ export class MarketScene extends Phaser.Scene {
         label: `${this.lang === 'zh' ? '卖家' : 'Seller'} ${item.seller.slice(0, 6)}...${item.seller.slice(-4)}`,
         description: item.listingType === 1
           ? `${this.lang === 'zh' ? '最高出价' : 'Highest bid'} ${item.highestBid} BNB`
-          : `${this.lang === 'zh' ? '稀有度' : 'Rarity'} ${item.rarity}`,
+          : `${this.lang === 'zh' ? '稀有度' : 'Rarity'} ${this.rarityName(item.rarity)}`,
         disabled: true,
         onSelect: () => {},
       },
@@ -432,7 +460,7 @@ export class MarketScene extends Phaser.Scene {
         options: candidates.map((id) => ({
           label: `目标 NFA #${id}`,
           description: this.walletSummaries[id]
-            ? `Lv.${this.walletSummaries[id].level} · ${(this.lang === 'zh' ? TYPE_NAMES_ZH : TYPE_NAMES_EN)[2]} ${this.lang === 'zh' ? '目标' : 'target'}`
+            ? `Lv.${this.walletSummaries[id].level} · ${this.lang === 'zh' ? '互换目标' : 'swap target'}`
             : '链上可用 NFA',
           onSelect: () => eventBus.emit('market:list', { nfaId: this.nfaId, mode: 'swap', targetNfaId: id }),
         })),
@@ -520,8 +548,8 @@ export class MarketScene extends Phaser.Scene {
         16,
         y,
         isCompact
-          ? `#${item.listingId}  NFA ${item.nfaId}  ${(this.lang === 'zh' ? TYPE_NAMES_ZH : TYPE_NAMES_EN)[item.listingType]}\n${identity.title}  ·  ${mainValue}\n${this.lang === 'zh' ? '卖家' : 'Seller'} ${sellerShort}`
-          : `${String(item.listingId).padEnd(6)} ${String(item.nfaId).padEnd(7)} ${identity.title.padEnd(18)} ${(this.lang === 'zh' ? TYPE_NAMES_ZH : TYPE_NAMES_EN)[item.listingType].padEnd(10)} ${mainValue.padEnd(18)} ${sellerShort.padEnd(13)}`,
+          ? `#${item.listingId}  NFA ${item.nfaId}  ${this.typeName(item.listingType)}\n${identity.title}  ·  ${mainValue}\n${this.lang === 'zh' ? '卖家' : 'Seller'} ${sellerShort}`
+          : `${String(item.listingId).padEnd(6)} ${String(item.nfaId).padEnd(7)} ${identity.title.padEnd(18)} ${this.typeName(item.listingType).padEnd(10)} ${mainValue.padEnd(18)} ${sellerShort.padEnd(13)}`,
         { fontSize: isCompact ? '11px' : '11px', fontFamily: 'monospace', color: rarityColor, lineSpacing: 4 },
       );
 

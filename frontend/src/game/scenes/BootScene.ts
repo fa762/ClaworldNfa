@@ -7,6 +7,7 @@ import { eventBus } from '../EventBus';
 export class BootScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
   private readonly assetVersion = '20260401-player-ascii-v1';
+  private lang: 'zh' | 'en' = 'zh';
 
   constructor() {
     super({ key: 'BootScene' });
@@ -37,17 +38,18 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
+    this.lang = (this.registry.get('gameLang') as 'zh' | 'en') || 'zh';
     const cx = this.cameras.main.centerX;
     const cy = this.cameras.main.centerY;
 
     // 标题
-    this.add.text(cx, cy - 80, 'CLAW WORLD', {
+    this.add.text(cx, cy - 80, this.lang === 'zh' ? '龙虾世界' : 'CLAW WORLD', {
       fontSize: '32px',
       fontFamily: 'monospace',
       color: '#39ff14',
     }).setOrigin(0.5);
 
-    this.add.text(cx, cy - 45, 'AWAITING LINK', {
+    this.add.text(cx, cy - 45, this.lang === 'zh' ? '等待连接' : 'AWAITING LINK', {
       fontSize: '12px',
       fontFamily: 'monospace',
       color: '#39ff14',
@@ -61,7 +63,7 @@ export class BootScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // 底部提示
-    this.add.text(cx, cy + 80, '[ PRESS TAB TO LINK NFA ]', {
+    this.add.text(cx, cy + 80, this.lang === 'zh' ? '[ 按 TAB 连接龙虾 ]' : '[ PRESS TAB TO LINK NFA ]', {
       fontSize: '11px',
       fontFamily: 'monospace',
       color: '#39ff14',
@@ -78,7 +80,7 @@ export class BootScene extends Phaser.Scene {
     });
 
     // 初始化状态
-    this.statusText.setText('AWAITING WALLET SYNC');
+    this.statusText.setText(this.lang === 'zh' ? '等待钱包同步' : 'AWAITING WALLET SYNC');
 
     // 缓存性格数据
     let cachedPersonality: { courage: number; wisdom: number; social: number; create: number; grit: number } | undefined;
@@ -93,7 +95,7 @@ export class BootScene extends Phaser.Scene {
       const { nfaId, shelter } = data as { nfaId: number; shelter: number };
       this.registry.set('nfaId', nfaId);
       this.registry.set('shelter', shelter);
-      this.statusText.setText(`NFA #${nfaId} LINKED - SHELTER-0${shelter}`);
+      this.statusText.setText(this.lang === 'zh' ? `NFA #${nfaId} 已连接 - 避难所 0${shelter}` : `NFA #${nfaId} LINKED - SHELTER-0${shelter}`);
       this.scene.start('ShelterScene', { nfaId, shelter, personality: cachedPersonality });
     });
 
