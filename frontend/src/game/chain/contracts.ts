@@ -47,6 +47,36 @@ export function loadPKSalt(matchId: number): { strategy: number; salt: string } 
   return JSON.parse(raw);
 }
 
+export type CachedPKResolution =
+  | {
+      type: 'settled';
+      matchId: number;
+      winnerNfaId: number;
+      loserNfaId: number;
+      reward: string;
+      burned: string;
+      txHash?: string;
+      ts: number;
+    }
+  | {
+      type: 'cancelled';
+      matchId: number;
+      txHash?: string;
+      ts: number;
+    };
+
+export function savePKResolutionCache(resolution: CachedPKResolution) {
+  const key = `claw-pk-resolution-${resolution.matchId}`;
+  localStorage.setItem(key, JSON.stringify(resolution));
+}
+
+export function loadPKResolutionCache(matchId: number): CachedPKResolution | null {
+  const key = `claw-pk-resolution-${matchId}`;
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+  return JSON.parse(raw) as CachedPKResolution;
+}
+
 export function pkCreateArgs(nfaId: number, stake: bigint, commitHash: `0x${string}`) {
   return {
     address: addresses.pkSkill as Address,

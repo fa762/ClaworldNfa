@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
-import { loadPKSalt } from '../chain/contracts';
+import { loadPKResolutionCache, loadPKSalt } from '../chain/contracts';
 import { loadMatch, loadMatchResolution, loadNFAState } from '../chain/wallet';
 import { TerminalModal, type ReportSection } from '../ui/TerminalModal';
 import type { GameLang } from '../data/npc-dialogues';
@@ -842,6 +842,7 @@ export class PKScene extends Phaser.Scene {
     const phaseName = this.phaseName(match.phase);
     const opponentId = match.nfaA === this.nfaId ? match.nfaB : match.nfaA;
     const hasOpponent = match.nfaB > 0;
+    const cachedResolution = loadPKResolutionCache(matchId);
     const stakePerSide = Number(match.stake) / 1e18;
     const currentPot = hasOpponent ? stakePerSide * 2 : stakePerSide;
     const fullPot = stakePerSide * 2;
@@ -856,6 +857,46 @@ export class PKScene extends Phaser.Scene {
         : isMine
           ? 'danger'
           : 'accent';
+    const effectiveSettled = resolution?.type === 'settled'
+      ? {
+          winnerNfaId: resolution.winnerNfaId,
+          loserNfaId: resolution.loserNfaId,
+          reward: Number(resolution.reward) / 1e18,
+          burned: Number(resolution.burned) / 1e18,
+          blockNumber: resolution.blockNumber,
+          transactionHash: resolution.transactionHash,
+          source: 'event' as const,
+        }
+      : cachedResolution?.type === 'settled'
+        ? {
+            winnerNfaId: cachedResolution.winnerNfaId,
+            loserNfaId: cachedResolution.loserNfaId,
+            reward: Number(cachedResolution.reward),
+            burned: Number(cachedResolution.burned),
+            transactionHash: cachedResolution.txHash,
+            source: 'cache' as const,
+          }
+        : match.phase === 4 && hasOpponent && match.revealedA !== match.revealedB
+          ? {
+              winnerNfaId: match.revealedA ? match.nfaA : match.nfaB,
+              loserNfaId: match.revealedA ? match.nfaB : match.nfaA,
+              reward: computedReward,
+              burned: computedBurned,
+              source: 'timeout' as const,
+            }
+          : null;
+    const effectiveCancelled = resolution?.type === 'cancelled'
+      ? {
+          blockNumber: resolution.blockNumber,
+          transactionHash: resolution.transactionHash,
+          source: 'event' as const,
+        }
+      : cachedResolution?.type === 'cancelled'
+        ? {
+            transactionHash: cachedResolution.txHash,
+            source: 'cache' as const,
+          }
+        : null;
     const sections: ReportSection[] = [
       {
         title: this.lang === 'zh' ? '本场概览' : 'Match snapshot',
@@ -885,27 +926,42 @@ export class PKScene extends Phaser.Scene {
       },
     ];
 
-    if (resolution?.type === 'settled') {
+    if (effectiveSettled) {
       sections.push({
         title: this.lang === 'zh' ? '链上结果' : 'On-chain result',
-        tone: resolution.winnerNfaId === this.nfaId ? 'success' : resolution.loserNfaId === this.nfaId ? 'danger' : 'accent',
+        tone: effectiveSettled.winnerNfaId === this.nfaId ? 'success' : effectiveSettled.loserNfaId === this.nfaId ? 'danger' : 'accent',
         chips: [
-          this.lang === 'zh' ? `实际胜者 NFA #${resolution.winnerNfaId}` : `Winner NFA #${resolution.winnerNfaId}`,
-          this.lang === 'zh' ? `败者 NFA #${resolution.loserNfaId}` : `Loser NFA #${resolution.loserNfaId}`,
-          this.lang === 'zh' ? `胜者到账 ${this.formatClaw(Number(resolution.reward) / 1e18)} Claworld` : `Reward ${this.formatClaw(Number(resolution.reward) / 1e18)} Claworld`,
-          this.lang === 'zh' ? `系统销毁 ${this.formatClaw(Number(resolution.burned) / 1e18)} Claworld` : `Burn ${this.formatClaw(Number(resolution.burned) / 1e18)} Claworld`,
-          this.lang === 'zh' ? `区块 #${resolution.blockNumber}` : `Block #${resolution.blockNumber}`,
+          this.lang === 'zh' ? `实际胜者 NFA #${effectiveSettled.winnerNfaId}` : `Winner NFA #${effectiveSettled.winnerNfaId}`,
+          this.lang === 'zh' ? `败者 NFA #${effectiveSettled.loserNfaId}` : `Loser NFA #${effectiveSettled.loserNfaId}`,
+          this.lang === 'zh' ? `胜者到账 ${this.formatClaw(effectiveSettled.reward)} Claworld` : `Reward ${this.formatClaw(effectiveSettled.reward)} Claworld`,
+          this.lang === 'zh' ? `系统销毁 ${this.formatClaw(effectiveSettled.burned)} Claworld` : `Burn ${this.formatClaw(effectiveSettled.burned)} Claworld`,
+          ...(effectiveSettled.blockNumber ? [this.lang === 'zh' ? `区块 #${effectiveSettled.blockNumber}` : `Block #${effectiveSettled.blockNumber}`] : []),
         ],
-        links: [
-          {
-            label: this.lang === 'zh'
-              ? `查看交易 ${this.shortHash(resolution.transactionHash)}`
-              : `View tx ${this.shortHash(resolution.transactionHash)}`,
-            href: getBscScanTxUrl(resolution.transactionHash),
-          },
-        ],
+        links: effectiveSettled.transactionHash
+          ? [
+              {
+                label: this.lang === 'zh'
+                  ? `查看交易 ${this.shortHash(effectiveSettled.transactionHash)}`
+                  : `View tx ${this.shortHash(effectiveSettled.transactionHash)}`,
+                href: getBscScanTxUrl(effectiveSettled.transactionHash),
+              },
+            ]
+          : [],
+        lines: effectiveSettled.source === 'cache'
+          ? [
+              this.lang === 'zh'
+                ? '公共 RPC 暂未返回结算事件，当前先使用本地成功交易回执结果。'
+                : 'Public RPC did not return the settlement event. Using the locally cached confirmed receipt.',
+            ]
+          : effectiveSettled.source === 'timeout'
+            ? [
+                this.lang === 'zh'
+                  ? '公共 RPC 暂未返回结算事件，本场按超时结算规则推断：谁公开谁胜。'
+                  : 'Public RPC did not return the settlement event. This result is inferred from the timeout settlement rule.',
+              ]
+            : undefined,
       });
-    } else if (resolution?.type === 'cancelled') {
+    } else if (effectiveCancelled) {
       sections.push({
         title: this.lang === 'zh' ? '链上结果' : 'On-chain result',
         tone: 'danger',
@@ -914,16 +970,25 @@ export class PKScene extends Phaser.Scene {
           this.lang === 'zh' ? '胜者 无' : 'Winner None',
           this.lang === 'zh' ? '奖励 0 Claworld' : 'Reward 0 Claworld',
           this.lang === 'zh' ? '销毁 0 Claworld' : 'Burn 0 Claworld',
-          this.lang === 'zh' ? `区块 #${resolution.blockNumber}` : `Block #${resolution.blockNumber}`,
+          ...(effectiveCancelled.blockNumber ? [this.lang === 'zh' ? `区块 #${effectiveCancelled.blockNumber}` : `Block #${effectiveCancelled.blockNumber}`] : []),
         ],
-        links: [
-          {
-            label: this.lang === 'zh'
-              ? `查看交易 ${this.shortHash(resolution.transactionHash)}`
-              : `View tx ${this.shortHash(resolution.transactionHash)}`,
-            href: getBscScanTxUrl(resolution.transactionHash),
-          },
-        ],
+        links: effectiveCancelled.transactionHash
+          ? [
+              {
+                label: this.lang === 'zh'
+                  ? `查看交易 ${this.shortHash(effectiveCancelled.transactionHash)}`
+                  : `View tx ${this.shortHash(effectiveCancelled.transactionHash)}`,
+                href: getBscScanTxUrl(effectiveCancelled.transactionHash),
+              },
+            ]
+          : [],
+        lines: effectiveCancelled.source === 'cache'
+          ? [
+              this.lang === 'zh'
+                ? '公共 RPC 暂未返回取消事件，当前先使用本地成功交易回执结果。'
+                : 'Public RPC did not return the cancellation event. Using the locally cached confirmed receipt.',
+            ]
+          : undefined,
       });
     } else if (!hasOpponent) {
       sections.push({
@@ -953,11 +1018,13 @@ export class PKScene extends Phaser.Scene {
       });
     } else if (breakdown && replayWinnerId !== null) {
       sections.push({
-        title: this.lang === 'zh' ? '当前战况' : 'Current verdict',
-        tone: match.phase === 4 ? replayTone : 'accent',
+        title: match.phase === 4
+          ? (this.lang === 'zh' ? '公式复盘' : 'Formula replay')
+          : (this.lang === 'zh' ? '当前战况' : 'Current verdict'),
+        tone: match.phase === 4 ? 'accent' : 'accent',
         chips: [
           match.phase === 4
-            ? (this.lang === 'zh' ? `已结算 · 复盘胜者 NFA #${replayWinnerId}` : `Settled · Replay winner NFA #${replayWinnerId}`)
+            ? (this.lang === 'zh' ? `仅公式复盘 · 当前占优 NFA #${replayWinnerId}` : `Formula replay only · Advantage NFA #${replayWinnerId}`)
             : (this.lang === 'zh' ? `当前占优 NFA #${replayWinnerId}` : `Advantage NFA #${replayWinnerId}`),
           this.lang === 'zh' ? `胜者到账 ${this.formatClaw(computedReward)} Claworld` : `Winner payout ${this.formatClaw(computedReward)} Claworld`,
           this.lang === 'zh' ? `系统销毁 ${this.formatClaw(computedBurned)} Claworld` : `Burn ${this.formatClaw(computedBurned)} Claworld`,
@@ -965,8 +1032,8 @@ export class PKScene extends Phaser.Scene {
         lines: match.phase === 4
           ? [
               this.lang === 'zh'
-                ? '公共 RPC 未返回结算事件，当前按合约公式复盘展示。'
-                : 'Public RPC did not return the settlement event; showing formula replay.',
+                ? '公共 RPC 未返回结算事件，以下仅按当前属性做公式复盘，不代表历史实际结算结果。'
+                : 'Public RPC did not return the settlement event. This is only a replay using current stats, not the historical final result.',
             ]
           : [
               this.lang === 'zh'
@@ -977,18 +1044,14 @@ export class PKScene extends Phaser.Scene {
     }
 
     if (breakdown && stateA && stateB && hasOpponent) {
-      const settledWinnerId = resolution?.type === 'settled'
-        ? resolution.winnerNfaId
-        : match.phase === 4
-          ? replayWinnerId
-          : null;
+      const settledWinnerId = effectiveSettled?.winnerNfaId ?? null;
       const toneA: ReportSection['tone'] = match.phase === 5
         ? 'normal'
         : settledWinnerId === match.nfaA
           ? 'success'
           : settledWinnerId === match.nfaB
             ? 'danger'
-            : breakdown.winner === 'A'
+            : match.phase < 4 && breakdown.winner === 'A'
               ? 'accent'
               : 'normal';
       const toneB: ReportSection['tone'] = match.phase === 5
@@ -997,7 +1060,7 @@ export class PKScene extends Phaser.Scene {
           ? 'success'
           : settledWinnerId === match.nfaA
             ? 'danger'
-            : breakdown.winner === 'B'
+            : match.phase < 4 && breakdown.winner === 'B'
               ? 'accent'
               : 'normal';
 

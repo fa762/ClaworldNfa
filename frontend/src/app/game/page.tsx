@@ -36,6 +36,7 @@ import {
   pkSettleArgs,
   processUpkeepArgs,
   savePKSalt,
+  savePKResolutionCache,
   taskSubmitArgs,
 } from '@/game/chain/contracts';
 import { addresses } from '@/contracts/addresses';
@@ -666,6 +667,18 @@ export default function GamePage() {
         await emitPkMatches();
 
         const settled = getReceiptEventArgs(PKSkillABI, receipt, addresses.pkSkill, 'MatchSettled');
+        if (settled?.winner && settled?.loser && settled?.reward && settled?.burned) {
+          savePKResolutionCache({
+            type: 'settled',
+            matchId: data.matchId,
+            winnerNfaId: Number(settled.winner),
+            loserNfaId: Number(settled.loser),
+            reward: formatEther(settled.reward as bigint),
+            burned: formatEther(settled.burned as bigint),
+            txHash: hash,
+            ts: Date.now(),
+          });
+        }
         eventBus.emit('pk:result', {
           status: 'confirmed',
           action: 'settle',
@@ -697,6 +710,12 @@ export default function GamePage() {
         await refreshActiveNfaState();
         await emitPkMatches();
 
+        savePKResolutionCache({
+          type: 'cancelled',
+          matchId: data.matchId,
+          txHash: hash,
+          ts: Date.now(),
+        });
         eventBus.emit('pk:result', {
           status: 'confirmed',
           action: 'cancel',
