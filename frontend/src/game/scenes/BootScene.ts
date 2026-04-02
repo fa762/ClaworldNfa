@@ -29,9 +29,14 @@ export class BootScene extends Phaser.Scene {
     this.load.image('npc-task-art', assetUrl('npc-task'));
     this.load.image('npc-pk-art', assetUrl('npc-pk'));
     this.load.image('npc-market-art', assetUrl('npc-market'));
+    this.load.image('npc-sable-art', assetUrl('npc-sable'));
     this.load.image('portal-art', assetUrl('portal'));
     this.load.image('npc-openclaw-art', assetUrl('npc-openclaw'));
     this.load.image('tile-floor-art', assetUrl('tile-floor'));
+    this.load.image('sable-portrait-default', assetUrl('sable-portrait-default'));
+    this.load.image('sable-portrait-calm', assetUrl('sable-portrait-calm'));
+    this.load.image('sable-portrait-warning', assetUrl('sable-portrait-warning'));
+    this.load.image('sable-portrait-secret', assetUrl('sable-portrait-secret'));
 
     // ── 加载瓦片地图（如果存在） ──
     this.load.on('loaderror', () => { /* 静默忽略缺失资源 */ });

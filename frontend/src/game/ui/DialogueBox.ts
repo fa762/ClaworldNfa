@@ -4,6 +4,7 @@ interface DialogueLine {
   speaker: string;
   text: string;
   color?: string;
+  portraitKey?: string;
 }
 
 interface DialogueChoice {
@@ -25,6 +26,8 @@ export class DialogueBox {
   private bodyText: Phaser.GameObjects.Text;
   private promptText: Phaser.GameObjects.Text;
   private hintText: Phaser.GameObjects.Text;
+  private portraitFrame: Phaser.GameObjects.Rectangle;
+  private portraitImage: Phaser.GameObjects.Image;
   private choiceTexts: Phaser.GameObjects.Text[] = [];
   private lines: DialogueLine[] = [];
   private lineIdx = 0;
@@ -55,17 +58,24 @@ export class DialogueBox {
     this.bg = scene.add.rectangle(this.W / 2, boxY + this.BOX_H / 2, this.W - 28, this.BOX_H, 0x0a0a1a, 0.94);
     this.bg.setStrokeStyle(1, 0x39ff14, 0.5);
 
+    this.portraitFrame = scene.add.rectangle(this.PADDING + 42, boxY + 72, 72, 72, 0x111418, 0.92)
+      .setStrokeStyle(1, 0x39ff14, 0.28)
+      .setVisible(false);
+    this.portraitImage = scene.add.image(this.PADDING + 42, boxY + 72, 'player')
+      .setDisplaySize(64, 64)
+      .setVisible(false);
+
     // 说话者名字
-    this.speakerText = scene.add.text(this.PADDING + 10, boxY + 14, '', {
+    this.speakerText = scene.add.text(this.PADDING + 90, boxY + 14, '', {
       fontSize: '20px', fontFamily: 'monospace', color: '#ffd700',
     });
 
     // 正文
-    this.bodyText = scene.add.text(this.PADDING + 10, boxY + 46, '', {
+    this.bodyText = scene.add.text(this.PADDING + 90, boxY + 46, '', {
       fontSize: '17px', fontFamily: 'monospace', color: '#cccccc',
-      wordWrap: { width: this.W - 96, useAdvancedWrap: true }, lineSpacing: 8,
+      wordWrap: { width: this.W - 176, useAdvancedWrap: true }, lineSpacing: 8,
     });
-    this.bodyText.setFixedSize(this.W - 96, this.BOX_H - 108);
+    this.bodyText.setFixedSize(this.W - 176, this.BOX_H - 108);
 
     // 继续提示
     this.promptText = scene.add.text(this.W - 32, boxY + this.BOX_H - 20, '▼', {
@@ -85,7 +95,7 @@ export class DialogueBox {
       repeat: -1,
     });
 
-    this.container.add([this.bg, this.speakerText, this.bodyText, this.promptText, this.hintText]);
+    this.container.add([this.bg, this.portraitFrame, this.portraitImage, this.speakerText, this.bodyText, this.promptText, this.hintText]);
     this.container.setVisible(false);
 
     // 点击/空格推进对话，ESC 直接关闭
@@ -179,6 +189,13 @@ export class DialogueBox {
     const line = this.lines[this.lineIdx];
     this.speakerText.setText(line.speaker);
     if (line.color) this.speakerText.setColor(line.color);
+    if (line.portraitKey && this.scene.textures.exists(line.portraitKey)) {
+      this.portraitImage.setTexture(line.portraitKey).setVisible(true);
+      this.portraitFrame.setVisible(true);
+    } else {
+      this.portraitImage.setVisible(false);
+      this.portraitFrame.setVisible(false);
+    }
     this.bodyText.setText('');
     this.promptText.setAlpha(0);
     this.hintText.setAlpha(0);

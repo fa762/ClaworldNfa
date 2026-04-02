@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 import { DialogueBox } from '../ui/DialogueBox';
 import { StatusHUD } from '../ui/StatusHUD';
-import { getTaskDialogue, getPKDialogue, getMarketDialogue, getPortalDialogue, getOpenClawDialogue, type GameLang } from '../data/npc-dialogues';
+import { getTaskDialogue, getPKDialogue, getMarketDialogue, getPortalDialogue, getOpenClawDialogue, getSableDialogue, type GameLang, type SableNode } from '../data/npc-dialogues';
 import { buildLobsterIdentity } from '@/lib/lobsterIdentity';
 import { getShelterDescription, getShelterSpecialty } from '@/lib/shelter';
 
@@ -170,6 +170,7 @@ export class ShelterScene extends Phaser.Scene {
       { key: 'task',     texture: 'npc-task',     artTexture: 'npc-task-art',     label: this.lang === 'zh' ? '[ 任务终端 ]' : '[ TASK ]',        x: W * 0.25,  y: H * 0.3,  action: 'TaskScene' },
       { key: 'pk',       texture: 'npc-pk',       artTexture: 'npc-pk-art',       label: this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]',       x: W * 0.75,  y: H * 0.3,  action: 'PKScene' },
       { key: 'market',   texture: 'npc-market',   artTexture: 'npc-market-art',   label: this.lang === 'zh' ? '[ SABLE / 撮合墙 ]' : '[ SABLE / MATCH WALL ]', x: W * 0.5,   y: H * 0.2,  action: 'MarketScene' },
+      { key: 'sable',    texture: 'npc-sable-art', artTexture: 'npc-sable-art',   label: this.lang === 'zh' ? '[ SABLE ]' : '[ SABLE ]', x: W * 0.64, y: H * 0.24, action: 'event:sable' },
       { key: 'portal',   texture: 'portal',       artTexture: 'portal-art',       label: this.lang === 'zh' ? '[ 隧道传送 ]' : '[ PORTAL ]',      x: W * 0.15,  y: H * 0.7,  action: 'event:portal' },
       { key: 'openclaw', texture: 'npc-openclaw', artTexture: 'npc-openclaw-art', label: this.lang === 'zh' ? '[ 意识唤醒舱 ]' : '[ AWAKENING ]', x: W * 0.85,  y: H * 0.7,  action: 'event:openclaw' },
     ];
@@ -470,6 +471,10 @@ export class ShelterScene extends Phaser.Scene {
         });
         break;
       }
+      case 'sable': {
+        this.openSableDialogue('intro', sceneData);
+        break;
+      }
       case 'portal': {
         const d = getPortalDialogue(this.shelter, this.lang);
         this.dialogueBox.show(d.lines, () => {
@@ -569,6 +574,7 @@ export class ShelterScene extends Phaser.Scene {
       task: { width: 24, height: 12, offsetX: 12, offsetY: 34 },
       pk: { width: 24, height: 12, offsetX: 12, offsetY: 34 },
       market: { width: 42, height: 12, offsetX: 11, offsetY: 34 },
+      sable: { width: 24, height: 14, offsetX: 22, offsetY: 68 },
       portal: { width: 18, height: 18, offsetX: 15, offsetY: 24 },
       openclaw: { width: 24, height: 16, offsetX: 12, offsetY: 30 },
     };
@@ -650,6 +656,27 @@ export class ShelterScene extends Phaser.Scene {
         broadcastIndex = (broadcastIndex + 1) % broadcastMessages.length;
         broadcast.setText(broadcastMessages[broadcastIndex]);
       },
+    });
+  }
+
+  private openSableDialogue(node: SableNode, sceneData: ShelterSceneData) {
+    const d = getSableDialogue(node, this.lang);
+    this.dialogueBox.show(d.lines, () => {
+      if (!d.choices) return;
+      this.dialogueBox.showChoices(d.choices.map((choice) => ({
+        label: choice.label,
+        callback: () => {
+          this.lastInteractTime = Date.now();
+          if (choice.action === 'dialogue:close') return;
+          if (choice.action === 'market:browse' || choice.action === 'market:list') {
+            this.scene.start('MarketScene', { ...sceneData, entryAction: choice.action });
+            return;
+          }
+          if (choice.action.startsWith('sable:')) {
+            this.openSableDialogue(choice.action.replace('sable:', '') as SableNode, sceneData);
+          }
+        },
+      })));
     });
   }
 
