@@ -327,7 +327,7 @@ export function GameCommandShell({
 
     if (action === 'matches') {
       const matches = await loadRecentMatches();
-      if (!matches.length) return pushLog('warn', zh ? '当前没有活跃对局。' : 'No active matches.');
+      if (!matches.length) return pushLog('warn', zh ? '当前没有链上对局。' : 'No on-chain matches.');
       eventBus.emit('game:command', { name: 'matches', args: [] });
       matches.slice(0, 8).forEach((match) => pushLog('system', formatMatchLine(match, zh)));
       return;
@@ -336,7 +336,7 @@ export function GameCommandShell({
     if (action === 'my-matches') {
       if (!activeNfaId) return pushLog('error', zh ? '请先选择一只龙虾。' : 'Select an NFA first.');
       const matches = (await loadRecentMatches()).filter((match) => match.nfaA === activeNfaId || match.nfaB === activeNfaId);
-      if (!matches.length) return pushLog('warn', zh ? '当前龙虾暂无活跃对局。' : 'This NFA has no active matches.');
+      if (!matches.length) return pushLog('warn', zh ? '当前龙虾暂无链上对局。' : 'This NFA has no on-chain matches.');
       eventBus.emit('game:command', { name: 'my-matches', args: [] });
       matches.forEach((match) => pushLog('system', formatMatchLine(match, zh)));
       return;

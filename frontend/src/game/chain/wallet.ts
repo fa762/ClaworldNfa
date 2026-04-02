@@ -3,7 +3,7 @@
  * 读链操作使用 viem publicClient，写操作通过 EventBus 委托 React 层
  */
 import { eventBus } from '../EventBus';
-import { createPublicClient, http, type Address } from 'viem';
+import { createPublicClient, http, parseAbiItem, type Address } from 'viem';
 import { bsc, bscTestnet } from 'viem/chains';
 import { addresses, chainId, rpcUrl } from '@/contracts/addresses';
 
@@ -492,6 +492,39 @@ export interface PKMatch {
   revealedB: boolean;
 }
 
+export interface PKMatchSettlement {
+  type: 'settled';
+  matchId: number;
+  winnerNfaId: number;
+  loserNfaId: number;
+  reward: bigint;
+  burned: bigint;
+  blockNumber: number;
+  transactionHash: `0x${string}`;
+}
+
+export interface PKMatchCancellation {
+  type: 'cancelled';
+  matchId: number;
+  blockNumber: number;
+  transactionHash: `0x${string}`;
+}
+
+export type PKMatchResolution = PKMatchSettlement | PKMatchCancellation;
+
+type LoadMatchesOptions = {
+  includeClosed?: boolean;
+  maxCount?: number;
+};
+
+const PK_MATCH_SETTLED_EVENT = parseAbiItem(
+  'event MatchSettled(uint256 indexed matchId, uint256 indexed winner, uint256 indexed loser, uint256 reward, uint256 burned)',
+);
+
+const PK_MATCH_CANCELLED_EVENT = parseAbiItem(
+  'event MatchCancelled(uint256 indexed matchId)',
+);
+
 export async function loadMatch(matchId: number): Promise<PKMatch | null> {
   try {
     const result = await publicClient.readContract({
@@ -536,8 +569,9 @@ export async function loadMatch(matchId: number): Promise<PKMatch | null> {
   }
 }
 
-export async function loadRecentMatches(): Promise<PKMatch[]> {
+export async function loadRecentMatches(options: LoadMatchesOptions = {}): Promise<PKMatch[]> {
   const matches: PKMatch[] = [];
+  const includeClosed = options.includeClosed ?? true;
 
   let matchCount = 0;
   try {
@@ -551,7 +585,10 @@ export async function loadRecentMatches(): Promise<PKMatch[]> {
     return matches;
   }
 
-  const start = Math.max(1, matchCount - 29);
+  const maxCount = options.maxCount && options.maxCount > 0
+    ? Math.min(matchCount, options.maxCount)
+    : matchCount;
+  const start = Math.max(1, matchCount - maxCount + 1);
   const ids = Array.from({ length: matchCount - start + 1 }, (_, index) => matchCount - index);
 
   for (let batchStart = 0; batchStart < ids.length; batchStart += BATCH_SIZE) {
@@ -601,7 +638,7 @@ export async function loadRecentMatches(): Promise<PKMatch[]> {
         revealedB: raw[10],
       };
 
-      if (match.phase <= 3) {
+      if (includeClosed || match.phase <= 3) {
         matches.push(match);
       }
     }
@@ -611,8 +648,66 @@ export async function loadRecentMatches(): Promise<PKMatch[]> {
 }
 
 export async function loadOpenMatches(): Promise<PKMatch[]> {
-  const matches = await loadRecentMatches();
+  const matches = await loadRecentMatches({ includeClosed: false });
   return matches.filter((match) => match.phase === 0);
+}
+
+export async function loadMatchResolution(matchId: number): Promise<PKMatchResolution | null> {
+  if (!Number.isInteger(matchId) || matchId <= 0) {
+    return null;
+  }
+
+  try {
+    const [settledLogs, cancelledLogs] = await Promise.all([
+      publicClient.getLogs({
+        address: CONTRACTS.pkSkill,
+        event: PK_MATCH_SETTLED_EVENT,
+        args: { matchId: BigInt(matchId) },
+        fromBlock: 0n,
+        toBlock: 'latest',
+      }),
+      publicClient.getLogs({
+        address: CONTRACTS.pkSkill,
+        event: PK_MATCH_CANCELLED_EVENT,
+        args: { matchId: BigInt(matchId) },
+        fromBlock: 0n,
+        toBlock: 'latest',
+      }),
+    ]);
+
+    const settledLog = settledLogs.at(-1);
+    if (settledLog) {
+      const reward = settledLog.args.reward;
+      const burned = settledLog.args.burned;
+      if (reward === undefined || burned === undefined) {
+        return null;
+      }
+      return {
+        type: 'settled',
+        matchId,
+        winnerNfaId: Number(settledLog.args.winner),
+        loserNfaId: Number(settledLog.args.loser),
+        reward,
+        burned,
+        blockNumber: Number(settledLog.blockNumber),
+        transactionHash: settledLog.transactionHash,
+      };
+    }
+
+    const cancelledLog = cancelledLogs.at(-1);
+    if (cancelledLog) {
+      return {
+        type: 'cancelled',
+        matchId,
+        blockNumber: Number(cancelledLog.blockNumber),
+        transactionHash: cancelledLog.transactionHash,
+      };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 // ─── Bridge 初始化 ───
