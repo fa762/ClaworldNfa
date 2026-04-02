@@ -93,24 +93,24 @@ export function getMarketDialogue(lang: GameLang): DialogueNode {
         speaker: lang === 'zh' ? 'Sable' : 'Sable',
         portraitKey: 'sable-portrait-default',
         text: lang === 'zh'
-          ? '欢迎来到撮合墙。我负责这里的挂单、清算和失控价格。'
-          : 'Welcome to the Match Wall. I manage listings, settlement, and runaway prices here.',
+          ? '你来得正好。墙刚安静一会儿，再晚一点，这里又要吵起来了。'
+          : 'You came at the right time. The wall just went quiet. Give it another minute and it will start shouting again.',
         color: '#ffd34d',
       },
       {
         speaker: lang === 'zh' ? 'Sable' : 'Sable',
         portraitKey: 'sable-portrait-calm',
         text: lang === 'zh'
-          ? '这不是普通市场，而是旧时代币安中继塔残留下来的结算网络。'
-          : 'This is not a normal market. It is the surviving settlement mesh of an old Binance relay tower.',
+          ? '我叫 Sable。挂单、回执、清算，我都盯着。谁想在这堵墙上动手脚，通常躲不过我的眼。'
+          : 'I am Sable. Listings, receipts, settlement, I watch all of it. Anyone trying to dirty this wall rarely gets past me.',
         color: '#ffd34d',
       },
       {
         speaker: lang === 'zh' ? 'Sable' : 'Sable',
         portraitKey: 'sable-portrait-warning',
         text: lang === 'zh'
-          ? 'BSC 中继链路还在运转。价格屏、挂牌和清算回执，都是从这里同步出去的。'
-          : 'The BSC relay path is still alive. Price boards, listings, and settlement receipts are synchronized from here.',
+          ? '后面那口老骨头还连着旧时代留下来的黄黑中继塔。价牌、成交、清算回执，到今天还靠它撑着。'
+          : 'That old skeleton behind me still hooks into the yellow-black relay towers left from the old age. Price boards, fills, and settlement receipts still lean on it.',
         color: '#ffd34d',
       },
     ],
@@ -135,24 +135,24 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
           portraitKey: 'sable-portrait-calm',
           color: '#ffd34d',
           text: lang === 'zh'
-            ? '你眼前这堵墙，以前不叫撮合墙。它只是中继塔的一个侧终端，负责收价格、发回执、同步清算。'
-            : 'This wall was not called a Match Wall before. It was just a side terminal on a relay tower, built to ingest prices, issue receipts, and sync settlements.',
+            ? '你看到的是一堵墙。我看到的是一条还没断干净的命脉。早些年，它只是中继塔边上的侧终端，收价格，吐回执，把一笔笔账对上。'
+            : 'You see a wall. I see a lifeline that never fully broke. Years ago it was only a side terminal on a relay tower, swallowing prices, spitting receipts, and balancing books one trade at a time.',
         },
         {
           speaker,
           portraitKey: 'sable-portrait-calm',
           color: '#ffd34d',
           text: lang === 'zh'
-            ? '旧时代的人把速度当信仰。黄黑塔架竖起来之后，整条价值链都挂在它们上面。价格跑得比人快，清算跑得比恐慌快。后来老交易员提起那些塔的时候，总会顺手提到 Binance，提到 CZ，提到一姐。'
-            : 'The old age worshipped speed. Once the yellow-black towers were raised, whole value chains hung from them. Prices moved faster than people. Settlement moved faster than panic.',
+            ? '那时候大家太迷信速度了。塔一根根亮起来以后，价格跑得比人快，恐慌也跟着跑，清算员常常连水都来不及喝一口。后来老交易员提起那批塔，嘴里总会顺带提到 Binance，提到 CZ，提到一姐。'
+            : 'Back then people worshipped speed a little too much. Once those towers lit up, prices outran people, panic followed close behind, and clearers barely had time to swallow water. Old traders still bring up Binance, CZ, and Yi-jie when they talk about that era.',
         },
         {
           speaker,
           portraitKey: 'sable-portrait-warning',
           color: '#ffb84d',
           text: lang === 'zh'
-            ? '后来塔没全倒。最危险的东西，从来不会一次死干净。它们留下了线、留下了规则、也留下了习惯。现在避难所还靠这些残骸活着。'
-            : 'Then the towers never fully died. The most dangerous systems never go cleanly. They leave rails, rules, and habits behind. The shelters still live off those remains.',
+            ? '后来塔塌了不少，规矩却没塌完。线路还在，习惯还在，清算的手法也还在。避难所今天能喘着气，多半就是靠这些残骸撑着。'
+            : 'Later many towers fell, but the rules did not fall with them. The rails survived, the habits survived, even the clearing instincts survived. The shelters are still breathing off those remains.',
         },
       ],
       choices: [
@@ -171,24 +171,24 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
           portraitKey: 'sable-portrait-default',
           color: '#ffd34d',
           text: lang === 'zh'
-            ? 'BSC 链路是现在还最稳的那条价值传输通道。别把它想成公司，把它想成废墟里还通电的一条主干。很多老交易员嘴上讲的是链路，心里想的还是 Binance 那套基础设施。'
-            : 'The BSC route is the most stable surviving value corridor we have. Do not think of it as a company. Think of it as a powered trunk line still alive in the ruins.',
+            ? 'BSC 链路现在还算稳。你可以把它当成废墟里最后一条还通电的主干线。很多人嘴上讲链路，心里想的其实还是旧时代那套黄黑基础设施。'
+            : 'The BSC route is still stable enough. Think of it as the last powered trunk line left in the ruins. Plenty of people say route, but what they really remember is that old yellow-black infrastructure.',
         },
         {
           speaker,
           portraitKey: 'sable-portrait-calm',
           color: '#ffd34d',
           text: lang === 'zh'
-            ? '价格屏、挂牌、成交、清算回执，都要沿这条线走。断一次，市场会先瞎，再聋，最后死。'
-            : 'Price boards, listings, fills, settlement receipts - all of them travel over that line. Let it break once and the market goes blind first, deaf second, dead third.',
+            ? '价牌会亮，挂单会走，成交会回来，回执也能落地，靠的都是这条线。它真要抖一下，市场先发盲，后发疯。'
+            : 'Boards glow, listings move, fills return, receipts land because of that line. If it really shudders, the market goes blind first and mad right after.',
         },
         {
           speaker,
           portraitKey: 'sable-portrait-secret',
           color: '#ffe08a',
           text: lang === 'zh'
-            ? '所以我不是在卖东西。我是在看这条线有没有被人动手脚。老一代清算员都懂，链路一脏，用户资产先出事。'
-            : 'That is why I am not just selling things here. I am watching whether someone has tampered with the line.',
+            ? '所以我天天守在这儿。我怕的不是慢一点，我怕有人把线做脏。线一脏，先疼的永远是用户资产。'
+            : 'That is why I stay here every day. I can live with slow. What I do not live with is a dirty route, because user assets feel that pain first.',
         },
       ],
       choices: [
@@ -202,9 +202,9 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
   if (node === 'tutorial') {
     return {
       lines: [
-        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '固定价很简单。你给一个价，谁愿意付，单子就结。快，但没后悔药。' : 'Fixed price is simple. You name a number, someone pays it, the ticket clears. Fast, and irreversible.' },
-        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '拍卖更像试探。你挂出去，看市场愿不愿意替你抬价。' : 'Auction is a probe. You hang the lobster out and see whether the market wants to raise the price for you.' },
-        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '互换是最像地下世界的交易。不是问它值多少钱，而是问它值不值得换。' : 'Swap is the most underground form of trade. It asks not what something costs, but what it is worth to trade.' },
+        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '固定价最省心。你心里有数，就直接给价，别陪市场演戏。' : 'Fixed price is the cleanest route. If you know your number, set it and stop performing for the market.' },
+        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '拍卖更像放风。你把它挂出去，看一眼人群里到底有多少贪心会自己冒头。' : 'Auction is closer to releasing scent into the air. You hang it up and watch how much greed rises by itself.' },
+        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '互换就更私人了。两边都得点头，这笔账才走得顺。很多时候，人想要的从来都不是最贵那只。' : 'Swap is more personal. Both sides need to nod before the trade feels right. Most of the time people are not chasing the most expensive one anyway.' },
       ],
       choices: [
         { label: lang === 'zh' ? '固定价具体怎么用' : 'How does fixed price really work', action: 'sable:fixed' },
@@ -217,8 +217,8 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
   if (node === 'fixed') {
     return {
       lines: [
-        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '固定价适合你心里已经有锚点的时候。你知道这只龙虾该卖多少，就别让市场替你犹豫。' : 'Use fixed price when you already have an anchor in mind. If you know what a lobster should sell for, do not let the market hesitate for you.' },
-        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '唯一的问题是，定太低，别人会比你更快看懂它的价值。定太高，它就会在墙上慢慢冷掉。' : 'The only problem is simple. Price too low and someone else will understand its value faster than you. Price too high and it will freeze on the wall.' },
+        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '你心里已经有价，就用固定价。墙上的噪音很多，别把决定权全扔给它。' : 'If the number is already in your head, use fixed price. The wall is noisy. Do not hand all of your decision-making over to it.' },
+        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '怕的就两件事。挂低了，别人会比你更快看懂它的价值；挂高了，它就在这儿吹冷风，一天比一天难看。' : 'There are only two real fears. Price it low and someone else sees its value faster than you do. Price it high and it hangs here in the cold, looking sadder by the day.' },
       ],
       choices: [
         { label: lang === 'zh' ? '回到市场教学' : 'Back to market lesson', action: 'sable:tutorial' },
@@ -231,8 +231,8 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
   if (node === 'auction') {
     return {
       lines: [
-        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '拍卖适合不确定价格，但确定市场会争它的时候。你把它挂出去，让别人的贪心替你抬价。' : 'Auction fits uncertainty. You may not know the exact price, but you know the market will fight over it. Let other people’s greed lift it for you.' },
-        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '互换更私人。它不是讲公允价格，它讲你愿不愿意拿现在这一只，去换你真正想要的那一只。' : 'Swap is more intimate. It is not about fair price. It is about whether you are willing to trade what you have for what you actually want.' },
+        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '拍卖适合你闻到竞争味道的时候。你未必知道它该值多少，但你知道会有人抢。那就把它挂出去，让人群自己把价抬起来。' : 'Auction fits the moment you can smell competition in the air. You may not know the exact number, but you know people will fight. Let the crowd lift the price for you.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '互换更像握手。它讲的是执念，不是表格。很多人来这堵墙前，嘴里谈价格，心里想的却一直是某一只。' : 'Swap feels more like a handshake. It is about attachment, not spreadsheets. People talk about price here, but deep down many of them came looking for one specific thing.' },
       ],
       choices: [
         { label: lang === 'zh' ? '继续讲风险' : 'Go deeper into risk', action: 'sable:risk' },
@@ -245,10 +245,10 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
   if (node === 'risk') {
     return {
       lines: [
-        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '最危险的不是便宜货，是看起来太顺的报价。' : 'The dangerous listing is not the cheap one. It is the one that looks too smooth.' },
-        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '假桥污染最早从回执开始。你看到的是成交，链路写进去的却是另一套流向。' : 'Bridge contamination starts with receipts. You think you see a settlement, but the route writes something else entirely.' },
-        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '黑天鹅来的时候，先死的通常不是价格，是流动性。价格牌还亮着，墙后面已经没人接单了。' : 'When a black swan hits, liquidity dies before price does. The board may still glow while there is nobody left behind the wall to take the other side.' },
-        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '别迷信屏幕上的价格。真正该看的，是谁在推价，谁在撤单，谁在等你犯错。' : 'Do not worship the board price. Watch who pushes, who pulls, and who waits for your mistake.' },
+        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '我最怕那种太顺的单子。顺得像有人提前替你把路都铺好了。' : 'The listings I fear most are the ones that feel too smooth, as if someone laid the road for you in advance.' },
+        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '假桥污染刚冒头的时候很安静，先脏的往往是回执。你眼里看见的是成交，链路里写下的却可能是另一回事。' : 'When bridge contamination first appears it is quiet. The first thing it dirties is usually the receipt. You see a fill while the route records something else.' },
+        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '黑天鹅真落下来，先塌的常常不是价格，是流动性。牌子还亮着，墙后面的人已经悄悄退光了。' : 'When a real black swan lands, liquidity often breaks before price does. The board is still glowing while the people behind the wall are already gone.' },
+        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '所以别只盯着数字。看看谁在抬价，谁在撤单，谁一直安静地等别人犯错。' : 'So do not stare only at numbers. Watch who lifts price, who pulls orders, and who waits quietly for someone else to make the mistake.' },
       ],
       choices: [
         { label: lang === 'zh' ? '怎么守住用户资产' : 'How do you protect user assets', action: 'sable:custody' },
@@ -262,9 +262,9 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
   if (node === 'custody') {
     return {
       lines: [
-        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '先分开。热钱包归热钱包，冷钱包归冷钱包。流动性的钱，和保命的钱，不能睡在一张床上。' : 'Separate first. Hot wallets stay hot. Cold wallets stay cold. Liquidity money and survival money do not sleep in the same bed.' },
-        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '黑天鹅来的时候，先证明钱还在，再谈价格。先给回执，再谈脸面。很多系统死就死在这一步顺序错了。' : 'When the black swan lands, prove the assets exist first, argue about price later. Issue the receipt first, protect your pride later. A lot of systems died because they reversed that order.' },
-        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '外行喜欢看涨幅，真正的守夜人先看资产隔离和提款通道还在不在。' : 'Outsiders stare at upside. Real keepers first check whether asset segregation and withdrawal paths still exist.' },
+        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '先把钱分开。热的归热的，冷的归冷的。要拿去跑流动性的，别和保命的钱挤在一处。' : 'Separate the money first. Hot stays hot. Cold stays cold. The funds you send into liquidity should never sleep beside the money keeping you alive.' },
+        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '真出事的时候，先证明资产还在，再谈价格漂成什么样。回执要先给，人心才能稳。很多系统就是在这一步顺序乱了，后面全跟着塌。' : 'When things truly break, prove the assets still exist before arguing over where price drifted. Give the receipt first so people can breathe. Many systems died because they got that order wrong.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '外行爱聊涨幅。我这种守夜的人，先看提款路还通不通，账还能不能对得上。' : 'Outsiders love to talk upside. People like me check whether withdrawals still flow and whether the books can still be balanced.' },
       ],
       choices: [
         { label: lang === 'zh' ? '谁把这些规矩留下来的' : 'Who left these rules behind', action: 'sable:operators' },
@@ -277,10 +277,10 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
   if (node === 'past') {
     return {
       lines: [
-        { speaker, portraitKey: 'sable-portrait-default', color: '#ffd34d', text: lang === 'zh' ? '我以前做清算。不是市场宣传里那种。是真的清算。' : 'I used to do settlement. Not the pretty version from market brochures. Real settlement.' },
-        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '价格崩的时候，所有人都说自己只是执行规则。最后收尸的人，通常是清算员。' : 'When prices collapse, everybody says they were just following rules. The one who buries the remains is usually the clearer.' },
-        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '旧时代那些黄黑中继塔，本来是为了效率。后来它们多了一个更重要的用途：在挤兑和踩踏里，先守住用户资产，再去谈价格。也正因为这样，很多人后来才会记住 CZ，记住一姐。' : 'Those yellow-black relay towers were built for efficiency. Later they gained a harsher purpose: in runs and liquidation cascades, protect user assets first and argue about price later.' },
-        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '冷钱包、资产隔离、逐笔回执、停机保护……外行觉得那是保守，做过清算的人知道那是最后一道门。真正让市场留下敬意的，从来不是涨得多快，而是黑天鹅来的时候还能不能守住底线。' : 'Cold wallets, asset segregation, per-trade receipts, circuit breakers... outsiders call that caution. People who have actually cleared a collapse know it is the last door before ruin.' },
+        { speaker, portraitKey: 'sable-portrait-default', color: '#ffd34d', text: lang === 'zh' ? '我以前做清算。真刀真枪那种。电话一响，基本就知道外面又有人熬不过今晚了。' : 'I used to do real settlement. The kind where a ringing phone already meant someone out there would not survive the night unchanged.' },
+        { speaker, portraitKey: 'sable-portrait-warning', color: '#ffb84d', text: lang === 'zh' ? '价格砸下来的时候，谁都爱说自己只是在照规矩办。最后留下来收尾、把烂账一张张捡起来的人，常常还是清算员。' : 'When price breaks, everyone loves to say they were only following procedure. The person left picking through the mess, one broken line at a time, is usually the clearer.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '那批黄黑中继塔最早是为了效率搭起来的。后来大家才慢慢明白，它们真正值钱的地方，是风暴压下来时还能先把用户资产护住。很多人后来记住 CZ，记住一姐，多半也因为这个。' : 'Those yellow-black relay towers were built for speed at first. Later people learned their real worth was in how they protected user assets when the storm came down. A lot of people remembered CZ and Yi-jie for exactly that.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '冷钱包、资产隔离、逐笔回执、停机保护……平时听着烦，真到黑天鹅落下来，那些麻烦会突然变成命。市场最后愿意留下敬意，也往往因为这点。' : 'Cold wallets, asset segregation, per-trade receipts, circuit breakers... they sound annoying in calm weather. When the black swan lands, those annoyances become lifelines. That is usually what earns respect in the end.' },
       ],
       choices: [
         { label: lang === 'zh' ? '那你为什么还守在这里' : 'Why do you still stay here', action: 'sable:whyStay' },
@@ -294,8 +294,8 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
     return {
       lines: [
         { speaker, portraitKey: 'sable-portrait-default', color: '#ffd34d', text: lang === 'zh' ? '因为总得有人留在最后一张还能读的账单旁边。' : 'Because someone has to remain beside the last ledger that is still readable.' },
-        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '你知道一个市场真正死掉是什么样吗？不是没人交易。是没人再相信回执。是每个人都开始怀疑“这笔资产到底还在不在”。' : 'Do you know what a dead market looks like? Not one with no trades. One where nobody believes the receipt anymore. One where everyone starts asking if the asset is even still there.' },
-        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '我守着这堵墙，不是因为它完美。是因为它还剩一点老规矩：账要对，钱要在，清算要认。那是 CZ 和一姐那代人最让人服气的地方。不是喊口号，是在黑天鹅压下来时还守得住用户资产。' : 'I keep watch over this wall not because it is perfect. I stay because it still remembers a few old rules: the books must balance, the assets must exist, and settlement must mean something.' },
+        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '市场真死的时候，先坏掉的是信任。回执一旦没人信，每个人心里都会开始打鼓：那笔资产到底还在不在。' : 'When a market truly dies, trust breaks before anything else. Once nobody believes the receipt, every mind starts asking whether the asset is even still there.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '这堵墙谈不上完美，我也从没把它当神像供着。我留下来，只因为它还记得几条老规矩：账要对，钱要在，清算说出口就得算数。那一代人最让我服气的，也就是这点。风暴压下来时，他们守住了底线。' : 'This wall is far from perfect, and I have never worshipped it. I stay because it still remembers a few old rules: the books must balance, the assets must exist, and settlement must mean what it says. That is what I respected about that generation. They held the line when the storm came down.' },
       ],
       choices: [
         { label: lang === 'zh' ? '继续' : 'Continue', action: 'sable:jobs' },
@@ -309,9 +309,9 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
   if (node === 'operators') {
     return {
       lines: [
-        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '旧时代有一批人，真把交易系统当基础设施在守。不是嘴上说说，是在市场最乱的时候也先把用户资产摆在前面。' : 'There was a generation that treated trading systems as infrastructure. Not in speeches, but by putting user assets first when the market was at its ugliest.' },
-        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '后来人们会记住 CZ，会记住一姐，不是因为谁喊得最响，而是因为有人在黑天鹅压下来时还守着那条底线。' : 'People later remembered CZ and Yi-jie not because they shouted the loudest, but because someone held the line when the black swan finally came down.' },
-        { speaker, portraitKey: 'sable-portrait-default', color: '#ffd34d', text: lang === 'zh' ? '市场最后记住的，从来不是某一次疯涨。它记住的是谁在最乱的时候还知道什么该先守。' : 'Markets do not remember every manic rally. They remember who still knew what had to be protected first when everything was breaking.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '旧时代确实有一批人，把交易系统当基础设施守着。行情最乱的时候，他们先看用户资产，再看脸面。' : 'There was a generation that guarded trading systems like infrastructure. When the market turned ugly, they checked user assets before they checked their pride.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '后来大家记住 CZ，记住一姐，多半也因为这个。风暴砸下来的时候，线没断，底线也没丢。' : 'People later remembered CZ and Yi-jie for that reason too. When the storm hit, the rails held and the principles held with them.' },
+        { speaker, portraitKey: 'sable-portrait-default', color: '#ffd34d', text: lang === 'zh' ? '市场会忘掉很多暴涨的夜晚，却会记住谁在最乱的时候还知道先护住什么。' : 'Markets forget plenty of euphoric nights. They remember who still knew what had to be protected first when everything turned chaotic.' },
       ],
       choices: [
         { label: lang === 'zh' ? '回到她的过去' : 'Back to her past', action: 'sable:past' },
@@ -324,9 +324,9 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
   if (node === 'jobs') {
     return {
       lines: [
-        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '有些节点已经坏了，有些只是被人故意做脏。' : 'Some relay nodes are broken. Others were dirtied on purpose.' },
-        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '以后你会替我去找冷钱包、修中继节点、查错误报价，顺便看看谁在喂假桥污染。要是运气差，你还会看见一次真正的黑天鹅怎样把整条链路压弯。' : 'Soon enough you will be finding cold wallets, repairing relay nodes, tracing false quotes, and seeing who is feeding bridge contamination. If your luck runs bad, you will also watch a real black swan bend the whole route under stress.' },
-        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '别急。先学会看懂一笔交易怎么活下来。' : 'Do not rush. First learn how a trade survives.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '现在还有些节点坏着，有些干脆就是被人故意做脏的。光看表面，你分不出来。' : 'Some nodes are broken right now. Some were dirtied on purpose. From the surface alone you cannot tell which is which.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '以后你得替我跑几趟。找冷钱包，修中继节点，查错误报价，顺着假桥污染把人揪出来。运气要是差一点，你还会亲眼看见黑天鹅怎么把整条链路压弯。' : 'Soon you will be running a few jobs for me. Finding cold wallets, repairing relay nodes, tracing false quotes, dragging out whoever keeps feeding bridge contamination. If your luck is bad, you will also watch a black swan bend the whole route in front of you.' },
+        { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '先别逞强。先学会看一笔交易怎么活下来，再学会怎么把它从风暴里带回来。' : 'Do not try to look brave too early. First learn how a trade survives. Then learn how to bring it back through a storm.' },
       ],
       choices: [
         { label: lang === 'zh' ? '进入撮合墙' : 'Open match wall', action: 'market:browse' },
@@ -339,8 +339,8 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
   if (node === 'secret') {
     return {
       lines: [
-        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '听好。真正还在运转的不是塔，是人们对结算还能发生这件事的信任。' : 'Listen carefully. The thing still running is not the tower. It is the trust that settlement can still happen.' },
-        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '哪天这点信任断了，市场会先死，避难所会后死。' : 'The day that trust breaks, the market dies first and the shelters die after.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '听好。真正撑着这里运转的，从来不只是一座塔。撑着这地方的，是人们还愿意相信清算还能发生，相信回执不会骗人。' : 'Listen carefully. What keeps this place moving was never just a tower. It is the belief that settlement can still happen and receipts still mean something.' },
+        { speaker, portraitKey: 'sable-portrait-secret', color: '#ffe08a', text: lang === 'zh' ? '哪天这点信任断了，市场会先冷，避难所也撑不了太久。' : 'The day that trust snaps, the market goes cold first and the shelters will not last much longer after that.' },
       ],
       choices: [
         { label: lang === 'zh' ? '回到开场' : 'Back to intro', action: 'sable:intro' },
@@ -351,9 +351,9 @@ export function getSableDialogue(node: SableNode, lang: GameLang): DialogueNode 
 
   return {
     lines: [
-      { speaker, portraitKey: 'sable-portrait-default', color: '#ffd34d', text: lang === 'zh' ? '你现在站着的这面墙，不是普通市场。它以前叫结算网络。' : 'The wall you are standing in front of is not a market. It used to be called a settlement network.' },
-      { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '旧时代的币安系中继塔塌了大半，剩下的残骸还在替避难所同步价格、挂单和清算回执。你今天看到的每一块价牌，后面都埋着旧交易文明的骨头。' : 'Most of the old Binance-style relay towers collapsed. The wreckage that remains still syncs prices, listings, and settlement receipts between shelters. Every price board you see today is standing on the bones of an older trading civilization.' },
-      { speaker, portraitKey: 'sable-portrait-default', color: '#ffd34d', text: lang === 'zh' ? '我叫 Sable。以前替交易系统做清算。现在替这堵墙守夜。' : 'My name is Sable. I used to clear for a trading system. Now I stand watch over this wall.' },
+      { speaker, portraitKey: 'sable-portrait-default', color: '#ffd34d', text: lang === 'zh' ? '站近点，别怕。墙会吵，人不用。' : 'Come closer. Do not worry. The wall makes noise. I do not have to.' },
+      { speaker, portraitKey: 'sable-portrait-calm', color: '#ffd34d', text: lang === 'zh' ? '你眼前这地方，白天像市场，半夜更像一台喘着气的老机器。旧时代的黄黑中继塔塌了大半，剩下这点骨头还在替避难所同步价格、挂单和清算回执。' : 'What you see here looks like a market in daylight and an old machine breathing through the night after dark. Most of the yellow-black relay towers collapsed long ago. These leftover bones still sync prices, listings, and settlement receipts for the shelters.' },
+      { speaker, portraitKey: 'sable-portrait-default', color: '#ffd34d', text: lang === 'zh' ? '我叫 Sable。以前做清算，现在替这堵墙守夜。你要挂牌、查价，或者只是想听点真话，都可以来找我。' : 'My name is Sable. I used to handle settlement. Now I keep watch over this wall. If you want to list, check price, or just hear the truth, talk to me.' },
     ],
     choices: [
       { label: lang === 'zh' ? '这面墙到底是什么' : 'What exactly is this wall', action: 'sable:relay' },
@@ -448,3 +448,4 @@ export function getRandomNPCDialogue(_shelter: number, lang: GameLang): Dialogue
   const idx = Math.floor(Math.random() * chats.length);
   return { lines: chats[idx] };
 }
+
