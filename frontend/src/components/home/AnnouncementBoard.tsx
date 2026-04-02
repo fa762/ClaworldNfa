@@ -13,6 +13,14 @@ type Announcement = {
 
 const ANNOUNCEMENTS: Announcement[] = [
   {
+    date: '2026-04-02',
+    type: 'update',
+    zh: '✨ 游戏页正式上线：场景探索、左侧 Tab 控制台、PK 战报与链上交互现已开放',
+    en: '✨ Game page is now live: scene exploration, left-side Tab console, PK reports, and on-chain gameplay are available',
+    link: '/game',
+    linkLabel: 'GAME',
+  },
+  {
     date: '2026-03-29',
     type: 'update',
     zh: '✅ Skill v1.0.5 — 排行榜系统上线！leaderboard / rank / supply',
