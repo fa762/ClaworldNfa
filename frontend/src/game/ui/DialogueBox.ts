@@ -37,7 +37,7 @@ export class DialogueBox {
   private onComplete?: () => void;
   private readonly W: number;
   private readonly H: number;
-  private readonly BOX_H = 236;
+  private readonly BOX_H = 264;
   private readonly PADDING = 24;
   private readonly pointerHandler: () => void;
   private readonly spaceHandler: () => void;
@@ -83,7 +83,7 @@ export class DialogueBox {
       fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0);
 
-    this.hintText = scene.add.text(this.PADDING + 10, boxY + this.BOX_H - 24, '', {
+    this.hintText = scene.add.text(this.PADDING + 10, boxY + this.BOX_H - 18, '', {
       fontSize: '13px', fontFamily: 'monospace', color: '#39ff14',
     }).setAlpha(0);
 
@@ -136,9 +136,9 @@ export class DialogueBox {
 
     const boxY = this.H - this.BOX_H;
     choices.forEach((choice, i) => {
-      const y = boxY + 136 + i * 24;
+      const y = boxY + 124 + i * 22;
       const text = this.scene.add.text(this.PADDING + 20, y, `[${i + 1}] ${choice.label}`, {
-        fontSize: '15px', fontFamily: 'monospace', color: '#39ff14',
+        fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
         wordWrap: { width: this.W - 64, useAdvancedWrap: true },
       }).setInteractive({ useHandCursor: true }).setDepth(this.DEPTH + 1);
 
