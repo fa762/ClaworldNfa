@@ -311,6 +311,13 @@ export class TerminalModal {
       cancelButton.addEventListener('click', cancelHandler);
       this.cleanup.push(() => cancelButton.removeEventListener('click', cancelHandler));
     }
+
+    const backButton = root.querySelector<HTMLButtonElement>('button[data-action="back"]');
+    if (backButton) {
+      const backHandler = () => this.close();
+      backButton.addEventListener('click', backHandler);
+      this.cleanup.push(() => backButton.removeEventListener('click', backHandler));
+    }
   }
 
   close() {

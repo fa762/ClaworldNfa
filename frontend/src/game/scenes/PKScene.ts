@@ -235,9 +235,10 @@ export class PKScene extends Phaser.Scene {
       wordWrap: { width: W - 40 },
     }).setOrigin(0.5);
 
-    this.add.text(W / 2, H - 26, this.lang === 'zh' ? '[ ESC 返回避难所 ]' : '[ ESC BACK TO SHELTER ]', {
+    const topBackBtn = this.add.text(18, 14, this.lang === 'zh' ? '[ ← 返回避难所 ]' : '[ ← BACK ]', {
       fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
-    }).setOrigin(0.5).setAlpha(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.goBack());
+      backgroundColor: '#061a06', padding: { x: 8, y: 5 },
+    }).setOrigin(0, 0).setDepth(1000).setScrollFactor(0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.goBack());
 
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
 
@@ -1459,9 +1460,6 @@ export class PKScene extends Phaser.Scene {
       }
       case 'market':
         this.scene.start('MarketScene', sceneData);
-        break;
-      case 'archive':
-        this.scene.start('ArchiveScene', sceneData);
         break;
       case 'shelter':
         this.scene.start('ShelterScene', sceneData);

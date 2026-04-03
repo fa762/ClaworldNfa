@@ -157,11 +157,11 @@ export class TaskScene extends Phaser.Scene {
       });
     });
 
-    // 返回按钮
-    const backBtn = this.add.text(W / 2, compact ? H - 18 : H - 30, this.lang === 'zh' ? '[ ESC 返回避难所 ]' : '[ ESC BACK TO SHELTER ]', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
-    }).setOrigin(0.5).setAlpha(0.5).setInteractive({ useHandCursor: true });
-    backBtn.on('pointerdown', () => this.goBack());
+    const topBackBtn = this.add.text(16, 16, this.lang === 'zh' ? '[ ← 返回避难所 ]' : '[ ← BACK ]', {
+      fontSize: compact ? '13px' : '14px', fontFamily: 'monospace', color: '#39ff14',
+      backgroundColor: '#061a06', padding: { x: 8, y: 5 },
+    }).setOrigin(0, 0).setDepth(1000).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    topBackBtn.on('pointerdown', () => this.goBack());
 
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
 
@@ -319,9 +319,6 @@ export class TaskScene extends Phaser.Scene {
         break;
       case 'market':
         this.scene.start('MarketScene', sceneData);
-        break;
-      case 'archive':
-        this.scene.start('ArchiveScene', sceneData);
         break;
       case 'shelter':
         this.scene.start('ShelterScene', sceneData);

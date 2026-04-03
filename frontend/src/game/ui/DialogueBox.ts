@@ -38,7 +38,8 @@ export class DialogueBox {
   private readonly W: number;
   private readonly H: number;
   private readonly isCompact: boolean;
-  private readonly BOX_H: number;
+  private boxHeight: number;
+  private readonly defaultBoxHeight: number;
   private readonly PADDING: number;
   private readonly bodyWidth: number;
   private readonly bodyHeight: number;
@@ -59,21 +60,22 @@ export class DialogueBox {
     this.W = scene.cameras.main.width;
     this.H = scene.cameras.main.height;
     this.isCompact = this.W < 820 || this.H < 640;
-    this.BOX_H = this.isCompact ? Math.min(320, Math.max(248, Math.floor(this.H * 0.38))) : 264;
+    this.defaultBoxHeight = this.isCompact ? Math.min(320, Math.max(248, Math.floor(this.H * 0.38))) : 264;
+    this.boxHeight = this.defaultBoxHeight;
     this.PADDING = this.isCompact ? 16 : 24;
     this.portraitFrameWidth = this.isCompact ? 88 : 124;
     this.portraitFrameHeight = this.isCompact ? 74 : 96;
     this.portraitX = this.PADDING + this.portraitFrameWidth / 2;
-    this.portraitY = this.H - this.BOX_H + (this.isCompact ? 62 : 78);
-    this.bodyX = this.isCompact ? this.PADDING : this.PADDING + 146;
-    this.bodyWidth = this.isCompact ? this.W - this.PADDING * 2 : this.W - 230;
+    this.portraitY = this.H - this.boxHeight + (this.isCompact ? 62 : 78);
+    this.bodyX = this.PADDING + this.portraitFrameWidth + (this.isCompact ? 18 : 34);
+    this.bodyWidth = this.W - this.bodyX - this.PADDING;
     this.bodyHeight = this.isCompact ? 132 : 92;
 
-    const boxY = this.H - this.BOX_H;
+    const boxY = this.H - this.boxHeight;
 
     this.container = scene.add.container(0, 0).setDepth(this.DEPTH).setScrollFactor(0);
 
-    this.bg = scene.add.rectangle(this.W / 2, boxY + this.BOX_H / 2, this.W - (this.isCompact ? 16 : 28), this.BOX_H, 0x0a0a1a, 0.96);
+    this.bg = scene.add.rectangle(this.W / 2, boxY + this.boxHeight / 2, this.W - (this.isCompact ? 16 : 28), this.boxHeight, 0x0a0a1a, 0.96);
     this.bg.setStrokeStyle(1, 0x39ff14, 0.5).setScrollFactor(0);
 
     this.portraitFrame = scene.add.rectangle(this.portraitX, this.portraitY, this.portraitFrameWidth, this.portraitFrameHeight, 0x111418, 0.92)
@@ -95,11 +97,11 @@ export class DialogueBox {
     }).setScrollFactor(0);
     this.bodyText.setFixedSize(this.bodyWidth, this.bodyHeight);
 
-    this.promptText = scene.add.text(this.W - 32, boxY + this.BOX_H - 20, '▼', {
+    this.promptText = scene.add.text(this.W - 32, boxY + this.boxHeight - 20, '▼', {
       fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0).setScrollFactor(0);
 
-    this.hintText = scene.add.text(this.PADDING, boxY + this.BOX_H - 22, '', {
+    this.hintText = scene.add.text(this.PADDING, boxY + this.boxHeight - 22, '', {
       fontSize: this.isCompact ? '12px' : '13px', fontFamily: 'monospace', color: '#39ff14',
       wordWrap: { width: this.W - this.PADDING * 2, useAdvancedWrap: true },
     }).setAlpha(0).setScrollFactor(0);
@@ -138,6 +140,7 @@ export class DialogueBox {
    * 显示一段对话
    */
   show(lines: DialogueLine[], onComplete?: () => void) {
+    this.resetLayout();
     this.lines = this.paginateLines(lines);
     this.lineIdx = 0;
     this.onComplete = onComplete;
@@ -159,9 +162,17 @@ export class DialogueBox {
     this.promptText.setAlpha(0);
     this.hintText.setAlpha(0);
 
-    const boxY = this.H - this.BOX_H;
-    const baseY = this.isCompact ? boxY + 136 : boxY + 124;
     const spacing = this.isCompact ? 34 : 22;
+    const optionTop = this.isCompact ? 136 : 124;
+    const optionBottomPadding = this.isCompact ? 46 : 34;
+    const minBoxHeight = this.defaultBoxHeight;
+    const maxBoxHeight = Math.max(minBoxHeight, this.H - 28);
+    const neededHeight = optionTop + optionBottomPadding + Math.max(0, choices.length - 1) * spacing;
+    this.boxHeight = Math.min(maxBoxHeight, Math.max(minBoxHeight, neededHeight));
+    this.applyLayout();
+
+    const boxY = this.H - this.boxHeight;
+    const baseY = boxY + optionTop;
     choices.forEach((choice, i) => {
       const y = baseY + i * spacing;
       const text = this.scene.add.text(this.PADDING + 20, y, `[${i + 1}] ${choice.label}`, {
@@ -176,7 +187,6 @@ export class DialogueBox {
         choice.callback();
       });
 
-      // 键盘快捷键
       const keyName = `keydown-${['ONE', 'TWO', 'THREE', 'FOUR'][i]}`;
       const keyHandler = () => {
         this.hide();
@@ -201,6 +211,7 @@ export class DialogueBox {
     this.clearChoiceKeyBindings();
     this.hintText.setAlpha(0);
     this.promptText.setAlpha(0);
+    this.resetLayout();
   }
 
   isVisible() {
@@ -217,11 +228,11 @@ export class DialogueBox {
     const line = this.lines[this.lineIdx];
     this.speakerText.setText(line.speaker);
     if (line.color) this.speakerText.setColor(line.color);
-    if (line.portraitKey && this.scene.textures.exists(line.portraitKey) && !this.isCompact) {
+    if (line.portraitKey && this.scene.textures.exists(line.portraitKey)) {
       this.portraitImage.setTexture(line.portraitKey);
       const frame = this.scene.textures.get(line.portraitKey).getSourceImage() as { width: number; height: number };
-      const maxW = 112;
-      const maxH = 86;
+      const maxW = this.isCompact ? 76 : 112;
+      const maxH = this.isCompact ? 62 : 86;
       const scale = Math.min(maxW / frame.width, maxH / frame.height);
       this.portraitImage.setDisplaySize(frame.width * scale, frame.height * scale).setVisible(true);
       this.portraitFrame.setVisible(true);
@@ -284,11 +295,28 @@ export class DialogueBox {
     this.choiceKeyCleanups = [];
   }
 
+  private resetLayout() {
+    this.boxHeight = this.defaultBoxHeight;
+    this.applyLayout();
+  }
+
+  private applyLayout() {
+    const boxY = this.H - this.boxHeight;
+    this.bg.setPosition(this.W / 2, boxY + this.boxHeight / 2);
+    this.bg.setSize(this.W - (this.isCompact ? 16 : 28), this.boxHeight);
+    this.portraitFrame.setPosition(this.portraitX, boxY + (this.isCompact ? 62 : 78));
+    this.portraitImage.setPosition(this.portraitX, boxY + (this.isCompact ? 62 : 78));
+    this.speakerText.setPosition(this.bodyX, boxY + 14);
+    this.bodyText.setPosition(this.bodyX, boxY + (this.isCompact ? 42 : 44));
+    this.promptText.setPosition(this.W - 32, boxY + this.boxHeight - 20);
+    this.hintText.setPosition(this.PADDING, boxY + this.boxHeight - 22);
+  }
+
   private isPointerInsideBox(pointer: Phaser.Input.Pointer) {
-    const boxTop = this.H - this.BOX_H;
+    const boxTop = this.H - this.boxHeight;
     const boxLeft = (this.W - this.bg.width) / 2;
     const boxRight = boxLeft + this.bg.width;
-    const boxBottom = boxTop + this.BOX_H;
+    const boxBottom = boxTop + this.boxHeight;
 
     return pointer.x >= boxLeft && pointer.x <= boxRight && pointer.y >= boxTop && pointer.y <= boxBottom;
   }

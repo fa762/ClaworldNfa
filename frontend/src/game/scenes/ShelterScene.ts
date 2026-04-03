@@ -224,8 +224,8 @@ export class ShelterScene extends Phaser.Scene {
     this.physics.world.setBounds(32, 32, W - 64, H - 64);
     this.cameras.main.setBounds(0, 0, W, H);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
-    this.cameras.main.setZoom(portraitViewport ? 0.82 : compactViewport ? 0.94 : 1);
-    this.cameras.main.roundPixels = true;
+    this.cameras.main.setZoom(portraitViewport ? 0.9 : compactViewport ? 0.96 : 1);
+    this.cameras.main.roundPixels = false;
 
     // ── 键盘 ──
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -251,16 +251,6 @@ export class ShelterScene extends Phaser.Scene {
       wordWrap: { width: portraitViewport ? viewportW - 36 : viewportW - 40 },
       lineSpacing: portraitViewport ? 6 : 0,
     }).setOrigin(0.5).setDepth(130).setAlpha(0.55).setScrollFactor(0);
-
-    this.add.text(viewportW - (portraitViewport ? 96 : 88), portraitViewport ? viewportH - 104 : viewportH - 52, this.lang === 'zh' ? '[ 档案 ]' : '[ DOSSIER ]', {
-      fontSize: portraitViewport ? '12px' : compactViewport ? '10px' : '11px', fontFamily: 'monospace', color: '#7adf8b',
-    }).setOrigin(0.5).setDepth(130).setAlpha(0.72).setScrollFactor(0);
-
-    this.add.text(viewportW - (portraitViewport ? 96 : 88), portraitViewport ? viewportH - 70 : viewportH - 30, this.lang === 'zh' ? '[ 点击查看档案 ]' : '[ TAP FOR DOSSIER ]', {
-      fontSize: portraitViewport ? '11px' : compactViewport ? '9px' : '10px', fontFamily: 'monospace', color: '#9ed89f', backgroundColor: '#081108', padding: { x: portraitViewport ? 10 : 6, y: portraitViewport ? 6 : 4 },
-    }).setOrigin(0.5).setDepth(130).setAlpha(0.92).setInteractive({ useHandCursor: true }).setScrollFactor(0).on('pointerdown', () => {
-      this.scene.start('ArchiveScene', this.buildSceneData());
-    });
 
     this.hudText = this.add.text(10, portraitViewport ? viewportH - 52 : viewportH - 24, touchFriendly
       ? (this.lang === 'zh' ? `NFA #${this.nfaId}\n点地面移动 · 靠近后点击装置交互` : `NFA #${this.nfaId}\nTap ground to move · Tap terminals nearby`)
@@ -576,9 +566,6 @@ export class ShelterScene extends Phaser.Scene {
         break;
       case 'market':
         this.scene.start('MarketScene', sceneData);
-        break;
-      case 'archive':
-        this.scene.start('ArchiveScene', sceneData);
         break;
       case 'shelter':
         this.scene.restart(sceneData);
