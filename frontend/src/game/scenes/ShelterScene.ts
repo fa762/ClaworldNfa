@@ -45,6 +45,13 @@ interface EchoProjection {
   title: string;
 }
 
+interface WorldLayout {
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+}
+
 /**
  * ShelterScene — 避难所主场景（赛博朋克终端厅）
  * 玩家控制龙虾在场景中走动，接近 NPC 按空格交互
@@ -73,6 +80,7 @@ export class ShelterScene extends Phaser.Scene {
   private moveTarget: PlayerPosition | null = null;
   private lang: GameLang = 'zh';
   private echoes: Phaser.GameObjects.GameObject[] = [];
+  private world!: WorldLayout;
 
   constructor() {
     super({ key: 'ShelterScene' });
@@ -93,8 +101,11 @@ export class ShelterScene extends Phaser.Scene {
   create() {
     eventBus.emit('game:scene', { scene: 'shelter', nfaId: this.nfaId, shelter: this.shelter });
 
-    const W = this.cameras.main.width;
-    const H = this.cameras.main.height;
+    const viewportW = this.cameras.main.width;
+    const viewportH = this.cameras.main.height;
+    this.world = this.getWorldLayout(viewportW, viewportH);
+    const W = this.world.width;
+    const H = this.world.height;
     const floorTexture = this.textures.exists('tile-floor-art') ? 'tile-floor-art' : 'tile-floor';
 
     // ── 地板 ──
@@ -117,11 +128,11 @@ export class ShelterScene extends Phaser.Scene {
     // ── 功能分区光带 ──
     const specialty = getShelterSpecialty(this.shelter, this.lang);
     const zoneDefs = [
-      { key: 'task', x: W * 0.25, y: H * 0.3, w: 160, h: 92, color: 0xffd34d },
-      { key: 'pk', x: W * 0.75, y: H * 0.3, w: 160, h: 92, color: 0xff4d4d },
-      { key: 'market', x: W * 0.5, y: H * 0.2, w: 220, h: 84, color: 0xffd34d },
-      { key: 'portal', x: W * 0.15, y: H * 0.7, w: 132, h: 84, color: 0xaa66ff },
-      { key: 'openclaw', x: W * 0.85, y: H * 0.7, w: 148, h: 92, color: 0x66ffcc },
+      { key: 'task', x: W * 0.22, y: H * 0.26, w: 180, h: 96, color: 0xffd34d },
+      { key: 'pk', x: W * 0.78, y: H * 0.26, w: 180, h: 96, color: 0xff4d4d },
+      { key: 'market', x: W * 0.5, y: H * 0.16, w: 240, h: 88, color: 0xffd34d },
+      { key: 'portal', x: W * 0.12, y: H * 0.76, w: 144, h: 88, color: 0xaa66ff },
+      { key: 'openclaw', x: W * 0.88, y: H * 0.76, w: 156, h: 96, color: 0x66ffcc },
     ];
 
     zoneDefs.forEach((zone) => {
@@ -130,8 +141,8 @@ export class ShelterScene extends Phaser.Scene {
       this.add.rectangle(zone.x, zone.y + zone.h / 2 - 4, zone.w * 0.72, 6, zone.color, isSpecialty ? 0.16 : 0.08).setDepth(1);
     });
 
-    this.add.rectangle(W / 2, H / 2, Math.min(W * 0.55, 440), 12, 0x39ff14, 0.04).setDepth(1);
-    this.add.rectangle(W / 2, H / 2 + 78, Math.min(W * 0.4, 320), 8, 0x39ff14, 0.03).setDepth(1);
+    this.add.rectangle(this.world.centerX, this.world.centerY, Math.min(W * 0.42, 720), 12, 0x39ff14, 0.04).setDepth(1);
+    this.add.rectangle(this.world.centerX, this.world.centerY + 110, Math.min(W * 0.3, 520), 8, 0x39ff14, 0.03).setDepth(1);
 
     // ── 标题 ──
     const shelterNames = this.lang === 'zh'
@@ -140,7 +151,7 @@ export class ShelterScene extends Phaser.Scene {
     const shelterName = shelterNames[this.shelter] || `SHELTER-0${this.shelter}`;
     this.add.text(W / 2, 14, `SHELTER-0${this.shelter}  ${shelterName}`, {
       fontSize: '18px', fontFamily: 'monospace', color: '#39ff14',
-    }).setOrigin(0.5, 0).setDepth(100).setAlpha(0.7);
+    }).setOrigin(0.5, 0).setDepth(100).setAlpha(0.7).setScrollFactor(0);
 
     const shelterDesc = this.lang === 'zh'
       ? getShelterDescription(this.shelter)
@@ -158,21 +169,21 @@ export class ShelterScene extends Phaser.Scene {
     this.add.text(W / 2, 36, shelterDesc, {
       fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: '#7adf8b',
       align: 'center', wordWrap: { width: W - 100 },
-    }).setOrigin(0.5).setDepth(100).setAlpha(0.45);
+    }).setOrigin(0.5).setDepth(100).setAlpha(0.45).setScrollFactor(0);
 
     this.add.text(W / 2, 54, this.lang === 'zh' ? `区域偏向：${specialty.text}` : `Shelter specialty: ${specialty.text}`, {
       fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: specialty.color,
       align: 'center', wordWrap: { width: W - 100 },
-    }).setOrigin(0.5).setDepth(100).setAlpha(0.65);
+    }).setOrigin(0.5).setDepth(100).setAlpha(0.65).setScrollFactor(0);
 
     // ── NPC 定义（根据场景大小自适应位置） ──
     this.npcDefs = [
-      { key: 'task',     texture: 'npc-task',     artTexture: 'npc-task-art',     label: this.lang === 'zh' ? '[ 任务终端 ]' : '[ TASK ]',        x: W * 0.25,  y: H * 0.3,  action: 'TaskScene' },
-      { key: 'pk',       texture: 'npc-pk',       artTexture: 'npc-pk-art',       label: this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]',       x: W * 0.75,  y: H * 0.3,  action: 'PKScene' },
-      { key: 'market',   texture: 'npc-market',   artTexture: 'npc-market-art',   label: this.lang === 'zh' ? '[ 撮合墙 ]' : '[ MATCH WALL ]', x: W * 0.46,   y: H * 0.18,  action: 'MarketScene' },
+      { key: 'task',     texture: 'npc-task',     artTexture: 'npc-task-art',     label: this.lang === 'zh' ? '[ 任务终端 ]' : '[ TASK ]',        x: W * 0.22,  y: H * 0.26,  action: 'TaskScene' },
+      { key: 'pk',       texture: 'npc-pk',       artTexture: 'npc-pk-art',       label: this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]',       x: W * 0.78,  y: H * 0.26,  action: 'PKScene' },
+      { key: 'market',   texture: 'npc-market',   artTexture: 'npc-market-art',   label: this.lang === 'zh' ? '[ 撮合墙 ]' : '[ MATCH WALL ]', x: W * 0.5,   y: H * 0.16,  action: 'MarketScene' },
       { key: 'sable',    texture: 'npc-sable-art', artTexture: 'npc-sable-art',   label: this.lang === 'zh' ? '[ SABLE / 清算员 ]' : '[ SABLE / CLEARER ]', x: W * 0.70, y: H * 0.52, action: 'event:sable' },
-      { key: 'portal',   texture: 'portal',       artTexture: 'portal-art',       label: this.lang === 'zh' ? '[ 隧道传送 ]' : '[ PORTAL ]',      x: W * 0.15,  y: H * 0.7,  action: 'event:portal' },
-      { key: 'openclaw', texture: 'npc-openclaw', artTexture: 'npc-openclaw-art', label: this.lang === 'zh' ? '[ 意识唤醒舱 ]' : '[ AWAKENING ]', x: W * 0.85,  y: H * 0.7,  action: 'event:openclaw' },
+      { key: 'portal',   texture: 'portal',       artTexture: 'portal-art',       label: this.lang === 'zh' ? '[ 隧道传送 ]' : '[ PORTAL ]',      x: W * 0.12,  y: H * 0.76,  action: 'event:portal' },
+      { key: 'openclaw', texture: 'npc-openclaw', artTexture: 'npc-openclaw-art', label: this.lang === 'zh' ? '[ 意识唤醒舱 ]' : '[ AWAKENING ]', x: W * 0.88,  y: H * 0.76,  action: 'event:openclaw' },
     ];
 
     // ── 创建 NPC ──
@@ -188,14 +199,14 @@ export class ShelterScene extends Phaser.Scene {
       // NPC 标签
       this.add.text(def.x, def.y - npc.displayHeight / 2 - 10, def.label, {
         fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
-      }).setOrigin(0.5).setAlpha(0.85);
+      }).setOrigin(0.5).setAlpha(0.85).setDepth(def.y + 18);
 
       this.npcs.push(npc);
     }
 
     // ── 玩家龙虾 ──
     const hasSpriteSheet = this.textures.exists('player-walk');
-    const spawn = this.playerPosition ?? { x: W / 2, y: H / 2 };
+    const spawn = this.playerPosition ?? { x: this.world.centerX, y: this.world.centerY + 40 };
     this.player = this.physics.add.sprite(spawn.x, spawn.y, hasSpriteSheet ? 'player-walk' : 'player', hasSpriteSheet ? 1 : undefined);
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(spawn.y + 6);
@@ -207,8 +218,11 @@ export class ShelterScene extends Phaser.Scene {
 
     this.physics.add.collider(this.player, this.npcs);
 
-    // ── 碰撞 ──
     this.physics.world.setBounds(32, 32, W - 64, H - 64);
+    this.cameras.main.setBounds(0, 0, W, H);
+    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
+    this.cameras.main.setZoom(viewportW < 760 ? 1.12 : 1);
+    this.cameras.main.roundPixels = true;
 
     // ── 键盘 ──
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -221,30 +235,29 @@ export class ShelterScene extends Phaser.Scene {
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     // ── 交互提示 ──
-    this.promptText = this.add.text(W / 2, H - 56, '', {
-      fontSize: '18px', fontFamily: 'monospace', color: '#ffd700',
-    }).setOrigin(0.5).setDepth(100);
+    this.promptText = this.add.text(viewportW / 2, viewportH - 70, '', {
+      fontSize: viewportW < 760 ? '15px' : '18px', fontFamily: 'monospace', color: '#ffd700',
+    }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
 
-    this.add.text(W / 2, H - 82, this.lang === 'zh' ? 'WASD/方向键移动  ·  点击地面移动  ·  靠近装置按 SPACE' : 'WASD/Arrows move  ·  Tap ground to move  ·  Press SPACE near terminals', {
-      fontSize: W < 720 ? '10px' : '12px', fontFamily: 'monospace', color: '#39ff14',
+    this.add.text(viewportW / 2, viewportH - 96, this.lang === 'zh' ? 'WASD/方向键移动  ·  点击地面移动  ·  靠近装置按 SPACE' : 'WASD/Arrows move  ·  Tap ground to move  ·  Press SPACE near terminals', {
+      fontSize: viewportW < 760 ? '9px' : '12px', fontFamily: 'monospace', color: '#39ff14',
       align: 'center',
-      wordWrap: { width: W - 40 },
-    }).setOrigin(0.5).setDepth(100).setAlpha(0.38);
+      wordWrap: { width: viewportW - 40 },
+    }).setOrigin(0.5).setDepth(100).setAlpha(0.38).setScrollFactor(0);
 
-    this.add.text(W - 112, H - 48, this.lang === 'zh' ? '[ 档案 ]' : '[ DOSSIER ]', {
+    this.add.text(viewportW - 88, viewportH - 52, this.lang === 'zh' ? '[ 档案 ]' : '[ DOSSIER ]', {
       fontSize: '11px', fontFamily: 'monospace', color: '#7adf8b',
-    }).setOrigin(0.5).setDepth(100).setAlpha(0.5);
+    }).setOrigin(0.5).setDepth(100).setAlpha(0.5).setScrollFactor(0);
 
-    this.add.text(W - 112, H - 28, this.lang === 'zh' ? '[ 点击查看档案 ]' : '[ TAP FOR DOSSIER ]', {
+    this.add.text(viewportW - 88, viewportH - 30, this.lang === 'zh' ? '[ 点击查看档案 ]' : '[ TAP FOR DOSSIER ]', {
       fontSize: '10px', fontFamily: 'monospace', color: '#9ed89f', backgroundColor: '#081108', padding: { x: 6, y: 4 },
-    }).setOrigin(0.5).setDepth(100).setAlpha(0.7).setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+    }).setOrigin(0.5).setDepth(100).setAlpha(0.7).setInteractive({ useHandCursor: true }).setScrollFactor(0).on('pointerdown', () => {
       this.scene.start('ArchiveScene', this.buildSceneData());
     });
 
-    // ── HUD ──
-    this.hudText = this.add.text(8, H - 22, this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`, {
-      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
-    }).setDepth(100).setAlpha(0.6);
+    this.hudText = this.add.text(10, viewportH - 24, this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`, {
+      fontSize: viewportW < 760 ? '12px' : '14px', fontFamily: 'monospace', color: '#39ff14',
+    }).setDepth(100).setAlpha(0.6).setScrollFactor(0);
 
     // ── 对话框 ──
     this.dialogueBox = new DialogueBox(this, this.lang);
@@ -644,8 +657,8 @@ export class ShelterScene extends Phaser.Scene {
 
     const broadcast = this.add.text(W / 2, 34, broadcastMessages[0], {
       fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: '#39ff14', align: 'center',
-      wordWrap: { width: W - 80 },
-    }).setOrigin(0.5).setAlpha(0.45).setDepth(100);
+      wordWrap: { width: Math.max(280, this.cameras.main.width - 80) },
+    }).setOrigin(0.5).setAlpha(0.45).setDepth(100).setScrollFactor(0);
 
     this.echoes.push(broadcast);
 
@@ -681,14 +694,30 @@ export class ShelterScene extends Phaser.Scene {
     });
   }
 
+  private getWorldLayout(viewportW: number, viewportH: number): WorldLayout {
+    const compact = viewportW < 820 || viewportH < 700;
+    const width = compact ? Math.max(1440, Math.floor(viewportW * 2.2)) : Math.max(1760, Math.floor(viewportW * 1.65));
+    const height = compact ? Math.max(1120, Math.floor(viewportH * 2)) : Math.max(1320, Math.floor(viewportH * 1.75));
+
+    return {
+      width,
+      height,
+      centerX: Math.floor(width / 2),
+      centerY: Math.floor(height / 2),
+    };
+  }
+
   private setupTouchControls() {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.dialogueBox.isVisible()) {
         return;
       }
+
+      const worldPoint = (pointer.positionToCamera(this.cameras.main) ?? pointer) as Phaser.Math.Vector2;
+
       // 如果点击在 NPC 附近，当作交互
       for (const npc of this.npcs) {
-        const npcDist = Phaser.Math.Distance.Between(pointer.x, pointer.y, npc.x, npc.y);
+        const npcDist = Phaser.Math.Distance.Between(worldPoint.x, worldPoint.y, npc.x, npc.y);
         if (npcDist < 40) {
           const def = npc.getData('def') as NpcDef;
           this.handleInteract(def);
@@ -697,10 +726,9 @@ export class ShelterScene extends Phaser.Scene {
       }
 
       // 点击/触屏地面后持续移动到目标点
-      const worldPoint = (pointer.positionToCamera(this.cameras.main) ?? pointer) as Phaser.Math.Vector2;
       this.moveTarget = {
-        x: Phaser.Math.Clamp(worldPoint.x, 36, this.cameras.main.width - 36),
-        y: Phaser.Math.Clamp(worldPoint.y, 36, this.cameras.main.height - 36),
+        x: Phaser.Math.Clamp(worldPoint.x, 36, this.world.width - 36),
+        y: Phaser.Math.Clamp(worldPoint.y, 36, this.world.height - 36),
       };
 
       // 近距离二次点击，直接清除移动目标

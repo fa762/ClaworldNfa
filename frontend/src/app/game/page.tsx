@@ -141,6 +141,7 @@ export default function GamePage() {
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [gameReady, setGameReady] = useState(false);
   const [showHelpPanel, setShowHelpPanel] = useState(false);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
 
   const walletOptions = useMemo(
     () => connectors.filter((connector) => connector.type === 'injected' || connector.name === 'WalletConnect' || connector.name === 'Coinbase Wallet'),
@@ -172,7 +173,17 @@ export default function GamePage() {
     return true;
   }, [connect, walletOptions]);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    if (!mounted) return;
+
+    const syncViewport = () => {
+      setIsCompactViewport(window.innerWidth < 820 || window.innerHeight < 700);
+    };
+
+    syncViewport();
+    window.addEventListener('resize', syncViewport);
+    return () => window.removeEventListener('resize', syncViewport);
+  }, [mounted]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -903,6 +914,7 @@ export default function GamePage() {
 
   const shellWalletOptions = walletOptions.map((item) => ({ id: item.id, name: item.name }));
   const showStartupCard = status !== 'playing';
+  const showFloatingHud = status === 'playing' || !showStartupCard;
   const compactStatusHeadline = (() => {
     if (lang === 'zh') {
       if (status === 'ready') return '请先连接钱包';
@@ -950,33 +962,42 @@ export default function GamePage() {
     <div className="relative h-full min-h-0 overflow-hidden">
       <div ref={containerRef} className="absolute inset-0 z-[20] rounded bg-black" />
 
-      <div className="pointer-events-none absolute inset-0 z-[30]">
-        <div className="pointer-events-auto absolute bottom-4 left-3 flex items-center gap-4 font-mono text-xs">
-          <button
-            onClick={() => setShowSidePanel((current) => !current)}
-            className="text-crt-green/70 transition-colors hover:text-crt-bright"
-          >
-            [TAB] {lang === 'zh' ? '控制台' : 'CONSOLE'}
-          </button>
-          <button
-            onClick={() => setShowHelpPanel(true)}
-            className="text-crt-green/70 transition-colors hover:text-crt-bright"
-          >
-            [H] {lang === 'zh' ? '帮助' : 'HELP'}
-          </button>
-        </div>
+      {showFloatingHud && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-[30]">
+          <div className="flex items-start justify-between gap-3 px-3 pt-3 sm:px-4 sm:pt-4">
+            <div className="pointer-events-auto flex max-w-[78vw] flex-wrap items-center gap-2 font-mono text-[11px] sm:text-xs">
+              <button
+                onClick={() => setShowSidePanel((current) => !current)}
+                className="rounded border border-crt-green/20 bg-black/45 px-2.5 py-1.5 text-crt-green/70 backdrop-blur-[2px] transition-colors hover:text-crt-bright"
+              >
+                {isCompactViewport ? (lang === 'zh' ? '[ 菜单 ]' : '[ MENU ]') : `[TAB] ${lang === 'zh' ? '控制台' : 'CONSOLE'}`}
+              </button>
+              <button
+                onClick={() => setShowHelpPanel(true)}
+                className="rounded border border-crt-green/20 bg-black/45 px-2.5 py-1.5 text-crt-green/70 backdrop-blur-[2px] transition-colors hover:text-crt-bright"
+              >
+                {isCompactViewport ? (lang === 'zh' ? '[ 帮助 ]' : '[ HELP ]') : `[H] ${lang === 'zh' ? '帮助' : 'HELP'}`}
+              </button>
+              {activeSummary && (
+                <div className="rounded border border-crt-green/15 bg-black/40 px-2.5 py-1.5 text-crt-green/55 backdrop-blur-[2px]">
+                  NFA #{activeSummary.tokenId} · Lv.{activeSummary.level}
+                </div>
+              )}
+            </div>
 
-        {pendingTx && (
-          <div className="pointer-events-auto absolute bottom-4 right-3 border border-crt-green/30 bg-black/58 px-3 py-2 font-mono text-[11px] text-right text-crt-green/85 shadow-[0_0_18px_rgba(82,255,82,0.12)] animate-pulse">
-            <div>{txLabel(pendingTx.label, lang === 'zh')}</div>
-            <div className="text-crt-green/40">{pendingTx.hash.slice(0, 12)}...</div>
+            {pendingTx && (
+              <div className="pointer-events-auto max-w-[58vw] rounded border border-crt-green/25 bg-black/58 px-3 py-2 font-mono text-[10px] text-right text-crt-green/85 shadow-[0_0_18px_rgba(82,255,82,0.12)] backdrop-blur-[2px] animate-pulse sm:text-[11px]">
+                <div>{txLabel(pendingTx.label, lang === 'zh')}</div>
+                <div className="text-crt-green/40">{pendingTx.hash.slice(0, 12)}...</div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {showStartupCard && (
-        <div className="pointer-events-none absolute inset-0 z-[35] flex items-center justify-center p-4">
-          <div className="pointer-events-auto w-[min(92vw,36rem)] rounded border border-crt-green/35 bg-black/80 font-mono shadow-[0_0_40px_rgba(82,255,82,0.14)]">
+        <div className="pointer-events-none absolute inset-0 z-[35] flex items-center justify-center p-3 sm:p-4">
+          <div className="pointer-events-auto w-[min(94vw,36rem)] rounded border border-crt-green/35 bg-black/72 font-mono shadow-[0_0_40px_rgba(82,255,82,0.14)] backdrop-blur-sm">
             <div className="border-b border-crt-green/25 px-4 py-4">
               <p className="text-[10px] tracking-[0.28em] text-crt-green/40">
                 {lang === 'zh' ? '进入流程' : 'SESSION FLOW'}
@@ -1122,9 +1143,9 @@ export default function GamePage() {
       )}
 
       {showSidePanel && (
-        <div className="absolute inset-0 z-[40] bg-black/35" onClick={() => setShowSidePanel(false)}>
+        <div className="absolute inset-0 z-[40] bg-black/45 backdrop-blur-[2px]" onClick={() => setShowSidePanel(false)}>
           <div
-            className="absolute left-0 top-0 h-full w-[min(92vw,24rem)] border-r border-crt-green/35 bg-black/90 shadow-[0_0_40px_rgba(0,0,0,0.4)]"
+            className="absolute left-0 top-0 h-full w-[min(94vw,24rem)] border-r border-crt-green/35 bg-black/92 shadow-[0_0_40px_rgba(0,0,0,0.4)]"
             onClick={(e) => e.stopPropagation()}
           >
             <GameCommandShell
