@@ -35,6 +35,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('npc-openclaw-art', assetUrl('npc-openclaw'));
     this.load.image('tile-floor-art', assetUrl('tile-floor'));
     this.load.image('shelter-00-bg', `/game/backgrounds/shelter-00-bg.png?v=${this.assetVersion}`);
+    this.load.image('shelter-00-mask', `/game/backgrounds/shelter-00-mask.png?v=${this.assetVersion}`);
     this.load.image('sable-portrait-default', assetUrl('sable-portrait-default'));
     this.load.image('sable-portrait-calm', assetUrl('sable-portrait-calm'));
     this.load.image('sable-portrait-warning', assetUrl('sable-portrait-warning'));

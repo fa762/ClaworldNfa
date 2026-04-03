@@ -89,6 +89,12 @@ export class ShelterScene extends Phaser.Scene {
   private world!: WorldLayout;
   private blockers: RectRegion[] = [];
   private blockerObjects: Phaser.GameObjects.Rectangle[] = [];
+  private occluderObjects: Phaser.GameObjects.Image[] = [];
+  private maskCanvas?: HTMLCanvasElement;
+  private maskContext?: CanvasRenderingContext2D;
+  private maskImageData?: Uint8ClampedArray;
+  private maskWidth = 0;
+  private maskHeight = 0;
   private playerShadow?: Phaser.GameObjects.Ellipse;
   private playerShadowOffsetY = 18;
 
@@ -132,6 +138,8 @@ export class ShelterScene extends Phaser.Scene {
         }
       }
     }
+
+    this.loadShelterMask();
 
     this.add.rectangle(this.sx(840), this.sy(928), this.sx(508), this.sy(132), 0x08110f, 0.2).setDepth(1);
     this.add.rectangle(this.sx(840), this.sy(980), this.sx(420), this.sy(42), 0x39ff14, 0.05).setDepth(1);
@@ -196,7 +204,7 @@ export class ShelterScene extends Phaser.Scene {
       this.npcs.push(npc);
     }
 
-    this.blockers = [
+    this.blockers = this.maskImageData ? this.buildMaskBlockers() : [
       this.scaleRect(0, 0, 1680, 138),
       this.scaleRect(0, 0, 96, 1260),
       this.scaleRect(1584, 0, 96, 1260),
@@ -217,21 +225,25 @@ export class ShelterScene extends Phaser.Scene {
       this.blockerObjects.push(blocker);
     }
 
-    const occluders = [
-      this.scaleRect(118, 822, 320, 282),
-      this.scaleRect(654, 694, 392, 128),
-      this.scaleRect(1232, 806, 328, 288),
-    ];
-    occluders.forEach((region) => {
-      if (!this.textures.exists('shelter-00-bg')) {
-        return;
-      }
-      this.add.image(0, 0, 'shelter-00-bg')
-        .setOrigin(0)
-        .setDisplaySize(W, H)
-        .setCrop(region.x / this.scaleX(), region.y / this.scaleY(), region.w / this.scaleX(), region.h / this.scaleY())
-        .setDepth(region.y + region.h + 24);
-    });
+    if (this.maskImageData) {
+      this.occluderObjects = this.buildMaskOccluders();
+    } else {
+      const occluders = [
+        this.scaleRect(118, 822, 320, 282),
+        this.scaleRect(654, 694, 392, 128),
+        this.scaleRect(1232, 806, 328, 288),
+      ];
+      occluders.forEach((region) => {
+        if (!this.textures.exists('shelter-00-bg')) {
+          return;
+        }
+        this.occluderObjects.push(this.add.image(0, 0, 'shelter-00-bg')
+          .setOrigin(0)
+          .setDisplaySize(W, H)
+          .setCrop(region.x / this.scaleX(), region.y / this.scaleY(), region.w / this.scaleX(), region.h / this.scaleY())
+          .setDepth(region.y + region.h + 24));
+      });
+    }
 
     const spawn = this.playerPosition && !this.isBlockedPoint(this.playerPosition.x, this.playerPosition.y)
       ? this.playerPosition
@@ -347,6 +359,13 @@ export class ShelterScene extends Phaser.Scene {
       this.playerShadow?.destroy();
       this.blockerObjects.forEach((blocker) => blocker.destroy());
       this.blockerObjects = [];
+      this.occluderObjects.forEach((occluder) => occluder.destroy());
+      this.occluderObjects = [];
+      this.maskContext = undefined;
+      this.maskCanvas = undefined;
+      this.maskImageData = undefined;
+      this.maskWidth = 0;
+      this.maskHeight = 0;
       this.echoes.forEach((echo) => echo.destroy());
       this.echoes = [];
     });
@@ -586,6 +605,201 @@ export class ShelterScene extends Phaser.Scene {
     };
   }
 
+  private loadShelterMask() {
+    if (!this.textures.exists('shelter-00-mask')) {
+      return;
+    }
+
+    const sourceImage = this.textures.get('shelter-00-mask').getSourceImage() as CanvasImageSource & { width?: number; height?: number };
+    const width = sourceImage.width ?? 0;
+    const height = sourceImage.height ?? 0;
+    if (!width || !height) {
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) {
+      return;
+    }
+
+    context.drawImage(sourceImage, 0, 0, width, height);
+    this.maskCanvas = canvas;
+    this.maskContext = context;
+    this.maskWidth = width;
+    this.maskHeight = height;
+    this.maskImageData = context.getImageData(0, 0, width, height).data;
+  }
+
+  private buildMaskBlockers() {
+    const blockers: RectRegion[] = [];
+    if (!this.maskImageData || this.maskWidth <= 0 || this.maskHeight <= 0) {
+      return blockers;
+    }
+
+    const visited = new Uint8Array(this.maskWidth * this.maskHeight);
+    const minBlockPixels = 24;
+
+    for (let y = 0; y < this.maskHeight; y += 1) {
+      for (let x = 0; x < this.maskWidth; x += 1) {
+        const index = y * this.maskWidth + x;
+        if (visited[index] || !this.isMaskBlockedPixel(x, y)) {
+          continue;
+        }
+
+        let maxX = x;
+        while (maxX + 1 < this.maskWidth && !visited[y * this.maskWidth + maxX + 1] && this.isMaskBlockedPixel(maxX + 1, y)) {
+          maxX += 1;
+        }
+
+        let maxY = y;
+        let canExtend = true;
+        while (canExtend && maxY + 1 < this.maskHeight) {
+          for (let scanX = x; scanX <= maxX; scanX += 1) {
+            if (visited[(maxY + 1) * this.maskWidth + scanX] || !this.isMaskBlockedPixel(scanX, maxY + 1)) {
+              canExtend = false;
+              break;
+            }
+          }
+          if (canExtend) {
+            maxY += 1;
+          }
+        }
+
+        for (let fillY = y; fillY <= maxY; fillY += 1) {
+          for (let fillX = x; fillX <= maxX; fillX += 1) {
+            visited[fillY * this.maskWidth + fillX] = 1;
+          }
+        }
+
+        const pixelWidth = maxX - x + 1;
+        const pixelHeight = maxY - y + 1;
+        if (pixelWidth * pixelHeight < minBlockPixels) {
+          continue;
+        }
+
+        blockers.push(this.scaleRect(
+          Math.round((x / this.maskWidth) * 1680),
+          Math.round((y / this.maskHeight) * 1260),
+          Math.max(1, Math.round((pixelWidth / this.maskWidth) * 1680)),
+          Math.max(1, Math.round((pixelHeight / this.maskHeight) * 1260)),
+        ));
+      }
+    }
+
+    return blockers;
+  }
+
+  private buildMaskOccluders() {
+    const occluders: Phaser.GameObjects.Image[] = [];
+    if (!this.maskImageData || this.maskWidth <= 0 || this.maskHeight <= 0 || !this.textures.exists('shelter-00-bg')) {
+      return occluders;
+    }
+
+    const visited = new Uint8Array(this.maskWidth * this.maskHeight);
+    const minOccluderPixels = 30;
+
+    for (let y = 0; y < this.maskHeight; y += 1) {
+      for (let x = 0; x < this.maskWidth; x += 1) {
+        const index = y * this.maskWidth + x;
+        if (visited[index] || !this.isMaskOccluderPixel(x, y)) {
+          continue;
+        }
+
+        let maxX = x;
+        while (maxX + 1 < this.maskWidth && !visited[y * this.maskWidth + maxX + 1] && this.isMaskOccluderPixel(maxX + 1, y)) {
+          maxX += 1;
+        }
+
+        let maxY = y;
+        let canExtend = true;
+        while (canExtend && maxY + 1 < this.maskHeight) {
+          for (let scanX = x; scanX <= maxX; scanX += 1) {
+            if (visited[(maxY + 1) * this.maskWidth + scanX] || !this.isMaskOccluderPixel(scanX, maxY + 1)) {
+              canExtend = false;
+              break;
+            }
+          }
+          if (canExtend) {
+            maxY += 1;
+          }
+        }
+
+        for (let fillY = y; fillY <= maxY; fillY += 1) {
+          for (let fillX = x; fillX <= maxX; fillX += 1) {
+            visited[fillY * this.maskWidth + fillX] = 1;
+          }
+        }
+
+        const pixelWidth = maxX - x + 1;
+        const pixelHeight = maxY - y + 1;
+        if (pixelWidth * pixelHeight < minOccluderPixels) {
+          continue;
+        }
+
+        const scaledRegion = this.scaleRect(
+          Math.round((x / this.maskWidth) * 1680),
+          Math.round((y / this.maskHeight) * 1260),
+          Math.max(1, Math.round((pixelWidth / this.maskWidth) * 1680)),
+          Math.max(1, Math.round((pixelHeight / this.maskHeight) * 1260)),
+        );
+
+        occluders.push(this.add.image(0, 0, 'shelter-00-bg')
+          .setOrigin(0)
+          .setDisplaySize(this.world.width, this.world.height)
+          .setCrop(x, y, pixelWidth, pixelHeight)
+          .setDepth(scaledRegion.y + scaledRegion.h + 24));
+      }
+    }
+
+    return occluders;
+  }
+
+  private getMaskColor(x: number, y: number) {
+    if (!this.maskImageData || this.maskWidth <= 0 || this.maskHeight <= 0) {
+      return null;
+    }
+
+    const clampedX = Phaser.Math.Clamp(Math.floor(x), 0, this.maskWidth - 1);
+    const clampedY = Phaser.Math.Clamp(Math.floor(y), 0, this.maskHeight - 1);
+    const offset = (clampedY * this.maskWidth + clampedX) * 4;
+
+    return {
+      r: this.maskImageData[offset],
+      g: this.maskImageData[offset + 1],
+      b: this.maskImageData[offset + 2],
+      a: this.maskImageData[offset + 3],
+    };
+  }
+
+  private worldToMaskPoint(x: number, y: number) {
+    return {
+      x: Math.round((x / this.world.width) * (this.maskWidth - 1)),
+      y: Math.round((y / this.world.height) * (this.maskHeight - 1)),
+    };
+  }
+
+  private isMaskBlockedPixel(x: number, y: number) {
+    const color = this.getMaskColor(x, y);
+    if (!color || color.a < 16) {
+      return false;
+    }
+
+    return color.r < 40 && color.g < 40 && color.b < 40;
+  }
+
+  private isMaskOccluderPixel(x: number, y: number) {
+    const color = this.getMaskColor(x, y);
+    if (!color || color.a < 16) {
+      return false;
+    }
+
+    return color.r > 200 && color.g < 80 && color.b < 80;
+  }
+
+
   private handleCliCommand(name: string, args: string[]) {
     const sceneData = this.buildSceneData();
 
@@ -730,18 +944,11 @@ export class ShelterScene extends Phaser.Scene {
   }
 
   private getWorldLayout(viewportW: number, viewportH: number): WorldLayout {
-    const compact = viewportW < 820 || viewportH < 700;
-    const portrait = viewportH > viewportW;
-    const width = portrait
-      ? Math.max(1080, Math.floor(viewportW * 1.35))
-      : compact
-        ? Math.max(1360, Math.floor(viewportW * 1.9))
-        : Math.max(1680, Math.floor(viewportW * 1.5));
-    const height = portrait
-      ? Math.max(1520, Math.floor(viewportH * 1.55))
-      : compact
-        ? Math.max(1080, Math.floor(viewportH * 1.8))
-        : Math.max(1260, Math.floor(viewportH * 1.6));
+    const baseWidth = 1680;
+    const baseHeight = 1260;
+    const coverScale = Math.max(viewportW / baseWidth, viewportH / baseHeight, 1);
+    const width = Math.round(baseWidth * coverScale);
+    const height = Math.round(baseHeight * coverScale);
 
     return {
       width,
@@ -777,6 +984,11 @@ export class ShelterScene extends Phaser.Scene {
   }
 
   private isBlockedPoint(x: number, y: number) {
+    if (this.maskImageData) {
+      const maskPoint = this.worldToMaskPoint(x, y);
+      return this.isMaskBlockedPixel(maskPoint.x, maskPoint.y);
+    }
+
     return this.blockers.some((region) => (
       x >= region.x && x <= region.x + region.w && y >= region.y && y <= region.y + region.h
     ));
