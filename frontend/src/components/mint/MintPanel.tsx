@@ -109,10 +109,21 @@ export function MintPanel() {
     if (!address) return;
     const saved = loadSalt(address);
     if (!saved) {
-      setDebugError(t('mint.noSalt'));
+      setDebugError(`${t('mint.noSalt')}。这笔铸造如果已经提交成功，只能用原来那台设备里的承诺数据继续公开；如果找不回原数据，需要等 24 小时后退款。`);
       return;
     }
     setDebugError(null);
+    if (!commitHash || commitHash === zeroHash) {
+      setDebugError('链上没有找到当前钱包的有效铸造承诺，请先重新提交。');
+      return;
+    }
+
+    const localHash = computeCommitHash(saved.rarity, saved.salt, address);
+    if (localHash.toLowerCase() !== commitHash.toLowerCase()) {
+      setDebugError('当前设备保存的铸造数据和链上承诺不一致。这笔 0.02 BNB 已经锁在链上，只有原来提交时那份数据才能公开；如果找不回，只能在 24 小时后退款。');
+      return;
+    }
+
     try {
       await simulateContract(config, {
         ...vaultContract,
@@ -123,6 +134,7 @@ export function MintPanel() {
     } catch (err: any) {
       const msg = err?.shortMessage || err?.message || String(err);
       setDebugError(msg);
+      return;
     }
     revealMint.revealMint(saved.rarity, saved.salt);
   }
