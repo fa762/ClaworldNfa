@@ -47,7 +47,7 @@ export class DialogueBox {
   private readonly portraitY: number;
   private readonly portraitFrameWidth: number;
   private readonly portraitFrameHeight: number;
-  private readonly pointerHandler: () => void;
+  private readonly pointerHandler: (pointer: Phaser.Input.Pointer) => void;
   private readonly spaceHandler: () => void;
   private readonly escHandler: () => void;
   private choiceKeyCleanups: Array<() => void> = [];
@@ -117,7 +117,15 @@ export class DialogueBox {
     this.container.setVisible(false);
 
     // 点击/空格推进对话，ESC 直接关闭
-    this.pointerHandler = () => this.advance();
+    this.pointerHandler = (pointer: Phaser.Input.Pointer) => {
+      if (!this.container.visible) return;
+      if (this.isChoicePointer(pointer)) return;
+      if (this.isPointerInsideBox(pointer)) {
+        this.advance();
+        return;
+      }
+      this.hide();
+    };
     this.spaceHandler = () => this.advance();
     this.escHandler = () => { if (this.container.visible) this.hide(); };
 
@@ -274,6 +282,19 @@ export class DialogueBox {
   private clearChoiceKeyBindings() {
     this.choiceKeyCleanups.forEach((cleanup) => cleanup());
     this.choiceKeyCleanups = [];
+  }
+
+  private isPointerInsideBox(pointer: Phaser.Input.Pointer) {
+    const boxTop = this.H - this.BOX_H;
+    const boxLeft = (this.W - this.bg.width) / 2;
+    const boxRight = boxLeft + this.bg.width;
+    const boxBottom = boxTop + this.BOX_H;
+
+    return pointer.x >= boxLeft && pointer.x <= boxRight && pointer.y >= boxTop && pointer.y <= boxBottom;
+  }
+
+  private isChoicePointer(pointer: Phaser.Input.Pointer) {
+    return this.choiceTexts.some((choice) => choice.getBounds().contains(pointer.x, pointer.y));
   }
 
   private paginateLines(lines: DialogueLine[]) {

@@ -51,13 +51,6 @@ import { getShelterName } from '@/lib/shelter';
 type GameStatus = 'loading' | 'ready' | 'connected' | 'booting' | 'no-nfa' | 'select-nfa' | 'loading-nfa' | 'playing' | 'error';
 type PendingTx = { hash: `0x${string}`; label: string } | null;
 
-const CRT_SCREEN_WIDTH = 1357;
-const CRT_SCREEN_HEIGHT = 1068;
-const CRT_SCREEN_ASPECT = CRT_SCREEN_WIDTH / CRT_SCREEN_HEIGHT;
-const MOBILE_SCREEN_WIDTH = 900;
-const MOBILE_SCREEN_HEIGHT = 1440;
-const MOBILE_SCREEN_ASPECT = MOBILE_SCREEN_WIDTH / MOBILE_SCREEN_HEIGHT;
-
 const PK_PHASE_NAMES = ['OPEN', 'JOINED', 'COMMITTED', 'REVEALED', 'SETTLED', 'CANCELLED'];
 
 function txLabel(label: string, zh: boolean) {
@@ -150,6 +143,7 @@ export default function GamePage() {
   const [showHelpPanel, setShowHelpPanel] = useState(false);
   const [isCompactViewport, setIsCompactViewport] = useState(false);
   const [isPortraitViewport, setIsPortraitViewport] = useState(false);
+  const [gameViewportStyle, setGameViewportStyle] = useState<{ width: string; height: string }>({ width: '100%', height: '100%' });
 
   const walletOptions = useMemo(
     () => connectors.filter((connector) => connector.type === 'injected' || connector.name === 'WalletConnect' || connector.name === 'Coinbase Wallet'),
@@ -188,8 +182,24 @@ export default function GamePage() {
 
     const syncViewport = () => {
       const compact = window.innerWidth < 820 || window.innerHeight < 700;
+      const portrait = window.innerWidth < window.innerHeight;
+      const frame = containerRef.current?.parentElement;
+      const frameRect = frame?.getBoundingClientRect();
+      const width = frameRect?.width ?? 0;
+      const height = frameRect?.height ?? 0;
+
       setIsCompactViewport(compact);
-      setIsPortraitViewport(window.innerWidth < window.innerHeight);
+      setIsPortraitViewport(portrait);
+
+      if (width <= 0 || height <= 0) return;
+
+      const targetAspect = portrait ? 9 / 16 : width / height;
+      const fittedHeight = width / targetAspect;
+      if (fittedHeight <= height) {
+        setGameViewportStyle({ width: '100%', height: `${fittedHeight}px` });
+      } else {
+        setGameViewportStyle({ width: `${height * targetAspect}px`, height: '100%' });
+      }
     };
 
     syncViewport();
@@ -198,7 +208,16 @@ export default function GamePage() {
   }, [mounted]);
 
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !mounted) return;
+
+    container.style.width = gameViewportStyle.width;
+    container.style.height = gameViewportStyle.height;
+  }, [gameViewportStyle, mounted]);
+
+  useEffect(() => {
     if (!mounted) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Tab') { e.preventDefault(); setShowSidePanel(p => !p); }
       if (e.key.toLowerCase() === 'h') { e.preventDefault(); setShowHelpPanel(p => !p); }
@@ -207,6 +226,7 @@ export default function GamePage() {
         setShowHelpPanel(false);
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [mounted]);
@@ -333,16 +353,8 @@ export default function GamePage() {
         continue;
       }
 
-      const usePortraitViewport = window.innerWidth < window.innerHeight;
-      const targetAspect = usePortraitViewport ? MOBILE_SCREEN_ASPECT : CRT_SCREEN_ASPECT;
-      const fittedHeight = parentRect.width / targetAspect;
-      if (fittedHeight <= parentRect.height) {
-        readyContainer.style.width = '100%';
-        readyContainer.style.height = `${fittedHeight}px`;
-      } else {
-        readyContainer.style.width = `${parentRect.height * targetAspect}px`;
-        readyContainer.style.height = '100%';
-      }
+      readyContainer.style.width = gameViewportStyle.width;
+      readyContainer.style.height = gameViewportStyle.height;
 
       readyRect = readyContainer.getBoundingClientRect();
       if (readyRect.width > 0 && readyRect.height > 0) {
@@ -992,7 +1004,7 @@ export default function GamePage() {
       <div
         ref={containerRef}
         className="absolute z-[20] rounded bg-black"
-        style={{ aspectRatio: `${isPortraitViewport ? MOBILE_SCREEN_WIDTH : CRT_SCREEN_WIDTH} / ${isPortraitViewport ? MOBILE_SCREEN_HEIGHT : CRT_SCREEN_HEIGHT}` }}
+        style={{ width: gameViewportStyle.width, height: gameViewportStyle.height }}
       />
 
       {showFloatingHud && (

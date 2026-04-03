@@ -105,6 +105,7 @@ export class ShelterScene extends Phaser.Scene {
     const viewportH = this.cameras.main.height;
     const compactViewport = viewportW < 820 || viewportH < 700;
     const portraitViewport = viewportH > viewportW;
+    const touchFriendly = compactViewport || portraitViewport;
     this.world = this.getWorldLayout(viewportW, viewportH);
     const W = this.world.width;
     const H = this.world.height;
@@ -238,30 +239,36 @@ export class ShelterScene extends Phaser.Scene {
 
     // ── 交互提示 ──
     this.promptText = this.add.text(viewportW / 2, portraitViewport ? viewportH - 116 : viewportH - 70, '', {
-      fontSize: compactViewport ? '14px' : '18px', fontFamily: 'monospace', color: '#ffd700',
-    }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
-
-    this.add.text(viewportW / 2, portraitViewport ? viewportH - 148 : viewportH - 96, this.lang === 'zh' ? 'WASD/方向键移动  ·  点击地面移动  ·  靠近装置按 SPACE' : 'WASD/Arrows move  ·  Tap ground to move  ·  Press SPACE near terminals', {
-      fontSize: compactViewport ? '9px' : '12px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: portraitViewport ? '17px' : compactViewport ? '14px' : '18px', fontFamily: 'monospace', color: '#ffd700',
+      wordWrap: { width: portraitViewport ? viewportW - 36 : viewportW - 80 },
       align: 'center',
-      wordWrap: { width: viewportW - 40 },
-    }).setOrigin(0.5).setDepth(100).setAlpha(0.38).setScrollFactor(0);
+      lineSpacing: portraitViewport ? 6 : 0,
+    }).setOrigin(0.5).setDepth(130).setScrollFactor(0);
 
-    this.add.text(viewportW - 88, portraitViewport ? viewportH - 98 : viewportH - 52, this.lang === 'zh' ? '[ 档案 ]' : '[ DOSSIER ]', {
-      fontSize: compactViewport ? '10px' : '11px', fontFamily: 'monospace', color: '#7adf8b',
-    }).setOrigin(0.5).setDepth(100).setAlpha(0.5).setScrollFactor(0);
+    this.add.text(viewportW / 2, portraitViewport ? viewportH - 156 : viewportH - 96, this.lang === 'zh' ? 'WASD/方向键移动  ·  点击地面移动  ·  靠近装置按 SPACE' : 'WASD/Arrows move  ·  Tap ground to move  ·  Press SPACE near terminals', {
+      fontSize: portraitViewport ? '12px' : compactViewport ? '9px' : '12px', fontFamily: 'monospace', color: '#39ff14',
+      align: 'center',
+      wordWrap: { width: portraitViewport ? viewportW - 36 : viewportW - 40 },
+      lineSpacing: portraitViewport ? 6 : 0,
+    }).setOrigin(0.5).setDepth(130).setAlpha(0.55).setScrollFactor(0);
 
-    this.add.text(viewportW - 88, portraitViewport ? viewportH - 72 : viewportH - 30, this.lang === 'zh' ? '[ 点击查看档案 ]' : '[ TAP FOR DOSSIER ]', {
-      fontSize: compactViewport ? '9px' : '10px', fontFamily: 'monospace', color: '#9ed89f', backgroundColor: '#081108', padding: { x: 6, y: 4 },
-    }).setOrigin(0.5).setDepth(100).setAlpha(0.7).setInteractive({ useHandCursor: true }).setScrollFactor(0).on('pointerdown', () => {
+    this.add.text(viewportW - (portraitViewport ? 96 : 88), portraitViewport ? viewportH - 104 : viewportH - 52, this.lang === 'zh' ? '[ 档案 ]' : '[ DOSSIER ]', {
+      fontSize: portraitViewport ? '12px' : compactViewport ? '10px' : '11px', fontFamily: 'monospace', color: '#7adf8b',
+    }).setOrigin(0.5).setDepth(130).setAlpha(0.72).setScrollFactor(0);
+
+    this.add.text(viewportW - (portraitViewport ? 96 : 88), portraitViewport ? viewportH - 70 : viewportH - 30, this.lang === 'zh' ? '[ 点击查看档案 ]' : '[ TAP FOR DOSSIER ]', {
+      fontSize: portraitViewport ? '11px' : compactViewport ? '9px' : '10px', fontFamily: 'monospace', color: '#9ed89f', backgroundColor: '#081108', padding: { x: portraitViewport ? 10 : 6, y: portraitViewport ? 6 : 4 },
+    }).setOrigin(0.5).setDepth(130).setAlpha(0.92).setInteractive({ useHandCursor: true }).setScrollFactor(0).on('pointerdown', () => {
       this.scene.start('ArchiveScene', this.buildSceneData());
     });
 
-    this.hudText = this.add.text(10, portraitViewport ? viewportH - 34 : viewportH - 24, this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`, {
-      fontSize: compactViewport ? '11px' : '14px', fontFamily: 'monospace', color: '#39ff14',
-      wordWrap: { width: Math.max(220, viewportW - 140) },
-      lineSpacing: compactViewport ? 3 : 0,
-    }).setDepth(100).setAlpha(0.6).setScrollFactor(0);
+    this.hudText = this.add.text(10, portraitViewport ? viewportH - 52 : viewportH - 24, touchFriendly
+      ? (this.lang === 'zh' ? `NFA #${this.nfaId}\n点地面移动 · 靠近后点击装置交互` : `NFA #${this.nfaId}\nTap ground to move · Tap terminals nearby`)
+      : (this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`), {
+      fontSize: portraitViewport ? '12px' : compactViewport ? '11px' : '14px', fontFamily: 'monospace', color: '#39ff14',
+      wordWrap: { width: Math.max(220, portraitViewport ? viewportW - 24 : viewportW - 140) },
+      lineSpacing: touchFriendly ? 4 : compactViewport ? 3 : 0,
+    }).setDepth(130).setAlpha(touchFriendly ? 0.82 : 0.6).setScrollFactor(0);
 
     // ── 对话框 ──
     this.dialogueBox = new DialogueBox(this, this.lang);
@@ -272,9 +279,13 @@ export class ShelterScene extends Phaser.Scene {
     // ── 监听链上数据更新 ──
     const offStats = eventBus.on('nfa:stats', (data: unknown) => {
       const stats = data as { clw: string; level: number; active?: boolean; dailyCost?: string };
-      this.hudText.setText(this.lang === 'zh'
-        ? `NFA #${this.nfaId}  |  Claworld: ${stats.clw}  |  Lv.${stats.level}  |  ${stats.active ? 'ACTIVE' : 'DORMANT'}  |  UPKEEP ${stats.dailyCost ?? '0'}  |  WASD 移动  |  SPACE 交互`
-        : `NFA #${this.nfaId}  |  Claworld: ${stats.clw}  |  Lv.${stats.level}  |  ${stats.active ? 'ACTIVE' : 'DORMANT'}  |  UPKEEP ${stats.dailyCost ?? '0'}  |  WASD Move  |  SPACE Interact`);
+      this.hudText.setText(touchFriendly
+        ? (this.lang === 'zh'
+          ? `NFA #${this.nfaId}\nClaworld: ${stats.clw}  |  Lv.${stats.level}\n${stats.active ? 'ACTIVE' : 'DORMANT'}  ·  UPKEEP ${stats.dailyCost ?? '0'}`
+          : `NFA #${this.nfaId}\nClaworld: ${stats.clw}  |  Lv.${stats.level}\n${stats.active ? 'ACTIVE' : 'DORMANT'}  ·  UPKEEP ${stats.dailyCost ?? '0'}`)
+        : (this.lang === 'zh'
+          ? `NFA #${this.nfaId}  |  Claworld: ${stats.clw}  |  Lv.${stats.level}  |  ${stats.active ? 'ACTIVE' : 'DORMANT'}  |  UPKEEP ${stats.dailyCost ?? '0'}  |  WASD 移动  |  SPACE 交互`
+          : `NFA #${this.nfaId}  |  Claworld: ${stats.clw}  |  Lv.${stats.level}  |  ${stats.active ? 'ACTIVE' : 'DORMANT'}  |  UPKEEP ${stats.dailyCost ?? '0'}  |  WASD Move  |  SPACE Interact`));
     });
 
     const offFullStats = eventBus.on('nfa:fullStats', (data: unknown) => {
@@ -703,15 +714,15 @@ export class ShelterScene extends Phaser.Scene {
     const compact = viewportW < 820 || viewportH < 700;
     const portrait = viewportH > viewportW;
     const width = portrait
-      ? Math.max(1180, Math.floor(viewportW * 1.7))
+      ? Math.max(1080, Math.floor(viewportW * 1.35))
       : compact
-        ? Math.max(1440, Math.floor(viewportW * 2.2))
-        : Math.max(1760, Math.floor(viewportW * 1.65));
+        ? Math.max(1360, Math.floor(viewportW * 1.9))
+        : Math.max(1680, Math.floor(viewportW * 1.5));
     const height = portrait
-      ? Math.max(1680, Math.floor(viewportH * 1.8))
+      ? Math.max(1520, Math.floor(viewportH * 1.55))
       : compact
-        ? Math.max(1120, Math.floor(viewportH * 2))
-        : Math.max(1320, Math.floor(viewportH * 1.75));
+        ? Math.max(1080, Math.floor(viewportH * 1.8))
+        : Math.max(1260, Math.floor(viewportH * 1.6));
 
     return {
       width,
@@ -733,7 +744,6 @@ export class ShelterScene extends Phaser.Scene {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.dialogueBox.isVisible()) {
         this.stopMovement();
-        this.dialogueBox.hide();
         return;
       }
 
