@@ -54,6 +54,9 @@ type PendingTx = { hash: `0x${string}`; label: string } | null;
 const CRT_SCREEN_WIDTH = 1357;
 const CRT_SCREEN_HEIGHT = 1068;
 const CRT_SCREEN_ASPECT = CRT_SCREEN_WIDTH / CRT_SCREEN_HEIGHT;
+const MOBILE_SCREEN_WIDTH = 900;
+const MOBILE_SCREEN_HEIGHT = 1440;
+const MOBILE_SCREEN_ASPECT = MOBILE_SCREEN_WIDTH / MOBILE_SCREEN_HEIGHT;
 
 const PK_PHASE_NAMES = ['OPEN', 'JOINED', 'COMMITTED', 'REVEALED', 'SETTLED', 'CANCELLED'];
 
@@ -146,6 +149,7 @@ export default function GamePage() {
   const [gameReady, setGameReady] = useState(false);
   const [showHelpPanel, setShowHelpPanel] = useState(false);
   const [isCompactViewport, setIsCompactViewport] = useState(false);
+  const [isPortraitViewport, setIsPortraitViewport] = useState(false);
 
   const walletOptions = useMemo(
     () => connectors.filter((connector) => connector.type === 'injected' || connector.name === 'WalletConnect' || connector.name === 'Coinbase Wallet'),
@@ -183,7 +187,9 @@ export default function GamePage() {
     if (!mounted) return;
 
     const syncViewport = () => {
-      setIsCompactViewport(window.innerWidth < 820 || window.innerHeight < 700);
+      const compact = window.innerWidth < 820 || window.innerHeight < 700;
+      setIsCompactViewport(compact);
+      setIsPortraitViewport(window.innerWidth < window.innerHeight);
     };
 
     syncViewport();
@@ -327,12 +333,14 @@ export default function GamePage() {
         continue;
       }
 
-      const fittedHeight = parentRect.width / CRT_SCREEN_ASPECT;
+      const usePortraitViewport = window.innerWidth < window.innerHeight;
+      const targetAspect = usePortraitViewport ? MOBILE_SCREEN_ASPECT : CRT_SCREEN_ASPECT;
+      const fittedHeight = parentRect.width / targetAspect;
       if (fittedHeight <= parentRect.height) {
         readyContainer.style.width = '100%';
         readyContainer.style.height = `${fittedHeight}px`;
       } else {
-        readyContainer.style.width = `${parentRect.height * CRT_SCREEN_ASPECT}px`;
+        readyContainer.style.width = `${parentRect.height * targetAspect}px`;
         readyContainer.style.height = '100%';
       }
 
@@ -981,7 +989,11 @@ export default function GamePage() {
 
   return (
     <div className="relative flex h-full min-h-0 items-center justify-center overflow-hidden">
-      <div ref={containerRef} className="absolute z-[20] rounded bg-black" style={{ aspectRatio: `${CRT_SCREEN_WIDTH} / ${CRT_SCREEN_HEIGHT}` }} />
+      <div
+        ref={containerRef}
+        className="absolute z-[20] rounded bg-black"
+        style={{ aspectRatio: `${isPortraitViewport ? MOBILE_SCREEN_WIDTH : CRT_SCREEN_WIDTH} / ${isPortraitViewport ? MOBILE_SCREEN_HEIGHT : CRT_SCREEN_HEIGHT}` }}
+      />
 
       {showFloatingHud && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-[30]">

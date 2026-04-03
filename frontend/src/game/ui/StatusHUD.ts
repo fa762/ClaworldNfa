@@ -15,27 +15,33 @@ export class StatusHUD {
   private hasData = false;
   private stats = { level: 0, clw: '0', bnb: '0', courage: 0, wisdom: 0, social: 0, create: 0, grit: 0, hp: 0, active: false, dailyCost: 0, shelter: 0 };
   private readonly offFullStats: () => void;
+  private readonly compact: boolean;
+  private readonly hudHeight: number;
 
   constructor(scene: Phaser.Scene, nfaId: number) {
     this.scene = scene;
     this.nfaId = nfaId;
 
     const W = scene.cameras.main.width;
+    this.compact = W < 820 || scene.cameras.main.height < 700;
+    this.hudHeight = this.compact ? 78 : 64;
 
-    this.container = scene.add.container(0, 0).setDepth(150);
+    this.container = scene.add.container(0, 0).setDepth(150).setScrollFactor(0);
 
     // 背景条
-    this.bg = scene.add.rectangle(W / 2, 32, W, 64, 0x0a0a0a, 0.88);
+    this.bg = scene.add.rectangle(W / 2, this.hudHeight / 2, W, this.hudHeight, 0x0a0a0a, 0.88).setScrollFactor(0);
 
     // 主信息
-    this.mainText = scene.add.text(10, 8, '', {
-      fontSize: W < 720 ? '12px' : '16px', fontFamily: 'monospace', color: '#39ff14',
-    });
+    this.mainText = scene.add.text(10, this.compact ? 8 : 8, '', {
+      fontSize: this.compact ? '11px' : '16px', fontFamily: 'monospace', color: '#39ff14',
+      wordWrap: { width: W - 20 },
+      lineSpacing: this.compact ? 4 : 0,
+    }).setScrollFactor(0);
 
     // 性格摘要（右侧）
-    this.personalityText = scene.add.text(W - 10, W < 720 ? 28 : 8, '', {
-      fontSize: W < 720 ? '11px' : '16px', fontFamily: 'monospace', color: '#888888',
-    }).setOrigin(1, 0);
+    this.personalityText = scene.add.text(W - 10, this.compact ? 48 : 8, '', {
+      fontSize: this.compact ? '10px' : '16px', fontFamily: 'monospace', color: '#888888',
+    }).setOrigin(1, 0).setScrollFactor(0);
 
     this.container.add([this.bg, this.mainText, this.personalityText]);
 
@@ -53,10 +59,15 @@ export class StatusHUD {
     const s = this.stats;
     const W = this.scene.cameras.main.width;
     this.mainText.setText(
-      W < 720
-        ? `NFA #${this.nfaId}  等级.${s.level}  Claworld:${s.clw}  ${s.active ? '活跃' : '休眠'}\n生命:${s.hp}  维护:${s.dailyCost.toFixed(1)}`
+      this.compact
+        ? `NFA #${this.nfaId}  Lv.${s.level}  Claworld:${s.clw}  ${s.active ? '活跃' : '休眠'}\n生命:${s.hp}  维护:${s.dailyCost.toFixed(1)}`
         : `NFA #${this.nfaId}  等级.${s.level}  Claworld:${s.clw}  生命:${s.hp}  ${s.active ? '活跃' : '休眠'}  维护:${s.dailyCost.toFixed(1)}`
     );
+
+    this.bg.setPosition(W / 2, this.hudHeight / 2);
+    this.bg.setSize(W, this.hudHeight);
+    this.mainText.setWordWrapWidth(W - 20);
+    this.personalityText.setPosition(W - 10, this.compact ? 48 : 8);
 
     if (!this.hasData) {
       this.personalityText.setText('加载中...');
@@ -73,7 +84,7 @@ export class StatusHUD {
     ];
     const sorted = [...dims].sort((a, b) => b.val - a.val);
     this.personalityText.setText(
-      W < 720
+      this.compact
         ? `${sorted[0].name}:${sorted[0].val}  ${sorted[1].name}:${sorted[1].val}`
         : `${sorted[0].name}:${sorted[0].val}  ${sorted[1].name}:${sorted[1].val}  ${sorted[2].name}:${sorted[2].val}`
     );

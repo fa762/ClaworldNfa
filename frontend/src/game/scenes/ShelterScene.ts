@@ -103,6 +103,8 @@ export class ShelterScene extends Phaser.Scene {
 
     const viewportW = this.cameras.main.width;
     const viewportH = this.cameras.main.height;
+    const compactViewport = viewportW < 820 || viewportH < 700;
+    const portraitViewport = viewportH > viewportW;
     this.world = this.getWorldLayout(viewportW, viewportH);
     const W = this.world.width;
     const H = this.world.height;
@@ -221,7 +223,7 @@ export class ShelterScene extends Phaser.Scene {
     this.physics.world.setBounds(32, 32, W - 64, H - 64);
     this.cameras.main.setBounds(0, 0, W, H);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
-    this.cameras.main.setZoom(viewportW < 760 ? 1.12 : 1);
+    this.cameras.main.setZoom(portraitViewport ? 0.82 : compactViewport ? 0.94 : 1);
     this.cameras.main.roundPixels = true;
 
     // ── 键盘 ──
@@ -235,28 +237,30 @@ export class ShelterScene extends Phaser.Scene {
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     // ── 交互提示 ──
-    this.promptText = this.add.text(viewportW / 2, viewportH - 70, '', {
-      fontSize: viewportW < 760 ? '15px' : '18px', fontFamily: 'monospace', color: '#ffd700',
+    this.promptText = this.add.text(viewportW / 2, portraitViewport ? viewportH - 116 : viewportH - 70, '', {
+      fontSize: compactViewport ? '14px' : '18px', fontFamily: 'monospace', color: '#ffd700',
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
 
-    this.add.text(viewportW / 2, viewportH - 96, this.lang === 'zh' ? 'WASD/方向键移动  ·  点击地面移动  ·  靠近装置按 SPACE' : 'WASD/Arrows move  ·  Tap ground to move  ·  Press SPACE near terminals', {
-      fontSize: viewportW < 760 ? '9px' : '12px', fontFamily: 'monospace', color: '#39ff14',
+    this.add.text(viewportW / 2, portraitViewport ? viewportH - 148 : viewportH - 96, this.lang === 'zh' ? 'WASD/方向键移动  ·  点击地面移动  ·  靠近装置按 SPACE' : 'WASD/Arrows move  ·  Tap ground to move  ·  Press SPACE near terminals', {
+      fontSize: compactViewport ? '9px' : '12px', fontFamily: 'monospace', color: '#39ff14',
       align: 'center',
       wordWrap: { width: viewportW - 40 },
     }).setOrigin(0.5).setDepth(100).setAlpha(0.38).setScrollFactor(0);
 
-    this.add.text(viewportW - 88, viewportH - 52, this.lang === 'zh' ? '[ 档案 ]' : '[ DOSSIER ]', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#7adf8b',
+    this.add.text(viewportW - 88, portraitViewport ? viewportH - 98 : viewportH - 52, this.lang === 'zh' ? '[ 档案 ]' : '[ DOSSIER ]', {
+      fontSize: compactViewport ? '10px' : '11px', fontFamily: 'monospace', color: '#7adf8b',
     }).setOrigin(0.5).setDepth(100).setAlpha(0.5).setScrollFactor(0);
 
-    this.add.text(viewportW - 88, viewportH - 30, this.lang === 'zh' ? '[ 点击查看档案 ]' : '[ TAP FOR DOSSIER ]', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#9ed89f', backgroundColor: '#081108', padding: { x: 6, y: 4 },
+    this.add.text(viewportW - 88, portraitViewport ? viewportH - 72 : viewportH - 30, this.lang === 'zh' ? '[ 点击查看档案 ]' : '[ TAP FOR DOSSIER ]', {
+      fontSize: compactViewport ? '9px' : '10px', fontFamily: 'monospace', color: '#9ed89f', backgroundColor: '#081108', padding: { x: 6, y: 4 },
     }).setOrigin(0.5).setDepth(100).setAlpha(0.7).setInteractive({ useHandCursor: true }).setScrollFactor(0).on('pointerdown', () => {
       this.scene.start('ArchiveScene', this.buildSceneData());
     });
 
-    this.hudText = this.add.text(10, viewportH - 24, this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`, {
-      fontSize: viewportW < 760 ? '12px' : '14px', fontFamily: 'monospace', color: '#39ff14',
+    this.hudText = this.add.text(10, portraitViewport ? viewportH - 34 : viewportH - 24, this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`, {
+      fontSize: compactViewport ? '11px' : '14px', fontFamily: 'monospace', color: '#39ff14',
+      wordWrap: { width: Math.max(220, viewportW - 140) },
+      lineSpacing: compactViewport ? 3 : 0,
     }).setDepth(100).setAlpha(0.6).setScrollFactor(0);
 
     // ── 对话框 ──
@@ -697,8 +701,17 @@ export class ShelterScene extends Phaser.Scene {
 
   private getWorldLayout(viewportW: number, viewportH: number): WorldLayout {
     const compact = viewportW < 820 || viewportH < 700;
-    const width = compact ? Math.max(1440, Math.floor(viewportW * 2.2)) : Math.max(1760, Math.floor(viewportW * 1.65));
-    const height = compact ? Math.max(1120, Math.floor(viewportH * 2)) : Math.max(1320, Math.floor(viewportH * 1.75));
+    const portrait = viewportH > viewportW;
+    const width = portrait
+      ? Math.max(1180, Math.floor(viewportW * 1.7))
+      : compact
+        ? Math.max(1440, Math.floor(viewportW * 2.2))
+        : Math.max(1760, Math.floor(viewportW * 1.65));
+    const height = portrait
+      ? Math.max(1680, Math.floor(viewportH * 1.8))
+      : compact
+        ? Math.max(1120, Math.floor(viewportH * 2))
+        : Math.max(1320, Math.floor(viewportH * 1.75));
 
     return {
       width,
