@@ -127,6 +127,7 @@ contract GenesisVault is
     event CommitMade(address indexed user, uint256 value);
     event GenesisRevealed(address indexed user, uint256 indexed nfaId, uint8 rarity, uint8 shelter);
     event CommitRefunded(address indexed user, uint256 amount);
+    event CommitForceRefunded(address indexed operator, address indexed user, uint256 amount);
     event RefundPending(address indexed user, uint256 amount);
     event RefundClaimed(address indexed user, uint256 amount);
 
@@ -314,6 +315,26 @@ contract GenesisVault is
         require(ok, "Refund failed");
 
         emit CommitRefunded(msg.sender, amount);
+    }
+
+    /**
+     * @dev Owner-only safety valve for stuck commitments, such as lost local salt.
+     *      Refunds the original committed BNB and clears the pending commitment immediately.
+     */
+    function forceRefundCommitment(address user) external onlyOwner nonReentrant {
+        require(user != address(0), "Invalid user");
+
+        Commitment storage c = commitments[user];
+        require(c.hash != bytes32(0), "No commitment");
+        require(!c.revealed, "Already revealed");
+
+        uint256 amount = c.value;
+        delete commitments[user];
+
+        (bool ok, ) = payable(user).call{value: amount}("");
+        require(ok, "Refund failed");
+
+        emit CommitForceRefunded(msg.sender, user, amount);
     }
 
     // ============================================
