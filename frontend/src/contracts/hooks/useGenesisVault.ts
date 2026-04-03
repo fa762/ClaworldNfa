@@ -61,7 +61,6 @@ export function useCommitMint() {
       functionName: 'commit',
       args: [commitHash],
       value: bnbValue,
-      type: 'legacy',
     });
   }
 
@@ -78,7 +77,6 @@ export function useRevealMint() {
       ...vaultContract,
       functionName: 'reveal',
       args: [rarity, salt],
-      type: 'legacy',
     });
   }
 
@@ -94,7 +92,6 @@ export function useRefund() {
     writeContract({
       ...vaultContract,
       functionName: 'refundExpired',
-      type: 'legacy',
     });
   }
 
@@ -119,7 +116,6 @@ export function useOwnerMint() {
       ...vaultContract,
       functionName: 'ownerMint',
       args: [rarity, recipient],
-      type: 'legacy',
     });
   }
 
