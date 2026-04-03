@@ -1,7 +1,6 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 import { DialogueBox } from '../ui/DialogueBox';
-import { StatusHUD } from '../ui/StatusHUD';
 import { getTaskDialogue, getPKDialogue, getMarketDialogue, getPortalDialogue, getOpenClawDialogue, getSableDialogue, type GameLang, type SableNode } from '../data/npc-dialogues';
 import { GAME_UI_FONT_FAMILY } from '../ui/fonts';
 import { buildLobsterIdentity } from '@/lib/lobsterIdentity';
@@ -75,7 +74,6 @@ export class ShelterScene extends Phaser.Scene {
   private promptText!: Phaser.GameObjects.Text;
   private hudText!: Phaser.GameObjects.Text;
   private dialogueBox!: DialogueBox;
-  private statusHUD!: StatusHUD;
   private nfaId = 0;
   private shelter = 0;
   private personality: Personality = { courage: 50, wisdom: 50, social: 50, create: 50, grit: 50 };
@@ -286,7 +284,7 @@ export class ShelterScene extends Phaser.Scene {
       lineSpacing: portraitViewport ? 6 : 0,
     }).setOrigin(0.5).setDepth(130).setAlpha(0.55).setScrollFactor(0).setResolution(overlayTextResolution);
 
-    this.hudText = this.add.text(10, portraitViewport ? viewportH - 52 : viewportH - 24, touchFriendly
+    this.hudText = this.add.text(10, portraitViewport ? viewportH - 52 : viewportH - 36, touchFriendly
       ? (this.lang === 'zh' ? `NFA #${this.nfaId}\n点地面移动 · 靠近后点击装置交互` : `NFA #${this.nfaId}\nTap ground to move · Tap terminals nearby`)
       : (this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`), {
       fontSize: portraitViewport ? '12px' : compactViewport ? '11px' : '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
@@ -295,7 +293,6 @@ export class ShelterScene extends Phaser.Scene {
     }).setDepth(130).setAlpha(touchFriendly ? 0.82 : 0.6).setScrollFactor(0).setResolution(overlayTextResolution);
 
     this.dialogueBox = new DialogueBox(this, this.lang);
-    this.statusHUD = new StatusHUD(this, this.nfaId);
 
     const offStats = eventBus.on('nfa:stats', (data: unknown) => {
       const stats = data as { clw: string; level: number; active?: boolean; dailyCost?: string };
@@ -347,7 +344,6 @@ export class ShelterScene extends Phaser.Scene {
       offSwitchNfa();
       offCommand();
       this.dialogueBox.destroy();
-      this.statusHUD.destroy();
       this.playerShadow?.destroy();
       this.blockerObjects.forEach((blocker) => blocker.destroy());
       this.blockerObjects = [];
