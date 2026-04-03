@@ -59,6 +59,14 @@ const DAILY_COST_ABI = [{
   outputs: [{ name: '', type: 'uint256' }],
 }] as const;
 
+const TASK_LAST_TIME_ABI = [{
+  name: 'lastTaskTime',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [{ name: '', type: 'uint256' }],
+  outputs: [{ name: '', type: 'uint256' }],
+}] as const;
+
 const MARKET_GET_LISTING_ABI = [{
   name: 'getListing',
   type: 'function',
@@ -134,6 +142,12 @@ export interface NFAState {
   clwBalance: number;
   active: boolean;
   dailyCost: number;
+}
+
+export interface TaskCooldownState {
+  lastTaskTime: number;
+  cooldownEndsAt: number;
+  remainingSeconds: number;
 }
 
 export interface NFASummary {
@@ -235,6 +249,24 @@ export async function loadNFAState(nfaId: number) {
   };
 
   return state;
+}
+
+export async function loadTaskCooldownState(nfaId: number): Promise<TaskCooldownState> {
+  const lastTaskTime = Number(await publicClient.readContract({
+    address: CONTRACTS.taskSkill,
+    abi: TASK_LAST_TIME_ABI,
+    functionName: 'lastTaskTime',
+    args: [BigInt(nfaId)],
+  }));
+
+  const cooldownEndsAt = lastTaskTime + (4 * 60 * 60);
+  const now = Math.floor(Date.now() / 1000);
+
+  return {
+    lastTaskTime,
+    cooldownEndsAt,
+    remainingSeconds: Math.max(0, cooldownEndsAt - now),
+  };
 }
 
 export async function loadNfaSummaries(tokenIds: number[]): Promise<Record<number, NFASummary>> {

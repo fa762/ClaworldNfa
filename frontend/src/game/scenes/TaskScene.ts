@@ -48,6 +48,7 @@ export class TaskScene extends Phaser.Scene {
   private selectedIdx = -1;
   private playerPosition?: PlayerPosition;
   private lang: GameLang = 'zh';
+  private confirmationObjects: Phaser.GameObjects.GameObject[] = [];
 
   constructor() {
     super({ key: 'TaskScene' });
@@ -99,14 +100,17 @@ export class TaskScene extends Phaser.Scene {
     this.tasks = this.generateTasks();
 
     // 渲染任务卡片
+    const headerHeight = compact ? 106 : 96;
+    const footerReserve = compact ? 18 : 0;
     const cardW = compact ? Math.min(W - 28, 420) : Math.min(W * 0.28, 250);
-    const gap = compact ? 14 : 20;
-    const cardH = compact ? 168 : H - 160;
+    const gap = compact ? 12 : 20;
+    const compactAvailableHeight = H - headerHeight - footerReserve - gap * 2;
+    const cardH = compact ? Math.max(146, Math.floor(compactAvailableHeight / 3)) : H - 160;
     const startX = compact ? (W - cardW) / 2 : (W - (cardW * 3 + gap * 2)) / 2;
 
     this.tasks.forEach((task, i) => {
       const x = compact ? startX : startX + i * (cardW + gap);
-      const y = compact ? 94 + i * (cardH + gap) : 96;
+      const y = compact ? headerHeight + i * (cardH + gap) : 96;
 
       // 卡片背景
       const card = this.add.rectangle(x + cardW / 2, y + cardH / 2, cardW, cardH, 0x111122, 0.9);
@@ -208,29 +212,41 @@ export class TaskScene extends Phaser.Scene {
 
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
+    const compact = W < 900;
+    const boxWidth = compact ? Math.min(W - 28, 420) : 420;
+    const titleText = this.add.text(W / 2, H / 2 - 35, this.lang === 'zh' ? `确认执行: ${task.title}?` : `Confirm task: ${task.title}?`, {
+      fontSize: compact ? '16px' : '18px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffd700', align: 'center',
+      wordWrap: { width: boxWidth - 60, useAdvancedWrap: true },
+      lineSpacing: 4,
+    }).setOrigin(0.5).setDepth(52);
+
+    const detailText = this.add.text(W / 2, H / 2 + 10, this.lang === 'zh' ? `Claworld +${task.clw}  XP +${task.xp}  匹配 ${task.matchScore.toFixed(2)}x` : `Claworld +${task.clw}  XP +${task.xp}  Match ${task.matchScore.toFixed(2)}x`, {
+      fontSize: compact ? '13px' : '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
+      align: 'center',
+      wordWrap: { width: boxWidth - 48, useAdvancedWrap: true },
+      lineSpacing: 3,
+    }).setOrigin(0.5).setDepth(52);
+
+    const contentHeight = Math.max(titleText.height + detailText.height + 94, compact ? 188 : 170);
 
     // 确认弹窗
     const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.7).setDepth(50);
-    const confirmBox = this.add.rectangle(W / 2, H / 2, 420, 170, 0x111122).setDepth(51);
+    const confirmBox = this.add.rectangle(W / 2, H / 2, boxWidth, contentHeight, 0x111122).setDepth(51);
     confirmBox.setStrokeStyle(1, 0x39ff14);
 
-    this.add.text(W / 2, H / 2 - 35, this.lang === 'zh' ? `确认执行: ${task.title}?` : `Confirm task: ${task.title}?`, {
-      fontSize: '18px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffd700', align: 'center',
-      wordWrap: { width: 360 },
-    }).setOrigin(0.5).setDepth(52);
-
-    this.add.text(W / 2, H / 2 + 5, this.lang === 'zh' ? `Claworld +${task.clw}  XP +${task.xp}  匹配 ${task.matchScore.toFixed(2)}x` : `Claworld +${task.clw}  XP +${task.xp}  Match ${task.matchScore.toFixed(2)}x`, {
-      fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
-    }).setOrigin(0.5).setDepth(52);
+    titleText.setPosition(W / 2, H / 2 - contentHeight / 2 + 42);
+    detailText.setPosition(W / 2, H / 2 - contentHeight / 2 + 90);
 
     // 确认/取消
-    const yesBtn = this.add.text(W / 2 - 60, H / 2 + 35, this.lang === 'zh' ? '[ 确认 ]' : '[ CONFIRM ]', {
+    const yesBtn = this.add.text(W / 2 - 60, H / 2 + contentHeight / 2 - 34, this.lang === 'zh' ? '[ 确认 ]' : '[ CONFIRM ]', {
       fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
     }).setOrigin(0.5).setDepth(52).setInteractive({ useHandCursor: true });
 
-    const noBtn = this.add.text(W / 2 + 60, H / 2 + 35, this.lang === 'zh' ? '[ 取消 ]' : '[ CANCEL ]', {
+    const noBtn = this.add.text(W / 2 + 60, H / 2 + contentHeight / 2 - 34, this.lang === 'zh' ? '[ 取消 ]' : '[ CANCEL ]', {
       fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ff4444',
     }).setOrigin(0.5).setDepth(52).setInteractive({ useHandCursor: true });
+
+    this.confirmationObjects = [overlay, confirmBox, titleText, detailText, yesBtn, noBtn];
 
     yesBtn.on('pointerdown', () => {
       // 发送到 React 层调合约
@@ -243,7 +259,7 @@ export class TaskScene extends Phaser.Scene {
       });
 
       // 显示等待
-      overlay.destroy(); confirmBox.destroy(); yesBtn.destroy(); noBtn.destroy();
+      this.clearConfirmationObjects();
       const waitText = this.add.text(W / 2, H / 2, this.lang === 'zh' ? '上链中...' : 'Submitting onchain...', {
         fontSize: '20px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffd700',
       }).setOrigin(0.5).setDepth(52);
@@ -272,7 +288,10 @@ export class TaskScene extends Phaser.Scene {
         } else {
           this.add.text(W / 2, H / 2, this.lang === 'zh' ? `失败: ${result.error}` : `Failed: ${result.error}`, {
             fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ff4444',
+            align: 'center',
+            wordWrap: { width: Math.min(W - 32, 420), useAdvancedWrap: true },
           }).setOrigin(0.5).setDepth(52);
+          this.selectedIdx = -1;
         }
         this.time.delayedCall(2000, () => this.goBack());
         unsub();
@@ -280,7 +299,7 @@ export class TaskScene extends Phaser.Scene {
     });
 
     noBtn.on('pointerdown', () => {
-      overlay.destroy(); confirmBox.destroy(); yesBtn.destroy(); noBtn.destroy();
+      this.clearConfirmationObjects();
       this.selectedIdx = -1;
     });
   }
@@ -299,7 +318,13 @@ export class TaskScene extends Phaser.Scene {
   }
 
   private goBack() {
+    this.clearConfirmationObjects();
     this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition, lang: this.lang });
+  }
+
+  private clearConfirmationObjects() {
+    this.confirmationObjects.forEach((obj) => obj.destroy());
+    this.confirmationObjects = [];
   }
 
   private handleCliCommand(name: string, args: string[]) {

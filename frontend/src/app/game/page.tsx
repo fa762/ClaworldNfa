@@ -14,6 +14,7 @@ import {
   loadNfaSummaries,
   loadPlayerNFAs,
   loadRecentMatches,
+  loadTaskCooldownState,
   publicClient,
   type NFASummary,
 } from '@/game/chain/wallet';
@@ -86,6 +87,29 @@ function getErrorMessage(error: unknown): string {
   if (error.message.includes('Invalid reveal')) return 'Saved strategy does not match on-chain commit';
 
   return error.message;
+}
+
+function formatRemainingDuration(totalSeconds: number, zh: boolean) {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (zh) {
+    const parts = [
+      hours > 0 ? `${hours}小时` : null,
+      minutes > 0 ? `${minutes}分` : null,
+      hours === 0 ? `${secs}秒` : null,
+    ].filter(Boolean);
+    return parts.join(' ') || '0秒';
+  }
+
+  const parts = [
+    hours > 0 ? `${hours}h` : null,
+    minutes > 0 ? `${minutes}m` : null,
+    hours === 0 ? `${secs}s` : null,
+  ].filter(Boolean);
+  return parts.join(' ') || '0s';
 }
 
 function getReceiptEventArgs(
@@ -638,6 +662,21 @@ export default function GamePage() {
         });
       } catch (error) {
         console.error('Task submit failed:', error);
+        if (error instanceof Error && error.message.includes('Cooldown active')) {
+          try {
+            const cooldown = await loadTaskCooldownState(data.nfaId);
+            const remaining = formatRemainingDuration(cooldown.remainingSeconds, lang === 'zh');
+            eventBus.emit('task:result', {
+              status: 'failed',
+              error: lang === 'zh'
+                ? `任务冷却中，链上剩余 ${remaining}`
+                : `Task cooldown active on-chain. ${remaining} remaining`,
+            });
+            return;
+          } catch (cooldownError) {
+            console.error('Task cooldown lookup failed:', cooldownError);
+          }
+        }
         eventBus.emit('task:result', { status: 'failed', error: getErrorMessage(error) });
       }
     });
