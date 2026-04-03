@@ -8,7 +8,8 @@ import { MarketScene } from './scenes/MarketScene';
 export function createGame(parent: HTMLElement): Phaser.Game {
   const w = parent.clientWidth;
   const h = parent.clientHeight;
-  const resolution = Math.min(window.devicePixelRatio || 1, 2);
+  const deviceResolution = window.devicePixelRatio || 1;
+  const resolution = deviceResolution > 1 ? 2 : 1;
 
   const config: Phaser.Types.Core.GameConfig & { resolution: number } = {
     type: Phaser.AUTO,

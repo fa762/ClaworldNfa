@@ -20,6 +20,7 @@ export class StatusHUD {
   private readonly compact: boolean;
   private readonly portrait: boolean;
   private readonly hudHeight: number;
+  private readonly textResolution: number;
 
   constructor(scene: Phaser.Scene, nfaId: number) {
     this.scene = scene;
@@ -30,6 +31,7 @@ export class StatusHUD {
     this.compact = W < 820 || H < 700;
     this.portrait = H > W;
     this.hudHeight = this.portrait ? 104 : this.compact ? 78 : 64;
+    this.textResolution = this.compact || this.portrait ? 2 : 1;
 
     this.container = scene.add.container(0, 0).setDepth(StatusHUD.DEPTH).setScrollFactor(0);
 
@@ -43,7 +45,7 @@ export class StatusHUD {
       fontSize: this.portrait ? '13px' : this.compact ? '11px' : '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       wordWrap: { width: W - 20 },
       lineSpacing: this.portrait ? 6 : this.compact ? 4 : 0,
-    }).setScrollFactor(0).setDepth(StatusHUD.DEPTH + 1);
+    }).setScrollFactor(0).setDepth(StatusHUD.DEPTH + 1).setResolution(this.textResolution);
 
     // 性格摘要（右侧）
     this.personalityText = scene.add.text(W - 10, this.portrait ? 66 : this.compact ? 48 : 8, '', {
@@ -51,7 +53,7 @@ export class StatusHUD {
       align: this.portrait ? 'left' : 'right',
       wordWrap: this.portrait ? { width: W - 20, useAdvancedWrap: true } : undefined,
       lineSpacing: this.portrait ? 4 : 0,
-    }).setOrigin(this.portrait ? 0 : 1, 0).setScrollFactor(0).setDepth(StatusHUD.DEPTH + 1);
+    }).setOrigin(this.portrait ? 0 : 1, 0).setScrollFactor(0).setDepth(StatusHUD.DEPTH + 1).setResolution(this.textResolution);
 
     this.container.add([this.bg, this.mainText, this.personalityText]);
 

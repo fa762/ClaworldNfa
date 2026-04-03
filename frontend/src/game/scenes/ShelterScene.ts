@@ -17,6 +17,13 @@ interface NpcDef {
   action: string; // scene key or event name
 }
 
+interface RectRegion {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 interface Personality {
   courage: number;
   wisdom: number;
@@ -82,6 +89,9 @@ export class ShelterScene extends Phaser.Scene {
   private lang: GameLang = 'zh';
   private echoes: Phaser.GameObjects.GameObject[] = [];
   private world!: WorldLayout;
+  private blockers: RectRegion[] = [];
+  private blockerObjects: Phaser.GameObjects.Rectangle[] = [];
+  private playerShadow?: Phaser.GameObjects.Ellipse;
 
   constructor() {
     super({ key: 'ShelterScene' });
@@ -107,48 +117,28 @@ export class ShelterScene extends Phaser.Scene {
     const compactViewport = viewportW < 820 || viewportH < 700;
     const portraitViewport = viewportH > viewportW;
     const touchFriendly = compactViewport || portraitViewport;
+    const overlayTextResolution = touchFriendly ? 2 : 1;
     this.world = this.getWorldLayout(viewportW, viewportH);
     const W = this.world.width;
     const H = this.world.height;
-    const floorTexture = this.textures.exists('tile-floor-art') ? 'tile-floor-art' : 'tile-floor';
+    const specialty = getShelterSpecialty(this.shelter, this.lang);
 
-    // ── 地板 ──
-    for (let x = 0; x < W + 32; x += 32) {
-      for (let y = 0; y < H + 32; y += 32) {
-        this.add.image(x, y, floorTexture).setOrigin(0);
+    if (this.textures.exists('shelter-00-bg')) {
+      this.add.image(0, 0, 'shelter-00-bg').setOrigin(0).setDisplaySize(W, H).setDepth(0);
+    } else {
+      const floorTexture = this.textures.exists('tile-floor-art') ? 'tile-floor-art' : 'tile-floor';
+      for (let x = 0; x < W + 32; x += 32) {
+        for (let y = 0; y < H + 32; y += 32) {
+          this.add.image(x, y, floorTexture).setOrigin(0);
+        }
       }
     }
 
-    // ── 墙壁边框 ──
-    for (let x = 0; x < W + 32; x += 32) {
-      this.add.image(x, 0, 'tile-wall').setOrigin(0);
-      this.add.image(x, H - 32, 'tile-wall').setOrigin(0);
-    }
-    for (let y = 0; y < H + 32; y += 32) {
-      this.add.image(0, y, 'tile-wall').setOrigin(0);
-      this.add.image(W - 32, y, 'tile-wall').setOrigin(0);
-    }
+    this.add.rectangle(this.sx(840), this.sy(928), this.sx(508), this.sy(132), 0x08110f, 0.2).setDepth(1);
+    this.add.rectangle(this.sx(840), this.sy(980), this.sx(420), this.sy(42), 0x39ff14, 0.05).setDepth(1);
+    this.add.rectangle(this.sx(300), this.sy(982), this.sx(150), this.sy(40), 0xaa66ff, 0.05).setDepth(1);
+    this.add.rectangle(this.sx(1380), this.sy(988), this.sx(170), this.sy(44), 0x66ffcc, 0.05).setDepth(1);
 
-    // ── 功能分区光带 ──
-    const specialty = getShelterSpecialty(this.shelter, this.lang);
-    const zoneDefs = [
-      { key: 'task', x: W * 0.22, y: H * 0.26, w: 180, h: 96, color: 0xffd34d },
-      { key: 'pk', x: W * 0.78, y: H * 0.26, w: 180, h: 96, color: 0xff4d4d },
-      { key: 'market', x: W * 0.5, y: H * 0.16, w: 240, h: 88, color: 0xffd34d },
-      { key: 'portal', x: W * 0.12, y: H * 0.76, w: 144, h: 88, color: 0xaa66ff },
-      { key: 'openclaw', x: W * 0.88, y: H * 0.76, w: 156, h: 96, color: 0x66ffcc },
-    ];
-
-    zoneDefs.forEach((zone) => {
-      const isSpecialty = zone.key === specialty.focus;
-      this.add.rectangle(zone.x, zone.y, zone.w, zone.h, zone.color, isSpecialty ? 0.1 : 0.06).setDepth(1);
-      this.add.rectangle(zone.x, zone.y + zone.h / 2 - 4, zone.w * 0.72, 6, zone.color, isSpecialty ? 0.16 : 0.08).setDepth(1);
-    });
-
-    this.add.rectangle(this.world.centerX, this.world.centerY, Math.min(W * 0.42, 720), 12, 0x39ff14, 0.04).setDepth(1);
-    this.add.rectangle(this.world.centerX, this.world.centerY + 110, Math.min(W * 0.3, 520), 8, 0x39ff14, 0.03).setDepth(1);
-
-    // ── 标题 ──
     const shelterNames = this.lang === 'zh'
       ? ['虚空', '珊瑚', '深渊', '海藻', '海沟', '礁石', '火山', '废土']
       : ['Void', 'Coral', 'Abyss', 'Kelp', 'Trench', 'Reef', 'Volcano', 'Wasteland'];
@@ -180,37 +170,76 @@ export class ShelterScene extends Phaser.Scene {
       align: 'center', wordWrap: { width: W - 100 },
     }).setOrigin(0.5).setDepth(100).setAlpha(0.65).setScrollFactor(0);
 
-    // ── NPC 定义（根据场景大小自适应位置） ──
     this.npcDefs = [
-      { key: 'task',     texture: 'npc-task',     artTexture: 'npc-task-art',     label: this.lang === 'zh' ? '[ 任务终端 ]' : '[ TASK ]',        x: W * 0.22,  y: H * 0.26,  action: 'TaskScene' },
-      { key: 'pk',       texture: 'npc-pk',       artTexture: 'npc-pk-art',       label: this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]',       x: W * 0.78,  y: H * 0.26,  action: 'PKScene' },
-      { key: 'market',   texture: 'npc-market',   artTexture: 'npc-market-art',   label: this.lang === 'zh' ? '[ 撮合墙 ]' : '[ MATCH WALL ]', x: W * 0.5,   y: H * 0.16,  action: 'MarketScene' },
-      { key: 'sable',    texture: 'npc-sable-art', artTexture: 'npc-sable-art',   label: this.lang === 'zh' ? '[ SABLE / 清算员 ]' : '[ SABLE / CLEARER ]', x: W * 0.70, y: H * 0.52, action: 'event:sable' },
-      { key: 'portal',   texture: 'portal',       artTexture: 'portal-art',       label: this.lang === 'zh' ? '[ 隧道传送 ]' : '[ PORTAL ]',      x: W * 0.12,  y: H * 0.76,  action: 'event:portal' },
-      { key: 'openclaw', texture: 'npc-openclaw', artTexture: 'npc-openclaw-art', label: this.lang === 'zh' ? '[ 意识唤醒舱 ]' : '[ AWAKENING ]', x: W * 0.88,  y: H * 0.76,  action: 'event:openclaw' },
+      { key: 'market',   texture: 'npc-market',    artTexture: 'npc-market-art',    label: this.lang === 'zh' ? '[ 撮合墙 ]' : '[ MATCH WALL ]',        x: this.sx(846),  y: this.sy(294),  action: 'MarketScene' },
+      { key: 'task',     texture: 'npc-task',      artTexture: 'npc-task-art',      label: this.lang === 'zh' ? '[ 任务终端 ]' : '[ TASK ]',             x: this.sx(300),  y: this.sy(452),  action: 'TaskScene' },
+      { key: 'pk',       texture: 'npc-pk',        artTexture: 'npc-pk-art',        label: this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]',            x: this.sx(1380), y: this.sy(450),  action: 'PKScene' },
+      { key: 'sable',    texture: 'npc-sable-art', artTexture: 'npc-sable-art',     label: this.lang === 'zh' ? '[ SABLE / 清算员 ]' : '[ SABLE / CLEARER ]', x: this.sx(1130), y: this.sy(760),  action: 'event:sable' },
+      { key: 'portal',   texture: 'portal',        artTexture: 'portal-art',        label: this.lang === 'zh' ? '[ 隧道传送 ]' : '[ PORTAL ]',           x: this.sx(248),  y: this.sy(1020), action: 'event:portal' },
+      { key: 'openclaw', texture: 'npc-openclaw',  artTexture: 'npc-openclaw-art',  label: this.lang === 'zh' ? '[ 意识唤醒舱 ]' : '[ AWAKENING ]',      x: this.sx(1396), y: this.sy(1016), action: 'event:openclaw' },
     ];
 
-    // ── 创建 NPC ──
     this.npcs = [];
     for (const def of this.npcDefs) {
       const npcTexture = def.artTexture && this.textures.exists(def.artTexture) ? def.artTexture : def.texture;
       const npc = this.physics.add.sprite(def.x, def.y, npcTexture);
       npc.setImmovable(true);
+      npc.setAlpha(0.001);
       npc.setData('def', def);
       npc.setDepth(def.y);
       this.applyNpcHitbox(npc, def.key);
 
-      // NPC 标签
-      this.add.text(def.x, def.y - npc.displayHeight / 2 - 10, def.label, {
-        fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
+      const labelYOffset = def.key === 'market' ? this.sy(58) : this.sy(42);
+      this.add.text(def.x, def.y - labelYOffset, def.label, {
+        fontSize: compactViewport ? '14px' : '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       }).setOrigin(0.5).setAlpha(0.85).setDepth(def.y + 18);
 
       this.npcs.push(npc);
     }
 
-    // ── 玩家龙虾 ──
+    this.blockers = [
+      this.scaleRect(0, 0, 1680, 164),
+      this.scaleRect(0, 0, 130, 1260),
+      this.scaleRect(1550, 0, 130, 1260),
+      this.scaleRect(120, 1168, 1440, 92),
+      this.scaleRect(164, 280, 294, 304),
+      this.scaleRect(1222, 280, 294, 304),
+      this.scaleRect(546, 212, 590, 238),
+      this.scaleRect(616, 498, 202, 132),
+      this.scaleRect(872, 498, 190, 132),
+      this.scaleRect(1012, 622, 260, 168),
+      this.scaleRect(150, 840, 224, 204),
+      this.scaleRect(1270, 846, 250, 206),
+    ];
+
+    for (const region of this.blockers) {
+      const blocker = this.add.rectangle(region.x + region.w / 2, region.y + region.h / 2, region.w, region.h, 0xff0000, 0);
+      this.physics.add.existing(blocker, true);
+      this.blockerObjects.push(blocker);
+    }
+
+    const occluders = [
+      this.scaleRect(118, 822, 320, 282),
+      this.scaleRect(638, 666, 424, 170),
+      this.scaleRect(1232, 806, 328, 288),
+    ];
+    occluders.forEach((region) => {
+      if (!this.textures.exists('shelter-00-bg')) {
+        return;
+      }
+      this.add.image(0, 0, 'shelter-00-bg')
+        .setOrigin(0)
+        .setDisplaySize(W, H)
+        .setCrop(region.x / this.scaleX(), region.y / this.scaleY(), region.w / this.scaleX(), region.h / this.scaleY())
+        .setDepth(region.y + region.h + 24);
+    });
+
+    const spawn = this.playerPosition && !this.isBlockedPoint(this.playerPosition.x, this.playerPosition.y)
+      ? this.playerPosition
+      : { x: this.sx(840), y: this.sy(944) };
+
     const hasSpriteSheet = this.textures.exists('player-walk');
-    const spawn = this.playerPosition ?? { x: this.world.centerX, y: this.world.centerY + 40 };
+    this.playerShadow = this.add.ellipse(spawn.x, spawn.y + this.sy(18), this.sx(46), this.sy(18), 0x000000, 0.28).setDepth(spawn.y - 2);
     this.player = this.physics.add.sprite(spawn.x, spawn.y, hasSpriteSheet ? 'player-walk' : 'player', hasSpriteSheet ? 1 : undefined);
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(spawn.y + 6);
@@ -221,14 +250,15 @@ export class ShelterScene extends Phaser.Scene {
     this.spawnWorldEchoes(W, H);
 
     this.physics.add.collider(this.player, this.npcs);
-
-    this.physics.world.setBounds(32, 32, W - 64, H - 64);
+    this.physics.world.setBounds(this.sx(32), this.sy(32), W - this.sx(64), H - this.sy(64));
+    this.blockerObjects.forEach((blocker) => {
+      this.physics.add.collider(this.player, blocker);
+    });
     this.cameras.main.setBounds(0, 0, W, H);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
-    this.cameras.main.setZoom(portraitViewport ? 0.9 : compactViewport ? 0.96 : 1);
-    this.cameras.main.roundPixels = false;
+    this.cameras.main.setZoom(1);
+    this.cameras.main.roundPixels = true;
 
-    // ── 键盘 ──
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = {
       W: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
@@ -238,7 +268,6 @@ export class ShelterScene extends Phaser.Scene {
     };
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-    // ── 交互提示 ──
     this.promptText = this.add.text(viewportW / 2, portraitViewport ? viewportH - 116 : viewportH - 70, '', {
       fontSize: portraitViewport ? '17px' : compactViewport ? '14px' : '18px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffd700',
       wordWrap: { width: portraitViewport ? viewportW - 36 : viewportW - 80 },
@@ -261,13 +290,9 @@ export class ShelterScene extends Phaser.Scene {
       lineSpacing: touchFriendly ? 4 : compactViewport ? 3 : 0,
     }).setDepth(130).setAlpha(touchFriendly ? 0.82 : 0.6).setScrollFactor(0);
 
-    // ── 对话框 ──
     this.dialogueBox = new DialogueBox(this, this.lang);
-
-    // ── 状态 HUD ──
     this.statusHUD = new StatusHUD(this, this.nfaId);
 
-    // ── 监听链上数据更新 ──
     const offStats = eventBus.on('nfa:stats', (data: unknown) => {
       const stats = data as { clw: string; level: number; active?: boolean; dailyCost?: string };
       this.hudText.setText(touchFriendly
@@ -319,11 +344,13 @@ export class ShelterScene extends Phaser.Scene {
       offCommand();
       this.dialogueBox.destroy();
       this.statusHUD.destroy();
+      this.playerShadow?.destroy();
+      this.blockerObjects.forEach((blocker) => blocker.destroy());
+      this.blockerObjects = [];
       this.echoes.forEach((echo) => echo.destroy());
       this.echoes = [];
     });
 
-    // ── 触屏支持（移动端） ──
     this.setupTouchControls();
   }
 
@@ -368,6 +395,10 @@ export class ShelterScene extends Phaser.Scene {
 
     this.updatePlayerAnimation(body.velocity.x, body.velocity.y);
     this.player.setDepth(this.player.y + 6);
+    if (this.playerShadow) {
+      this.playerShadow.setPosition(this.player.x, this.player.y + this.sy(18));
+      this.playerShadow.setDepth(this.player.y - 2);
+    }
 
     // ── 检测最近 NPC ──
     this.nearestNpc = null;
@@ -720,6 +751,37 @@ export class ShelterScene extends Phaser.Scene {
     };
   }
 
+  private sx(value: number) {
+    return Math.round((value / 1680) * this.world.width);
+  }
+
+  private sy(value: number) {
+    return Math.round((value / 1260) * this.world.height);
+  }
+
+  private scaleX() {
+    return this.world.width / 1680;
+  }
+
+  private scaleY() {
+    return this.world.height / 1260;
+  }
+
+  private scaleRect(x: number, y: number, w: number, h: number): RectRegion {
+    return {
+      x: this.sx(x),
+      y: this.sy(y),
+      w: Math.round(w * this.scaleX()),
+      h: Math.round(h * this.scaleY()),
+    };
+  }
+
+  private isBlockedPoint(x: number, y: number) {
+    return this.blockers.some((region) => (
+      x >= region.x && x <= region.x + region.w && y >= region.y && y <= region.y + region.h
+    ));
+  }
+
   private stopMovement() {
     this.moveTarget = null;
     if (this.player?.body) {
@@ -747,11 +809,18 @@ export class ShelterScene extends Phaser.Scene {
         }
       }
 
-      // 点击/触屏地面后持续移动到目标点
-      this.moveTarget = {
+      const target = {
         x: Phaser.Math.Clamp(worldPoint.x, 36, this.world.width - 36),
         y: Phaser.Math.Clamp(worldPoint.y, 36, this.world.height - 36),
       };
+
+      if (this.isBlockedPoint(target.x, target.y)) {
+        this.moveTarget = null;
+        return;
+      }
+
+      // 点击/触屏地面后持续移动到目标点
+      this.moveTarget = target;
 
       // 近距离二次点击，直接清除移动目标
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.moveTarget.x, this.moveTarget.y) < 8) {

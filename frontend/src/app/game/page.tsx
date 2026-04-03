@@ -196,9 +196,15 @@ export default function GamePage() {
       const targetAspect = portrait ? 9 / 16 : width / height;
       const fittedHeight = width / targetAspect;
       if (fittedHeight <= height) {
-        setGameViewportStyle({ width: '100%', height: `${fittedHeight}px` });
+        setGameViewportStyle({
+          width: `${Math.max(1, Math.floor(width))}px`,
+          height: `${Math.max(1, Math.floor(fittedHeight))}px`,
+        });
       } else {
-        setGameViewportStyle({ width: `${height * targetAspect}px`, height: '100%' });
+        setGameViewportStyle({
+          width: `${Math.max(1, Math.floor(height * targetAspect))}px`,
+          height: `${Math.max(1, Math.floor(height))}px`,
+        });
       }
     };
 
