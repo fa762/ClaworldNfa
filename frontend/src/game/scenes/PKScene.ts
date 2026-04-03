@@ -109,6 +109,7 @@ export class PKScene extends Phaser.Scene {
   private matches: MatchItem[] = [];
   private rows: Phaser.GameObjects.GameObject[] = [];
   private statusText!: Phaser.GameObjects.Text;
+  private statusPanel?: Phaser.GameObjects.Rectangle;
   private playerPosition?: PlayerPosition;
   private entryAction?: string;
   private modal!: TerminalModal;
@@ -193,36 +194,39 @@ export class PKScene extends Phaser.Scene {
     });
 
     const toolsY = compactHeader ? 182 : 144;
-    this.mineFilterButton = this.add.text(18, toolsY, '', {
+    const compactTools = W < 720;
+    const filterY = toolsY;
+    const pagerY = compactTools ? toolsY + 34 : toolsY;
+    this.mineFilterButton = this.add.text(18, filterY, '', {
       fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       backgroundColor: '#001a00', padding: { x: 8, y: 4 },
     }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleMineFilter());
 
-    this.joinableFilterButton = this.add.text(126, toolsY, '', {
+    this.joinableFilterButton = this.add.text(compactTools ? 124 : 126, filterY, '', {
       fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffaa00',
       backgroundColor: '#1a1a00', padding: { x: 8, y: 4 },
     }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleJoinableFilter());
 
-    this.add.text(W - 18, toolsY, this.lang === 'zh' ? '[ 搜索对局 ]' : '[ FIND ID ]', {
+    this.add.text(W - 18, filterY, this.lang === 'zh' ? '[ 搜索对局 ]' : '[ FIND ID ]', {
       fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#7ad7ff',
       backgroundColor: '#00131a', padding: { x: 8, y: 4 },
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.promptFindMatch());
 
-    this.prevPageButton = this.add.text(W - 214, toolsY, this.lang === 'zh' ? '[ 上页 ]' : '[ PREV ]', {
+    this.prevPageButton = this.add.text(compactTools ? 18 : W - 214, pagerY, this.lang === 'zh' ? '[ 上页 ]' : '[ PREV ]', {
       fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       backgroundColor: '#001a00', padding: { x: 8, y: 4 },
     }).setOrigin(0, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.changePage(-1));
 
-    this.pageInfoText = this.add.text(W - 152, toolsY + 5, '', {
+    this.pageInfoText = this.add.text(compactTools ? 84 : W - 152, pagerY + 5, '', {
       fontSize: '10px', fontFamily: GAME_UI_FONT_FAMILY, color: '#7ad7ff',
     }).setOrigin(0, 0);
 
-    this.nextPageButton = this.add.text(W - 86, toolsY, this.lang === 'zh' ? '[ 下页 ]' : '[ NEXT ]', {
+    this.nextPageButton = this.add.text(compactTools ? 146 : W - 86, pagerY, this.lang === 'zh' ? '[ 下页 ]' : '[ NEXT ]', {
       fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       backgroundColor: '#001a00', padding: { x: 8, y: 4 },
     }).setOrigin(0, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.changePage(1));
 
-    const headerY = toolsY + 28;
+    const headerY = pagerY + 28;
     this.add.text(18, headerY, this.lang === 'zh' ? 'ID     发起方   应战方   赌注         阶段           操作' : 'ID     A        B        STAKE        PHASE           ACTION', {
       fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#555555',
     });
@@ -231,10 +235,14 @@ export class PKScene extends Phaser.Scene {
     this.refreshMineFilterButton();
     this.refreshJoinableFilterButton();
 
+    this.statusPanel = this.add.rectangle(W / 2, H - 56, Math.min(W - 24, 560), W < 720 ? 52 : 44, 0x130909, 0.92)
+      .setStrokeStyle(1, 0xff6666, 0.35)
+      .setDepth(5);
     this.statusText = this.add.text(W / 2, H - 56, this.lang === 'zh' ? '读取链上擂台中...' : 'Loading arena matches...', {
       fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffaa00', align: 'center',
-      wordWrap: { width: W - 40 },
-    }).setOrigin(0.5);
+      wordWrap: { width: Math.min(W - 48, 520), useAdvancedWrap: true },
+      lineSpacing: 3,
+    }).setOrigin(0.5).setDepth(6);
 
     const topBackBtn = this.add.text(18, 14, this.lang === 'zh' ? '[ ← 返回避难所 ]' : '[ ← BACK ]', {
       fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
@@ -1350,6 +1358,11 @@ export class PKScene extends Phaser.Scene {
   private showStatus(text: string, color = '#39ff14') {
     this.statusText.setColor(color);
     this.statusText.setText(text);
+    const bounds = this.statusText.getBounds();
+    this.statusPanel?.setSize(
+      Math.min(this.cameras.main.width - 24, Math.max(220, bounds.width + 32)),
+      Math.max(this.cameras.main.width < 720 ? 52 : 44, bounds.height + 18),
+    );
   }
 
   private showSettlementReport(result: {

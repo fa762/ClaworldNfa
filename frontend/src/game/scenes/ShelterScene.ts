@@ -180,7 +180,7 @@ export class ShelterScene extends Phaser.Scene {
     this.npcDefs = [
       { key: 'market',   texture: 'npc-market',    artTexture: 'npc-market-art',    label: this.lang === 'zh' ? '[ 撮合墙 ]' : '[ MATCH WALL ]',        x: this.sx(846),  y: this.sy(294),  action: 'MarketScene' },
       { key: 'task',     texture: 'npc-task',      artTexture: 'npc-task-art',      label: this.lang === 'zh' ? '[ 任务终端 ]' : '[ TASK ]',             x: this.sx(300),  y: this.sy(452),  action: 'TaskScene' },
-      { key: 'pk',       texture: 'npc-pk',        artTexture: 'npc-pk-art',        label: this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]',            x: this.sx(1380), y: this.sy(450),  action: 'PKScene' },
+      { key: 'pk',       texture: 'npc-pk',        artTexture: 'npc-pk-art',        label: this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]',            x: this.sx(1236), y: this.sy(452),  action: 'PKScene' },
       { key: 'sable',    texture: 'npc-sable-art', artTexture: 'npc-sable-art',     label: this.lang === 'zh' ? '[ SABLE / 清算员 ]' : '[ SABLE / CLEARER ]', x: this.sx(610),  y: this.sy(358),  action: 'event:sable' },
       { key: 'portal',   texture: 'portal',        artTexture: 'portal-art',        label: this.lang === 'zh' ? '[ 隧道传送 ]' : '[ PORTAL ]',           x: this.sx(248),  y: this.sy(1020), action: 'event:portal' },
       { key: 'openclaw', texture: 'npc-openclaw',  artTexture: 'npc-openclaw-art',  label: this.lang === 'zh' ? '[ 意识唤醒舱 ]' : '[ AWAKENING ]',      x: this.sx(1396), y: this.sy(1016), action: 'event:openclaw' },

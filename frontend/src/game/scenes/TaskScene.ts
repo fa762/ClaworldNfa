@@ -49,6 +49,7 @@ export class TaskScene extends Phaser.Scene {
   private playerPosition?: PlayerPosition;
   private lang: GameLang = 'zh';
   private confirmationObjects: Phaser.GameObjects.GameObject[] = [];
+  private statusNoticeObjects: Phaser.GameObjects.GameObject[] = [];
 
   constructor() {
     super({ key: 'TaskScene' });
@@ -260,37 +261,27 @@ export class TaskScene extends Phaser.Scene {
 
       // 显示等待
       this.clearConfirmationObjects();
-      const waitText = this.add.text(W / 2, H / 2, this.lang === 'zh' ? '上链中...' : 'Submitting onchain...', {
-        fontSize: '20px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffd700',
-      }).setOrigin(0.5).setDepth(52);
+      this.showStatusNotice(this.lang === 'zh' ? '上链中...' : 'Submitting onchain...', '#ffd700');
 
       // 监听结果
       const unsub = eventBus.on('task:result', (res: unknown) => {
         const result = res as { status: 'pending' | 'confirmed' | 'failed'; txHash?: string; error?: string; actualClw?: string };
 
         if (result.status === 'pending') {
-          waitText.setText(this.lang === 'zh' ? `等待确认...\n${result.txHash?.slice(0, 10)}...` : `Awaiting confirmation...\n${result.txHash?.slice(0, 10)}...`);
+          this.showStatusNotice(this.lang === 'zh' ? `等待确认...\n${result.txHash?.slice(0, 10)}...` : `Awaiting confirmation...\n${result.txHash?.slice(0, 10)}...`, '#ffd700');
           return;
         }
 
-        waitText.destroy();
+        this.clearStatusNotice();
 
         if (result.status === 'confirmed') {
           const rewardText = result.actualClw
             ? (this.lang === 'zh' ? `任务完成! 实际奖励 ${Number(result.actualClw).toFixed(2)} Claworld` : `Task complete! Reward ${Number(result.actualClw).toFixed(2)} Claworld`)
             : (this.lang === 'zh' ? `任务完成! TX: ${result.txHash?.slice(0, 10)}...` : `Task complete! TX: ${result.txHash?.slice(0, 10)}...`);
 
-          this.add.text(W / 2, H / 2, rewardText, {
-            fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
-            align: 'center',
-            wordWrap: { width: 360 },
-          }).setOrigin(0.5).setDepth(52);
+          this.showStatusNotice(rewardText, '#39ff14');
         } else {
-          this.add.text(W / 2, H / 2, this.lang === 'zh' ? `失败: ${result.error}` : `Failed: ${result.error}`, {
-            fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ff4444',
-            align: 'center',
-            wordWrap: { width: Math.min(W - 32, 420), useAdvancedWrap: true },
-          }).setOrigin(0.5).setDepth(52);
+          this.showStatusNotice(this.lang === 'zh' ? `失败: ${result.error}` : `Failed: ${result.error}`, '#ff4444');
           this.selectedIdx = -1;
         }
         this.time.delayedCall(2000, () => this.goBack());
@@ -319,12 +310,37 @@ export class TaskScene extends Phaser.Scene {
 
   private goBack() {
     this.clearConfirmationObjects();
+    this.clearStatusNotice();
     this.scene.start('ShelterScene', { nfaId: this.nfaId, shelter: this.shelter, personality: this.personality, playerPosition: this.playerPosition, lang: this.lang });
   }
 
   private clearConfirmationObjects() {
     this.confirmationObjects.forEach((obj) => obj.destroy());
     this.confirmationObjects = [];
+  }
+
+  private showStatusNotice(message: string, color: string) {
+    this.clearStatusNotice();
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+    const compact = W < 900;
+    const panelWidth = compact ? Math.min(W - 28, 430) : 420;
+    const panel = this.add.rectangle(W / 2, H / 2, panelWidth, compact ? 108 : 92, 0x111122, 0.94).setDepth(51);
+    panel.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(color).color, 0.55);
+    const text = this.add.text(W / 2, H / 2, message, {
+      fontSize: compact ? '15px' : '16px', fontFamily: GAME_UI_FONT_FAMILY, color,
+      align: 'center',
+      wordWrap: { width: panelWidth - 28, useAdvancedWrap: true },
+      lineSpacing: 4,
+    }).setOrigin(0.5).setDepth(52);
+    const bounds = text.getBounds();
+    panel.setSize(panelWidth, Math.max(compact ? 108 : 92, bounds.height + 30));
+    this.statusNoticeObjects = [panel, text];
+  }
+
+  private clearStatusNotice() {
+    this.statusNoticeObjects.forEach((obj) => obj.destroy());
+    this.statusNoticeObjects = [];
   }
 
   private handleCliCommand(name: string, args: string[]) {

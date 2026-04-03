@@ -59,8 +59,8 @@ export function getTaskDialogue(nfaId: number, personality: { courage: number; w
 
   return {
     lines: [
-      { speaker: lang === 'zh' ? '任务终端' : 'Task Terminal', text: lang === 'zh' ? `NFA #${nfaId} 验证通过。主导属性: ${top.name} (${top.val})` : `NFA #${nfaId} verified. Dominant trait: ${top.name} (${top.val})`, color: '#ffd700' },
-      { speaker: lang === 'zh' ? '任务终端' : 'Task Terminal', text: lang === 'zh' ? '当前有 3 项任务可领取，完成可获得 Claworld 奖励。' : 'Three tasks are available. Completing one will grant Claworld rewards.', color: '#ffd700' },
+      { speaker: lang === 'zh' ? '任务终端' : 'Task Terminal', portraitKey: 'npc-task-art', text: lang === 'zh' ? `NFA #${nfaId} 验证通过。主导属性: ${top.name} (${top.val})` : `NFA #${nfaId} verified. Dominant trait: ${top.name} (${top.val})`, color: '#ffd700' },
+      { speaker: lang === 'zh' ? '任务终端' : 'Task Terminal', portraitKey: 'npc-task-art', text: lang === 'zh' ? '当前有 3 项任务可领取，完成可获得 Claworld 奖励。' : 'Three tasks are available. Completing one will grant Claworld rewards.', color: '#ffd700' },
     ],
     choices: [
       { label: lang === 'zh' ? '查看任务列表' : 'View task list', action: 'task:enter' },
@@ -73,9 +73,9 @@ export function getTaskDialogue(nfaId: number, personality: { courage: number; w
 export function getPKDialogue(nfaId: number, lang: GameLang): DialogueNode {
   return {
     lines: [
-      { speaker: lang === 'zh' ? '竞技终端' : 'Arena Terminal', text: lang === 'zh' ? '欢迎来到擂台。' : 'Welcome to the arena.', color: '#ff4444' },
-      { speaker: lang === 'zh' ? '竞技终端' : 'Arena Terminal', text: lang === 'zh' ? `NFA #${nfaId} 已登记。选择你的策略。` : `NFA #${nfaId} registered. Choose your strategy.`, color: '#ff4444' },
-      { speaker: lang === 'zh' ? '竞技终端' : 'Arena Terminal', text: lang === 'zh' ? '全攻克全防，全防克平衡，平衡克全攻。性格加成可能改变结果。' : 'Aggro beats Guard, Guard beats Balance, Balance beats Aggro. Personality bonuses may change the outcome.', color: '#ff4444' },
+      { speaker: lang === 'zh' ? '竞技终端' : 'Arena Terminal', portraitKey: 'npc-pk-art', text: lang === 'zh' ? '欢迎来到擂台。' : 'Welcome to the arena.', color: '#ff4444' },
+      { speaker: lang === 'zh' ? '竞技终端' : 'Arena Terminal', portraitKey: 'npc-pk-art', text: lang === 'zh' ? `NFA #${nfaId} 已登记。选择你的策略。` : `NFA #${nfaId} registered. Choose your strategy.`, color: '#ff4444' },
+      { speaker: lang === 'zh' ? '竞技终端' : 'Arena Terminal', portraitKey: 'npc-pk-art', text: lang === 'zh' ? '全攻克全防，全防克平衡，平衡克全攻。性格加成可能改变结果。' : 'Aggro beats Guard, Guard beats Balance, Balance beats Aggro. Personality bonuses may change the outcome.', color: '#ff4444' },
     ],
     choices: [
       { label: lang === 'zh' ? '创建擂台（质押 Claworld）' : 'Create match (stake Claworld)', action: 'pk:showCreate' },
