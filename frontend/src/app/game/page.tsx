@@ -193,7 +193,7 @@ export default function GamePage() {
 
       if (width <= 0 || height <= 0) return;
 
-      const targetAspect = portrait ? 9 / 16 : width / height;
+      const targetAspect = portrait ? 1680 / 1260 : width / height;
       const fittedHeight = width / targetAspect;
       if (fittedHeight <= height) {
         setGameViewportStyle({

@@ -92,6 +92,7 @@ export class ShelterScene extends Phaser.Scene {
   private blockers: RectRegion[] = [];
   private blockerObjects: Phaser.GameObjects.Rectangle[] = [];
   private playerShadow?: Phaser.GameObjects.Ellipse;
+  private playerShadowOffsetY = 18;
 
   constructor() {
     super({ key: 'ShelterScene' });
@@ -198,18 +199,18 @@ export class ShelterScene extends Phaser.Scene {
     }
 
     this.blockers = [
-      this.scaleRect(0, 0, 1680, 164),
-      this.scaleRect(0, 0, 130, 1260),
-      this.scaleRect(1550, 0, 130, 1260),
-      this.scaleRect(120, 1168, 1440, 92),
-      this.scaleRect(164, 280, 294, 304),
-      this.scaleRect(1222, 280, 294, 304),
-      this.scaleRect(546, 212, 590, 238),
-      this.scaleRect(616, 498, 202, 132),
-      this.scaleRect(872, 498, 190, 132),
-      this.scaleRect(1012, 622, 260, 168),
-      this.scaleRect(150, 840, 224, 204),
-      this.scaleRect(1270, 846, 250, 206),
+      this.scaleRect(0, 0, 1680, 138),
+      this.scaleRect(0, 0, 96, 1260),
+      this.scaleRect(1584, 0, 96, 1260),
+      this.scaleRect(96, 1204, 1488, 56),
+      this.scaleRect(146, 262, 268, 252),
+      this.scaleRect(1268, 262, 266, 252),
+      this.scaleRect(654, 214, 372, 74),
+      this.scaleRect(622, 514, 136, 78),
+      this.scaleRect(916, 514, 128, 78),
+      this.scaleRect(1056, 654, 178, 114),
+      this.scaleRect(154, 908, 182, 120),
+      this.scaleRect(1312, 914, 190, 122),
     ];
 
     for (const region of this.blockers) {
@@ -220,7 +221,7 @@ export class ShelterScene extends Phaser.Scene {
 
     const occluders = [
       this.scaleRect(118, 822, 320, 282),
-      this.scaleRect(638, 666, 424, 170),
+      this.scaleRect(654, 694, 392, 128),
       this.scaleRect(1232, 806, 328, 288),
     ];
     occluders.forEach((region) => {
@@ -239,7 +240,10 @@ export class ShelterScene extends Phaser.Scene {
       : { x: this.sx(840), y: this.sy(944) };
 
     const hasSpriteSheet = this.textures.exists('player-walk');
-    this.playerShadow = this.add.ellipse(spawn.x, spawn.y + this.sy(18), this.sx(46), this.sy(18), 0x000000, 0.28).setDepth(spawn.y - 2);
+    const shadowWidth = compactViewport ? this.sx(46) : this.sx(58);
+    const shadowHeight = compactViewport ? this.sy(18) : this.sy(24);
+    this.playerShadowOffsetY = compactViewport ? 18 : 22;
+    this.playerShadow = this.add.ellipse(spawn.x, spawn.y + this.sy(this.playerShadowOffsetY), shadowWidth, shadowHeight, 0x000000, 0.28).setDepth(spawn.y - 2);
     this.player = this.physics.add.sprite(spawn.x, spawn.y, hasSpriteSheet ? 'player-walk' : 'player', hasSpriteSheet ? 1 : undefined);
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(spawn.y + 6);
@@ -396,7 +400,7 @@ export class ShelterScene extends Phaser.Scene {
     this.updatePlayerAnimation(body.velocity.x, body.velocity.y);
     this.player.setDepth(this.player.y + 6);
     if (this.playerShadow) {
-      this.playerShadow.setPosition(this.player.x, this.player.y + this.sy(18));
+      this.playerShadow.setPosition(this.player.x, this.player.y + this.sy(this.playerShadowOffsetY));
       this.playerShadow.setDepth(this.player.y - 2);
     }
 
