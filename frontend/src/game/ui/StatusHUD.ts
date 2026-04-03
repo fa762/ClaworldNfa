@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
+import { GAME_UI_FONT_FAMILY } from './fonts';
 
 /**
  * StatusHUD — 顶部常驻状态栏
@@ -39,14 +40,14 @@ export class StatusHUD {
 
     // 主信息
     this.mainText = scene.add.text(10, this.compact ? 8 : 8, '', {
-      fontSize: this.portrait ? '13px' : this.compact ? '11px' : '16px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: this.portrait ? '13px' : this.compact ? '11px' : '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       wordWrap: { width: W - 20 },
       lineSpacing: this.portrait ? 6 : this.compact ? 4 : 0,
     }).setScrollFactor(0).setDepth(StatusHUD.DEPTH + 1);
 
     // 性格摘要（右侧）
     this.personalityText = scene.add.text(W - 10, this.portrait ? 66 : this.compact ? 48 : 8, '', {
-      fontSize: this.portrait ? '12px' : this.compact ? '10px' : '16px', fontFamily: 'monospace', color: '#888888',
+      fontSize: this.portrait ? '12px' : this.compact ? '10px' : '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#888888',
       align: this.portrait ? 'left' : 'right',
       wordWrap: this.portrait ? { width: W - 20, useAdvancedWrap: true } : undefined,
       lineSpacing: this.portrait ? 4 : 0,

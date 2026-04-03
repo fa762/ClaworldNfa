@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
+import { GAME_UI_FONT_FAMILY } from '../ui/fonts';
 
 /**
  * BootScene — 加载资源并在收到外层状态后进入 Shelter
@@ -50,27 +51,27 @@ export class BootScene extends Phaser.Scene {
     // 标题
     this.add.text(cx, cy - 80, this.lang === 'zh' ? '龙虾世界' : 'CLAW WORLD', {
       fontSize: '32px',
-      fontFamily: 'monospace',
+      fontFamily: GAME_UI_FONT_FAMILY,
       color: '#39ff14',
     }).setOrigin(0.5);
 
     this.add.text(cx, cy - 45, this.lang === 'zh' ? '等待连接' : 'AWAITING LINK', {
       fontSize: '12px',
-      fontFamily: 'monospace',
+      fontFamily: GAME_UI_FONT_FAMILY,
       color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0.5);
 
     // 状态文本
     this.statusText = this.add.text(cx, cy + 20, '', {
       fontSize: '14px',
-      fontFamily: 'monospace',
+      fontFamily: GAME_UI_FONT_FAMILY,
       color: '#39ff14',
     }).setOrigin(0.5);
 
     // 底部提示
     this.add.text(cx, cy + 80, this.lang === 'zh' ? '[ 按 TAB 连接龙虾 ]' : '[ PRESS TAB TO LINK NFA ]', {
       fontSize: '11px',
-      fontFamily: 'monospace',
+      fontFamily: GAME_UI_FONT_FAMILY,
       color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0.4);
 

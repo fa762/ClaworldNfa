@@ -3,6 +3,7 @@ import { eventBus } from '../EventBus';
 import { TerminalModal } from '../ui/TerminalModal';
 import { loadMarketListing, type NFASummary } from '../chain/wallet';
 import type { GameLang } from '../data/npc-dialogues';
+import { GAME_UI_FONT_FAMILY } from '../ui/fonts';
 import { buildLobsterIdentity } from '@/lib/lobsterIdentity';
 import { getShelterSceneHint, getShelterSpecialty } from '@/lib/shelter';
 
@@ -101,24 +102,24 @@ export class MarketScene extends Phaser.Scene {
     this.add.rectangle(W / 2, H / 2, W, H, MARKET_BG, 0.94);
 
     this.add.text(W / 2, 24, this.lang === 'zh' ? '[ 撮合墙 ]' : '[ MATCH WALL ]', {
-      fontSize: '24px', fontFamily: 'monospace', color: MARKET_PRIMARY,
+      fontSize: '24px', fontFamily: GAME_UI_FONT_FAMILY, color: MARKET_PRIMARY,
     }).setOrigin(0.5);
 
     this.add.text(W / 2, 46, this.lang === 'zh' ? `NFA #${this.nfaId} — Sable 管理的中继市场` : `NFA #${this.nfaId} — Sable's Relay Market`, {
-      fontSize: '14px', fontFamily: 'monospace', color: MARKET_PRIMARY,
+      fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: MARKET_PRIMARY,
     }).setOrigin(0.5).setAlpha(0.6);
 
     this.add.text(W / 2, 62, this.lang === 'zh' ? '固定价 / 拍卖 / 互换 都通过 BSC 中继链路写入链上' : 'Fixed / Auction / Swap all settle through the BSC relay path', {
-      fontSize: '12px', fontFamily: 'monospace', color: MARKET_SOFT,
+      fontSize: '12px', fontFamily: GAME_UI_FONT_FAMILY, color: MARKET_SOFT,
     }).setOrigin(0.5).setAlpha(0.75);
 
     const specialty = getShelterSpecialty(this.shelter, this.lang);
     this.add.text(W / 2, 78, this.lang === 'zh' ? `当前避难所偏向：${specialty.text}` : `Current shelter bias: ${specialty.text}`, {
-      fontSize: '11px', fontFamily: 'monospace', color: specialty.color,
+      fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: specialty.color,
     }).setOrigin(0.5).setAlpha(0.75);
 
     this.add.text(W / 2, 94, getShelterSceneHint(this.shelter, 'market', this.lang), {
-      fontSize: '10px', fontFamily: 'monospace', color: MARKET_SOFT,
+      fontSize: '10px', fontFamily: GAME_UI_FONT_FAMILY, color: MARKET_SOFT,
       align: 'center', wordWrap: { width: W - 40 },
     }).setOrigin(0.5).setAlpha(0.62);
 
@@ -131,7 +132,7 @@ export class MarketScene extends Phaser.Scene {
         : 'Binance relay: online  ·  BSC route: stable  ·  Asset segregation: active  ·  Black swan guard: armed',
       {
         fontSize: '11px',
-        fontFamily: 'monospace',
+        fontFamily: GAME_UI_FONT_FAMILY,
         color: MARKET_PRIMARY,
       },
     ).setOrigin(0.5).setAlpha(0.85);
@@ -153,35 +154,35 @@ export class MarketScene extends Phaser.Scene {
       const y = compactHeader ? 154 + row * 34 : 150;
 
       this.add.text(x, y, button.label, {
-        fontSize: '14px', fontFamily: 'monospace', color: '#201700',
+        fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#201700',
         backgroundColor: MARKET_PRIMARY, padding: { x: 10, y: 6 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', button.action);
     });
 
     const toolsY = compactHeader ? 224 : 186;
     this.listingFilterButton = this.add.text(14, toolsY, '', {
-      fontSize: '11px', fontFamily: 'monospace', color: MARKET_PRIMARY,
+      fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: MARKET_PRIMARY,
       backgroundColor: '#171105', padding: { x: 8, y: 4 },
     }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleListingFilter());
 
     this.add.text(W - 14, toolsY, this.lang === 'zh' ? '[ 搜索挂单 ]' : '[ FIND ID ]', {
-      fontSize: '11px', fontFamily: 'monospace', color: MARKET_SOFT,
+      fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: MARKET_SOFT,
       backgroundColor: '#171105', padding: { x: 8, y: 4 },
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.promptFindListing());
 
     const headerY = toolsY + 28;
     this.add.text(14, headerY, this.lang === 'zh' ? 'ID     NFA     身份称号      类型       挂单/最高价        卖家          操作' : 'ID     NFA     IDENTITY    TYPE       PRICE/BID           SELLER        ACTION', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#8a7a4f',
+      fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#8a7a4f',
     });
     this.add.rectangle(W / 2, headerY + 12, W - 28, 1, 0x5a4712);
     this.listingTableY = headerY + 22;
     this.refreshListingFilterButton();
 
     const prevBtn = this.add.text(W / 2 - 60, H - 52, this.lang === 'zh' ? '[ ← 上一页 ]' : '[ ← PREV ]', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     const nextBtn = this.add.text(W / 2 + 60, H - 52, this.lang === 'zh' ? '[ 下一页 → ]' : '[ NEXT → ]', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
     prevBtn.on('pointerdown', () => {
@@ -198,12 +199,12 @@ export class MarketScene extends Phaser.Scene {
     });
 
     this.statusText = this.add.text(W / 2, H - 76, this.lang === 'zh' ? '读取中继塔市场中...' : 'Loading relay market...', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#ffaa00',
+      fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffaa00',
       align: 'center', wordWrap: { width: W - 40 },
     }).setOrigin(0.5);
 
     const topBackBtn = this.add.text(14, 14, this.lang === 'zh' ? '[ ← 返回避难所 ]' : '[ ← BACK ]', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       backgroundColor: '#061a06', padding: { x: 8, y: 5 },
     }).setOrigin(0, 0).setDepth(1000).setScrollFactor(0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.goBack());
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
@@ -524,10 +525,10 @@ export class MarketScene extends Phaser.Scene {
 
     if (pageItems.length === 0) {
       const empty = this.add.text(W / 2, this.listingTableY + 24, this.showOnlyMine ? (this.lang === 'zh' ? '当前钱包没有活跃挂单' : 'This wallet has no active listings') : '没有活跃中的链上挂单', {
-        fontSize: '16px', fontFamily: 'monospace', color: '#666666',
+        fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#666666',
       }).setOrigin(0.5);
       const pageInfo = this.add.text(W / 2, this.cameras.main.height - 96, '第 0 / 0 页', {
-        fontSize: '12px', fontFamily: 'monospace', color: '#8a7a4f',
+        fontSize: '12px', fontFamily: GAME_UI_FONT_FAMILY, color: '#8a7a4f',
       }).setOrigin(0.5);
       this.rows.push(empty, pageInfo);
       return;
@@ -569,14 +570,14 @@ export class MarketScene extends Phaser.Scene {
         isCompact
           ? `#${item.listingId}  NFA ${item.nfaId}  ${this.typeName(item.listingType)}\n${identity.title}  ·  ${mainValue}\n${this.lang === 'zh' ? '卖家' : 'Seller'} ${sellerShort}`
           : `${String(item.listingId).padEnd(6)} ${String(item.nfaId).padEnd(7)} ${identity.title.padEnd(18)} ${this.typeName(item.listingType).padEnd(10)} ${mainValue.padEnd(18)} ${sellerShort.padEnd(13)}`,
-        { fontSize: isCompact ? '11px' : '11px', fontFamily: 'monospace', color: rarityColor, lineSpacing: 4 },
+        { fontSize: isCompact ? '11px' : '11px', fontFamily: GAME_UI_FONT_FAMILY, color: rarityColor, lineSpacing: 4 },
       );
 
       this.rows.push(rowBg, rowText);
 
       if (item.listingType === 2) {
         const swapLabel = this.add.text(W - 80, y + (isCompact ? 18 : 1), isMine ? '[ 取消 ]' : hasSwapTarget ? '[ 接受 ]' : `[ 需 #${item.swapTargetId} ]`, {
-          fontSize: '11px', fontFamily: 'monospace', color: isMine ? '#ff6666' : hasSwapTarget ? '#39ff14' : '#777777', backgroundColor: '#111111', padding: { x: 6, y: 4 },
+          fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: isMine ? '#ff6666' : hasSwapTarget ? '#39ff14' : '#777777', backgroundColor: '#111111', padding: { x: 6, y: 4 },
         }).setOrigin(0.5);
         if (isMine || hasSwapTarget) {
           swapLabel.setInteractive({ useHandCursor: true });
@@ -596,7 +597,7 @@ export class MarketScene extends Phaser.Scene {
 
       const actionColor = isMine ? '#ff4444' : '#ffd700';
       const actionBtn = this.add.text(W - 80, y + (isCompact ? 18 : 1), actionLabel, {
-        fontSize: '11px', fontFamily: 'monospace', color: actionColor,
+        fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: actionColor,
         backgroundColor: isMine ? '#1a0000' : '#1a1a00', padding: { x: 6, y: 4 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
@@ -607,7 +608,7 @@ export class MarketScene extends Phaser.Scene {
     const totalPages = Math.ceil(visibleListings.length / this.PER_PAGE);
     const pageInfo = this.add.text(W / 2, this.cameras.main.height - 96,
       `第 ${this.page + 1} / ${totalPages} 页  (共 ${visibleListings.length} 条)`, {
-        fontSize: '12px', fontFamily: 'monospace', color: '#8a7a4f',
+        fontSize: '12px', fontFamily: GAME_UI_FONT_FAMILY, color: '#8a7a4f',
       }).setOrigin(0.5);
     this.rows.push(pageInfo);
   }

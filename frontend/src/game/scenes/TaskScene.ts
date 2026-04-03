@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
 import { pickTasks, calcMatchScore } from '../data/task-templates';
 import type { GameLang } from '../data/npc-dialogues';
+import { GAME_UI_FONT_FAMILY } from '../ui/fonts';
 import { getShelterSceneHint, getShelterSpecialty, getShelterTaskBias } from '@/lib/shelter';
 
 interface TaskOption {
@@ -77,20 +78,20 @@ export class TaskScene extends Phaser.Scene {
 
     // 标题
     this.add.text(W / 2, 30, this.lang === 'zh' ? '[ 任务分配终端 ]' : '[ TASK TERMINAL ]', {
-      fontSize: '24px', fontFamily: 'monospace', color: '#ffd700',
+      fontSize: '24px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffd700',
     }).setOrigin(0.5);
 
     this.add.text(W / 2, 50, this.lang === 'zh' ? `NFA #${this.nfaId} — 选择一个任务` : `NFA #${this.nfaId} — Choose a task`, {
-      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0.6);
 
     const specialty = getShelterSpecialty(this.shelter, this.lang);
     this.add.text(W / 2, 66, this.lang === 'zh' ? `当前避难所偏向：${specialty.text}` : `Current shelter bias: ${specialty.text}`, {
-      fontSize: '11px', fontFamily: 'monospace', color: specialty.color,
+      fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: specialty.color,
     }).setOrigin(0.5).setAlpha(0.75);
 
     this.add.text(W / 2, 82, getShelterSceneHint(this.shelter, 'task', this.lang), {
-      fontSize: '10px', fontFamily: 'monospace', color: '#9fd39f',
+      fontSize: '10px', fontFamily: GAME_UI_FONT_FAMILY, color: '#9fd39f',
       wordWrap: { width: W - 40 }, align: 'center',
     }).setOrigin(0.5).setAlpha(0.62);
 
@@ -114,12 +115,12 @@ export class TaskScene extends Phaser.Scene {
 
         // 类型标签
         this.add.text(x + cardW / 2, y + 15, `[ ${this.getTypeNames()[task.type]} ]`, {
-          fontSize: '15px', fontFamily: 'monospace', color: TYPE_COLORS[task.type],
+          fontSize: '15px', fontFamily: GAME_UI_FONT_FAMILY, color: TYPE_COLORS[task.type],
         }).setOrigin(0.5);
 
       // 标题
       const title = this.add.text(x + cardW / 2, y + 40, task.title, {
-        fontSize: compact ? '13px' : '14px', fontFamily: 'monospace', color: '#ffffff',
+        fontSize: compact ? '13px' : '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffffff',
         wordWrap: { width: cardW - 24, useAdvancedWrap: true }, align: 'center',
         maxLines: compact ? 2 : 3,
       }).setOrigin(0.5, 0);
@@ -127,7 +128,7 @@ export class TaskScene extends Phaser.Scene {
 
       // 描述
       const desc = this.add.text(x + 12, y + (compact ? 82 : 75), task.desc, {
-        fontSize: compact ? '11px' : '12px', fontFamily: 'monospace', color: '#aaaaaa',
+        fontSize: compact ? '11px' : '12px', fontFamily: GAME_UI_FONT_FAMILY, color: '#aaaaaa',
         wordWrap: { width: cardW - 24, useAdvancedWrap: true },
         maxLines: compact ? 3 : 8,
         lineSpacing: compact ? 4 : 2,
@@ -136,7 +137,7 @@ export class TaskScene extends Phaser.Scene {
 
       // 奖励
       this.add.text(x + cardW / 2, y + cardH - (compact ? 38 : 50), `Claworld: +${task.clw}  XP: +${task.xp}`, {
-        fontSize: compact ? '12px' : '13px', fontFamily: 'monospace', color: '#39ff14',
+        fontSize: compact ? '12px' : '13px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
         wordWrap: { width: cardW - 24, useAdvancedWrap: true },
         align: 'center',
       }).setOrigin(0.5);
@@ -144,7 +145,7 @@ export class TaskScene extends Phaser.Scene {
       // 匹配度
       const matchColor = task.matchScore >= 1.0 ? '#39ff14' : task.matchScore >= 0.5 ? '#ffaa00' : '#ff4444';
       this.add.text(x + cardW / 2, y + cardH - (compact ? 18 : 30), `${this.lang === 'zh' ? '匹配度' : 'Match'}: ${task.matchScore.toFixed(2)}x`, {
-        fontSize: compact ? '12px' : '13px', fontFamily: 'monospace', color: matchColor,
+        fontSize: compact ? '12px' : '13px', fontFamily: GAME_UI_FONT_FAMILY, color: matchColor,
       }).setOrigin(0.5);
 
       // 点击选择
@@ -158,7 +159,7 @@ export class TaskScene extends Phaser.Scene {
     });
 
     const topBackBtn = this.add.text(16, 16, this.lang === 'zh' ? '[ ← 返回避难所 ]' : '[ ← BACK ]', {
-      fontSize: compact ? '13px' : '14px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: compact ? '13px' : '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       backgroundColor: '#061a06', padding: { x: 8, y: 5 },
     }).setOrigin(0, 0).setDepth(1000).setScrollFactor(0).setInteractive({ useHandCursor: true });
     topBackBtn.on('pointerdown', () => this.goBack());
@@ -214,21 +215,21 @@ export class TaskScene extends Phaser.Scene {
     confirmBox.setStrokeStyle(1, 0x39ff14);
 
     this.add.text(W / 2, H / 2 - 35, this.lang === 'zh' ? `确认执行: ${task.title}?` : `Confirm task: ${task.title}?`, {
-      fontSize: '18px', fontFamily: 'monospace', color: '#ffd700', align: 'center',
+      fontSize: '18px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffd700', align: 'center',
       wordWrap: { width: 360 },
     }).setOrigin(0.5).setDepth(52);
 
     this.add.text(W / 2, H / 2 + 5, this.lang === 'zh' ? `Claworld +${task.clw}  XP +${task.xp}  匹配 ${task.matchScore.toFixed(2)}x` : `Claworld +${task.clw}  XP +${task.xp}  Match ${task.matchScore.toFixed(2)}x`, {
-      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
     }).setOrigin(0.5).setDepth(52);
 
     // 确认/取消
     const yesBtn = this.add.text(W / 2 - 60, H / 2 + 35, this.lang === 'zh' ? '[ 确认 ]' : '[ CONFIRM ]', {
-      fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
     }).setOrigin(0.5).setDepth(52).setInteractive({ useHandCursor: true });
 
     const noBtn = this.add.text(W / 2 + 60, H / 2 + 35, this.lang === 'zh' ? '[ 取消 ]' : '[ CANCEL ]', {
-      fontSize: '16px', fontFamily: 'monospace', color: '#ff4444',
+      fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ff4444',
     }).setOrigin(0.5).setDepth(52).setInteractive({ useHandCursor: true });
 
     yesBtn.on('pointerdown', () => {
@@ -244,7 +245,7 @@ export class TaskScene extends Phaser.Scene {
       // 显示等待
       overlay.destroy(); confirmBox.destroy(); yesBtn.destroy(); noBtn.destroy();
       const waitText = this.add.text(W / 2, H / 2, this.lang === 'zh' ? '上链中...' : 'Submitting onchain...', {
-        fontSize: '20px', fontFamily: 'monospace', color: '#ffd700',
+        fontSize: '20px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffd700',
       }).setOrigin(0.5).setDepth(52);
 
       // 监听结果
@@ -264,13 +265,13 @@ export class TaskScene extends Phaser.Scene {
             : (this.lang === 'zh' ? `任务完成! TX: ${result.txHash?.slice(0, 10)}...` : `Task complete! TX: ${result.txHash?.slice(0, 10)}...`);
 
           this.add.text(W / 2, H / 2, rewardText, {
-            fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
+            fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
             align: 'center',
             wordWrap: { width: 360 },
           }).setOrigin(0.5).setDepth(52);
         } else {
           this.add.text(W / 2, H / 2, this.lang === 'zh' ? `失败: ${result.error}` : `Failed: ${result.error}`, {
-            fontSize: '16px', fontFamily: 'monospace', color: '#ff4444',
+            fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ff4444',
           }).setOrigin(0.5).setDepth(52);
         }
         this.time.delayedCall(2000, () => this.goBack());

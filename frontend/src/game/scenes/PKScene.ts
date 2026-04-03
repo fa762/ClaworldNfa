@@ -4,6 +4,7 @@ import { loadPKResolutionCache, loadPKSalt } from '../chain/contracts';
 import { loadMatch, loadMatchResolution, loadNFAState } from '../chain/wallet';
 import { TerminalModal, type ReportSection } from '../ui/TerminalModal';
 import type { GameLang } from '../data/npc-dialogues';
+import { GAME_UI_FONT_FAMILY } from '../ui/fonts';
 import { buildIdentityFromState, buildLobsterIdentity } from '@/lib/lobsterIdentity';
 import { getShelterSceneHint, getShelterSpecialty } from '@/lib/shelter';
 import { getBscScanTxUrl } from '@/contracts/addresses';
@@ -149,24 +150,24 @@ export class PKScene extends Phaser.Scene {
     this.add.rectangle(W / 2, H / 2, W, H, 0x101010, 0.9);
 
     this.add.text(W / 2, 26, this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]', {
-      fontSize: '24px', fontFamily: 'monospace', color: '#ff3333',
+      fontSize: '24px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ff3333',
     }).setOrigin(0.5);
 
     this.add.text(W / 2, 48, this.lang === 'zh' ? `NFA #${this.nfaId} — 真链上 PK` : `NFA #${this.nfaId} — Onchain PK`, {
-      fontSize: '14px', fontFamily: 'monospace', color: '#ff6666',
+      fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ff6666',
     }).setOrigin(0.5).setAlpha(0.7);
 
     this.add.text(W / 2, 64, this.lang === 'zh' ? '创建或加入 -> 选择策略 -> 等待对手 -> 自动推进结果' : 'Create or join -> Pick strategy -> Wait -> Auto-advance result', {
-      fontSize: '12px', fontFamily: 'monospace', color: '#aaaaaa',
+      fontSize: '12px', fontFamily: GAME_UI_FONT_FAMILY, color: '#aaaaaa',
     }).setOrigin(0.5).setAlpha(0.75);
 
     const specialty = getShelterSpecialty(this.shelter, this.lang);
     this.add.text(W / 2, 80, this.lang === 'zh' ? `当前避难所偏向：${specialty.text}` : `Current shelter bias: ${specialty.text}`, {
-      fontSize: '11px', fontFamily: 'monospace', color: specialty.color,
+      fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: specialty.color,
     }).setOrigin(0.5).setAlpha(0.75);
 
     this.add.text(W / 2, 94, getShelterSceneHint(this.shelter, 'pk', this.lang), {
-      fontSize: '10px', fontFamily: 'monospace', color: '#d8aaaa',
+      fontSize: '10px', fontFamily: GAME_UI_FONT_FAMILY, color: '#d8aaaa',
       align: 'center', wordWrap: { width: W - 40 },
     }).setOrigin(0.5).setAlpha(0.6);
 
@@ -186,44 +187,44 @@ export class PKScene extends Phaser.Scene {
       const y = compactHeader ? 112 + row * 34 : 110;
 
       this.add.text(x, y, button.label, {
-        fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
+        fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
         backgroundColor: '#062406', padding: { x: 10, y: 6 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', button.action);
     });
 
     const toolsY = compactHeader ? 182 : 144;
     this.mineFilterButton = this.add.text(18, toolsY, '', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       backgroundColor: '#001a00', padding: { x: 8, y: 4 },
     }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleMineFilter());
 
     this.joinableFilterButton = this.add.text(126, toolsY, '', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#ffaa00',
+      fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffaa00',
       backgroundColor: '#1a1a00', padding: { x: 8, y: 4 },
     }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.toggleJoinableFilter());
 
     this.add.text(W - 18, toolsY, this.lang === 'zh' ? '[ 搜索对局 ]' : '[ FIND ID ]', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#7ad7ff',
+      fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#7ad7ff',
       backgroundColor: '#00131a', padding: { x: 8, y: 4 },
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.promptFindMatch());
 
     this.prevPageButton = this.add.text(W - 214, toolsY, this.lang === 'zh' ? '[ 上页 ]' : '[ PREV ]', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       backgroundColor: '#001a00', padding: { x: 8, y: 4 },
     }).setOrigin(0, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.changePage(-1));
 
     this.pageInfoText = this.add.text(W - 152, toolsY + 5, '', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#7ad7ff',
+      fontSize: '10px', fontFamily: GAME_UI_FONT_FAMILY, color: '#7ad7ff',
     }).setOrigin(0, 0);
 
     this.nextPageButton = this.add.text(W - 86, toolsY, this.lang === 'zh' ? '[ 下页 ]' : '[ NEXT ]', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       backgroundColor: '#001a00', padding: { x: 8, y: 4 },
     }).setOrigin(0, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.changePage(1));
 
     const headerY = toolsY + 28;
     this.add.text(18, headerY, this.lang === 'zh' ? 'ID     发起方   应战方   赌注         阶段           操作' : 'ID     A        B        STAKE        PHASE           ACTION', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#555555',
+      fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#555555',
     });
     this.add.rectangle(W / 2, headerY + 12, W - 32, 1, 0x333333);
     this.matchTableY = headerY + 24;
@@ -231,12 +232,12 @@ export class PKScene extends Phaser.Scene {
     this.refreshJoinableFilterButton();
 
     this.statusText = this.add.text(W / 2, H - 56, this.lang === 'zh' ? '读取链上擂台中...' : 'Loading arena matches...', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#ffaa00', align: 'center',
+      fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffaa00', align: 'center',
       wordWrap: { width: W - 40 },
     }).setOrigin(0.5);
 
     const topBackBtn = this.add.text(18, 14, this.lang === 'zh' ? '[ ← 返回避难所 ]' : '[ ← BACK ]', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       backgroundColor: '#061a06', padding: { x: 8, y: 5 },
     }).setOrigin(0, 0).setDepth(1000).setScrollFactor(0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.goBack());
 
@@ -1280,7 +1281,7 @@ export class PKScene extends Phaser.Scene {
 
     if (visibleMatches.length === 0) {
       const empty = this.add.text(W / 2, 200, this.lang === 'zh' ? '还没有链上对局记录' : 'No on-chain matches yet', {
-        fontSize: '16px', fontFamily: 'monospace', color: '#666666',
+        fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#666666',
       }).setOrigin(0.5);
       this.rows.push(empty);
       return;
@@ -1296,7 +1297,7 @@ export class PKScene extends Phaser.Scene {
         isCompact
           ? this.buildCompactMatchText(match)
           : `${String(match.matchId).padEnd(6)} ${String(match.nfaA).padEnd(8)} ${String(match.nfaB || '-').padEnd(8)} ${`${match.stake} Claworld`.padEnd(12)} ${this.phaseName(match.phase).padEnd(14)}`,
-        { fontSize: isCompact ? '11px' : '12px', fontFamily: 'monospace', color: '#cccccc', lineSpacing: 4 },
+        { fontSize: isCompact ? '11px' : '12px', fontFamily: GAME_UI_FONT_FAMILY, color: '#cccccc', lineSpacing: 4 },
       );
 
       this.rows.push(rowBg, rowText);
@@ -1304,14 +1305,14 @@ export class PKScene extends Phaser.Scene {
       const isMine = this.isMyMatch(match);
       const opponentId = match.nfaA === this.nfaId ? match.nfaB : match.nfaA;
       const detailBtn = this.add.text(W - (isCompact ? 170 : 160), y + (isCompact ? 18 : 1), this.lang === 'zh' ? '[ 详情 ]' : '[ DETAIL ]', {
-        fontSize: '11px', fontFamily: 'monospace', color: '#7ad7ff', backgroundColor: '#00131a', padding: { x: 6, y: 4 },
+        fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#7ad7ff', backgroundColor: '#00131a', padding: { x: 6, y: 4 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       detailBtn.on('pointerdown', () => { void this.openMatchTrace(match.matchId); });
       this.rows.push(detailBtn);
 
       if (opponentId > 0) {
         const inspectBtn = this.add.text(W - (isCompact ? 94 : 88), y + (isCompact ? 18 : 1), this.lang === 'zh' ? '[ 属性 ]' : '[ STATS ]', {
-          fontSize: '11px', fontFamily: 'monospace', color: '#7ad7ff', backgroundColor: '#00131a', padding: { x: 6, y: 4 },
+          fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#7ad7ff', backgroundColor: '#00131a', padding: { x: 6, y: 4 },
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
         inspectBtn.on('pointerdown', () => { void this.showOpponentStats(opponentId); });
         this.rows.push(inspectBtn);
@@ -1325,7 +1326,7 @@ export class PKScene extends Phaser.Scene {
           rowAction.label,
           {
             fontSize: '11px',
-            fontFamily: 'monospace',
+            fontFamily: GAME_UI_FONT_FAMILY,
             color: rowAction.color,
             backgroundColor: rowAction.backgroundColor,
             padding: { x: 6, y: 4 },

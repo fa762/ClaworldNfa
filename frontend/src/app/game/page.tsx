@@ -1008,8 +1008,8 @@ export default function GamePage() {
       />
 
       {showFloatingHud && (
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-[30]">
-          <div className="flex items-start justify-between gap-3 px-3 pt-3 sm:px-4 sm:pt-4">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[30]">
+          <div className="flex items-end justify-between gap-3 px-3 pb-3 sm:px-4 sm:pb-4">
             <div className="pointer-events-auto flex max-w-[78vw] flex-wrap items-center gap-2 font-mono text-[11px] sm:text-xs">
               <button
                 onClick={() => setShowSidePanel((current) => !current)}

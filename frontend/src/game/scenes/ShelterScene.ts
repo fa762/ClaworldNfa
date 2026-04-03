@@ -3,6 +3,7 @@ import { eventBus } from '../EventBus';
 import { DialogueBox } from '../ui/DialogueBox';
 import { StatusHUD } from '../ui/StatusHUD';
 import { getTaskDialogue, getPKDialogue, getMarketDialogue, getPortalDialogue, getOpenClawDialogue, getSableDialogue, type GameLang, type SableNode } from '../data/npc-dialogues';
+import { GAME_UI_FONT_FAMILY } from '../ui/fonts';
 import { buildLobsterIdentity } from '@/lib/lobsterIdentity';
 import { getShelterDescription, getShelterSpecialty } from '@/lib/shelter';
 
@@ -153,7 +154,7 @@ export class ShelterScene extends Phaser.Scene {
       : ['Void', 'Coral', 'Abyss', 'Kelp', 'Trench', 'Reef', 'Volcano', 'Wasteland'];
     const shelterName = shelterNames[this.shelter] || `SHELTER-0${this.shelter}`;
     this.add.text(W / 2, 14, `SHELTER-0${this.shelter}  ${shelterName}`, {
-      fontSize: '18px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '18px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
     }).setOrigin(0.5, 0).setDepth(100).setAlpha(0.7).setScrollFactor(0);
 
     const shelterDesc = this.lang === 'zh'
@@ -170,12 +171,12 @@ export class ShelterScene extends Phaser.Scene {
         ][this.shelter] ?? '';
 
     this.add.text(W / 2, 36, shelterDesc, {
-      fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: '#7adf8b',
+      fontSize: W < 720 ? '9px' : '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#7adf8b',
       align: 'center', wordWrap: { width: W - 100 },
     }).setOrigin(0.5).setDepth(100).setAlpha(0.45).setScrollFactor(0);
 
     this.add.text(W / 2, 54, this.lang === 'zh' ? `区域偏向：${specialty.text}` : `Shelter specialty: ${specialty.text}`, {
-      fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: specialty.color,
+      fontSize: W < 720 ? '9px' : '11px', fontFamily: GAME_UI_FONT_FAMILY, color: specialty.color,
       align: 'center', wordWrap: { width: W - 100 },
     }).setOrigin(0.5).setDepth(100).setAlpha(0.65).setScrollFactor(0);
 
@@ -201,7 +202,7 @@ export class ShelterScene extends Phaser.Scene {
 
       // NPC 标签
       this.add.text(def.x, def.y - npc.displayHeight / 2 - 10, def.label, {
-        fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
+        fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       }).setOrigin(0.5).setAlpha(0.85).setDepth(def.y + 18);
 
       this.npcs.push(npc);
@@ -239,14 +240,14 @@ export class ShelterScene extends Phaser.Scene {
 
     // ── 交互提示 ──
     this.promptText = this.add.text(viewportW / 2, portraitViewport ? viewportH - 116 : viewportH - 70, '', {
-      fontSize: portraitViewport ? '17px' : compactViewport ? '14px' : '18px', fontFamily: 'monospace', color: '#ffd700',
+      fontSize: portraitViewport ? '17px' : compactViewport ? '14px' : '18px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffd700',
       wordWrap: { width: portraitViewport ? viewportW - 36 : viewportW - 80 },
       align: 'center',
       lineSpacing: portraitViewport ? 6 : 0,
     }).setOrigin(0.5).setDepth(130).setScrollFactor(0);
 
     this.add.text(viewportW / 2, portraitViewport ? viewportH - 156 : viewportH - 96, this.lang === 'zh' ? 'WASD/方向键移动  ·  点击地面移动  ·  靠近装置按 SPACE' : 'WASD/Arrows move  ·  Tap ground to move  ·  Press SPACE near terminals', {
-      fontSize: portraitViewport ? '12px' : compactViewport ? '9px' : '12px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: portraitViewport ? '12px' : compactViewport ? '9px' : '12px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       align: 'center',
       wordWrap: { width: portraitViewport ? viewportW - 36 : viewportW - 40 },
       lineSpacing: portraitViewport ? 6 : 0,
@@ -255,7 +256,7 @@ export class ShelterScene extends Phaser.Scene {
     this.hudText = this.add.text(10, portraitViewport ? viewportH - 52 : viewportH - 24, touchFriendly
       ? (this.lang === 'zh' ? `NFA #${this.nfaId}\n点地面移动 · 靠近后点击装置交互` : `NFA #${this.nfaId}\nTap ground to move · Tap terminals nearby`)
       : (this.lang === 'zh' ? `NFA #${this.nfaId}  |  WASD 移动  |  SPACE 交互` : `NFA #${this.nfaId}  |  WASD Move  |  SPACE Interact`), {
-      fontSize: portraitViewport ? '12px' : compactViewport ? '11px' : '14px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: portraitViewport ? '12px' : compactViewport ? '11px' : '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       wordWrap: { width: Math.max(220, portraitViewport ? viewportW - 24 : viewportW - 140) },
       lineSpacing: touchFriendly ? 4 : compactViewport ? 3 : 0,
     }).setDepth(130).setAlpha(touchFriendly ? 0.82 : 0.6).setScrollFactor(0);
@@ -628,7 +629,7 @@ export class ShelterScene extends Phaser.Scene {
       }, this.lang);
 
       const text = this.add.text(echo.x, echo.y + 26, `${echo.title} · NFA #${echo.nfaId}\n${identity.title}`, {
-        fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: '#7adf8b',
+        fontSize: W < 720 ? '9px' : '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#7adf8b',
         align: 'center',
       }).setOrigin(0.5).setAlpha(0.55).setDepth(6);
 
@@ -659,7 +660,7 @@ export class ShelterScene extends Phaser.Scene {
         ];
 
     const broadcast = this.add.text(W / 2, 34, broadcastMessages[0], {
-      fontSize: W < 720 ? '9px' : '11px', fontFamily: 'monospace', color: '#39ff14', align: 'center',
+      fontSize: W < 720 ? '9px' : '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14', align: 'center',
       wordWrap: { width: Math.max(280, this.cameras.main.width - 80) },
     }).setOrigin(0.5).setAlpha(0.45).setDepth(100).setScrollFactor(0);
 

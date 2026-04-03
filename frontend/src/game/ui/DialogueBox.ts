@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { GAME_UI_FONT_FAMILY } from './fonts';
 
 interface DialogueLine {
   speaker: string;
@@ -88,21 +89,21 @@ export class DialogueBox {
       .setScrollFactor(0);
 
     this.speakerText = scene.add.text(this.bodyX, boxY + 14, '', {
-      fontSize: this.isCompact ? '18px' : '20px', fontFamily: 'monospace', color: '#ffd700',
+      fontSize: this.isCompact ? '18px' : '20px', fontFamily: GAME_UI_FONT_FAMILY, color: '#ffd700',
     }).setScrollFactor(0);
 
     this.bodyText = scene.add.text(this.bodyX, boxY + (this.isCompact ? 42 : 44), '', {
-      fontSize: this.isCompact ? '15px' : '17px', fontFamily: 'monospace', color: '#cccccc',
+      fontSize: this.isCompact ? '15px' : '17px', fontFamily: GAME_UI_FONT_FAMILY, color: '#cccccc',
       wordWrap: { width: this.bodyWidth, useAdvancedWrap: true }, lineSpacing: this.isCompact ? 6 : 8,
     }).setScrollFactor(0);
     this.bodyText.setFixedSize(this.bodyWidth, this.bodyHeight);
 
     this.promptText = scene.add.text(this.W - 32, boxY + this.boxHeight - 20, '▼', {
-      fontSize: '16px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: '16px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
     }).setOrigin(0.5).setAlpha(0).setScrollFactor(0);
 
     this.hintText = scene.add.text(this.PADDING, boxY + this.boxHeight - 22, '', {
-      fontSize: this.isCompact ? '12px' : '13px', fontFamily: 'monospace', color: '#39ff14',
+      fontSize: this.isCompact ? '12px' : '13px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       wordWrap: { width: this.W - this.PADDING * 2, useAdvancedWrap: true },
     }).setAlpha(0).setScrollFactor(0);
 
@@ -176,7 +177,7 @@ export class DialogueBox {
     choices.forEach((choice, i) => {
       const y = baseY + i * spacing;
       const text = this.scene.add.text(this.PADDING + 20, y, `[${i + 1}] ${choice.label}`, {
-        fontSize: this.isCompact ? '15px' : '14px', fontFamily: 'monospace', color: '#39ff14',
+        fontSize: this.isCompact ? '15px' : '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
         wordWrap: { width: this.W - 64, useAdvancedWrap: true },
       }).setInteractive({ useHandCursor: true }).setDepth(this.DEPTH + 1).setScrollFactor(0);
 

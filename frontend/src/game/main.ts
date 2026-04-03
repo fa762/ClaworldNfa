@@ -8,13 +8,17 @@ import { MarketScene } from './scenes/MarketScene';
 export function createGame(parent: HTMLElement): Phaser.Game {
   const w = parent.clientWidth;
   const h = parent.clientHeight;
+  const resolution = Math.min(window.devicePixelRatio || 1, 2);
 
-  const config: Phaser.Types.Core.GameConfig = {
+  const config: Phaser.Types.Core.GameConfig & { resolution: number } = {
     type: Phaser.AUTO,
     parent,
     width: w,
     height: h,
     pixelArt: true,
+    resolution,
+    autoRound: true,
+    antialias: false,
     backgroundColor: '#0a0a0a',
     physics: {
       default: 'arcade',
