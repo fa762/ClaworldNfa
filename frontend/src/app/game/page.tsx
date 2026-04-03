@@ -321,17 +321,23 @@ export default function GamePage() {
       await waitForPaint();
       readyContainer = containerRef.current;
       if (!readyContainer) continue;
+
+      const parentRect = readyContainer.parentElement?.getBoundingClientRect();
+      if (!parentRect || parentRect.width === 0 || parentRect.height === 0) {
+        continue;
+      }
+
+      const fittedHeight = parentRect.width / CRT_SCREEN_ASPECT;
+      if (fittedHeight <= parentRect.height) {
+        readyContainer.style.width = '100%';
+        readyContainer.style.height = `${fittedHeight}px`;
+      } else {
+        readyContainer.style.width = `${parentRect.height * CRT_SCREEN_ASPECT}px`;
+        readyContainer.style.height = '100%';
+      }
+
       readyRect = readyContainer.getBoundingClientRect();
       if (readyRect.width > 0 && readyRect.height > 0) {
-        const fittedHeight = readyRect.width / CRT_SCREEN_ASPECT;
-        if (fittedHeight <= readyRect.height) {
-          readyContainer.style.width = '100%';
-          readyContainer.style.height = `${fittedHeight}px`;
-        } else {
-          readyContainer.style.width = `${readyRect.height * CRT_SCREEN_ASPECT}px`;
-          readyContainer.style.height = '100%';
-        }
-        readyRect = readyContainer.getBoundingClientRect();
         break;
       }
     }
