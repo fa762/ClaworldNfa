@@ -273,14 +273,14 @@ export class ShelterScene extends Phaser.Scene {
       wordWrap: { width: portraitViewport ? viewportW - 36 : viewportW - 80 },
       align: 'center',
       lineSpacing: portraitViewport ? 6 : 0,
-    }).setOrigin(0.5).setDepth(130).setScrollFactor(0);
+    }).setOrigin(0.5).setDepth(130).setScrollFactor(0).setResolution(overlayTextResolution);
 
     this.add.text(viewportW / 2, portraitViewport ? viewportH - 156 : viewportH - 96, this.lang === 'zh' ? 'WASD/方向键移动  ·  点击地面移动  ·  靠近装置按 SPACE' : 'WASD/Arrows move  ·  Tap ground to move  ·  Press SPACE near terminals', {
       fontSize: portraitViewport ? '12px' : compactViewport ? '9px' : '12px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       align: 'center',
       wordWrap: { width: portraitViewport ? viewportW - 36 : viewportW - 40 },
       lineSpacing: portraitViewport ? 6 : 0,
-    }).setOrigin(0.5).setDepth(130).setAlpha(0.55).setScrollFactor(0);
+    }).setOrigin(0.5).setDepth(130).setAlpha(0.55).setScrollFactor(0).setResolution(overlayTextResolution);
 
     this.hudText = this.add.text(10, portraitViewport ? viewportH - 52 : viewportH - 24, touchFriendly
       ? (this.lang === 'zh' ? `NFA #${this.nfaId}\n点地面移动 · 靠近后点击装置交互` : `NFA #${this.nfaId}\nTap ground to move · Tap terminals nearby`)
@@ -288,7 +288,7 @@ export class ShelterScene extends Phaser.Scene {
       fontSize: portraitViewport ? '12px' : compactViewport ? '11px' : '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       wordWrap: { width: Math.max(220, portraitViewport ? viewportW - 24 : viewportW - 140) },
       lineSpacing: touchFriendly ? 4 : compactViewport ? 3 : 0,
-    }).setDepth(130).setAlpha(touchFriendly ? 0.82 : 0.6).setScrollFactor(0);
+    }).setDepth(130).setAlpha(touchFriendly ? 0.82 : 0.6).setScrollFactor(0).setResolution(overlayTextResolution);
 
     this.dialogueBox = new DialogueBox(this, this.lang);
     this.statusHUD = new StatusHUD(this, this.nfaId);
