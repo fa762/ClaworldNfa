@@ -67,7 +67,7 @@ contract GenesisVault is
     uint256 public constant REVEAL_WINDOW = 24 hours;
 
     // Rarity pricing (BNB)
-    uint256 public constant PRICE_COMMON    = 0.08 ether;
+    uint256 public constant PRICE_COMMON    = 0.02 ether;
     uint256 public constant PRICE_RARE      = 0.38 ether;
     uint256 public constant PRICE_EPIC      = 0.88 ether;
     uint256 public constant PRICE_LEGENDARY = 1.88 ether;

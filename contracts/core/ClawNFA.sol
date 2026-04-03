@@ -57,8 +57,8 @@ contract ClawNFA is
     // Minter role: only GenesisVault or authorized minter can mint
     address public minter;
 
-    // Post-genesis mint price (0.08 BNB, Common only)
-    uint256 public constant POST_GENESIS_PRICE = 0.08 ether;
+    // Post-genesis mint price (0.02 BNB, Common only)
+    uint256 public constant POST_GENESIS_PRICE = 0.02 ether;
     bool public postGenesisMintEnabled;
 
     // Default logic address (router) for post-genesis mints
@@ -144,7 +144,7 @@ contract ClawNFA is
     }
 
     /**
-     * @dev Post-genesis public mint (0.08 BNB, Common only)
+     * @dev Post-genesis public mint (0.02 BNB, Common only)
      */
     function publicMint(
         string memory metadataURI,
