@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { eventBus } from '../EventBus';
 
 type MenuOption = {
   label: string;
@@ -121,6 +122,7 @@ export class TerminalModal {
       </div>`;
 
     this.dom = this.scene.add.dom(W / 2, H / 2).createFromHTML(html).setDepth(501);
+    eventBus.emit('game:overlay', { open: true, source: 'modal' });
 
     const root = this.dom.node as HTMLDivElement;
     const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>('button[data-action="option"]'));
@@ -186,6 +188,7 @@ export class TerminalModal {
       </form>`;
 
     this.dom = this.scene.add.dom(W / 2, H / 2).createFromHTML(html).setDepth(501);
+    eventBus.emit('game:overlay', { open: true, source: 'modal' });
 
     const root = this.dom.node as HTMLFormElement;
     const submitHandler = (event: Event) => {
@@ -291,6 +294,7 @@ export class TerminalModal {
       </div>`;
 
     this.dom = this.scene.add.dom(W / 2, H / 2).createFromHTML(html).setDepth(501);
+    eventBus.emit('game:overlay', { open: true, source: 'modal' });
 
     const root = this.dom.node as HTMLDivElement;
     const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>('button[data-action="report-option"]'));
@@ -321,12 +325,16 @@ export class TerminalModal {
   }
 
   close() {
+    const wasOpen = this.isOpen();
     this.cleanup.forEach((cleanup) => cleanup());
     this.cleanup = [];
     this.dom?.destroy();
     this.overlay?.destroy();
     this.dom = undefined;
     this.overlay = undefined;
+    if (wasOpen) {
+      eventBus.emit('game:overlay', { open: false, source: 'modal' });
+    }
   }
 
   destroy() {

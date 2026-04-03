@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { eventBus } from '../EventBus';
 import { GAME_UI_FONT_FAMILY } from './fonts';
 
 interface DialogueLine {
@@ -148,6 +149,7 @@ export class DialogueBox {
     this.lineIdx = 0;
     this.onComplete = onComplete;
     this.container.setVisible(true);
+    eventBus.emit('game:overlay', { open: true, source: 'dialogue' });
     this.choiceTexts.forEach(t => t.destroy());
     this.choiceTexts = [];
     this.hintText.setAlpha(0);
@@ -162,6 +164,7 @@ export class DialogueBox {
     this.choiceTexts.forEach(t => t.destroy());
     this.choiceTexts = [];
     this.container.setVisible(true);
+    eventBus.emit('game:overlay', { open: true, source: 'dialogue' });
     this.promptText.setAlpha(0);
     this.hintText.setAlpha(0);
 
@@ -207,6 +210,7 @@ export class DialogueBox {
   }
 
   hide() {
+    const wasVisible = this.container.visible;
     this.container.setVisible(false);
     this.choiceTexts.forEach(t => t.destroy());
     this.choiceTexts = [];
@@ -215,6 +219,9 @@ export class DialogueBox {
     this.hintText.setAlpha(0);
     this.promptText.setAlpha(0);
     this.resetLayout();
+    if (wasVisible) {
+      eventBus.emit('game:overlay', { open: false, source: 'dialogue' });
+    }
   }
 
   isVisible() {
@@ -286,6 +293,9 @@ export class DialogueBox {
   }
 
   destroy() {
+    if (this.container.visible) {
+      eventBus.emit('game:overlay', { open: false, source: 'dialogue' });
+    }
     this.clearChoiceKeyBindings();
     this.scene.input.off('pointerdown', this.pointerHandler);
     this.scene.input.keyboard?.off('keydown-SPACE', this.spaceHandler);

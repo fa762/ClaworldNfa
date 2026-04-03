@@ -144,6 +144,8 @@ export default function GamePage() {
   const [isCompactViewport, setIsCompactViewport] = useState(false);
   const [isPortraitViewport, setIsPortraitViewport] = useState(false);
   const [gameViewportStyle, setGameViewportStyle] = useState<{ width: string; height: string }>({ width: '100%', height: '100%' });
+  const [currentScene, setCurrentScene] = useState<'boot' | 'shelter' | 'task' | 'pk' | 'market'>('boot');
+  const [gameOverlayOpen, setGameOverlayOpen] = useState(false);
 
   const walletOptions = useMemo(
     () => connectors.filter((connector) => connector.type === 'injected' || connector.name === 'WalletConnect' || connector.name === 'Coinbase Wallet'),
@@ -225,6 +227,11 @@ export default function GamePage() {
     if (!mounted) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      const topUiLocked = status === 'playing' && (currentScene !== 'shelter' || gameOverlayOpen);
+      if (topUiLocked && (e.key === 'Tab' || e.key.toLowerCase() === 'h')) {
+        e.preventDefault();
+        return;
+      }
       if (e.key === 'Tab') { e.preventDefault(); setShowSidePanel(p => !p); }
       if (e.key.toLowerCase() === 'h') { e.preventDefault(); setShowHelpPanel(p => !p); }
       if (e.key === 'Escape') {
@@ -235,7 +242,32 @@ export default function GamePage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mounted]);
+  }, [currentScene, gameOverlayOpen, mounted, status]);
+
+  useEffect(() => {
+    const offScene = eventBus.on('game:scene', (data: unknown) => {
+      const payload = data as { scene?: 'shelter' | 'task' | 'pk' | 'market' };
+      if (payload.scene) {
+        setCurrentScene(payload.scene);
+      }
+    });
+    const offOverlay = eventBus.on('game:overlay', (data: unknown) => {
+      const payload = data as { open?: boolean };
+      setGameOverlayOpen(Boolean(payload.open));
+    });
+
+    return () => {
+      offScene();
+      offOverlay();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (status === 'playing' && (currentScene !== 'shelter' || gameOverlayOpen)) {
+      setShowSidePanel(false);
+      setShowHelpPanel(false);
+    }
+  }, [currentScene, gameOverlayOpen, status]);
 
   const emitNfaState = useCallback((nfaId: number, state: Awaited<ReturnType<typeof loadNFAState>>) => {
     setNfaSummaries((current) => ({
@@ -961,7 +993,7 @@ export default function GamePage() {
 
   const shellWalletOptions = walletOptions.map((item) => ({ id: item.id, name: item.name }));
   const showStartupCard = status !== 'playing';
-  const showFloatingHud = status === 'playing' || !showStartupCard;
+  const showFloatingHud = status === 'playing' && currentScene === 'shelter' && !gameOverlayOpen;
   const compactStatusHeadline = (() => {
     if (lang === 'zh') {
       if (status === 'ready') return '请先连接钱包';
