@@ -173,6 +173,8 @@ export default function GamePage() {
     return true;
   }, [connect, walletOptions]);
 
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     if (!mounted) return;
 
