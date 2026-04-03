@@ -425,6 +425,7 @@ export class ShelterScene extends Phaser.Scene {
   }
 
   private handleInteract(def: NpcDef) {
+    this.stopMovement();
     this.lastInteractTime = Date.now();
     // 根据 NPC 类型显示对话
     const sceneData = this.buildSceneData();
@@ -707,9 +708,19 @@ export class ShelterScene extends Phaser.Scene {
     };
   }
 
+  private stopMovement() {
+    this.moveTarget = null;
+    if (this.player?.body) {
+      const body = this.player.body as Phaser.Physics.Arcade.Body;
+      body.setVelocity(0, 0);
+    }
+  }
+
   private setupTouchControls() {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.dialogueBox.isVisible()) {
+        this.stopMovement();
+        this.dialogueBox.hide();
         return;
       }
 

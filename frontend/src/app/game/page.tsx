@@ -51,6 +51,10 @@ import { getShelterName } from '@/lib/shelter';
 type GameStatus = 'loading' | 'ready' | 'connected' | 'booting' | 'no-nfa' | 'select-nfa' | 'loading-nfa' | 'playing' | 'error';
 type PendingTx = { hash: `0x${string}`; label: string } | null;
 
+const CRT_SCREEN_WIDTH = 1357;
+const CRT_SCREEN_HEIGHT = 1068;
+const CRT_SCREEN_ASPECT = CRT_SCREEN_WIDTH / CRT_SCREEN_HEIGHT;
+
 const PK_PHASE_NAMES = ['OPEN', 'JOINED', 'COMMITTED', 'REVEALED', 'SETTLED', 'CANCELLED'];
 
 function txLabel(label: string, zh: boolean) {
@@ -319,6 +323,15 @@ export default function GamePage() {
       if (!readyContainer) continue;
       readyRect = readyContainer.getBoundingClientRect();
       if (readyRect.width > 0 && readyRect.height > 0) {
+        const fittedHeight = readyRect.width / CRT_SCREEN_ASPECT;
+        if (fittedHeight <= readyRect.height) {
+          readyContainer.style.width = '100%';
+          readyContainer.style.height = `${fittedHeight}px`;
+        } else {
+          readyContainer.style.width = `${readyRect.height * CRT_SCREEN_ASPECT}px`;
+          readyContainer.style.height = '100%';
+        }
+        readyRect = readyContainer.getBoundingClientRect();
         break;
       }
     }
@@ -961,8 +974,8 @@ export default function GamePage() {
   }
 
   return (
-    <div className="relative h-full min-h-0 overflow-hidden">
-      <div ref={containerRef} className="absolute inset-0 z-[20] rounded bg-black" />
+    <div className="relative flex h-full min-h-0 items-center justify-center overflow-hidden">
+      <div ref={containerRef} className="absolute z-[20] rounded bg-black" style={{ aspectRatio: `${CRT_SCREEN_WIDTH} / ${CRT_SCREEN_HEIGHT}` }} />
 
       {showFloatingHud && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-[30]">
