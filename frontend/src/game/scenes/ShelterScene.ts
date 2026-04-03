@@ -181,7 +181,7 @@ export class ShelterScene extends Phaser.Scene {
       { key: 'market',   texture: 'npc-market',    artTexture: 'npc-market-art',    label: this.lang === 'zh' ? '[ 撮合墙 ]' : '[ MATCH WALL ]',        x: this.sx(846),  y: this.sy(294),  action: 'MarketScene' },
       { key: 'task',     texture: 'npc-task',      artTexture: 'npc-task-art',      label: this.lang === 'zh' ? '[ 任务终端 ]' : '[ TASK ]',             x: this.sx(300),  y: this.sy(452),  action: 'TaskScene' },
       { key: 'pk',       texture: 'npc-pk',        artTexture: 'npc-pk-art',        label: this.lang === 'zh' ? '[ 竞技擂台 ]' : '[ ARENA ]',            x: this.sx(1380), y: this.sy(450),  action: 'PKScene' },
-      { key: 'sable',    texture: 'npc-sable-art', artTexture: 'npc-sable-art',     label: this.lang === 'zh' ? '[ SABLE / 清算员 ]' : '[ SABLE / CLEARER ]', x: this.sx(1130), y: this.sy(760),  action: 'event:sable' },
+      { key: 'sable',    texture: 'npc-sable-art', artTexture: 'npc-sable-art',     label: this.lang === 'zh' ? '[ SABLE / 清算员 ]' : '[ SABLE / CLEARER ]', x: this.sx(610),  y: this.sy(358),  action: 'event:sable' },
       { key: 'portal',   texture: 'portal',        artTexture: 'portal-art',        label: this.lang === 'zh' ? '[ 隧道传送 ]' : '[ PORTAL ]',           x: this.sx(248),  y: this.sy(1020), action: 'event:portal' },
       { key: 'openclaw', texture: 'npc-openclaw',  artTexture: 'npc-openclaw-art',  label: this.lang === 'zh' ? '[ 意识唤醒舱 ]' : '[ AWAKENING ]',      x: this.sx(1396), y: this.sy(1016), action: 'event:openclaw' },
     ];
@@ -253,7 +253,7 @@ export class ShelterScene extends Phaser.Scene {
     const shadowWidth = compactViewport ? this.sx(46) : this.sx(58);
     const shadowHeight = compactViewport ? this.sy(18) : this.sy(24);
     this.playerShadowOffsetY = compactViewport ? 18 : 22;
-    this.playerShadow = this.add.ellipse(spawn.x, spawn.y + this.sy(this.playerShadowOffsetY), shadowWidth, shadowHeight, 0x000000, 0.28).setDepth(spawn.y - 2);
+    this.playerShadow = this.add.ellipse(spawn.x, spawn.y + this.sy(this.playerShadowOffsetY), shadowWidth, shadowHeight, 0x000000, 0.28).setDepth(1600);
     this.player = this.physics.add.sprite(spawn.x, spawn.y, hasSpriteSheet ? 'player-walk' : 'player', hasSpriteSheet ? 1 : undefined);
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(spawn.y + 6);
@@ -287,14 +287,14 @@ export class ShelterScene extends Phaser.Scene {
       wordWrap: { width: portraitViewport ? viewportW - 36 : viewportW - 80 },
       align: 'center',
       lineSpacing: portraitViewport ? 6 : 0,
-    }).setOrigin(0.5).setDepth(130).setScrollFactor(0).setResolution(overlayTextResolution);
+    }).setOrigin(0.5).setDepth(1600).setScrollFactor(0).setResolution(overlayTextResolution);
 
     this.add.text(viewportW / 2, portraitViewport ? viewportH - 156 : viewportH - 96, this.lang === 'zh' ? 'WASD/方向键移动  ·  点击地面移动  ·  靠近装置按 SPACE' : 'WASD/Arrows move  ·  Tap ground to move  ·  Press SPACE near terminals', {
       fontSize: portraitViewport ? '12px' : compactViewport ? '9px' : '12px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       align: 'center',
       wordWrap: { width: portraitViewport ? viewportW - 36 : viewportW - 40 },
       lineSpacing: portraitViewport ? 6 : 0,
-    }).setOrigin(0.5).setDepth(130).setAlpha(0.55).setScrollFactor(0).setResolution(overlayTextResolution);
+    }).setOrigin(0.5).setDepth(1600).setAlpha(0.55).setScrollFactor(0).setResolution(overlayTextResolution);
 
     this.hudText = this.add.text(10, portraitViewport ? viewportH - 52 : viewportH - 36, touchFriendly
       ? (this.lang === 'zh' ? `NFA #${this.nfaId}\n点地面移动 · 靠近后点击装置交互` : `NFA #${this.nfaId}\nTap ground to move · Tap terminals nearby`)
@@ -302,7 +302,7 @@ export class ShelterScene extends Phaser.Scene {
       fontSize: portraitViewport ? '12px' : compactViewport ? '11px' : '14px', fontFamily: GAME_UI_FONT_FAMILY, color: '#39ff14',
       wordWrap: { width: Math.max(220, portraitViewport ? viewportW - 24 : viewportW - 140) },
       lineSpacing: touchFriendly ? 4 : compactViewport ? 3 : 0,
-    }).setDepth(130).setAlpha(touchFriendly ? 0.82 : 0.6).setScrollFactor(0).setResolution(overlayTextResolution);
+    }).setDepth(1600).setAlpha(touchFriendly ? 0.82 : 0.6).setScrollFactor(0).setResolution(overlayTextResolution);
 
     this.dialogueBox = new DialogueBox(this, this.lang);
 
@@ -416,7 +416,7 @@ export class ShelterScene extends Phaser.Scene {
     this.player.setDepth(this.player.y + 6);
     if (this.playerShadow) {
       this.playerShadow.setPosition(this.player.x, this.player.y + this.sy(this.playerShadowOffsetY));
-      this.playerShadow.setDepth(this.player.y - 2);
+      this.playerShadow.setDepth(1600);
     }
 
     // ── 检测最近 NPC ──
