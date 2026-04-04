@@ -279,15 +279,16 @@ export class TerminalModal {
     }).join('');
 
     const html = `
-      <div style="width:min(980px, 94vw); max-height:min(86vh, 900px); background:rgba(4,7,4,0.98); border:1px solid rgba(57,255,20,0.35); box-shadow:0 0 40px rgba(57,255,20,0.08); color:#39ff14; font-family:monospace; padding:16px; display:flex; flex-direction:column; overflow:hidden; border-radius:14px;">
-        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:6px; position:relative; z-index:3;">
-          <button data-action="back" style="position:relative; z-index:5; background:#0d200d;border:1px solid rgba(57,255,20,0.45);color:#39ff14;padding:8px 11px;font:12px monospace;cursor:pointer;flex-shrink:0; box-shadow:0 0 14px rgba(57,255,20,0.12);">[ ← 返回 ]</button>
+      <div style="width:min(980px, 94vw); max-height:min(86vh, 900px); background:rgba(4,7,4,0.98); border:1px solid rgba(57,255,20,0.35); box-shadow:0 0 40px rgba(57,255,20,0.08); color:#39ff14; font-family:monospace; padding:16px; display:flex; flex-direction:column; overflow:hidden; border-radius:14px; position:relative;">
+        <button data-action="back" style="position:absolute; left:16px; top:16px; z-index:8; background:#103010;border:1px solid rgba(57,255,20,0.55);color:#39ff14;padding:8px 12px;font:12px monospace;cursor:pointer; box-shadow:0 0 18px rgba(57,255,20,0.15);">[ ← 返回 ]</button>
+        <div style="display:flex; align-items:flex-start; justify-content:flex-end; gap:12px; margin-bottom:6px; position:relative; z-index:3; padding-left:116px;">
           <div style="font-size:24px; line-height:1.1; color:#ffffff; text-align:right; flex:1;">${escapeHtml(config.title)}</div>
         </div>
         ${config.subtitle ? `<div style="font-size:12px; margin-bottom:12px; color:rgba(57,255,20,0.65); line-height:1.42; word-break:break-word;">${escapeHtml(config.subtitle)}</div>` : ''}
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:10px; overflow:auto; max-height:min(64vh, 660px); padding-right:4px;">${sectionsHtml}</div>
         <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; flex-shrink:0;">
           <span style="font-size:12px; color:rgba(57,255,20,0.45); margin-right:auto;">[ESC 返回]</span>
+          <button data-action="back-footer" style="background:#0f1b10;border:1px solid rgba(57,255,20,0.35);color:#39ff14;padding:9px 12px;font:12px monospace;cursor:pointer;">返回</button>
           ${actionsHtml}
           <button data-action="cancel" style="background:#1a0a0a;border:1px solid rgba(255,68,68,0.35);color:#ff6666;padding:9px 12px;font:12px monospace;cursor:pointer;">${escapeHtml(config.cancelLabel ?? '关闭')}</button>
         </div>
@@ -321,6 +322,13 @@ export class TerminalModal {
       const backHandler = () => this.close();
       backButton.addEventListener('click', backHandler);
       this.cleanup.push(() => backButton.removeEventListener('click', backHandler));
+    }
+
+    const footerBackButton = root.querySelector<HTMLButtonElement>('button[data-action="back-footer"]');
+    if (footerBackButton) {
+      const footerBackHandler = () => this.close();
+      footerBackButton.addEventListener('click', footerBackHandler);
+      this.cleanup.push(() => footerBackButton.removeEventListener('click', footerBackHandler));
     }
   }
 
