@@ -9,6 +9,7 @@ import { GameCommandShell } from '@/components/game/GameCommandShell';
 import { eventBus } from '@/game/EventBus';
 import {
   loadMatch,
+  loadMatchResolution,
   loadMarketListings,
   loadNFAState,
   loadNfaSummaries,
@@ -20,6 +21,7 @@ import {
 } from '@/game/chain/wallet';
 import {
   generateCommit,
+  loadPKResolutionCache,
   loadPKSalt,
   marketAcceptSwapArgs,
   marketAuctionArgs,
@@ -613,17 +615,53 @@ export default function GamePage() {
 
     const emitPkMatches = async () => {
       const matches = await loadRecentMatches();
-      eventBus.emit('pk:matches', matches.map((match) => ({
-        matchId: match.matchId,
-        nfaA: match.nfaA,
-        nfaB: match.nfaB,
-        stake: formatEther(match.stake),
-        phase: match.phase,
-        phaseName: PK_PHASE_NAMES[match.phase] || String(match.phase),
-        phaseTimestamp: match.phaseTimestamp,
-        revealedA: match.revealedA,
-        revealedB: match.revealedB,
-      })));
+      const enrichedMatches = await Promise.all(matches.map(async (match) => {
+        let winnerNfaId: number | undefined;
+
+        if (match.phase >= 4) {
+          const cached = loadPKResolutionCache(match.matchId);
+          if (cached?.type === 'settled') {
+            winnerNfaId = cached.winnerNfaId;
+          } else {
+            const resolution = await loadMatchResolution(match.matchId);
+            if (resolution?.type === 'settled') {
+              winnerNfaId = resolution.winnerNfaId;
+              savePKResolutionCache({
+                type: 'settled',
+                matchId: resolution.matchId,
+                winnerNfaId: resolution.winnerNfaId,
+                loserNfaId: resolution.loserNfaId,
+                reward: formatEther(resolution.reward),
+                burned: formatEther(resolution.burned),
+                txHash: resolution.transactionHash,
+                ts: Date.now(),
+              });
+            } else if (resolution?.type === 'cancelled') {
+              savePKResolutionCache({
+                type: 'cancelled',
+                matchId: resolution.matchId,
+                txHash: resolution.transactionHash,
+                ts: Date.now(),
+              });
+            }
+          }
+        }
+
+        return {
+          matchId: match.matchId,
+          nfaA: match.nfaA,
+          nfaB: match.nfaB,
+          stake: formatEther(match.stake),
+          phase: match.phase,
+          phaseName: PK_PHASE_NAMES[match.phase] || String(match.phase),
+          phaseTimestamp: match.phaseTimestamp,
+          revealedA: match.revealedA,
+          revealedB: match.revealedB,
+          winnerNfaId,
+        };
+      }));
+
+      eventBus.emit('pk:matches', enrichedMatches);
     };
 
     const emitMarketListings = async () => {

@@ -57,6 +57,7 @@ interface MatchItem {
   phaseTimestamp: number;
   revealedA: boolean;
   revealedB: boolean;
+  winnerNfaId?: number;
 }
 
 type MatchPhaseSnapshot = {
@@ -227,7 +228,7 @@ export class PKScene extends Phaser.Scene {
     }).setOrigin(0, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.changePage(1));
 
     const headerY = pagerY + 28;
-    this.add.text(18, headerY, this.lang === 'zh' ? 'ID     发起方   应战方   赌注         阶段           操作' : 'ID     A        B        STAKE        PHASE           ACTION', {
+    this.add.text(18, headerY, this.lang === 'zh' ? 'ID     发起方   应战方   赌注         阶段           赢家' : 'ID     A        B        STAKE        PHASE           WINNER', {
       fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#555555',
     });
     this.add.rectangle(W / 2, headerY + 12, W - 32, 1, 0x333333);
@@ -375,6 +376,41 @@ export class PKScene extends Phaser.Scene {
     return this.lang === 'zh'
       ? (PK_PHASE_NAMES_ZH[phase] ?? `阶段 ${phase}`)
       : (PK_PHASE_NAMES_EN[phase] ?? `PHASE ${phase}`);
+  }
+
+  private getWinnerDisplay(match: MatchItem) {
+    const cached = loadPKResolutionCache(match.matchId);
+    const winnerNfaId = match.winnerNfaId ?? (cached?.type === 'settled' ? cached.winnerNfaId : undefined);
+
+    if (typeof winnerNfaId === 'number' && winnerNfaId > 0) {
+      return {
+        label: `NFA #${winnerNfaId}`,
+        color: '#39ff14',
+        backgroundColor: '#001a00',
+      };
+    }
+
+    if (match.phase === 5 || cached?.type === 'cancelled') {
+      return {
+        label: this.lang === 'zh' ? '已取消' : 'CANCELLED',
+        color: '#ff8888',
+        backgroundColor: '#240606',
+      };
+    }
+
+    if (match.phase === 4) {
+      return {
+        label: this.lang === 'zh' ? '已结算' : 'SETTLED',
+        color: '#ffaa00',
+        backgroundColor: '#1a1500',
+      };
+    }
+
+    return {
+      label: this.lang === 'zh' ? '待结算' : 'PENDING',
+      color: '#7ad7ff',
+      backgroundColor: '#00131a',
+    };
   }
 
   private pendingActionText(action: string) {
@@ -1184,7 +1220,7 @@ export class PKScene extends Phaser.Scene {
         : `Current phase ${phaseName}. Review result, stakes, side-by-side stats, and formula replay.`,
       sections,
       actions,
-      cancelLabel: this.lang === 'zh' ? '关闭' : 'Close',
+      cancelLabel: this.lang === 'zh' ? '退出' : 'Exit',
     });
     this.showStatus(this.lang === 'zh' ? `已打开对局 #${match.matchId}` : `Opened match #${match.matchId}`, '#39ff14');
   }
@@ -1272,6 +1308,7 @@ export class PKScene extends Phaser.Scene {
     pageMatches.forEach((match, index) => {
       const baseY = this.matchTableY;
       const y = isCompact ? baseY + index * 72 : baseY + index * 50;
+      const winnerDisplay = this.getWinnerDisplay(match);
       const rowBg = this.add.rectangle(W / 2, y + (isCompact ? 18 : 10), W - 36, isCompact ? 64 : 40, 0x111122, 0.5).setStrokeStyle(1, 0x222233);
       const rowText = this.add.text(
         18,
@@ -1284,39 +1321,25 @@ export class PKScene extends Phaser.Scene {
 
       this.rows.push(rowBg, rowText);
 
-      const isMine = this.isMyMatch(match);
-      const opponentId = match.nfaA === this.nfaId ? match.nfaB : match.nfaA;
-      const detailBtn = this.add.text(W - (isCompact ? 170 : 160), y + (isCompact ? 18 : 1), this.lang === 'zh' ? '[ 详情 ]' : '[ DETAIL ]', {
+      const detailBtn = this.add.text(W - 18, y + (isCompact ? 18 : 1), this.lang === 'zh' ? '[ 详情 ]' : '[ DETAIL ]', {
         fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#7ad7ff', backgroundColor: '#00131a', padding: { x: 6, y: 4 },
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
       detailBtn.on('pointerdown', () => { void this.openMatchTrace(match.matchId); });
       this.rows.push(detailBtn);
 
-      if (opponentId > 0) {
-        const inspectBtn = this.add.text(W - (isCompact ? 94 : 88), y + (isCompact ? 18 : 1), this.lang === 'zh' ? '[ 属性 ]' : '[ STATS ]', {
-          fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#7ad7ff', backgroundColor: '#00131a', padding: { x: 6, y: 4 },
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-        inspectBtn.on('pointerdown', () => { void this.showOpponentStats(opponentId); });
-        this.rows.push(inspectBtn);
-      }
-
-      const rowAction = this.getRowAction(match);
-      if (rowAction) {
-        const actionBtn = this.add.text(
-          W - 18,
-          y + (isCompact ? 18 : 1),
-          rowAction.label,
-          {
-            fontSize: '11px',
-            fontFamily: GAME_UI_FONT_FAMILY,
-            color: rowAction.color,
-            backgroundColor: rowAction.backgroundColor,
-            padding: { x: 6, y: 4 },
-          },
-        ).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
-        actionBtn.on('pointerdown', rowAction.onSelect);
-        this.rows.push(actionBtn);
-      }
+      const winnerTag = this.add.text(
+        W - (isCompact ? 116 : 124),
+        y + (isCompact ? 18 : 1),
+        winnerDisplay.label,
+        {
+          fontSize: '11px',
+          fontFamily: GAME_UI_FONT_FAMILY,
+          color: winnerDisplay.color,
+          backgroundColor: winnerDisplay.backgroundColor,
+          padding: { x: 6, y: 4 },
+        },
+      ).setOrigin(0.5);
+      this.rows.push(winnerTag);
     });
 
     if (pageCount > 1) {
