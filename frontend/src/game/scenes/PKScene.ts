@@ -271,6 +271,9 @@ export class PKScene extends Phaser.Scene {
         winnerNfaId?: number;
         loserNfaId?: number;
         reward?: string;
+        relayState?: string;
+        relayTxHash?: string;
+        relayMessage?: string;
       };
 
       if (result.status === 'pending') {
@@ -304,9 +307,48 @@ export class PKScene extends Phaser.Scene {
       }
 
       if (result.action === 'create') {
-        this.showStatus(this.lang === 'zh' ? `已创建擂台 #${result.matchId}，现在等待对手加入` : `Match #${result.matchId} created. Waiting for opponent.`, '#39ff14');
+        if (result.relayState === 'saved' || result.relayState === 'waiting') {
+          this.showStatus(
+            this.lang === 'zh'
+              ? `已创建擂台 #${result.matchId}，你的策略已托管，等待对手加入。`
+              : `Match #${result.matchId} created. Your strategy is escrowed; waiting for an opponent.`,
+            '#39ff14',
+          );
+        } else if (result.relayState === 'unavailable') {
+          this.showStatus(
+            this.lang === 'zh'
+              ? `已创建擂台 #${result.matchId}，但托管同步失败：${result.relayMessage || '请检查线上环境变量'}`
+              : `Match #${result.matchId} created, but auto-custody sync failed: ${result.relayMessage || 'check deployment env'}`,
+            '#ffaa00',
+          );
+        } else {
+          this.showStatus(this.lang === 'zh' ? `已创建擂台 #${result.matchId}，现在等待对手加入` : `Match #${result.matchId} created. Waiting for opponent.`, '#39ff14');
+        }
       } else if (result.action === 'join') {
-        this.showStatus(this.lang === 'zh' ? `已加入擂台 #${result.matchId}，策略已锁定，系统将自动推进结果` : `Joined match #${result.matchId}. Strategy locked, match will auto-advance.`, '#39ff14');
+        if (result.relayState === 'relayed' || result.relayState === 'already-synced' || result.relayState === 'already-finalized') {
+          this.showStatus(
+            this.lang === 'zh'
+              ? `已加入擂台 #${result.matchId}，双方策略已托管，系统正在自动公开并结算。`
+              : `Joined match #${result.matchId}. Both strategies are escrowed; auto-reveal and settlement in progress.`,
+            '#39ff14',
+          );
+        } else if (result.relayState === 'saved' || result.relayState === 'waiting') {
+          this.showStatus(
+            this.lang === 'zh'
+              ? `已加入擂台 #${result.matchId}，但系统仍在等待另一侧托管数据。`
+              : `Joined match #${result.matchId}, but the system is still waiting for the other escrow record.`,
+            '#ffaa00',
+          );
+        } else if (result.relayState === 'unavailable') {
+          this.showStatus(
+            this.lang === 'zh'
+              ? `已加入擂台 #${result.matchId}，但自动托管未生效：${result.relayMessage || '请检查 Vercel 环境变量'}`
+              : `Joined match #${result.matchId}, but auto custody is unavailable: ${result.relayMessage || 'check Vercel env'}`,
+            '#ffaa00',
+          );
+        } else {
+          this.showStatus(this.lang === 'zh' ? `已加入擂台 #${result.matchId}，策略已锁定，系统将自动推进结果` : `Joined match #${result.matchId}. Strategy locked, match will auto-advance.`, '#39ff14');
+        }
       } else if (result.action === 'reveal') {
         const nextStep = result.phase === 3
           ? (this.lang === 'zh' ? '，双方已公开，正在自动结算' : ', both revealed. Auto-settling now.')
@@ -381,6 +423,7 @@ export class PKScene extends Phaser.Scene {
   private getWinnerDisplay(match: MatchItem) {
     const cached = loadPKResolutionCache(match.matchId);
     const winnerNfaId = match.winnerNfaId ?? (cached?.type === 'settled' ? cached.winnerNfaId : undefined);
+    const phaseAgeSeconds = this.getPhaseAgeSeconds(match);
 
     if (typeof winnerNfaId === 'number' && winnerNfaId > 0) {
       return {
@@ -403,6 +446,60 @@ export class PKScene extends Phaser.Scene {
         label: this.lang === 'zh' ? '已结算' : 'SETTLED',
         color: '#ffaa00',
         backgroundColor: '#1a1500',
+      };
+    }
+
+    if (match.phase === 3) {
+      return {
+        label: this.lang === 'zh' ? '可结算' : 'SETTLE',
+        color: '#39ff14',
+        backgroundColor: '#001a00',
+      };
+    }
+
+    if (match.phase === 2) {
+      if (match.revealedA && match.revealedB) {
+        return {
+          label: this.lang === 'zh' ? '可结算' : 'SETTLE',
+          color: '#39ff14',
+          backgroundColor: '#001a00',
+        };
+      }
+
+      if (match.revealedA || match.revealedB) {
+        return {
+          label: phaseAgeSeconds > REVEAL_TIMEOUT_SECONDS
+            ? (this.lang === 'zh' ? '可退款' : 'REFUND')
+            : (this.lang === 'zh' ? '待对手公开' : 'WAIT REVEAL'),
+          color: phaseAgeSeconds > REVEAL_TIMEOUT_SECONDS ? '#ff8888' : '#ffaa00',
+          backgroundColor: phaseAgeSeconds > REVEAL_TIMEOUT_SECONDS ? '#240606' : '#1a1500',
+        };
+      }
+
+      return {
+        label: phaseAgeSeconds > REVEAL_TIMEOUT_SECONDS
+          ? (this.lang === 'zh' ? '可取消' : 'CANCEL')
+          : (this.lang === 'zh' ? '待自动公开' : 'AUTO REVEAL'),
+        color: phaseAgeSeconds > REVEAL_TIMEOUT_SECONDS ? '#ff8888' : '#7ad7ff',
+        backgroundColor: phaseAgeSeconds > REVEAL_TIMEOUT_SECONDS ? '#240606' : '#00131a',
+      };
+    }
+
+    if (match.phase === 1) {
+      return {
+        label: phaseAgeSeconds > COMMIT_TIMEOUT_SECONDS
+          ? (this.lang === 'zh' ? '可取消' : 'CANCEL')
+          : (this.lang === 'zh' ? '待提交' : 'WAIT COMMIT'),
+        color: phaseAgeSeconds > COMMIT_TIMEOUT_SECONDS ? '#ff8888' : '#ffaa00',
+        backgroundColor: phaseAgeSeconds > COMMIT_TIMEOUT_SECONDS ? '#240606' : '#1a1500',
+      };
+    }
+
+    if (match.phase === 0) {
+      return {
+        label: this.lang === 'zh' ? '待加入' : 'OPEN',
+        color: '#7ad7ff',
+        backgroundColor: '#00131a',
       };
     }
 
