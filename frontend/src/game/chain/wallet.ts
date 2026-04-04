@@ -614,6 +614,57 @@ async function findLatestPkLogInChunks(params: {
   return null;
 }
 
+async function findPkLogNearPhase(params: {
+  event: typeof PK_MATCH_SETTLED_EVENT | typeof PK_MATCH_CANCELLED_EVENT;
+  matchId: bigint;
+  phaseTimestamp?: number;
+}) {
+  if (!params.phaseTimestamp || params.phaseTimestamp <= 0) {
+    return null;
+  }
+
+  const latestBlock = await publicClient.getBlock();
+  const latestTimestamp = Number(latestBlock.timestamp);
+  const phaseAgeSeconds = Math.max(0, latestTimestamp - params.phaseTimestamp);
+  const approxBlocksAgo = Math.ceil(phaseAgeSeconds / 3);
+  let chunkSize = BigInt(Math.max(2500, Math.min(25000, approxBlocksAgo + 4000)));
+  let toBlock = latestBlock.number;
+  const minFromBlock = latestBlock.number > BigInt(approxBlocksAgo + 12000)
+    ? latestBlock.number - BigInt(approxBlocksAgo + 12000)
+    : deployBlock;
+
+  while (toBlock >= minFromBlock) {
+    const fromBlock = toBlock > chunkSize ? toBlock - chunkSize : minFromBlock;
+    let chunk;
+
+    try {
+      chunk = await publicClient.getLogs({
+        address: CONTRACTS.pkSkill,
+        event: params.event,
+        args: { matchId: params.matchId },
+        fromBlock,
+        toBlock,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      if (message.includes('limit exceeded') && chunkSize > MIN_LOG_CHUNK_SIZE) {
+        chunkSize = chunkSize > MIN_LOG_CHUNK_SIZE * 2n ? chunkSize / 2n : MIN_LOG_CHUNK_SIZE;
+        continue;
+      }
+      return null;
+    }
+
+    if (chunk.length > 0) {
+      return chunk.at(-1) ?? null;
+    }
+
+    if (fromBlock === minFromBlock) break;
+    toBlock = fromBlock - 1n;
+  }
+
+  return null;
+}
+
 export async function loadMatch(matchId: number): Promise<PKMatch | null> {
   try {
     const result = await publicClient.readContract({
@@ -741,22 +792,37 @@ export async function loadOpenMatches(): Promise<PKMatch[]> {
   return matches.filter((match) => match.phase === 0);
 }
 
-export async function loadMatchResolution(matchId: number): Promise<PKMatchResolution | null> {
+export async function loadMatchResolution(matchId: number, phaseTimestamp?: number): Promise<PKMatchResolution | null> {
   if (!Number.isInteger(matchId) || matchId <= 0) {
     return null;
   }
 
   try {
-    const [settledLogs, cancelledLogs] = await Promise.all([
-      findLatestPkLogInChunks({
+    const [nearSettledLog, nearCancelledLog] = await Promise.all([
+      findPkLogNearPhase({
         event: PK_MATCH_SETTLED_EVENT,
         matchId: BigInt(matchId),
+        phaseTimestamp,
       }),
-      findLatestPkLogInChunks({
+      findPkLogNearPhase({
         event: PK_MATCH_CANCELLED_EVENT,
         matchId: BigInt(matchId),
+        phaseTimestamp,
       }),
     ]);
+
+    const [settledLogs, cancelledLogs] = nearSettledLog || nearCancelledLog
+      ? [nearSettledLog, nearCancelledLog]
+      : await Promise.all([
+          findLatestPkLogInChunks({
+            event: PK_MATCH_SETTLED_EVENT,
+            matchId: BigInt(matchId),
+          }),
+          findLatestPkLogInChunks({
+            event: PK_MATCH_CANCELLED_EVENT,
+            matchId: BigInt(matchId),
+          }),
+        ]);
 
     const settledLog = settledLogs as SettledMatchLog | null;
     if (settledLog) {

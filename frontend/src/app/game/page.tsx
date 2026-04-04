@@ -615,7 +615,9 @@ export default function GamePage() {
 
     const emitPkMatches = async () => {
       const matches = await loadRecentMatches();
-      const enrichedMatches = await Promise.all(matches.map(async (match) => {
+      const enrichedMatches = [];
+
+      for (const match of matches) {
         let winnerNfaId: number | undefined;
 
         if (match.phase >= 4) {
@@ -623,7 +625,7 @@ export default function GamePage() {
           if (cached?.type === 'settled') {
             winnerNfaId = cached.winnerNfaId;
           } else {
-            const resolution = await loadMatchResolution(match.matchId);
+            const resolution = await loadMatchResolution(match.matchId, match.phaseTimestamp);
             if (resolution?.type === 'settled') {
               winnerNfaId = resolution.winnerNfaId;
               savePKResolutionCache({
@@ -647,7 +649,7 @@ export default function GamePage() {
           }
         }
 
-        return {
+        enrichedMatches.push({
           matchId: match.matchId,
           nfaA: match.nfaA,
           nfaB: match.nfaB,
@@ -658,8 +660,8 @@ export default function GamePage() {
           revealedA: match.revealedA,
           revealedB: match.revealedB,
           winnerNfaId,
-        };
-      }));
+        });
+      }
 
       eventBus.emit('pk:matches', enrichedMatches);
     };
