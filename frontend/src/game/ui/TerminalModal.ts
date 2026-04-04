@@ -285,7 +285,12 @@ export class TerminalModal {
           <div style="font-size:24px; line-height:1.1; color:#ffffff; text-align:right; flex:1;">${escapeHtml(config.title)}</div>
         </div>
         ${config.subtitle ? `<div style="font-size:12px; margin-bottom:12px; color:rgba(57,255,20,0.65); line-height:1.42; word-break:break-word;">${escapeHtml(config.subtitle)}</div>` : ''}
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:10px; overflow:auto; max-height:min(64vh, 660px); padding-right:4px;">${sectionsHtml}</div>
+        <div style="overflow:auto; max-height:min(64vh, 660px); padding-right:4px;">
+          <div style="position:sticky; top:0; z-index:7; display:flex; justify-content:flex-start; margin-bottom:10px; padding-bottom:2px; background:linear-gradient(180deg, rgba(4,7,4,0.98), rgba(4,7,4,0.82));">
+            <button data-action="back-inline" style="background:#103010;border:1px solid rgba(57,255,20,0.55);color:#39ff14;padding:8px 12px;font:12px monospace;cursor:pointer; box-shadow:0 0 14px rgba(57,255,20,0.12);">返回上一层</button>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:10px;">${sectionsHtml}</div>
+        </div>
         <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; flex-shrink:0;">
           <span style="font-size:12px; color:rgba(57,255,20,0.45); margin-right:auto;">[ESC 返回]</span>
           <button data-action="back-footer" style="background:#0f1b10;border:1px solid rgba(57,255,20,0.35);color:#39ff14;padding:9px 12px;font:12px monospace;cursor:pointer;">返回</button>
@@ -329,6 +334,13 @@ export class TerminalModal {
       const footerBackHandler = () => this.close();
       footerBackButton.addEventListener('click', footerBackHandler);
       this.cleanup.push(() => footerBackButton.removeEventListener('click', footerBackHandler));
+    }
+
+    const inlineBackButton = root.querySelector<HTMLButtonElement>('button[data-action="back-inline"]');
+    if (inlineBackButton) {
+      const inlineBackHandler = () => this.close();
+      inlineBackButton.addEventListener('click', inlineBackHandler);
+      this.cleanup.push(() => inlineBackButton.removeEventListener('click', inlineBackHandler));
     }
   }
 
