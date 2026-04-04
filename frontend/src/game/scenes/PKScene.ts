@@ -260,6 +260,26 @@ export class PKScene extends Phaser.Scene {
       void this.maybeAutoAdvanceFromMatches();
     });
 
+    const offWinnerHints = eventBus.on('pk:winnerHints', (data: unknown) => {
+      const updates = data as Array<{ matchId: number; winnerNfaId?: number }>;
+      if (!Array.isArray(updates) || updates.length === 0) return;
+
+      let changed = false;
+      this.matches = this.matches.map((match) => {
+        const update = updates.find((item) => item.matchId === match.matchId);
+        if (!update) return match;
+        changed = true;
+        return {
+          ...match,
+          winnerNfaId: update.winnerNfaId,
+        };
+      });
+
+      if (changed) {
+        this.renderMatches();
+      }
+    });
+
     const offResult = eventBus.on('pk:result', (data: unknown) => {
       const result = data as {
         status: 'pending' | 'confirmed' | 'failed';
@@ -395,6 +415,7 @@ export class PKScene extends Phaser.Scene {
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offMatches();
+      offWinnerHints();
       offResult();
       offFullStats();
       offSwitchNfa();

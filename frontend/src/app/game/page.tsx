@@ -615,41 +615,9 @@ export default function GamePage() {
 
     const emitPkMatches = async () => {
       const matches = await loadRecentMatches();
-      const enrichedMatches = [];
-
-      for (const match of matches) {
-        let winnerNfaId: number | undefined;
-
-        if (match.phase >= 4) {
-          const cached = loadPKResolutionCache(match.matchId);
-          if (cached?.type === 'settled') {
-            winnerNfaId = cached.winnerNfaId;
-          } else {
-            const resolution = await loadMatchResolution(match.matchId, match.phaseTimestamp);
-            if (resolution?.type === 'settled') {
-              winnerNfaId = resolution.winnerNfaId;
-              savePKResolutionCache({
-                type: 'settled',
-                matchId: resolution.matchId,
-                winnerNfaId: resolution.winnerNfaId,
-                loserNfaId: resolution.loserNfaId,
-                reward: formatEther(resolution.reward),
-                burned: formatEther(resolution.burned),
-                txHash: resolution.transactionHash,
-                ts: Date.now(),
-              });
-            } else if (resolution?.type === 'cancelled') {
-              savePKResolutionCache({
-                type: 'cancelled',
-                matchId: resolution.matchId,
-                txHash: resolution.transactionHash,
-                ts: Date.now(),
-              });
-            }
-          }
-        }
-
-        enrichedMatches.push({
+      const baseMatches = matches.map((match) => {
+        const cached = loadPKResolutionCache(match.matchId);
+        return {
           matchId: match.matchId,
           nfaA: match.nfaA,
           nfaB: match.nfaB,
@@ -659,11 +627,54 @@ export default function GamePage() {
           phaseTimestamp: match.phaseTimestamp,
           revealedA: match.revealedA,
           revealedB: match.revealedB,
-          winnerNfaId,
-        });
-      }
+          winnerNfaId: cached?.type === 'settled' ? cached.winnerNfaId : undefined,
+        };
+      });
 
-      eventBus.emit('pk:matches', enrichedMatches);
+      eventBus.emit('pk:matches', baseMatches);
+
+      const unresolvedMatches = matches
+        .filter((match) => match.phase >= 4)
+        .filter((match) => {
+          const cached = loadPKResolutionCache(match.matchId);
+          return !cached;
+        })
+        .slice(0, 8);
+
+      if (unresolvedMatches.length === 0) return;
+
+      void (async () => {
+        const updates: Array<{ matchId: number; winnerNfaId?: number }> = [];
+
+        for (const match of unresolvedMatches) {
+          const resolution = await loadMatchResolution(match.matchId, match.phaseTimestamp);
+          if (resolution?.type === 'settled') {
+            savePKResolutionCache({
+              type: 'settled',
+              matchId: resolution.matchId,
+              winnerNfaId: resolution.winnerNfaId,
+              loserNfaId: resolution.loserNfaId,
+              reward: formatEther(resolution.reward),
+              burned: formatEther(resolution.burned),
+              txHash: resolution.transactionHash,
+              ts: Date.now(),
+            });
+            updates.push({ matchId: match.matchId, winnerNfaId: resolution.winnerNfaId });
+          } else if (resolution?.type === 'cancelled') {
+            savePKResolutionCache({
+              type: 'cancelled',
+              matchId: resolution.matchId,
+              txHash: resolution.transactionHash,
+              ts: Date.now(),
+            });
+            updates.push({ matchId: match.matchId });
+          }
+        }
+
+        if (updates.length > 0) {
+          eventBus.emit('pk:winnerHints', updates);
+        }
+      })();
     };
 
     const emitMarketListings = async () => {
