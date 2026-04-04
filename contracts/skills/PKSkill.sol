@@ -13,11 +13,22 @@ interface IPKRouter {
     function clwBalances(uint256 nfaId) external view returns (uint256);
 
     function lobsters(uint256 nfaId) external view returns (
-        uint8 rarity, uint8 shelter,
-        uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit,
-        uint8 str, uint8 def, uint8 spd, uint8 vit,
-        bytes32 mutation1, bytes32 mutation2,
-        uint16 level, uint32 xp, uint64 lastUpkeepTime
+        uint8 rarity,
+        uint8 shelter,
+        uint8 courage,
+        uint8 wisdom,
+        uint8 social,
+        uint8 create,
+        uint8 grit,
+        uint8 str,
+        uint8 def,
+        uint8 spd,
+        uint8 vit,
+        bytes32 mutation1,
+        bytes32 mutation2,
+        uint16 level,
+        uint32 xp,
+        uint64 lastUpkeepTime
     );
 }
 
@@ -32,16 +43,12 @@ interface IPKWorldState {
 
 /**
  * @title PKSkill
- * @dev PvP combat system using Commit-Reveal for strategy selection.
+ * @dev PvP combat system using commit-reveal for strategy selection.
  *      Strategies: 0=AllAttack, 1=Balanced, 2=AllDefense
- *      Winner gets 50% of total stake, 10% burned, 40% returned to winner.
- *      10% mutation chance when beating opponent 5+ levels above.
+ *      Winner receives the combined stake minus the 10% burn.
+ *      Reveal timeout never grants a free win. Stuck matches refund both sides.
  */
-contract PKSkill is
-    OwnableUpgradeable,
-    UUPSUpgradeable,
-    ReentrancyGuardUpgradeable
-{
+contract PKSkill is OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable {
     IPKRouter public router;
     IPKClawNFA public nfa;
     IPKWorldState public worldState;
@@ -49,7 +56,7 @@ contract PKSkill is
     uint256 public constant COMMIT_TIMEOUT = 1 hours;
     uint256 public constant REVEAL_TIMEOUT = 30 minutes;
     uint256 public constant BURN_BPS = 1000;    // 10%
-    uint256 public constant WINNER_BPS = 5000;  // 50%
+    uint256 public constant WINNER_BPS = 5000;  // Reserved constant, kept for compatibility
     uint256 public constant PK_XP = 50;
 
     enum Phase { OPEN, JOINED, COMMITTED, REVEALED, SETTLED, CANCELLED }
@@ -66,27 +73,34 @@ contract PKSkill is
         uint64 phaseTimestamp;
         bool revealedA;
         bool revealedB;
-        bytes32 saltA;      // User-provided entropy from reveal
-        bytes32 saltB;      // User-provided entropy from reveal
+        bytes32 saltA;
+        bytes32 saltB;
     }
 
     uint256 private _matchIdCounter;
     mapping(uint256 => PKMatch) public matches;
 
-    /// @dev Global entropy nonce, incremented on each mutation check for unpredictability
     uint256 public entropyNonce;
 
-    // ─── NFA PK Stats (履历) ───
     mapping(uint256 => uint32) public pkWins;
     mapping(uint256 => uint32) public pkLosses;
     mapping(uint256 => uint256) public totalPkClwWon;
     mapping(uint256 => uint256) public totalPkClwLost;
+    mapping(uint256 => address) public participantAOf;
+    mapping(uint256 => address) public participantBOf;
 
     event MatchCreated(uint256 indexed matchId, uint256 indexed nfaA, uint256 stake);
     event MatchJoined(uint256 indexed matchId, uint256 indexed nfaB);
+    event ParticipantsRegistered(uint256 indexed matchId, address indexed participantA, address indexed participantB);
     event StrategyCommitted(uint256 indexed matchId, uint256 indexed nfaId);
     event StrategyRevealed(uint256 indexed matchId, uint256 indexed nfaId, uint8 strategy);
-    event MatchSettled(uint256 indexed matchId, uint256 indexed winner, uint256 indexed loser, uint256 reward, uint256 burned);
+    event MatchSettled(
+        uint256 indexed matchId,
+        uint256 indexed winner,
+        uint256 indexed loser,
+        uint256 reward,
+        uint256 burned
+    );
     event MatchCancelled(uint256 indexed matchId);
     event MutationTriggered(uint256 indexed matchId, uint256 indexed nfaId, uint8 gene, uint8 newValue);
 
@@ -109,13 +123,9 @@ contract PKSkill is
     }
 
     // ============================================
-    // PK FLOW — ARENA MODE (create+commit / join+commit)
+    // Arena flow
     // ============================================
 
-    /**
-     * @dev Arena mode: create match AND commit strategy in one tx.
-     *      Creator picks strategy upfront, waits for challenger.
-     */
     function createMatchWithCommit(uint256 nfaId, uint256 stake, bytes32 commitHash) external returns (uint256) {
         require(nfa.ownerOf(nfaId) == msg.sender, "Not NFA owner");
         require(stake > 0, "Zero stake");
@@ -143,16 +153,14 @@ contract PKSkill is
             saltA: bytes32(0),
             saltB: bytes32(0)
         });
+        participantAOf[matchId] = msg.sender;
 
         emit MatchCreated(matchId, nfaId, stake);
         emit StrategyCommitted(matchId, nfaId);
+        emit ParticipantsRegistered(matchId, msg.sender, address(0));
         return matchId;
     }
 
-    /**
-     * @dev Arena mode: join match AND commit strategy in one tx.
-     *      If creator already committed (arena mode), goes directly to COMMITTED phase.
-     */
     function joinMatchWithCommit(uint256 matchId, uint256 nfaId, bytes32 commitHash) external {
         PKMatch storage m = matches[matchId];
         require(m.phase == Phase.OPEN, "Not open");
@@ -164,27 +172,20 @@ contract PKSkill is
         router.spendCLW(nfaId, m.stake);
         m.nfaB = nfaId;
         m.commitB = commitHash;
+        m.phase = m.commitA != bytes32(0) ? Phase.COMMITTED : Phase.JOINED;
+        m.phaseTimestamp = uint64(block.timestamp);
+        participantBOf[matchId] = msg.sender;
 
         emit MatchJoined(matchId, nfaId);
         emit StrategyCommitted(matchId, nfaId);
-
-        // If creator already committed (arena mode), skip JOINED → go to COMMITTED
-        if (m.commitA != bytes32(0)) {
-            m.phase = Phase.COMMITTED;
-        } else {
-            m.phase = Phase.JOINED;
-        }
-        m.phaseTimestamp = uint64(block.timestamp);
+        emit ParticipantsRegistered(matchId, participantAOf[matchId], msg.sender);
     }
 
-    /**
-     * @dev Creator can change strategy before anyone joins (arena mode only).
-     */
     function recommitStrategy(uint256 matchId, bytes32 newCommitHash) external {
         PKMatch storage m = matches[matchId];
         require(m.phase == Phase.OPEN, "Not open");
         require(m.nfaB == 0, "Challenger already joined");
-        require(nfa.ownerOf(m.nfaA) == msg.sender, "Not creator");
+        require(_participantA(matchId, m) == msg.sender, "Not creator");
         require(newCommitHash != bytes32(0), "Empty commit");
 
         m.commitA = newCommitHash;
@@ -192,7 +193,7 @@ contract PKSkill is
     }
 
     // ============================================
-    // PK FLOW — LEGACY (step-by-step, backward compatible)
+    // Legacy flow
     // ============================================
 
     function createMatch(uint256 nfaId, uint256 stake) external returns (uint256) {
@@ -203,7 +204,6 @@ contract PKSkill is
             require(stake <= worldState.pkStakeLimit(), "Exceeds stake limit");
         }
 
-        // Lock stake
         router.spendCLW(nfaId, stake);
 
         uint256 matchId = ++_matchIdCounter;
@@ -222,8 +222,10 @@ contract PKSkill is
             saltA: bytes32(0),
             saltB: bytes32(0)
         });
+        participantAOf[matchId] = msg.sender;
 
         emit MatchCreated(matchId, nfaId, stake);
+        emit ParticipantsRegistered(matchId, msg.sender, address(0));
         return matchId;
     }
 
@@ -238,25 +240,27 @@ contract PKSkill is
         m.nfaB = nfaId;
         m.phase = Phase.JOINED;
         m.phaseTimestamp = uint64(block.timestamp);
+        participantBOf[matchId] = msg.sender;
 
         emit MatchJoined(matchId, nfaId);
+        emit ParticipantsRegistered(matchId, participantAOf[matchId], msg.sender);
     }
 
     function commitStrategy(uint256 matchId, bytes32 commitHash) external {
         PKMatch storage m = matches[matchId];
         require(m.phase == Phase.JOINED, "Not in commit phase");
 
-        if (nfa.ownerOf(m.nfaA) == msg.sender) {
+        if (_participantA(matchId, m) == msg.sender) {
             require(m.commitA == bytes32(0), "Already committed");
             m.commitA = commitHash;
-        } else if (nfa.ownerOf(m.nfaB) == msg.sender) {
+        } else if (_participantB(matchId, m) == msg.sender) {
             require(m.commitB == bytes32(0), "Already committed");
             m.commitB = commitHash;
         } else {
             revert("Not a participant");
         }
 
-        emit StrategyCommitted(matchId, _getNfaId(m, msg.sender));
+        emit StrategyCommitted(matchId, _getNfaId(matchId, m, msg.sender));
 
         if (m.commitA != bytes32(0) && m.commitB != bytes32(0)) {
             m.phase = Phase.COMMITTED;
@@ -269,25 +273,15 @@ contract PKSkill is
         require(m.phase == Phase.COMMITTED, "Not in reveal phase");
         require(strategy <= 2, "Invalid strategy");
 
-        bytes32 expectedHash = keccak256(abi.encodePacked(strategy, salt, msg.sender));
-
-        if (nfa.ownerOf(m.nfaA) == msg.sender) {
-            require(!m.revealedA, "Already revealed");
-            require(m.commitA == expectedHash, "Invalid reveal");
-            m.strategyA = strategy;
-            m.revealedA = true;
-            m.saltA = salt;     // Store salt for entropy
-        } else if (nfa.ownerOf(m.nfaB) == msg.sender) {
-            require(!m.revealedB, "Already revealed");
-            require(m.commitB == expectedHash, "Invalid reveal");
-            m.strategyB = strategy;
-            m.revealedB = true;
-            m.saltB = salt;     // Store salt for entropy
+        if (_participantA(matchId, m) == msg.sender) {
+            _applyReveal(matchId, m, true, strategy, salt);
+        } else if (_participantB(matchId, m) == msg.sender) {
+            _applyReveal(matchId, m, false, strategy, salt);
         } else {
             revert("Not a participant");
         }
 
-        emit StrategyRevealed(matchId, _getNfaId(m, msg.sender), strategy);
+        emit StrategyRevealed(matchId, _getNfaId(matchId, m, msg.sender), strategy);
 
         if (m.revealedA && m.revealedB) {
             m.phase = Phase.REVEALED;
@@ -295,17 +289,42 @@ contract PKSkill is
         }
     }
 
-    /**
-     * @dev Settle the match. Anyone can call once both strategies are revealed,
-     *      or after reveal timeout (one side wins by default).
-     */
+    function revealBothAndSettle(
+        uint256 matchId,
+        uint8 strategyA,
+        bytes32 saltA,
+        uint8 strategyB,
+        bytes32 saltB
+    ) external nonReentrant {
+        PKMatch storage m = matches[matchId];
+        require(m.phase == Phase.COMMITTED || m.phase == Phase.REVEALED, "Not ready");
+        require(strategyA <= 2 && strategyB <= 2, "Invalid strategy");
+
+        if (!m.revealedA) {
+            _applyReveal(matchId, m, true, strategyA, saltA);
+            emit StrategyRevealed(matchId, m.nfaA, strategyA);
+        }
+        if (!m.revealedB) {
+            _applyReveal(matchId, m, false, strategyB, saltB);
+            emit StrategyRevealed(matchId, m.nfaB, strategyB);
+        }
+
+        require(m.revealedA && m.revealedB, "Both reveals required");
+        m.phase = Phase.REVEALED;
+        m.phaseTimestamp = uint64(block.timestamp);
+        _settleNormal(matchId, m);
+    }
+
+    // ============================================
+    // Settlement and cancellation
+    // ============================================
+
     function settle(uint256 matchId) external nonReentrant {
         PKMatch storage m = matches[matchId];
 
         if (m.phase == Phase.REVEALED) {
             _settleNormal(matchId, m);
         } else if (m.phase == Phase.COMMITTED) {
-            // Timeout: one didn't reveal
             require(block.timestamp > m.phaseTimestamp + REVEAL_TIMEOUT, "Reveal window open");
             _settleTimeout(matchId, m);
         } else {
@@ -313,29 +332,21 @@ contract PKSkill is
         }
     }
 
-    /**
-     * @dev Cancel a match if no one joined within timeout.
-     */
     function cancelMatch(uint256 matchId) external {
         PKMatch storage m = matches[matchId];
         require(m.phase == Phase.OPEN, "Not open");
         require(
-            nfa.ownerOf(m.nfaA) == msg.sender ||
+            _participantA(matchId, m) == msg.sender ||
             block.timestamp > m.phaseTimestamp + COMMIT_TIMEOUT,
             "Cannot cancel yet"
         );
 
         m.phase = Phase.CANCELLED;
-        // Return stake to A
         router.addCLW(m.nfaA, m.stake);
 
         emit MatchCancelled(matchId);
     }
 
-    /**
-     * @dev Cancel a match stuck in JOINED phase when neither player committed in time.
-     *      Returns stakes to both players.
-     */
     function cancelJoinedMatch(uint256 matchId) external {
         PKMatch storage m = matches[matchId];
         require(m.phase == Phase.JOINED, "Not in joined phase");
@@ -345,17 +356,12 @@ contract PKSkill is
         );
 
         m.phase = Phase.CANCELLED;
-        // Return stakes to both players
         router.addCLW(m.nfaA, m.stake);
         router.addCLW(m.nfaB, m.stake);
 
         emit MatchCancelled(matchId);
     }
 
-    /**
-     * @dev Cancel a match stuck in COMMITTED phase when neither revealed in time.
-     *      Handled by settle() timeout path, but this is a convenience alias.
-     */
     function cancelCommittedMatch(uint256 matchId) external {
         PKMatch storage m = matches[matchId];
         require(m.phase == Phase.COMMITTED, "Not in committed phase");
@@ -363,20 +369,15 @@ contract PKSkill is
             block.timestamp > m.phaseTimestamp + REVEAL_TIMEOUT,
             "Reveal window still open"
         );
-        // If neither revealed, return stakes
-        if (!m.revealedA && !m.revealedB) {
-            router.addCLW(m.nfaA, m.stake);
-            router.addCLW(m.nfaB, m.stake);
-            m.phase = Phase.CANCELLED;
-            emit MatchCancelled(matchId);
-        } else {
-            // At least one revealed — use settle logic
-            revert("Use settle() when one side revealed");
-        }
+
+        router.addCLW(m.nfaA, m.stake);
+        router.addCLW(m.nfaB, m.stake);
+        m.phase = Phase.CANCELLED;
+        emit MatchCancelled(matchId);
     }
 
     // ============================================
-    // COMBAT RESOLUTION
+    // Combat resolution
     // ============================================
 
     function _settleNormal(uint256 matchId, PKMatch storage m) internal {
@@ -397,25 +398,10 @@ contract PKSkill is
     }
 
     function _settleTimeout(uint256 matchId, PKMatch storage m) internal {
-        uint256 winner;
-        uint256 loser;
-
-        if (m.revealedA && !m.revealedB) {
-            winner = m.nfaA;
-            loser = m.nfaB;
-        } else if (!m.revealedA && m.revealedB) {
-            winner = m.nfaB;
-            loser = m.nfaA;
-        } else {
-            // Neither revealed — return stakes
-            router.addCLW(m.nfaA, m.stake);
-            router.addCLW(m.nfaB, m.stake);
-            m.phase = Phase.CANCELLED;
-            emit MatchCancelled(matchId);
-            return;
-        }
-
-        _distributeRewards(matchId, m, winner, loser);
+        router.addCLW(m.nfaA, m.stake);
+        router.addCLW(m.nfaB, m.stake);
+        m.phase = Phase.CANCELLED;
+        emit MatchCancelled(matchId);
     }
 
     function _distributeRewards(uint256 matchId, PKMatch storage m, uint256 winner, uint256 loser) internal {
@@ -423,41 +409,61 @@ contract PKSkill is
         uint256 burned = totalStake * BURN_BPS / 10000;
         uint256 winnerReward = totalStake - burned;
 
-        // Winner gets reward
         router.addCLW(winner, winnerReward);
-
-        // XP for both
         router.addXP(winner, uint32(PK_XP));
         router.addXP(loser, uint32(PK_XP / 2));
 
         m.phase = Phase.SETTLED;
 
-        // Track PK stats (履历)
         pkWins[winner]++;
         pkLosses[loser]++;
         totalPkClwWon[winner] += winnerReward;
         totalPkClwLost[loser] += m.stake;
 
         emit MatchSettled(matchId, winner, loser, winnerReward, burned);
-
-        // Mutation check: if winner beat someone 5+ levels higher
         _checkMutation(matchId, winner, loser);
     }
 
     struct CombatUnit {
-        uint256 str; uint256 def; uint256 spd; uint256 vit;
-        uint256 atkMul; uint256 defMul;
+        uint256 str;
+        uint256 def;
+        uint256 spd;
+        uint256 vit;
+        uint256 atkMul;
+        uint256 defMul;
     }
 
     function _buildUnit(uint256 nfaId, uint8 strategy) internal view returns (CombatUnit memory u) {
-        (,,uint8 cour, uint8 wis,,, uint8 grit, uint8 s, uint8 d, uint8 sp, uint8 v,,,,,) = router.lobsters(nfaId);
+        (
+            ,
+            ,
+            uint8 cour,
+            uint8 wis,
+            ,
+            ,
+            uint8 grit,
+            uint8 s,
+            uint8 d,
+            uint8 sp,
+            uint8 v,
+            ,
+            ,
+            ,
+            ,
+            
+        ) = router.lobsters(nfaId);
         (u.atkMul, u.defMul) = _getStrategyMuls(strategy);
-        u.str = s; u.def = d; u.spd = sp; u.vit = v;
+        u.str = s;
+        u.def = d;
+        u.spd = sp;
+        u.vit = v;
 
-        // Personality-Strategy Bias: matching gets +5% bonus
-        if (strategy == 0 && cour >= 70) u.atkMul += 500;      // courage + AllAttack
-        if (strategy == 2 && grit >= 70) u.defMul += 500;      // grit + AllDefense
-        if (strategy == 1 && wis >= 70) { u.atkMul += 300; u.defMul += 300; } // wisdom + Balanced
+        if (strategy == 0 && cour >= 70) u.atkMul += 500;
+        if (strategy == 2 && grit >= 70) u.defMul += 500;
+        if (strategy == 1 && wis >= 70) {
+            u.atkMul += 300;
+            u.defMul += 300;
+        }
     }
 
     function _calculateCombat(PKMatch storage m) internal view returns (uint256 damageA, uint256 damageB) {
@@ -472,7 +478,6 @@ contract PKSkill is
         uint256 rawDmgA = effStrA > effDefB ? effStrA - effDefB : 1;
         uint256 rawDmgB = effStrB > effDefA ? effStrB - effDefA : 1;
 
-        // Speed advantage: +10%
         if (a.spd > b.spd) rawDmgA = rawDmgA * 11000 / 10000;
         else if (b.spd > a.spd) rawDmgB = rawDmgB * 11000 / 10000;
 
@@ -484,33 +489,116 @@ contract PKSkill is
     }
 
     function _getStrategyMuls(uint8 strategy) internal pure returns (uint256 atkMul, uint256 defMul) {
-        if (strategy == 0) return (15000, 5000);   // AllAttack
-        if (strategy == 1) return (10000, 10000);   // Balanced
-        return (5000, 15000);                        // AllDefense
+        if (strategy == 0) return (15000, 5000);
+        if (strategy == 1) return (10000, 10000);
+        return (5000, 15000);
+    }
+
+    function _applyReveal(
+        uint256 matchId,
+        PKMatch storage m,
+        bool isA,
+        uint8 strategy,
+        bytes32 salt
+    ) internal {
+        address participant = isA ? _participantA(matchId, m) : _participantB(matchId, m);
+        require(participant != address(0), "Missing participant");
+
+        bytes32 expectedHash = keccak256(abi.encodePacked(strategy, salt, participant));
+        if (isA) {
+            require(!m.revealedA, "Already revealed");
+            require(m.commitA == expectedHash, "Invalid reveal");
+            m.strategyA = strategy;
+            m.revealedA = true;
+            m.saltA = salt;
+        } else {
+            require(!m.revealedB, "Already revealed");
+            require(m.commitB == expectedHash, "Invalid reveal");
+            m.strategyB = strategy;
+            m.revealedB = true;
+            m.saltB = salt;
+        }
     }
 
     function _checkMutation(uint256 matchId, uint256 winner, uint256 loser) internal {
         PKMatch storage m = matches[matchId];
-        (,,,,,,,,,,,,,uint16 winnerLevel,,) = router.lobsters(winner);
-        (,,,,,,,,,,,,,uint16 loserLevel,,) = router.lobsters(loser);
+        (
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            uint16 winnerLevel,
+            ,
+            
+        ) = router.lobsters(winner);
+        (
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            uint16 loserLevel,
+            ,
+            
+        ) = router.lobsters(loser);
 
         if (loserLevel >= winnerLevel + 5) {
-            // Base 10% chance, modified by worldState.mutationBonus (basis points, 10000 = 1.0x)
             uint256 mutChance = 10;
             if (address(worldState) != address(0)) {
                 mutChance = mutChance * worldState.mutationBonus() / 10000;
             }
-            // Enhanced entropy: mix user-provided salts, gasleft(), and global nonce
-            uint256 rand = uint256(keccak256(abi.encodePacked(
-                block.prevrandao, block.timestamp, matchId,
-                m.saltA, m.saltB,
-                gasleft(), ++entropyNonce
-            ))) % 100;
+
+            uint256 rand = uint256(
+                keccak256(
+                    abi.encodePacked(
+                        block.prevrandao,
+                        block.timestamp,
+                        matchId,
+                        m.saltA,
+                        m.saltB,
+                        gasleft(),
+                        ++entropyNonce
+                    )
+                )
+            ) % 100;
             if (rand < mutChance) {
-                // Use separate hash for gene selection to avoid correlation
                 uint8 gene = uint8(uint256(keccak256(abi.encodePacked(rand, entropyNonce))) % 4);
-                // Boost by 5
-                (,,,,,,,uint8 str, uint8 def, uint8 spd, uint8 vit,,,,, ) = router.lobsters(winner);
+                (
+                    ,
+                    ,
+                    ,
+                    ,
+                    ,
+                    ,
+                    ,
+                    uint8 str,
+                    uint8 def,
+                    uint8 spd,
+                    uint8 vit,
+                    ,
+                    ,
+                    ,
+                    ,
+                    
+                ) = router.lobsters(winner);
+
                 uint8 currentVal;
                 if (gene == 0) currentVal = str;
                 else if (gene == 1) currentVal = def;
@@ -526,13 +614,27 @@ contract PKSkill is
         }
     }
 
-    function _getNfaId(PKMatch storage m, address sender) internal view returns (uint256) {
-        if (nfa.ownerOf(m.nfaA) == sender) return m.nfaA;
+    function _participantA(uint256 matchId, PKMatch storage m) internal view returns (address) {
+        address participant = participantAOf[matchId];
+        return participant == address(0) ? nfa.ownerOf(m.nfaA) : participant;
+    }
+
+    function _participantB(uint256 matchId, PKMatch storage m) internal view returns (address) {
+        address participant = participantBOf[matchId];
+        if (participant != address(0)) return participant;
+        if (m.nfaB == 0) return address(0);
+        return nfa.ownerOf(m.nfaB);
+    }
+
+    function _getNfaId(uint256 matchId, PKMatch storage m, address sender) internal view returns (uint256) {
+        if (_participantA(matchId, m) == sender || nfa.ownerOf(m.nfaA) == sender) {
+            return m.nfaA;
+        }
         return m.nfaB;
     }
 
     // ============================================
-    // VIEW
+    // View
     // ============================================
 
     function getMatchCount() external view returns (uint256) {
@@ -547,19 +649,16 @@ contract PKSkill is
         return keccak256(abi.encodePacked(strategy, salt, sender));
     }
 
-    /**
-     * @dev View NFA PK stats (履历)
-     */
     function getPkStats(uint256 nfaId) external view returns (
-        uint32 wins, uint32 losses, uint256 clwWon, uint256 clwLost
+        uint32 wins,
+        uint32 losses,
+        uint256 clwWon,
+        uint256 clwLost
     ) {
         return (pkWins[nfaId], pkLosses[nfaId], totalPkClwWon[nfaId], totalPkClwLost[nfaId]);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    /**
-     * @dev Reserved storage gap for future upgrades.
-     */
-    uint256[36] private __gap;
+    uint256[34] private __gap;
 }

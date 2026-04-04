@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 import { eventBus } from '../EventBus';
-import { loadPKResolutionCache, loadPKSalt } from '../chain/contracts';
+import { loadPKResolutionCache } from '../chain/contracts';
 import { loadMatch, loadMatchResolution, loadNFAState } from '../chain/wallet';
 import { TerminalModal, type ReportSection } from '../ui/TerminalModal';
 import type { GameLang } from '../data/npc-dialogues';
@@ -100,7 +100,7 @@ type CombatBreakdown = {
 
 /**
  * PKScene — 主网真实 PK 流程
- * create/join 选策略一步完成，后续由前端自动推进 reveal / settle
+ * create/join 选策略一步完成，后续优先由系统托管推进公开与结算
  */
 export class PKScene extends Phaser.Scene {
   private nfaId = 0;
@@ -416,15 +416,13 @@ export class PKScene extends Phaser.Scene {
     if (match.phase === 0) return this.isMyMatch(match);
     if (match.phase === 1) return this.getPhaseAgeSeconds(match) > COMMIT_TIMEOUT_SECONDS;
     if (match.phase === 2) {
-      return this.getPhaseAgeSeconds(match) > REVEAL_TIMEOUT_SECONDS && !match.revealedA && !match.revealedB;
+      return this.getPhaseAgeSeconds(match) > REVEAL_TIMEOUT_SECONDS;
     }
     return false;
   }
 
   private canSettleMatch(match: MatchPhaseSnapshot) {
-    if (match.phase === 3) return true;
-    if (match.phase !== 2) return false;
-    return this.getPhaseAgeSeconds(match) > REVEAL_TIMEOUT_SECONDS && (match.revealedA || match.revealedB);
+    return match.phase === 3;
   }
 
   private isMyMatch(match: { nfaA: number; nfaB: number }) {
@@ -441,18 +439,6 @@ export class PKScene extends Phaser.Scene {
     const settleable = this.matches.find((match) => this.isMyMatch(match) && match.phase === 3);
     if (settleable) {
       await this.maybeAutoAdvanceMatch(settleable.matchId);
-      return;
-    }
-
-    const revealable = this.matches.find((match) =>
-      this.isMyMatch(match) &&
-      match.phase === 2 &&
-      !this.hasMyReveal(match) &&
-      Boolean(loadPKSalt(match.matchId))
-    );
-
-    if (revealable) {
-      await this.maybeAutoAdvanceMatch(revealable.matchId);
     }
   }
 
@@ -467,12 +453,6 @@ export class PKScene extends Phaser.Scene {
       this.showStatus(this.lang === 'zh' ? `对局 #${matchId} 双方已公开，正在自动结算...` : `Match #${matchId} fully revealed. Auto-settling...`, '#7ad7ff');
       eventBus.emit('pk:settle', { matchId });
       return;
-    }
-
-    if (match.phase === 2 && !this.hasMyReveal(match) && loadPKSalt(matchId)) {
-      this.autoProcessingMatches.add(matchId);
-      this.showStatus(this.lang === 'zh' ? `对局 #${matchId} 已就绪，正在自动公开策略...` : `Match #${matchId} committed. Auto-revealing strategy...`, '#7ad7ff');
-      eventBus.emit('pk:reveal', { matchId });
     }
   }
 
@@ -790,15 +770,12 @@ export class PKScene extends Phaser.Scene {
       });
     }
 
-    if (isMine && match.phase === 2 && !this.hasMyReveal(match)) {
-      const hasLocalStrategy = Boolean(loadPKSalt(match.matchId));
+    if (isMine && match.phase === 2) {
       options.push({
-        label: hasLocalStrategy
-          ? (this.lang === 'zh' ? '[ 自动公开策略 ]' : '[ AUTO REVEAL ]')
-          : (this.lang === 'zh' ? '[ 缺少本地策略记录 ]' : '[ NO LOCAL STRATEGY ]'),
-        description: hasLocalStrategy
-          ? (this.lang === 'zh' ? '这场对局会自动公开你的策略，不需要再手动点揭示。' : 'This match will auto-reveal your strategy. No manual reveal is needed.')
-          : (this.lang === 'zh' ? '当前浏览器没有保存这场对局的策略记录，无法代你公开。' : 'This browser does not have the saved strategy record for this match.'),
+        label: this.lang === 'zh' ? '[ 系统托管中 ]' : '[ AUTO CUSTODY ]',
+        description: this.lang === 'zh'
+          ? '双方策略到齐后，系统会自动公开并直接结算。'
+          : 'Once both strategies are escrowed, the system auto-reveals and settles.',
         disabled: true,
         onSelect: () => {},
       });
@@ -825,7 +802,7 @@ export class PKScene extends Phaser.Scene {
     this.modal.showMenu({
       title: this.lang === 'zh' ? `对局 #${match.matchId}` : `Match #${match.matchId}`,
       subtitle: this.lang === 'zh'
-        ? `当前阶段 ${phaseName}。这里可查看详情或加入对局，揭示与结算会自动推进。`
+        ? `当前阶段 ${phaseName}。这里可查看详情或加入对局，系统会在双方策略到齐后自动结算。`
         : `Current phase ${phaseName}. Inspect or join here; reveal and settlement auto-advance.`,
       options,
       cancelLabel: this.lang === 'zh' ? '关闭' : 'Close',
@@ -966,7 +943,7 @@ export class PKScene extends Phaser.Scene {
           : effectiveSettled.source === 'timeout'
             ? [
                 this.lang === 'zh'
-                  ? '公共 RPC 暂未返回结算事件，本场按超时结算规则推断：谁公开谁胜。'
+                  ? '公共 RPC 暂未返回结算事件，这是一场旧规则下的超时结算。'
                   : 'Public RPC did not return the settlement event. This result is inferred from the timeout settlement rule.',
               ]
             : undefined,
@@ -1173,15 +1150,12 @@ export class PKScene extends Phaser.Scene {
       });
     }
 
-    if (isMine && match.phase === 2 && !this.hasMyReveal(match)) {
-      const hasLocalStrategy = Boolean(loadPKSalt(match.matchId));
+    if (isMine && match.phase === 2) {
       actions.push({
-        label: hasLocalStrategy
-          ? (this.lang === 'zh' ? '本端可自动公开策略' : 'Local auto reveal ready')
-          : (this.lang === 'zh' ? '本端没有策略记录' : 'No local strategy record'),
-        description: hasLocalStrategy
-          ? (this.lang === 'zh' ? '当前浏览器保存了 salt，前端会自动公开。' : 'This browser has the salt and can auto-reveal.')
-          : (this.lang === 'zh' ? '这场对局可能是在别的浏览器、设备或 skill CLI 中提交。' : 'This match was likely committed from another browser, device, or skill CLI.'),
+        label: this.lang === 'zh' ? '系统托管中' : 'Auto custody',
+        description: this.lang === 'zh'
+          ? '双方策略到齐后，系统会自动公开并直接结算。'
+          : 'Once both strategies are escrowed, the system auto-reveals and settles.',
         disabled: true,
         onSelect: () => {},
       });

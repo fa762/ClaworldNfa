@@ -34,17 +34,53 @@ export function generateCommit(strategy: number, owner: Address): { commitHash: 
 }
 
 /** 保存 PK salt 到 localStorage（reveal 时需要） */
-export function savePKSalt(matchId: number, strategy: number, salt: string) {
+export function savePKSalt(matchId: number, strategy: number, salt: string, nfaId?: number) {
   const key = `claw-pk-${matchId}`;
-  localStorage.setItem(key, JSON.stringify({ strategy, salt, ts: Date.now() }));
+  localStorage.setItem(key, JSON.stringify({ strategy, salt, nfaId, ts: Date.now() }));
 }
 
 /** 读取 PK salt */
-export function loadPKSalt(matchId: number): { strategy: number; salt: string } | null {
+export function loadPKSalt(matchId: number): { strategy: number; salt: string; nfaId?: number } | null {
   const key = `claw-pk-${matchId}`;
   const raw = localStorage.getItem(key);
   if (!raw) return null;
   return JSON.parse(raw);
+}
+
+export type PKAutoRevealSyncResult = {
+  state: 'saved' | 'waiting' | 'relayed' | 'already-synced' | 'already-finalized' | 'unavailable';
+  txHash?: `0x${string}`;
+  message?: string;
+};
+
+export async function syncPKAutoReveal(payload: {
+  matchId: number;
+  nfaId: number;
+  strategy: number;
+  salt: `0x${string}`;
+  walletAddress: Address;
+}): Promise<PKAutoRevealSyncResult> {
+  const response = await fetch('/api/pk/auto-reveal', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await response.json().catch(() => null) as PKAutoRevealSyncResult | { error?: string } | null;
+  if (!response.ok) {
+    const message = json && 'error' in json && json.error ? json.error : 'Auto reveal sync failed';
+    throw new Error(message);
+  }
+
+  return {
+    state: json && 'state' in json ? json.state : 'unavailable',
+    txHash: json && 'txHash' in json && typeof json.txHash === 'string' && json.txHash.startsWith('0x')
+      ? json.txHash as `0x${string}`
+      : undefined,
+    message: json && 'message' in json ? json.message : undefined,
+  };
 }
 
 export type CachedPKResolution =

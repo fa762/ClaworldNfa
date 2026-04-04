@@ -38,6 +38,7 @@ import {
   processUpkeepArgs,
   savePKSalt,
   savePKResolutionCache,
+  syncPKAutoReveal,
   taskSubmitArgs,
 } from '@/game/chain/contracts';
 import { addresses } from '@/contracts/addresses';
@@ -697,15 +698,42 @@ export default function GamePage() {
         const matchId = created?.matchId ? Number(created.matchId) : null;
         if (!matchId) throw new Error('Could not read matchId from receipt');
 
-        savePKSalt(matchId, data.strategy, salt);
+        savePKSalt(matchId, data.strategy, salt, data.nfaId);
+        let relayState: string | undefined;
+        let relayTxHash: `0x${string}` | undefined;
+        let relayMessage: string | undefined;
+        try {
+          const relay = await syncPKAutoReveal({
+            matchId,
+            nfaId: data.nfaId,
+            strategy: data.strategy,
+            salt,
+            walletAddress: address as Address,
+          });
+          relayState = relay.state;
+          relayTxHash = relay.txHash;
+          relayMessage = relay.message;
+        } catch (syncError) {
+          console.error('PK create auto-sync failed:', syncError);
+          relayState = 'unavailable';
+          relayMessage = getErrorMessage(syncError);
+        }
         await refreshActiveNfaState(data.nfaId);
         await emitPkMatches();
+        if (relayTxHash) {
+          window.setTimeout(() => {
+            void emitPkMatches();
+          }, 3500);
+        }
 
         eventBus.emit('pk:result', {
           status: 'confirmed',
           action: 'create',
           txHash: hash,
           matchId,
+          relayState,
+          relayTxHash,
+          relayMessage,
         });
       } catch (error) {
         console.error('PK create failed:', error);
@@ -728,9 +756,33 @@ export default function GamePage() {
         const receipt = await waitForReceipt(hash, 'JOINING PK MATCH');
         if (receipt.status !== 'success') throw new Error('PK join transaction reverted');
 
-        savePKSalt(data.matchId, data.strategy, salt);
+        savePKSalt(data.matchId, data.strategy, salt, data.nfaId);
+        let relayState: string | undefined;
+        let relayTxHash: `0x${string}` | undefined;
+        let relayMessage: string | undefined;
+        try {
+          const relay = await syncPKAutoReveal({
+            matchId: data.matchId,
+            nfaId: data.nfaId,
+            strategy: data.strategy,
+            salt,
+            walletAddress: address as Address,
+          });
+          relayState = relay.state;
+          relayTxHash = relay.txHash;
+          relayMessage = relay.message;
+        } catch (syncError) {
+          console.error('PK join auto-sync failed:', syncError);
+          relayState = 'unavailable';
+          relayMessage = getErrorMessage(syncError);
+        }
         await refreshActiveNfaState(data.nfaId);
         await emitPkMatches();
+        if (relayTxHash) {
+          window.setTimeout(() => {
+            void emitPkMatches();
+          }, 3500);
+        }
 
         eventBus.emit('pk:result', {
           status: 'confirmed',
@@ -738,6 +790,9 @@ export default function GamePage() {
           txHash: hash,
           matchId: data.matchId,
           stake: formatEther(match.stake),
+          relayState,
+          relayTxHash,
+          relayMessage,
         });
       } catch (error) {
         console.error('PK join failed:', error);
