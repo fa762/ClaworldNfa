@@ -556,7 +556,8 @@ const PK_MATCH_SETTLED_EVENT = parseAbiItem(
 const PK_MATCH_CANCELLED_EVENT = parseAbiItem(
   'event MatchCancelled(uint256 indexed matchId)',
 );
-const LOG_CHUNK_SIZE = 10000n;
+const LOG_CHUNK_SIZE = 1500n;
+const MIN_LOG_CHUNK_SIZE = 200n;
 
 type SettledMatchLog = {
   args: {
@@ -580,16 +581,29 @@ async function findLatestPkLogInChunks(params: {
 }) {
   const latestBlock = await publicClient.getBlockNumber();
   let toBlock = latestBlock;
+  let chunkSize = LOG_CHUNK_SIZE;
 
   while (toBlock >= deployBlock) {
-    const fromBlock = toBlock > LOG_CHUNK_SIZE ? toBlock - LOG_CHUNK_SIZE : deployBlock;
-    const chunk = await publicClient.getLogs({
-      address: CONTRACTS.pkSkill,
-      event: params.event,
-      args: { matchId: params.matchId },
-      fromBlock,
-      toBlock,
-    });
+    const fromBlock = toBlock > chunkSize ? toBlock - chunkSize : deployBlock;
+    let chunk;
+
+    try {
+      chunk = await publicClient.getLogs({
+        address: CONTRACTS.pkSkill,
+        event: params.event,
+        args: { matchId: params.matchId },
+        fromBlock,
+        toBlock,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      if (message.includes('limit exceeded') && chunkSize > MIN_LOG_CHUNK_SIZE) {
+        chunkSize = chunkSize > MIN_LOG_CHUNK_SIZE * 2n ? chunkSize / 2n : MIN_LOG_CHUNK_SIZE;
+        continue;
+      }
+      throw error;
+    }
+
     if (chunk.length > 0) {
       return chunk.at(-1) ?? null;
     }

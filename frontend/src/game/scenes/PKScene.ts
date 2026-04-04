@@ -572,6 +572,16 @@ export class PKScene extends Phaser.Scene {
     const settleable = this.matches.find((match) => this.isMyMatch(match) && match.phase === 3);
     if (settleable) {
       await this.maybeAutoAdvanceMatch(settleable.matchId);
+      return;
+    }
+
+    const refundable = this.matches.find((match) =>
+      this.isMyMatch(match)
+      && match.phase === 2
+      && this.canCancelMatch(match)
+    );
+    if (refundable) {
+      await this.maybeAutoAdvanceMatch(refundable.matchId);
     }
   }
 
@@ -586,6 +596,17 @@ export class PKScene extends Phaser.Scene {
       this.showStatus(this.lang === 'zh' ? `对局 #${matchId} 双方已公开，正在自动结算...` : `Match #${matchId} fully revealed. Auto-settling...`, '#7ad7ff');
       eventBus.emit('pk:settle', { matchId });
       return;
+    }
+
+    if (match.phase === 2 && this.canCancelMatch(match)) {
+      this.autoProcessingMatches.add(matchId);
+      this.showStatus(
+        this.lang === 'zh'
+          ? `对局 #${matchId} 托管超时，正在自动取消并退回双方质押...`
+          : `Match #${matchId} escrow timed out. Auto-cancelling with refund...`,
+        '#ffaa00',
+      );
+      eventBus.emit('pk:cancel', { matchId });
     }
   }
 
@@ -1407,7 +1428,7 @@ export class PKScene extends Phaser.Scene {
       const y = isCompact ? baseY + index * 72 : baseY + index * 50;
       const winnerDisplay = this.getWinnerDisplay(match);
       const rowAction = this.getRowAction(match);
-      const rowBg = this.add.rectangle(W / 2, y + (isCompact ? 18 : 10), W - 36, isCompact ? 64 : 40, 0x111122, 0.5).setStrokeStyle(1, 0x222233);
+      const rowBg = this.add.rectangle(W / 2, y + (isCompact ? 18 : 10), W - 36, isCompact ? 64 : 40, 0x111122, 0.5).setStrokeStyle(1, 0x222233).setDepth(1);
       const rowText = this.add.text(
         18,
         y,
@@ -1415,13 +1436,13 @@ export class PKScene extends Phaser.Scene {
           ? this.buildCompactMatchText(match)
           : `${String(match.matchId).padEnd(6)} ${String(match.nfaA).padEnd(8)} ${String(match.nfaB || '-').padEnd(8)} ${`${match.stake} Claworld`.padEnd(12)} ${this.phaseName(match.phase).padEnd(14)}`,
         { fontSize: isCompact ? '11px' : '12px', fontFamily: GAME_UI_FONT_FAMILY, color: '#cccccc', lineSpacing: 4 },
-      );
+      ).setDepth(2);
 
       this.rows.push(rowBg, rowText);
 
       const detailBtn = this.add.text(W - 18, y + (isCompact ? 18 : 1), this.lang === 'zh' ? '[ 详情 ]' : '[ DETAIL ]', {
         fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#7ad7ff', backgroundColor: '#00131a', padding: { x: 6, y: 4 },
-      }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
+      }).setOrigin(1, 0.5).setDepth(4).setInteractive({ useHandCursor: true });
       detailBtn.on('pointerdown', () => { void this.openMatchTrace(match.matchId); });
       this.rows.push(detailBtn);
 
@@ -1436,7 +1457,7 @@ export class PKScene extends Phaser.Scene {
           backgroundColor: winnerDisplay.backgroundColor,
           padding: { x: 6, y: 4 },
         },
-      ).setOrigin(0.5);
+      ).setOrigin(0.5).setDepth(4);
       this.rows.push(winnerTag);
 
       if (rowAction) {
@@ -1451,7 +1472,7 @@ export class PKScene extends Phaser.Scene {
             backgroundColor: rowAction.backgroundColor,
             padding: { x: 6, y: 4 },
           },
-        ).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        ).setOrigin(0.5).setDepth(4).setInteractive({ useHandCursor: true });
         actionBtn.on('pointerdown', rowAction.onSelect);
         this.rows.push(actionBtn);
       }
