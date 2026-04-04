@@ -227,12 +227,12 @@ export class PKScene extends Phaser.Scene {
       backgroundColor: '#001a00', padding: { x: 8, y: 4 },
     }).setOrigin(0, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.changePage(1));
 
-    const headerY = pagerY + 28;
+    const headerY = pagerY + (compactTools ? 36 : 28);
     this.add.text(18, headerY, this.lang === 'zh' ? 'ID     发起方   应战方   赌注         阶段           赢家' : 'ID     A        B        STAKE        PHASE           WINNER', {
       fontSize: '11px', fontFamily: GAME_UI_FONT_FAMILY, color: '#555555',
     });
     this.add.rectangle(W / 2, headerY + 12, W - 32, 1, 0x333333);
-    this.matchTableY = headerY + 24;
+    this.matchTableY = headerY + (compactTools ? 28 : 24);
     this.refreshMineFilterButton();
     this.refreshJoinableFilterButton();
 
@@ -1309,6 +1309,7 @@ export class PKScene extends Phaser.Scene {
       const baseY = this.matchTableY;
       const y = isCompact ? baseY + index * 72 : baseY + index * 50;
       const winnerDisplay = this.getWinnerDisplay(match);
+      const rowAction = this.getRowAction(match);
       const rowBg = this.add.rectangle(W / 2, y + (isCompact ? 18 : 10), W - 36, isCompact ? 64 : 40, 0x111122, 0.5).setStrokeStyle(1, 0x222233);
       const rowText = this.add.text(
         18,
@@ -1328,7 +1329,7 @@ export class PKScene extends Phaser.Scene {
       this.rows.push(detailBtn);
 
       const winnerTag = this.add.text(
-        W - (isCompact ? 116 : 124),
+        W - (isCompact ? 154 : 164),
         y + (isCompact ? 18 : 1),
         winnerDisplay.label,
         {
@@ -1340,6 +1341,23 @@ export class PKScene extends Phaser.Scene {
         },
       ).setOrigin(0.5);
       this.rows.push(winnerTag);
+
+      if (rowAction) {
+        const actionBtn = this.add.text(
+          W - (isCompact ? 84 : 92),
+          y + (isCompact ? 18 : 1),
+          rowAction.label,
+          {
+            fontSize: '11px',
+            fontFamily: GAME_UI_FONT_FAMILY,
+            color: rowAction.color,
+            backgroundColor: rowAction.backgroundColor,
+            padding: { x: 6, y: 4 },
+          },
+        ).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        actionBtn.on('pointerdown', rowAction.onSelect);
+        this.rows.push(actionBtn);
+      }
     });
 
     if (pageCount > 1) {
