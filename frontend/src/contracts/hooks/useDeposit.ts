@@ -1,12 +1,12 @@
 'use client';
 
 import { useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther, type Address } from 'viem';
+import { parseEther, type Address, zeroAddress } from 'viem';
 import { ClawNFAABI } from '../abis/ClawNFA';
 import { ClawRouterABI } from '../abis/ClawRouter';
+import { DepositRouterABI } from '../abis/DepositRouter';
 import { ERC20ABI } from '../abis/ERC20';
 import { addresses } from '../addresses';
-import { useGraduated } from './useClawRouter';
 
 export function useFundBNB() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
@@ -64,20 +64,42 @@ export function useCLWAllowance(owner: Address | undefined) {
 
 export function useBuyAndDeposit() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { data: graduated } = useGraduated();
+  const { data: graduated } = useReadContract({
+    address: addresses.depositRouter,
+    abi: DepositRouterABI,
+    functionName: 'graduated',
+    query: { enabled: !!addresses.depositRouter && addresses.depositRouter !== zeroAddress },
+  });
+  const { data: flapPortal } = useReadContract({
+    address: addresses.depositRouter,
+    abi: DepositRouterABI,
+    functionName: 'flapPortal',
+    query: { enabled: !!addresses.depositRouter && addresses.depositRouter !== zeroAddress },
+  });
+  const { data: pancakeRouter } = useReadContract({
+    address: addresses.depositRouter,
+    abi: DepositRouterABI,
+    functionName: 'pancakeRouter',
+    query: { enabled: !!addresses.depositRouter && addresses.depositRouter !== zeroAddress },
+  });
+
+  const routeReady = graduated
+    ? !!pancakeRouter && pancakeRouter !== zeroAddress
+    : !!flapPortal && flapPortal !== zeroAddress;
 
   function buyAndDeposit(tokenId: bigint, bnbAmount: string) {
+    if (!routeReady) return;
     const functionName = graduated ? 'buyAndDeposit' : 'flapBuyAndDeposit';
     writeContract({
-      address: addresses.clawRouter,
-      abi: ClawRouterABI,
+      address: addresses.depositRouter,
+      abi: DepositRouterABI,
       functionName,
-      args: [tokenId],
+      args: [tokenId, 0n],
       value: parseEther(bnbAmount),
     });
   }
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  return { buyAndDeposit, isPending, isConfirming, isSuccess, hash, graduated, error };
+  return { buyAndDeposit, isPending, isConfirming, isSuccess, hash, graduated, routeReady, error };
 }

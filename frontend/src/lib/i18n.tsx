@@ -213,6 +213,8 @@ const translations: Record<string, Record<Lang, string>> = {
   'deposit.needApprove': { zh: '[!] 需要先授权 Claworld，将弹出两次交易', en: '[!] Claworld approval required, two transactions will be prompted' },
   'deposit.viewTx': { zh: '查看交易 →', en: 'View Transaction →' },
   'deposit.pendingGrad': { zh: '(待毕业)', en: '(pending graduation)' },
+  'deposit.unavailable': { zh: '(未启用)', en: '(unavailable)' },
+  'deposit.quickUnavailable': { zh: '[!] 快捷充值路由当前未启用，请先用 BNB 或 Claworld 直接充值', en: '[!] Quick buy-and-deposit is not enabled right now. Use direct BNB or Claworld deposit first.' },
 
   // ─── Mint ───
   'mint.progress': { zh: '铸造进度', en: 'Mint Progress' },

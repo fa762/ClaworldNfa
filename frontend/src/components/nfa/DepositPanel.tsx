@@ -38,7 +38,7 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
   const tabs: { key: Tab; label: string; disabled?: boolean }[] = [
     { key: 'bnb', label: nativeSymbol },
     { key: 'clw', label: 'Claworld' },
-    { key: 'quick', label: `${nativeSymbol}?Claworld`, disabled: !buyAndDeposit.graduated },
+    { key: 'quick', label: `${nativeSymbol}?Claworld`, disabled: !buyAndDeposit.routeReady },
   ];
 
   const isPending = fundBNB.isPending || depositCLW.isPending || buyAndDeposit.isPending;
@@ -58,7 +58,9 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
           depositCLW.depositCLW(tokenId, amount);
         }
         break;
-      case 'quick': buyAndDeposit.buyAndDeposit(tokenId, amount); break;
+      case 'quick':
+        if (buyAndDeposit.routeReady) buyAndDeposit.buyAndDeposit(tokenId, amount);
+        break;
     }
   }
 
@@ -82,7 +84,7 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
               }
             >
               [{tabItem.key === tab ? `> ${tabItem.label}` : tabItem.label}]
-              {tabItem.disabled && <span className="term-darkest ml-0.5">{t('deposit.pendingGrad')}</span>}
+              {tabItem.disabled && <span className="term-darkest ml-0.5">{t('deposit.unavailable')}</span>}
             </button>
           ))}
         </div>
@@ -125,6 +127,10 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
         {/* Warnings */}
         {tab === 'clw' && allowance !== undefined && amount && parseEther(amount) > allowance && (
           <div className="term-warn text-xs">{t('deposit.needApprove')}</div>
+        )}
+
+        {tab === 'quick' && !buyAndDeposit.routeReady && (
+          <div className="term-warn text-xs">{t('deposit.quickUnavailable')}</div>
         )}
 
         {hash && (
