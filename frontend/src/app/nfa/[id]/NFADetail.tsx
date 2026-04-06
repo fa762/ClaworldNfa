@@ -11,6 +11,7 @@ import { PipBoyStatList } from '@/components/nfa/PipBoyStatList';
 import { XPProgressBar } from '@/components/nfa/XPProgressBar';
 import { MutationSlots } from '@/components/nfa/MutationSlots';
 import { DepositPanel } from '@/components/nfa/DepositPanel';
+import { WithdrawPanel } from '@/components/nfa/WithdrawPanel';
 import { TransferToOpenClaw } from '@/components/nfa/TransferToOpenClaw';
 import { TerminalBar } from '@/components/terminal/TerminalBar';
 import { formatCLW, truncateAddress } from '@/lib/format';
@@ -250,6 +251,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
             <div className="space-y-4">
               <UpkeepButton tokenId={id} />
               <DepositPanel tokenId={id} />
+              <WithdrawPanel tokenId={id} ownerAddress={ownerAddress} />
               <TransferToOpenClaw tokenId={id} ownerAddress={ownerAddress} />
             </div>
           )}

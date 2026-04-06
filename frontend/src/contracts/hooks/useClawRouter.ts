@@ -71,3 +71,20 @@ export function useGraduated() {
     query: { enabled: isDepositRouterDeployed },
   });
 }
+
+export function useWithdrawRequest(tokenId: bigint | undefined) {
+  return useReadContract({
+    ...routerContract,
+    functionName: 'withdrawRequests',
+    args: tokenId !== undefined ? [tokenId] : undefined,
+    query: { enabled: isDeployed && tokenId !== undefined, refetchInterval: 3000 },
+  });
+}
+
+export function useWithdrawCooldown() {
+  return useReadContract({
+    ...routerContract,
+    functionName: 'WITHDRAW_COOLDOWN',
+    query: { enabled: isDeployed },
+  });
+}
