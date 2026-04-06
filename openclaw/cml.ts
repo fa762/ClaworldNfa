@@ -114,11 +114,11 @@ const RARITY_NAMES = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
 // FILE I/O
 // ============================================
 
-function getCMLPath(nfaId: number): string {
+export function getCMLPath(nfaId: number): string {
   return path.join(CML_DIR, `nfa-${nfaId}.cml`);
 }
 
-function getArchiveDir(nfaId: number): string {
+export function getArchiveDir(nfaId: number): string {
   return path.join(CML_ARCHIVE_DIR, `nfa-${nfaId}`);
 }
 

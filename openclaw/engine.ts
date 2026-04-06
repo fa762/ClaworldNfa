@@ -56,9 +56,11 @@ import {
   getPendingRootSync,
   clearPendingRootSync,
   toBytes32Hash,
+  getCMLPath,
 } from './cml';
 import type { CMLFile, CMLBootData, CMLVividMemory, HippocampusEntry } from './cml';
 import { ethers } from 'ethers';
+import { hasGnfdCmd, uploadCMLToGreenfield } from './greenfield';
 
 // ============================================
 // ENGINE
@@ -1044,6 +1046,10 @@ export class ClawEngine {
 
   private async syncLearningTree(nfaId: number, hash: string): Promise<void> {
     try {
+      if (this.chainSkill?.isUnlocked() && hasGnfdCmd()) {
+        const signer = this.chainSkill.getSigner();
+        uploadCMLToGreenfield(nfaId, signer.privateKey, getCMLPath(nfaId), hash);
+      }
       await this.client.updateLearningTreeByOwner(nfaId, toBytes32Hash(hash));
       clearPendingRootSync(nfaId);
     } catch {
