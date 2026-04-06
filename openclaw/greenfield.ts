@@ -71,6 +71,18 @@ export function hasGnfdCmd(): boolean {
   }
 }
 
+export function getGreenfieldBootstrapHint(): string {
+  return [
+    'Greenfield storage is not ready on this machine.',
+    'Please install gnfd-cmd inside WSL and create a Greenfield bucket once.',
+    'Recommended flow:',
+    '1. Create/import your OpenClaw wallet',
+    '2. Add BNB Greenfield Mainnet in wallet / dCellar',
+    '3. Create a bucket (for example: clawworld-cml or your owner-derived bucket)',
+    '4. Ensure ~/.local/bin/gnfd-cmd is available in WSL',
+  ].join('\n');
+}
+
 export function ensureGreenfieldAccount(privateKey: string, pin = ''): void {
   ensureGreenfieldConfig();
 
@@ -128,7 +140,13 @@ export function uploadCMLToGreenfield(nfaId: number, privateKey: string, address
 
   runGnfd(['--home', GREENFIELD_HOME, '--passwordfile', passwordFile, 'object', 'put', localPath, latestUri]);
 
-  const publicSummary = JSON.stringify({ nfa_id: nfaId, latestUri, hash, updatedAt: Date.now() }, null, 2);
+  const publicSummary = JSON.stringify({
+    nfa_id: nfaId,
+    hash,
+    updatedAt: Date.now(),
+    latestOwnerBucket: bucket,
+    latestUriHint: `gnfd://${bucket}/nfa-${nfaId}/latest.cml`,
+  }, null, 2);
   const summaryPath = path.join(GREENFIELD_HOME, `nfa-${nfaId}.public.json`);
   fs.writeFileSync(summaryPath, publicSummary, 'utf8');
   const summaryUri = `gnfd://${bucket}/nfa-${nfaId}/public.json`;
@@ -140,4 +158,25 @@ export function uploadCMLToGreenfield(nfaId: number, privateKey: string, address
   runGnfd(['--home', GREENFIELD_HOME, '--passwordfile', passwordFile, 'object', 'put', '--visibility=public-read', summaryPath, summaryUri]);
 
   return { bucket, latestUri, archiveUri };
+}
+
+export function downloadLatestCMLFromBuckets(nfaId: number, ownerTrail: string[]): string | null {
+  const tempPath = path.join(GREENFIELD_HOME, `restore-nfa-${nfaId}.cml`);
+
+  for (const owner of ownerTrail) {
+    const bucket = resolveGreenfieldBucket(owner);
+    const latestUri = `gnfd://${bucket}/nfa-${nfaId}/latest.cml`;
+    try {
+      runGnfd(['--home', GREENFIELD_HOME, 'object', 'get', latestUri, tempPath]);
+      if (fs.existsSync(tempPath)) {
+        const content = fs.readFileSync(tempPath, 'utf8');
+        fs.unlinkSync(tempPath);
+        return content;
+      }
+    } catch {
+      // try next owner-derived bucket
+    }
+  }
+
+  return null;
 }
