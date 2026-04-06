@@ -11,8 +11,9 @@ export interface GreenfieldUploadResult {
 
 const GREENFIELD_CHAIN_ID = process.env.GREENFIELD_CHAIN_ID || 'greenfield_1017-1';
 const GREENFIELD_RPC = process.env.GREENFIELD_RPC || 'https://greenfield-chain.bnbchain.org:443';
-const GREENFIELD_BUCKET = process.env.GREENFIELD_BUCKET || 'clawworld-cml';
+const GREENFIELD_BUCKET = process.env.GREENFIELD_BUCKET || '';
 const GREENFIELD_HOME = process.env.GREENFIELD_HOME || path.join(os.homedir(), '.openclaw', 'claw-world', '.gnfd-cmd');
+const GREENFIELD_PRIMARY_SP = process.env.GREENFIELD_PRIMARY_SP || '0x05b1d420DcAd3aB51EDDE809D90E6e47B8dC9880';
 
 function runGnfd(args: string[], stdin?: string): string {
   const command = process.platform === 'win32' ? 'wsl' : 'gnfd-cmd';
@@ -36,8 +37,13 @@ function writePasswordFile(pin: string): string {
   return passwordFile;
 }
 
-export function getGreenfieldLatestUri(nfaId: number, bucket = GREENFIELD_BUCKET): string {
+export function getGreenfieldLatestUri(nfaId: number, bucket: string): string {
   return `gnfd://${bucket}/nfa-${nfaId}/latest.cml`;
+}
+
+export function resolveGreenfieldBucket(address: string): string {
+  if (GREENFIELD_BUCKET) return GREENFIELD_BUCKET;
+  return `claw-cml-${address.slice(2, 10).toLowerCase()}`;
 }
 
 export function ensureGreenfieldConfig(): void {
@@ -83,9 +89,30 @@ export function ensureGreenfieldAccount(privateKey: string, pin = ''): void {
   fs.unlinkSync(keyFile);
 }
 
-export function uploadCMLToGreenfield(nfaId: number, privateKey: string, localPath: string, hash: string, bucket = GREENFIELD_BUCKET): GreenfieldUploadResult {
+export function ensureGreenfieldBucket(privateKey: string, address: string): string {
+  const bucket = resolveGreenfieldBucket(address);
+  try {
+    runGnfd(['--home', GREENFIELD_HOME, 'bucket', 'head', `gnfd://${bucket}`]);
+    return bucket;
+  } catch {
+    ensureGreenfieldAccount(privateKey);
+    const passwordFile = writePasswordFile('');
+    runGnfd([
+      '--home', GREENFIELD_HOME,
+      '--passwordfile', passwordFile,
+      'bucket', 'create',
+      '--primarySP', GREENFIELD_PRIMARY_SP,
+      '--visibility=private',
+      `gnfd://${bucket}`,
+    ]);
+    return bucket;
+  }
+}
+
+export function uploadCMLToGreenfield(nfaId: number, privateKey: string, address: string, localPath: string, hash: string): GreenfieldUploadResult {
   ensureGreenfieldAccount(privateKey);
   const passwordFile = writePasswordFile('');
+  const bucket = ensureGreenfieldBucket(privateKey, address);
 
   const archiveFile = path.basename(localPath);
   const archiveUri = `gnfd://${bucket}/nfa-${nfaId}/archive/${archiveFile}`;

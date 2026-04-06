@@ -1048,7 +1048,7 @@ export class ClawEngine {
     try {
       if (this.chainSkill?.isUnlocked() && hasGnfdCmd()) {
         const signer = this.chainSkill.getSigner();
-        uploadCMLToGreenfield(nfaId, signer.privateKey, getCMLPath(nfaId), hash);
+        uploadCMLToGreenfield(nfaId, signer.privateKey, signer.address, getCMLPath(nfaId), hash);
       }
       await this.client.updateLearningTreeByOwner(nfaId, toBytes32Hash(hash));
       clearPendingRootSync(nfaId);
