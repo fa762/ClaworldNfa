@@ -427,7 +427,7 @@ node ~/.openclaw/skills/claw-world/claw cml-recall <tokenId> <id1,id2,id3>
 SLEEP 流程：
 
 1. 整理你在对话中暂存的有意义片段
-2. 运行 `claw cml-load <tokenId>` 获取当前完整 CML 数据
+2. 运行 `claw cml-load <tokenId> --full` 获取当前完整 CML 数据（包含所有 vivid 记忆内容和完整 sediment）
 3. 按照以下规则生成**完整的新 CML JSON**：
 
    **CORTEX.vivid 处理：**
@@ -469,7 +469,8 @@ echo '<完整CML JSON>' | node ~/.openclaw/skills/claw-world/claw cml-save <toke
 
 ```bash
 claw cml-init <tokenId>                  # 初始化/迁移 CML 文件
-claw cml-load <tokenId>                  # 加载完整 CML（用于 SLEEP 前读取）
+claw cml-load <tokenId>                  # 加载轻量 CML（boot 用，仅 trigger index）
+claw cml-load <tokenId> --full           # 加载完整 CML（SLEEP 前使用，含全量 vivid 和 sediment）
 claw cml-recall <tokenId> <id1,id2,...>  # 按 ID 获取完整记忆
 claw cml-match <tokenId> <消息>           # 关键词匹配触发记忆
 echo '<JSON>' | claw cml-save <tokenId>  # 保存新 CML（从 stdin 读 JSON）

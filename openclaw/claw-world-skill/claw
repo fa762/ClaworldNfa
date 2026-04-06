@@ -1283,7 +1283,7 @@ async function cmdCmlInit(tokenId) {
   console.log(JSON.stringify({ status: 'CREATED', nfa_id: Number(tokenId), hash: hash, migrated: hasLegacy, path: getCMLPath(tokenId) }));
 }
 
-async function cmdCmlLoad(tokenId) {
+async function cmdCmlLoad(tokenId, mode) {
   var cml = loadCML(Number(tokenId));
   if (!cml) {
     console.log(JSON.stringify({ status: 'NOT_FOUND', nfa_id: Number(tokenId) }));
@@ -1296,19 +1296,27 @@ async function cmdCmlLoad(tokenId) {
   var longing = hoursSince < 8 ? 0 : hoursSince < 24 ? 0.2 : hoursSince < 48 ? 0.5 : hoursSince < 72 ? 0.8 : 1.0;
   var emotionTrigger = hoursSince >= 48 ? 'MISS_YOU' : hoursSince >= 8 ? 'DREAM' : 'DAILY_GREETING';
 
-  // Output boot data (lightweight — no full vivid content, only trigger index)
-  console.log(JSON.stringify({
+  var base = {
     status: 'OK',
     nfa_id: cml.nfa_id,
     identity: cml.IDENTITY,
     pulse: { valence: cml.PULSE.valence, arousal: cml.PULSE.arousal, longing: longing, last_interaction: cml.PULSE.last_interaction },
     prefrontal: cml.PREFRONTAL,
     basal: cml.BASAL,
-    triggerIndex: cml.CORTEX.vivid.map(function(m) { return { id: m.id, triggers: m.triggers }; }),
-    sedimentSummary: cml.CORTEX.sediment.slice(0, 5),
     emotionTrigger: emotionTrigger,
     hoursSinceActivity: Math.floor(hoursSince)
-  }, null, 2));
+  };
+
+  if (mode === '--full') {
+    // Full mode: include complete CORTEX data for SLEEP consolidation
+    base.cortex = { vivid: cml.CORTEX.vivid, sediment: cml.CORTEX.sediment };
+  } else {
+    // Lightweight mode: trigger index only (for boot context injection)
+    base.triggerIndex = cml.CORTEX.vivid.map(function(m) { return { id: m.id, triggers: m.triggers }; });
+    base.sedimentSummary = cml.CORTEX.sediment.slice(0, 5);
+  }
+
+  console.log(JSON.stringify(base, null, 2));
 }
 
 async function cmdCmlRecall(tokenId, memoryIds) {
@@ -1388,7 +1396,7 @@ const [,, cmd, ...args] = process.argv;
 const commands = {
   boot:         () => cmdBoot(),
   'cml-init':   () => cmdCmlInit(args[0]),
-  'cml-load':   () => cmdCmlLoad(args[0]),
+  'cml-load':   () => cmdCmlLoad(args[0], args[1]),
   'cml-recall': () => cmdCmlRecall(args[0], args[1]),
   'cml-match':  () => cmdCmlMatch(args[0], args.slice(1).join(' ')),
   'cml-save':   () => cmdCmlSave(args[0], args[1]),
@@ -1460,7 +1468,8 @@ if (!cmd || !commands[cmd]) {
   console.log('  claw supply                                     — total minted count');
   console.log('  --- CML Memory System ---');
   console.log('  claw cml-init <tokenId>                         — init/migrate CML file');
-  console.log('  claw cml-load <tokenId>                         — load CML boot data (lightweight)');
+  console.log('  claw cml-load <tokenId>                         — load CML boot data (lightweight, trigger index only)');
+  console.log('  claw cml-load <tokenId> --full                  — load complete CML with full CORTEX (use before SLEEP)');
   console.log('  claw cml-recall <tokenId> <id1,id2,...>         — recall full vivid memories by ID');
   console.log('  claw cml-match <tokenId> <message>              — match message against triggers');
   console.log('  claw cml-save <tokenId> [pin]                   — save CML from stdin and optionally sync root');
