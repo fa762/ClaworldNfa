@@ -1,7 +1,7 @@
 'use client';
 
 import { useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther, type Address, zeroAddress } from 'viem';
+import { parseEther, maxUint256, type Address, zeroAddress } from 'viem';
 import { ClawNFAABI } from '../abis/ClawNFA';
 import { ClawRouterABI } from '../abis/ClawRouter';
 import { DepositRouterABI } from '../abis/DepositRouter';
@@ -29,12 +29,12 @@ export function useFundBNB() {
 export function useDepositCLW() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
 
-  function approveCLW(amount: string) {
+  function approveCLW() {
     writeContract({
       address: addresses.clwToken,
       abi: ERC20ABI,
       functionName: 'approve',
-      args: [addresses.clawRouter, parseEther(amount)],
+      args: [addresses.clawRouter, maxUint256],
     });
   }
 
@@ -50,6 +50,19 @@ export function useDepositCLW() {
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   return { approveCLW, depositCLW, isPending, isConfirming, isSuccess, hash, error };
+}
+
+export function useCLWBalance(owner: Address | undefined) {
+  return useReadContract({
+    address: addresses.clwToken,
+    abi: ERC20ABI,
+    functionName: 'balanceOf',
+    args: owner ? [owner] : undefined,
+    query: {
+      enabled: !!owner,
+      refetchInterval: 3000,
+    },
+  });
 }
 
 export function useCLWAllowance(owner: Address | undefined) {

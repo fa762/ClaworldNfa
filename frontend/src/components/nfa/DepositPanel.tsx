@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
-import { useFundBNB, useDepositCLW, useBuyAndDeposit, useCLWAllowance } from '@/contracts/hooks/useDeposit';
-import { parseEther } from 'viem';
+import { useFundBNB, useDepositCLW, useBuyAndDeposit, useCLWAllowance, useCLWBalance } from '@/contracts/hooks/useDeposit';
+import { formatEther, parseEther } from 'viem';
 import { getBscScanTxUrl } from '@/contracts/addresses';
 import { TerminalBox } from '@/components/terminal/TerminalBox';
 import { nativeSymbol } from '@/lib/format';
@@ -24,6 +24,7 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
   const depositCLW = useDepositCLW();
   const buyAndDeposit = useBuyAndDeposit();
   const { data: allowance } = useCLWAllowance(address);
+  const { data: clwBalance } = useCLWBalance(address);
 
   if (!isConnected) {
     return (
@@ -44,6 +45,7 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
     !!amount &&
     Number(amount) > 0 &&
     (allowance === undefined || allowance < parseEther(amount));
+  const hasEnoughClw = !amount || !clwBalance || parseEther(amount) <= clwBalance;
 
   const tabs: { key: Tab; label: string; disabled?: boolean }[] = [
     { key: 'bnb', label: nativeSymbol },
@@ -58,7 +60,7 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
       case 'bnb': fundBNB.fundAgent(tokenId, amount); break;
       case 'clw':
         if (allowance === undefined || allowance < parseEther(amount)) {
-          depositCLW.approveCLW(amount);
+          depositCLW.approveCLW();
         } else {
           depositCLW.depositCLW(tokenId, amount);
         }
@@ -122,7 +124,7 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
           />
           <button
             onClick={handleSubmit}
-            disabled={isPending || isConfirming || !amount}
+            disabled={isPending || isConfirming || !amount || (tab === 'clw' && !hasEnoughClw)}
             className="term-btn term-btn-primary text-sm"
           >
             [{isPending
@@ -139,13 +141,19 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
         {tab === 'clw' && amount && Number(amount) > 0 && (
           <div className="space-y-1">
             {allowance !== undefined && parseEther(amount) > allowance && (
-              <div className="term-warn text-xs">{t('deposit.needApprove')}</div>
-            )}
-            {needsClwApproval && (
-              <div className="term-dim text-xs">{t('deposit.approveHint')}</div>
-            )}
-          </div>
-        )}
+                <div className="term-warn text-xs">{t('deposit.needApprove')}</div>
+              )}
+              {needsClwApproval && (
+                <div className="term-dim text-xs">{t('deposit.approveHint')}</div>
+              )}
+              {clwBalance !== undefined && (
+                <div className="term-dim text-xs">{t('deposit.balance')}: {Number(formatEther(clwBalance)).toFixed(2)} Clawworld</div>
+              )}
+              {!hasEnoughClw && (
+                <div className="term-danger text-xs">{t('deposit.insufficientClw')}</div>
+              )}
+            </div>
+          )}
 
         {tab === 'quick' && !buyAndDeposit.routeReady && (
           <div className="term-warn text-xs">{t('deposit.quickUnavailable')}</div>
