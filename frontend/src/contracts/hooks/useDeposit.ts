@@ -44,6 +44,7 @@ export function useDepositCLW() {
       abi: ClawRouterABI,
       functionName: 'depositCLW',
       args: [tokenId, parseEther(amount)],
+      gas: 180000n,
     });
   }
 
