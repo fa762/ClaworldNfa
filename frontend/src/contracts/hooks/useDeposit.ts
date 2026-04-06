@@ -1,7 +1,7 @@
 'use client';
 
 import { useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther, type Address, zeroAddress, maxUint256 } from 'viem';
+import { parseEther, type Address, zeroAddress } from 'viem';
 import { ClawNFAABI } from '../abis/ClawNFA';
 import { ClawRouterABI } from '../abis/ClawRouter';
 import { DepositRouterABI } from '../abis/DepositRouter';
@@ -34,7 +34,7 @@ export function useDepositCLW() {
       address: addresses.clwToken,
       abi: ERC20ABI,
       functionName: 'approve',
-      args: [addresses.clawRouter, maxUint256],
+      args: [addresses.clawRouter, parseEther(amount)],
     });
   }
 
@@ -58,7 +58,10 @@ export function useCLWAllowance(owner: Address | undefined) {
     abi: ERC20ABI,
     functionName: 'allowance',
     args: owner ? [owner, addresses.clawRouter] : undefined,
-    query: { enabled: !!owner },
+    query: {
+      enabled: !!owner,
+      refetchInterval: 3000,
+    },
   });
 }
 

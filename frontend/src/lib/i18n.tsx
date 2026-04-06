@@ -212,6 +212,7 @@ const translations: Record<string, Record<Lang, string>> = {
   'deposit.approve': { zh: '授权 Claworld', en: 'Approve Claworld' },
   'deposit.confirm': { zh: '确认充值', en: 'Confirm Deposit' },
   'deposit.needApprove': { zh: '[!] 需要先授权 Claworld，将弹出两次交易', en: '[!] Claworld approval required, two transactions will be prompted' },
+  'deposit.approveHint': { zh: '[!] 首次充 Claworld 会先弹出授权交易。有些钱包会把这一步显示成“第三方合约 / 未解析资产变动”。先确认授权，再点一次充值即可。', en: '[!] The first Claworld deposit opens an approval transaction. Some wallets describe it as a third-party contract or unparsed asset change. Approve first, then click deposit again.' },
   'deposit.viewTx': { zh: '查看交易 →', en: 'View Transaction →' },
   'deposit.pendingGrad': { zh: '(待毕业)', en: '(pending graduation)' },
   'deposit.unavailable': { zh: '(未启用)', en: '(unavailable)' },

@@ -136,8 +136,15 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
         </div>
 
         {/* Warnings */}
-        {tab === 'clw' && allowance !== undefined && amount && parseEther(amount) > allowance && (
-          <div className="term-warn text-xs">{t('deposit.needApprove')}</div>
+        {tab === 'clw' && amount && Number(amount) > 0 && (
+          <div className="space-y-1">
+            {allowance !== undefined && parseEther(amount) > allowance && (
+              <div className="term-warn text-xs">{t('deposit.needApprove')}</div>
+            )}
+            {needsClwApproval && (
+              <div className="term-dim text-xs">{t('deposit.approveHint')}</div>
+            )}
+          </div>
         )}
 
         {tab === 'quick' && !buyAndDeposit.routeReady && (
