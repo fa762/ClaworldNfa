@@ -2,6 +2,7 @@
 
 import { useReadContract } from 'wagmi';
 import { ClawRouterABI } from '../abis/ClawRouter';
+import { DepositRouterABI } from '../abis/DepositRouter';
 import { addresses } from '../addresses';
 import { zeroAddress } from 'viem';
 
@@ -10,7 +11,13 @@ const routerContract = {
   abi: ClawRouterABI,
 } as const;
 
+const depositRouterContract = {
+  address: addresses.depositRouter,
+  abi: DepositRouterABI,
+} as const;
+
 const isDeployed = !!addresses.clawRouter && addresses.clawRouter !== zeroAddress;
+const isDepositRouterDeployed = !!addresses.depositRouter && addresses.depositRouter !== zeroAddress;
 
 export function useLobsterState(tokenId: bigint | undefined) {
   return useReadContract({
@@ -59,8 +66,8 @@ export function useIsActive(tokenId: bigint | undefined) {
 
 export function useGraduated() {
   return useReadContract({
-    ...routerContract,
+    ...depositRouterContract,
     functionName: 'graduated',
-    query: { enabled: isDeployed },
+    query: { enabled: isDepositRouterDeployed },
   });
 }

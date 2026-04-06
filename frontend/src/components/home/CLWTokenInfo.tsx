@@ -86,14 +86,15 @@ export function CLWTokenInfo() {
     ? `https://pancakeswap.finance/swap?outputCurrency=${CLW_TOKEN_ADDRESS}`
     : `https://flap.sh/bnb/${CLW_TOKEN_ADDRESS}`;
 
+  const headline = priceDisplay !== '--' ? priceDisplay : t('token.viewPrice');
+
   return (
     <div className="term-box" data-title={t('token.title')}>
       <div className="flex flex-col justify-between h-full">
         <div>
-          {/* Price — link to Flap for real-time bonding curve price */}
-          <a href={`https://flap.sh/bnb/${CLW_TOKEN_ADDRESS}`} target="_blank" rel="noopener noreferrer" className="block hover:opacity-80">
+          <a href={purchaseLink} target="_blank" rel="noopener noreferrer" className="block hover:opacity-80">
             <div className="text-2xl sm:text-3xl font-extrabold tracking-tighter mb-1 glow-strong term-link">
-              {t('token.viewPrice')}
+              {headline}
             </div>
           </a>
           <div className="text-[8px] opacity-30 break-all">

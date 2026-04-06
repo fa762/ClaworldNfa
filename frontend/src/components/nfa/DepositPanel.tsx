@@ -35,16 +35,21 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
     );
   }
 
+  const isPending = fundBNB.isPending || depositCLW.isPending || buyAndDeposit.isPending;
+  const isConfirming = fundBNB.isConfirming || depositCLW.isConfirming || buyAndDeposit.isConfirming;
+  const hash = fundBNB.hash || depositCLW.hash || buyAndDeposit.hash;
+  const quickAmounts = tab === 'clw' ? QUICK_CLW : QUICK_BNB;
+  const needsClwApproval =
+    tab === 'clw' &&
+    !!amount &&
+    Number(amount) > 0 &&
+    (allowance === undefined || allowance < parseEther(amount));
+
   const tabs: { key: Tab; label: string; disabled?: boolean }[] = [
     { key: 'bnb', label: nativeSymbol },
     { key: 'clw', label: 'Claworld' },
     { key: 'quick', label: `${nativeSymbol}?Claworld`, disabled: !buyAndDeposit.routeReady },
   ];
-
-  const isPending = fundBNB.isPending || depositCLW.isPending || buyAndDeposit.isPending;
-  const isConfirming = fundBNB.isConfirming || depositCLW.isConfirming || buyAndDeposit.isConfirming;
-  const hash = fundBNB.hash || depositCLW.hash || buyAndDeposit.hash;
-  const quickAmounts = tab === 'clw' ? QUICK_CLW : QUICK_BNB;
 
   function handleSubmit() {
     const num = Number(amount);
@@ -52,7 +57,7 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
     switch (tab) {
       case 'bnb': fundBNB.fundAgent(tokenId, amount); break;
       case 'clw':
-        if (allowance !== undefined && allowance < parseEther(amount)) {
+        if (allowance === undefined || allowance < parseEther(amount)) {
           depositCLW.approveCLW(amount);
         } else {
           depositCLW.depositCLW(tokenId, amount);
@@ -120,7 +125,13 @@ export function DepositPanel({ tokenId }: { tokenId: bigint }) {
             disabled={isPending || isConfirming || !amount}
             className="term-btn term-btn-primary text-sm"
           >
-            [{isPending ? t('deposit.signing') : isConfirming ? t('deposit.confirming') : t('deposit.confirm')}]
+            [{isPending
+              ? t('deposit.signing')
+              : isConfirming
+              ? t('deposit.confirming')
+              : needsClwApproval
+              ? t('deposit.approve')
+              : t('deposit.confirm')}]
           </button>
         </div>
 

@@ -47,7 +47,7 @@ const translations: Record<string, Record<Lang, string>> = {
   'token.copied': { zh: '已复制', en: 'COPIED' },
   'token.supply': { zh: '总供应量', en: 'Total Supply' },
   'token.contract': { zh: '合约', en: 'Contract' },
-  'token.viewPrice': { zh: '等待毕业', en: 'AWAITING GRADUATION' },
+  'token.viewPrice': { zh: '查看价格', en: 'VIEW PRICE' },
 
   // ─── Core Systems ───
   'core.title': { zh: '核心系统', en: 'CORE SYSTEMS' },
@@ -209,6 +209,7 @@ const translations: Record<string, Record<Lang, string>> = {
   'deposit.bnbAmount': { zh: ' 数量', en: ' amount' },
   'deposit.signing': { zh: '签名...', en: 'Signing...' },
   'deposit.confirming': { zh: '确认中...', en: 'Confirming...' },
+  'deposit.approve': { zh: '授权 Claworld', en: 'Approve Claworld' },
   'deposit.confirm': { zh: '确认充值', en: 'Confirm Deposit' },
   'deposit.needApprove': { zh: '[!] 需要先授权 Claworld，将弹出两次交易', en: '[!] Claworld approval required, two transactions will be prompted' },
   'deposit.viewTx': { zh: '查看交易 →', en: 'View Transaction →' },
