@@ -172,7 +172,8 @@ contract GenesisVault is
     function commit(bytes32 hash) external payable nonReentrant {
         require(mintingActive, "Minting not active");
         require(mintedCount < TOTAL_GENESIS, "Genesis sold out");
-        require(commitments[msg.sender].hash == bytes32(0), "Already committed");
+        Commitment memory previous = commitments[msg.sender];
+        require(previous.hash == bytes32(0) || previous.revealed, "Already committed");
         require(msg.value > 0, "Must send BNB");
 
         commitments[msg.sender] = Commitment({
@@ -218,6 +219,7 @@ contract GenesisVault is
         // Verify price
         uint256 price = _getPrice(rarity);
         require(c.value >= price, "Insufficient BNB");
+        uint256 committedValue = c.value;
 
         // Check rarity cap
         require(_checkRarityCap(rarity), "Rarity sold out");
@@ -228,7 +230,7 @@ contract GenesisVault is
         rarityMinted[rarity]++;
 
         // Refund excess
-        uint256 excess = c.value - price;
+        uint256 excess = committedValue - price;
 
         // Generate random attributes
         bytes32 seed = keccak256(abi.encodePacked(
@@ -297,6 +299,9 @@ contract GenesisVault is
                 emit RefundPending(msg.sender, excess);
             }
         }
+
+        // Clear revealed commitment so the same wallet can mint again.
+        delete commitments[msg.sender];
     }
 
     /**
