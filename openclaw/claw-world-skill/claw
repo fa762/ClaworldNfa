@@ -813,11 +813,40 @@ async function cmdBoot() {
         var ts = await task.getTaskStats(i).catch(function() { return [0,0,0,0,0,0,0]; });
         var ps = await pk.getPkStats(i).catch(function() { return [0,0,0,0]; });
 
-        // Check soul file
+        // Check CML file (new system)
+        var cmlData = loadCML(i);
+        var hasCML = !!cmlData;
+
+        // Auto-init CML if not exists (migrate from legacy or create fresh)
+        if (!hasCML) {
+          var soulExists = fs.existsSync(SOUL_DIR + '/nfa-' + i + '-soul.md');
+          var memExists = fs.existsSync(SOUL_DIR + '/nfa-' + i + '-memory.md');
+          if (soulExists || memExists) {
+            cmlData = migrateLegacyToCML(i, s);
+          } else {
+            cmlData = initCMLFromChain(i, s);
+          }
+          saveCMLFile(i, cmlData);
+          hasCML = true;
+        }
+
+        // CML boot data (lightweight)
+        var cmlLi = (cmlData && cmlData.PULSE) ? cmlData.PULSE.last_interaction || 0 : 0;
+        var cmlHoursSince = cmlLi > 0 ? (Date.now() / 1000 - cmlLi) / 3600 : 999;
+        var cmlLonging = cmlHoursSince < 8 ? 0 : cmlHoursSince < 24 ? 0.2 : cmlHoursSince < 48 ? 0.5 : cmlHoursSince < 72 ? 0.8 : 1.0;
+        var cmlBoot = cmlData ? {
+          identity: cmlData.IDENTITY,
+          pulse: { valence: cmlData.PULSE.valence, arousal: cmlData.PULSE.arousal, longing: cmlLonging },
+          prefrontal: cmlData.PREFRONTAL,
+          basal: cmlData.BASAL,
+          triggerIndex: cmlData.CORTEX.vivid.map(function(m) { return { id: m.id, triggers: m.triggers }; }),
+          sedimentSummary: (cmlData.CORTEX.sediment || []).slice(0, 5)
+        } : null;
+
+        // Legacy soul/memory (kept for backwards compat)
         var soulPath = SOUL_DIR + '/nfa-' + i + '-soul.md';
         var hasSoul = fs.existsSync(soulPath);
 
-        // Check memory file
         var memPath = SOUL_DIR + '/nfa-' + i + '-memory.md';
         var hasMemory = fs.existsSync(memPath);
         var recentMemories = [];
@@ -829,7 +858,6 @@ async function cmdBoot() {
           } catch {}
         }
 
-        // Soul content
         var soulContent = hasSoul ? fs.readFileSync(soulPath, 'utf8') : null;
 
         // Calculate hours since last activity
@@ -859,6 +887,8 @@ async function cmdBoot() {
             clwLost: parseFloat(ethers.utils.formatEther(ps[3] || 0))
           },
           hoursSinceActivity,
+          hasCML,
+          cml: cmlBoot,
           hasSoul,
           soulContent,
           hasMemory,
@@ -868,10 +898,12 @@ async function cmdBoot() {
     } catch {}
   }
 
-  // 3. Determine emotion trigger
+  // 3. Determine emotion trigger (prefer CML PULSE data)
   var emotionHint = 'DAILY_GREETING';
   if (ownedNFAs.length > 0) {
-    var hours = ownedNFAs[0].hoursSinceActivity;
+    var firstNFA = ownedNFAs[0];
+    var cmlPulseHours = firstNFA.cml ? (Date.now() / 1000 - (firstNFA.cml.pulse.last_interaction || 0)) / 3600 : null;
+    var hours = cmlPulseHours !== null ? cmlPulseHours : firstNFA.hoursSinceActivity;
     if (hours >= 48) emotionHint = 'MISS_YOU';
     else if (hours >= 8) emotionHint = 'DREAM';
   }
@@ -1052,12 +1084,314 @@ async function cmdRank(nfaId) {
   }, null, 2));
 }
 
+// ─── CML Commands ───
+
+const CML_DIR = home + '/.openclaw/claw-world';
+const CML_ARCHIVE_DIR = CML_DIR + '/archive';
+const CML_PENDING_SYNC_DIR = CML_DIR + '/pending-sync';
+
+function getCMLPath(nfaId) {
+  return CML_DIR + '/nfa-' + nfaId + '.cml';
+}
+
+function loadCML(nfaId) {
+  var p = getCMLPath(nfaId);
+  if (!fs.existsSync(p)) return null;
+  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; }
+}
+
+function saveCMLFile(nfaId, cml) {
+  fs.mkdirSync(CML_DIR, { recursive: true });
+  var content = JSON.stringify(cml, null, 2);
+  var hash = crypto.createHash('sha256').update(content).digest('hex');
+  fs.writeFileSync(getCMLPath(nfaId), content, 'utf8');
+  var archiveDir = CML_ARCHIVE_DIR + '/nfa-' + nfaId;
+  fs.mkdirSync(archiveDir, { recursive: true });
+  var ts = new Date().toISOString().replace(/[:.]/g, '-');
+  fs.writeFileSync(archiveDir + '/' + ts + '-' + hash.slice(0, 12) + '.cml', content, 'utf8');
+  return hash;
+}
+
+function queueRootSync(nfaId, hash) {
+  fs.mkdirSync(CML_PENDING_SYNC_DIR, { recursive: true });
+  fs.writeFileSync(CML_PENDING_SYNC_DIR + '/nfa-' + nfaId + '.json', JSON.stringify({
+    nfa_id: Number(nfaId),
+    hash: hash,
+    updatedAt: Date.now()
+  }, null, 2), 'utf8');
+}
+
+function clearPendingRootSync(nfaId) {
+  var p = CML_PENDING_SYNC_DIR + '/nfa-' + nfaId + '.json';
+  if (fs.existsSync(p)) fs.unlinkSync(p);
+}
+
+async function updateLearningRoot(pin, tokenId, hash) {
+  if (!pin) return { synced: false, reason: 'NO_PIN' };
+  var wallet = new ethers.Wallet(decryptKey(pin), provider);
+  var nfaContract = new ethers.Contract(CONTRACTS.nfa, [
+    'function ownerOf(uint256) view returns (address)',
+    'function updateLearningTreeByOwner(uint256,bytes32)'
+  ], wallet);
+
+  var owner = await nfaContract.ownerOf(tokenId);
+  if (owner.toLowerCase() !== wallet.address.toLowerCase()) {
+    return { synced: false, reason: 'NOT_OWNER' };
+  }
+
+  var tx = await nfaContract.updateLearningTreeByOwner(tokenId, '0x' + hash, { gasLimit: 150000 });
+  await tx.wait();
+  clearPendingRootSync(tokenId);
+  return { synced: true, txHash: tx.hash };
+}
+
+function extractKeywords(text) {
+  var keywords = [];
+  var patterns = ['PK','任务','智慧','勇气','社交','创造','毅力','全攻','全防','均衡','变异','基因','市场','升级','休眠','Claworld','SHELTER','废土','赢','输','梦','想念'];
+  for (var i = 0; i < patterns.length; i++) {
+    if (text.indexOf(patterns[i]) >= 0 || text.toLowerCase().indexOf(patterns[i].toLowerCase()) >= 0) {
+      keywords.push(patterns[i]);
+    }
+  }
+  return keywords.slice(0, 6);
+}
+
+var SHELTER_CULTURES = {
+  'SHELTER-01': '科研至上，理性精确，偶尔冷幽默',
+  'SHELTER-02': '军事纪律，直接简短，不废话',
+  'SHELTER-03': '信仰共同体，沉静寓言式，引用格言',
+  'SHELTER-04': '纯粹市场，算成本谈收益，交易语言',
+  'SHELTER-05': '全透明社会，坦诚数据化，反思式',
+  'SHELTER-06': '儿童庇护所，天真但锐利，不信大人',
+  '废土': '无人区，沉默寡言，说话像刀子'
+};
+
+function initCMLFromChain(nfaId, s) {
+  var rNames = ['Common','Rare','Epic','Legendary','Mythic'];
+  var shelterName = s.shelter <= 5 ? 'SHELTER-0' + (s.shelter + 1) : s.shelter === 6 ? '废土' : 'SHELTER-0' + s.shelter;
+  var culture = SHELTER_CULTURES[shelterName] || '';
+  var today = new Date().toISOString().slice(0, 10);
+
+  var traits = [
+    { name: '勇气', key: 'courage', val: s.courage },
+    { name: '智慧', key: 'wisdom', val: s.wisdom },
+    { name: '社交', key: 'social', val: s.social },
+    { name: '创造', key: 'create', val: s.create },
+    { name: '毅力', key: 'grit', val: s.grit }
+  ].sort(function(a, b) { return b.val - a.val; });
+
+  var voiceMap = { '勇气': '大胆直率', '智慧': '冷静精确', '社交': '热情开朗', '创造': '天马行空', '毅力': '沉稳简练' };
+  var voice = (voiceMap[traits[0].name] || '平和') + '，' + (culture.split('，')[0] || '');
+
+  return {
+    version: 3,
+    nfa_id: nfaId,
+    created: today,
+    IDENTITY: {
+      name: '',
+      born: shelterName,
+      rarity: rNames[s.rarity] || 'Common',
+      activated: today,
+      voice: voice,
+      soul: ''
+    },
+    PULSE: {
+      valence: 0.0,
+      arousal: 0.3,
+      longing: 0.0,
+      last_interaction: Math.floor(Date.now() / 1000)
+    },
+    PREFRONTAL: { beliefs: [], values: [] },
+    CORTEX: { vivid: [], sediment: [] },
+    BASAL: {
+      greeting_style: culture.split('，').slice(0, 2).join('，') || '平和',
+      preferred_tasks: [traits[0].key],
+      pk_tendency: s.courage >= 70 ? 'aggressive' : s.grit >= 70 ? 'defensive' : 'balanced',
+      speech_length: s.social >= 70 ? 'medium' : 'short'
+    }
+  };
+}
+
+function migrateLegacyToCML(nfaId, s) {
+  var cml = initCMLFromChain(nfaId, s);
+
+  // Migrate soul file
+  var soulPath = CML_DIR + '/nfa-' + nfaId + '-soul.md';
+  if (fs.existsSync(soulPath)) {
+    var soulContent = fs.readFileSync(soulPath, 'utf8');
+    var nameMatch = soulContent.match(/# NFA #\d+ — (.+)/);
+    if (nameMatch) cml.IDENTITY.name = nameMatch[1].trim();
+    var soulMatch = soulContent.match(/## Soul\n([\s\S]*?)$/);
+    if (soulMatch) cml.IDENTITY.soul = soulMatch[1].trim();
+  }
+
+  // Migrate memory file
+  var memPath = CML_DIR + '/nfa-' + nfaId + '-memory.md';
+  if (fs.existsSync(memPath)) {
+    var memContent = fs.readFileSync(memPath, 'utf8');
+    var entries = memContent.split(/^## /m).filter(Boolean);
+    entries.forEach(function(entry, i) {
+      var lines = entry.trim().split('\n');
+      var date = (lines[0] || '').trim() || new Date().toISOString().slice(0, 10);
+      var content = lines.slice(1).map(function(l) { return l.replace(/^- /, '').trim(); }).join(' ');
+      if (content) {
+        cml.CORTEX.vivid.push({
+          id: i + 1,
+          date: date,
+          weight: Math.max(0.3, 1.0 - i * 0.07),
+          triggers: extractKeywords(content),
+          content: content
+        });
+      }
+    });
+    if (cml.CORTEX.vivid.length > 30) {
+      var overflow = cml.CORTEX.vivid.splice(30);
+      overflow.forEach(function(m) { cml.CORTEX.sediment.push(m.content); });
+    }
+  }
+
+  return cml;
+}
+
+async function cmdCmlInit(tokenId) {
+  var router = new ethers.Contract(CONTRACTS.router, [
+    'function getLobsterState(uint256) view returns (tuple(uint8 rarity, uint8 shelter, uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit, uint8 str, uint8 def, uint8 spd, uint8 vit, bytes32 mutation1, bytes32 mutation2, uint16 level, uint32 xp, uint40 lastUpkeep))'
+  ], provider);
+
+  var s = await router.getLobsterState(tokenId);
+  var existing = loadCML(tokenId);
+
+  if (existing) {
+    console.log(JSON.stringify({ status: 'EXISTS', nfa_id: tokenId, path: getCMLPath(tokenId) }));
+    return;
+  }
+
+  // Check for legacy files to migrate
+  var soulPath = CML_DIR + '/nfa-' + tokenId + '-soul.md';
+  var memPath = CML_DIR + '/nfa-' + tokenId + '-memory.md';
+  var hasLegacy = fs.existsSync(soulPath) || fs.existsSync(memPath);
+
+  var cml;
+  if (hasLegacy) {
+    cml = migrateLegacyToCML(Number(tokenId), s);
+    console.log('MIGRATED_LEGACY');
+  } else {
+    cml = initCMLFromChain(Number(tokenId), s);
+  }
+
+  var hash = saveCMLFile(Number(tokenId), cml);
+  console.log(JSON.stringify({ status: 'CREATED', nfa_id: Number(tokenId), hash: hash, migrated: hasLegacy, path: getCMLPath(tokenId) }));
+}
+
+async function cmdCmlLoad(tokenId) {
+  var cml = loadCML(Number(tokenId));
+  if (!cml) {
+    console.log(JSON.stringify({ status: 'NOT_FOUND', nfa_id: Number(tokenId) }));
+    return;
+  }
+
+  // Calculate longing
+  var li = cml.PULSE.last_interaction || 0;
+  var hoursSince = li > 0 ? (Date.now() / 1000 - li) / 3600 : 999;
+  var longing = hoursSince < 8 ? 0 : hoursSince < 24 ? 0.2 : hoursSince < 48 ? 0.5 : hoursSince < 72 ? 0.8 : 1.0;
+  var emotionTrigger = hoursSince >= 48 ? 'MISS_YOU' : hoursSince >= 8 ? 'DREAM' : 'DAILY_GREETING';
+
+  // Output boot data (lightweight — no full vivid content, only trigger index)
+  console.log(JSON.stringify({
+    status: 'OK',
+    nfa_id: cml.nfa_id,
+    identity: cml.IDENTITY,
+    pulse: { valence: cml.PULSE.valence, arousal: cml.PULSE.arousal, longing: longing, last_interaction: cml.PULSE.last_interaction },
+    prefrontal: cml.PREFRONTAL,
+    basal: cml.BASAL,
+    triggerIndex: cml.CORTEX.vivid.map(function(m) { return { id: m.id, triggers: m.triggers }; }),
+    sedimentSummary: cml.CORTEX.sediment.slice(0, 5),
+    emotionTrigger: emotionTrigger,
+    hoursSinceActivity: Math.floor(hoursSince)
+  }, null, 2));
+}
+
+async function cmdCmlRecall(tokenId, memoryIds) {
+  var cml = loadCML(Number(tokenId));
+  if (!cml) {
+    console.log(JSON.stringify({ status: 'NOT_FOUND' }));
+    return;
+  }
+
+  var ids = memoryIds.split(',').map(Number);
+  var recalled = cml.CORTEX.vivid.filter(function(m) { return ids.indexOf(m.id) >= 0; });
+  console.log(JSON.stringify({ status: 'OK', memories: recalled }, null, 2));
+}
+
+async function cmdCmlMatch(tokenId, message) {
+  var cml = loadCML(Number(tokenId));
+  if (!cml) {
+    console.log(JSON.stringify({ status: 'NOT_FOUND', matched: [] }));
+    return;
+  }
+
+  var msg = message.toLowerCase();
+  var matched = [];
+  for (var i = 0; i < cml.CORTEX.vivid.length; i++) {
+    var mem = cml.CORTEX.vivid[i];
+    for (var j = 0; j < mem.triggers.length; j++) {
+      if (msg.indexOf(mem.triggers[j].toLowerCase()) >= 0) {
+        matched.push(mem);
+        break;
+      }
+    }
+  }
+  matched.sort(function(a, b) { return b.weight - a.weight; });
+  matched = matched.slice(0, 3);
+  console.log(JSON.stringify({ status: 'OK', matched: matched }, null, 2));
+}
+
+async function cmdCmlSave(tokenId, pin) {
+  // Read JSON from stdin
+  var chunks = [];
+  process.stdin.setEncoding('utf8');
+  await new Promise(function(resolve) {
+    process.stdin.on('data', function(chunk) { chunks.push(chunk); });
+    process.stdin.on('end', resolve);
+  });
+  var raw = chunks.join('');
+
+  // Extract JSON from possible code block
+  var codeMatch = raw.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  var jsonStr = codeMatch ? codeMatch[1] : raw.trim();
+
+  try {
+    var cml = JSON.parse(jsonStr);
+    if (cml.version !== 3) throw new Error('Invalid CML version');
+    if (!cml.IDENTITY || !cml.PULSE || !cml.CORTEX) throw new Error('Missing required CML sections');
+
+    // Enforce vivid cap
+    if (cml.CORTEX.vivid && cml.CORTEX.vivid.length > 30) {
+      cml.CORTEX.vivid.sort(function(a, b) { return b.weight - a.weight; });
+      cml.CORTEX.vivid = cml.CORTEX.vivid.slice(0, 30);
+    }
+
+    var hash = saveCMLFile(Number(tokenId), cml);
+    var syncResult = await updateLearningRoot(pin, Number(tokenId), hash).catch(function() { return { synced: false, reason: 'SYNC_FAILED' }; });
+    if (!syncResult.synced) queueRootSync(Number(tokenId), hash);
+    console.log(JSON.stringify({ status: 'SAVED', nfa_id: Number(tokenId), hash: hash, rootSynced: !!syncResult.synced, txHash: syncResult.txHash || null, pendingReason: syncResult.reason || null }));
+  } catch (e) {
+    console.error('CML_PARSE_ERROR: ' + e.message);
+    process.exit(1);
+  }
+}
+
 // ─── Main ───
 
 const [,, cmd, ...args] = process.argv;
 
 const commands = {
   boot:         () => cmdBoot(),
+  'cml-init':   () => cmdCmlInit(args[0]),
+  'cml-load':   () => cmdCmlLoad(args[0]),
+  'cml-recall': () => cmdCmlRecall(args[0], args[1]),
+  'cml-match':  () => cmdCmlMatch(args[0], args.slice(1).join(' ')),
+  'cml-save':   () => cmdCmlSave(args[0], args[1]),
   status:       () => cmdStatus(args[0]),
   deposit:      () => cmdDeposit(args[0], args[1], args[2]),
   'fund-bnb':   () => cmdFundBnb(args[0], args[1], args[2]),
@@ -1124,6 +1458,12 @@ if (!cmd || !commands[cmd]) {
   console.log('  claw leaderboard [metric]                       — top 10 (xp/clw/level/tasks/earned/pk/dna)');
   console.log('  claw rank <nfa>                                 — NFA ranking across all metrics');
   console.log('  claw supply                                     — total minted count');
+  console.log('  --- CML Memory System ---');
+  console.log('  claw cml-init <tokenId>                         — init/migrate CML file');
+  console.log('  claw cml-load <tokenId>                         — load CML boot data (lightweight)');
+  console.log('  claw cml-recall <tokenId> <id1,id2,...>         — recall full vivid memories by ID');
+  console.log('  claw cml-match <tokenId> <message>              — match message against triggers');
+  console.log('  claw cml-save <tokenId> [pin]                   — save CML from stdin and optionally sync root');
   process.exit(1);
 }
 

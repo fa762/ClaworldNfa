@@ -35,11 +35,29 @@ import * as formatter from './formatter';
 import {
   buildLobsterSystemPrompt,
   handleDialogue,
+  handleCMLDialogue,
   buildTaskGenerationPrompt,
   buildStrategyAdvicePrompt,
   buildBattleNarrativePrompt,
   buildPriceAdvicePrompt,
+  buildCMLSystemPrompt,
 } from './dialogue';
+import {
+  Hippocampus,
+  matchTriggers,
+  buildSleepPrompt,
+  parseSleepOutput,
+  saveCML,
+  loadCML,
+  hasCML,
+  initCML,
+  extractBootData,
+  queueRootSync,
+  getPendingRootSync,
+  clearPendingRootSync,
+  toBytes32Hash,
+} from './cml';
+import type { CMLFile, CMLBootData, CMLVividMemory, HippocampusEntry } from './cml';
 import { ethers } from 'ethers';
 
 // ============================================
@@ -62,8 +80,21 @@ export class ClawEngine {
   /** PK salt records for commit-reveal: matchId -> SaltRecord. */
   private saltRecords: Map<number, SaltRecord> = new Map();
 
+  /** Per-NFA CML state for memory-enhanced conversations. */
+  private cmlCache: Map<number, CMLFile> = new Map();
+
+  /** Per-NFA CML boot data (lightweight view). */
+  private cmlBootCache: Map<number, CMLBootData> = new Map();
+
+  /** Per-NFA HIPPOCAMPUS buffers for conversation memory. */
+  private hippocampi: Map<number, Hippocampus> = new Map();
+
+  /** Per-user active conversation tracking for auto sleep. */
+  private conversationSessions: Map<string, { nfaId: number; lastAt: number }> = new Map();
+
   /** Maximum chat history entries per NFA. */
   private static readonly MAX_HISTORY = 20;
+  private static readonly SLEEP_IDLE_MS = 5 * 60 * 1000;
 
   constructor(
     client: GameContractClient,
@@ -98,6 +129,8 @@ export class ClawEngine {
   ): Promise<GameResponse> {
     try {
       const cmd = parseCommand(input, sender, defaultNfaId);
+
+      await this.maybeSleepConversation(sender, cmd?.nfaId, !!cmd);
 
       if (!cmd) {
         // Not a command -> AI dialogue
@@ -793,6 +826,147 @@ export class ClawEngine {
   }
 
   // ============================================
+  // CML MEMORY SYSTEM
+  // ============================================
+
+  /**
+   * Load CML for an NFA. Call this at conversation start (after boot).
+   * Returns the boot data for system prompt injection.
+   */
+  loadNFACML(nfaId: number): CMLBootData | null {
+    const cml = loadCML(nfaId);
+    if (!cml) return null;
+
+    this.cmlCache.set(nfaId, cml);
+    const bootData = extractBootData(cml);
+    this.cmlBootCache.set(nfaId, bootData);
+
+    // Initialize HIPPOCAMPUS for this NFA
+    if (!this.hippocampi.has(nfaId)) {
+      this.hippocampi.set(nfaId, new Hippocampus());
+    }
+
+    return bootData;
+  }
+
+  async ensureNFACML(nfaId: number, state: LobsterState): Promise<CMLBootData | null> {
+    let cml = loadCML(nfaId);
+
+    if (!cml && !hasCML(nfaId)) {
+      cml = initCML(nfaId, {
+        rarity: state.rarity,
+        shelter: state.shelter,
+        personality: {
+          courage: state.courage,
+          wisdom: state.wisdom,
+          social: state.social,
+          create: state.create,
+          grit: state.grit,
+        },
+        level: state.level,
+      });
+      const hash = saveCML(nfaId, cml);
+      await this.syncLearningTree(nfaId, hash);
+    }
+
+    if (!cml) return null;
+
+    this.cmlCache.set(nfaId, cml);
+    const bootData = extractBootData(cml);
+    this.cmlBootCache.set(nfaId, bootData);
+    if (!this.hippocampi.has(nfaId)) this.hippocampi.set(nfaId, new Hippocampus());
+
+    const pending = getPendingRootSync(nfaId);
+    if (pending) {
+      await this.syncLearningTree(nfaId, pending.hash);
+    }
+
+    return bootData;
+  }
+
+  /**
+   * Match user message against CML triggers.
+   * Returns recalled vivid memories (max 3).
+   */
+  recallMemories(nfaId: number, userMessage: string): CMLVividMemory[] {
+    const cml = this.cmlCache.get(nfaId);
+    if (!cml) return [];
+    return matchTriggers(userMessage, cml);
+  }
+
+  /**
+   * Buffer a conversation snippet to HIPPOCAMPUS.
+   * Call this for meaningful exchanges during conversation.
+   */
+  bufferToHippocampus(nfaId: number, content: string): void {
+    let hippo = this.hippocampi.get(nfaId);
+    if (!hippo) {
+      hippo = new Hippocampus();
+      this.hippocampi.set(nfaId, hippo);
+    }
+    hippo.push(content);
+  }
+
+  /**
+   * Execute SLEEP: consolidate conversation memories into CML.
+   * Call this when conversation ends (window close, timeout, explicit).
+   * Returns the new CML hash.
+   */
+  async executeSleep(nfaId: number): Promise<{ hash: string; success: boolean }> {
+    const cml = this.cmlCache.get(nfaId);
+    const hippo = this.hippocampi.get(nfaId);
+
+    if (!cml || !hippo || hippo.length === 0) {
+      return { hash: '', success: false };
+    }
+
+    // Build SLEEP prompt and send to LLM
+    const sleepPrompt = buildSleepPrompt(cml, hippo.getAll());
+    const rawOutput = await this.ai.chat(sleepPrompt, '执行 SLEEP 记忆合并。', []);
+
+    // Parse LLM output into new CML
+    const newCML = parseSleepOutput(rawOutput);
+    if (!newCML) {
+      return { hash: '', success: false };
+    }
+
+    // Save to disk
+    const hash = saveCML(nfaId, newCML);
+
+    // Update caches
+    this.cmlCache.set(nfaId, newCML);
+    this.cmlBootCache.set(nfaId, extractBootData(newCML));
+
+    // Clear HIPPOCAMPUS
+    hippo.clear();
+
+    await this.syncLearningTree(nfaId, hash);
+
+    return { hash, success: true };
+  }
+
+  async closeConversation(sender: string): Promise<{ slept: boolean; hash?: string }> {
+    const session = this.conversationSessions.get(sender);
+    if (!session) return { slept: false };
+
+    const hippo = this.hippocampi.get(session.nfaId);
+    if (!hippo || hippo.length === 0) {
+      this.conversationSessions.delete(sender);
+      return { slept: false };
+    }
+
+    const result = await this.executeSleep(session.nfaId);
+    this.chatHistory.delete(session.nfaId);
+    this.conversationSessions.delete(sender);
+    return { slept: result.success, hash: result.hash };
+  }
+
+  /** Get HIPPOCAMPUS entries for an NFA (for inspection). */
+  getHippocampus(nfaId: number): HippocampusEntry[] {
+    return this.hippocampi.get(nfaId)?.getAll() || [];
+  }
+
+  // ============================================
   // AI DIALOGUE (NON-COMMAND)
   // ============================================
 
@@ -812,18 +986,46 @@ export class ClawEngine {
       this.client.getWorldState(),
     ]);
 
+    await this.ensureNFACML(nfaId, lobsterData.state);
+
     // Get or create chat history
     let history = this.chatHistory.get(nfaId) || [];
 
-    const response = await handleDialogue(
-      this.ai,
-      input,
-      nfaId,
-      lobsterData.state,
-      lobsterData.jobClass,
-      worldData.activeEvents,
-      history
-    );
+    // Try CML-enhanced dialogue first
+    const cmlBoot = this.cmlBootCache.get(nfaId);
+    let response: string;
+
+    if (cmlBoot) {
+      // Trigger matching: recall relevant memories
+      const recalled = this.recallMemories(nfaId, input);
+
+      response = await handleCMLDialogue(
+        this.ai,
+        input,
+        nfaId,
+        lobsterData.state,
+        lobsterData.jobClass,
+        worldData.activeEvents,
+        cmlBoot,
+        recalled,
+        history
+      );
+
+      // Buffer meaningful exchange to HIPPOCAMPUS
+      const snippet = `用户: ${input.slice(0, 100)} → 龙虾: ${response.slice(0, 100)}`;
+      this.bufferToHippocampus(nfaId, snippet);
+    } else {
+      // Fallback to basic dialogue
+      response = await handleDialogue(
+        this.ai,
+        input,
+        nfaId,
+        lobsterData.state,
+        lobsterData.jobClass,
+        worldData.activeEvents,
+        history
+      );
+    }
 
     // Update history
     history.push({ role: 'user', content: input });
@@ -835,6 +1037,31 @@ export class ClawEngine {
     }
     this.chatHistory.set(nfaId, history);
 
+    this.conversationSessions.set(sender, { nfaId, lastAt: Date.now() });
+
     return { text: response };
+  }
+
+  private async syncLearningTree(nfaId: number, hash: string): Promise<void> {
+    try {
+      await this.client.updateLearningTreeByOwner(nfaId, toBytes32Hash(hash));
+      clearPendingRootSync(nfaId);
+    } catch {
+      queueRootSync(nfaId, hash);
+    }
+  }
+
+  private async maybeSleepConversation(sender: string, incomingNfaId?: number, isCommand = false): Promise<void> {
+    const session = this.conversationSessions.get(sender);
+    if (!session) return;
+
+    const shouldSleep =
+      isCommand ||
+      (incomingNfaId !== undefined && incomingNfaId !== session.nfaId) ||
+      (Date.now() - session.lastAt > ClawEngine.SLEEP_IDLE_MS);
+
+    if (!shouldSleep) return;
+
+    await this.closeConversation(sender);
   }
 }

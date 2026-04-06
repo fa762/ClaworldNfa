@@ -29,6 +29,8 @@ const NFA_ABI = [
   'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
   'function setApprovalForAll(address operator, bool approved)',
   'function isApprovedForAll(address owner, address operator) view returns (bool)',
+  'function updateLearningTreeByOwner(uint256 tokenId, bytes32 newRoot)',
+  'function getLearningTree(uint256 tokenId) view returns (bytes32 root, uint256 version, uint256 lastUpdate)',
 ];
 
 const PK_ABI = [
@@ -120,6 +122,7 @@ export class GameContractClient {
   private worldState: ethers.Contract;
   private depositRouter: ethers.Contract;
   private clw: ethers.Contract;
+  private nfaWriter: ethers.Contract;
   private signer: ethers.Signer;
   private operatorSigner?: ethers.Signer; // for task completion + oracle fulfillment
   readonly addresses: ContractAddresses;
@@ -135,6 +138,7 @@ export class GameContractClient {
     this.operatorSigner = operatorSigner;
     this.router = new ethers.Contract(addresses.router, ROUTER_ABI, signer);
     this.nfa = new ethers.Contract(addresses.nfa, NFA_ABI, provider);
+    this.nfaWriter = new ethers.Contract(addresses.nfa, NFA_ABI, signer);
     this.pk = new ethers.Contract(addresses.pkSkill, PK_ABI, signer);
     this.task = new ethers.Contract(addresses.taskSkill, TASK_SKILL_ABI, operatorSigner || signer);
     this.market = new ethers.Contract(addresses.marketSkill, MARKET_SKILL_ABI, signer);
@@ -197,6 +201,15 @@ export class GameContractClient {
       ids.push(id.toNumber());
     }
     return ids;
+  }
+
+  async getLearningTree(nfaId: number): Promise<{ root: string; version: number; lastUpdate: number }> {
+    const [root, version, lastUpdate] = await this.nfa.getLearningTree(nfaId);
+    return {
+      root,
+      version: Number(version),
+      lastUpdate: Number(lastUpdate),
+    };
   }
 
   // ============================================
@@ -286,6 +299,12 @@ export class GameContractClient {
 
   async requestWithdraw(nfaId: number, amount: string): Promise<string> {
     const tx = await this.router.requestWithdrawCLW(nfaId, ethers.utils.parseEther(amount));
+    const receipt = await tx.wait();
+    return receipt.transactionHash;
+  }
+
+  async updateLearningTreeByOwner(nfaId: number, hash: string): Promise<string> {
+    const tx = await this.nfaWriter.updateLearningTreeByOwner(nfaId, hash);
     const receipt = await tx.wait();
     return receipt.transactionHash;
   }
