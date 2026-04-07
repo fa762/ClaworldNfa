@@ -150,9 +150,10 @@ export function formatTaskResult(
   clwReward: string,
   xpReward: number,
   personalityDelta: { dimension: number; delta: number } | null,
-  format: OutputFormat
+  format: OutputFormat,
+  lang: SkillLang = 'zh'
 ): GameResponse {
-  const dimNames = ['勇气', '智慧', '社交', '创造', '毅力'];
+  const dimNames = [t(lang, '勇气', 'Courage'), t(lang, '智慧', 'Wisdom'), t(lang, '社交', 'Social'), t(lang, '创造', 'Create'), t(lang, '毅力', 'Grit')];
   const deltaStr = personalityDelta
     ? `${dimNames[personalityDelta.dimension]} ${personalityDelta.delta > 0 ? '+' : ''}${personalityDelta.delta}`
     : '';
@@ -160,18 +161,18 @@ export function formatTaskResult(
   if (format === 'plain') {
     return {
       text: [
-        `=== 任务完成 ===`,
-        `龙虾 #${nfaId}`,
-        `奖励: ${clwReward} CLW + ${xpReward} XP`,
-        deltaStr ? `性格变化: ${deltaStr}` : '',
+        `=== ${t(lang, '任务完成', 'Task Complete')} ===`,
+        `${t(lang, '龙虾', 'Lobster')} #${nfaId}`,
+        `${t(lang, '奖励', 'Reward')}: ${clwReward} CLW + ${xpReward} XP`,
+        deltaStr ? `${t(lang, '性格变化', 'Trait Shift')}: ${deltaStr}` : '',
       ].filter(Boolean).join('\n'),
     };
   }
 
   return {
     text: [
-      `✅ **任务完成！**`,
-      `🦞 龙虾 #${nfaId}`,
+      `✅ **${t(lang, '任务完成', 'Task Complete')}!**`,
+      `🦞 ${t(lang, '龙虾', 'Lobster')} #${nfaId}`,
       `💰 +${clwReward} CLW | 📊 +${xpReward} XP`,
       deltaStr ? `🧬 ${deltaStr}` : '',
     ].filter(Boolean).join('\n'),
@@ -208,14 +209,14 @@ export function formatWorldState(
 
   return {
     text: [
-      `🌍 **世界状态**`,
-      `| 参数 | 值 |`,
+      `🌍 **${t(lang, '世界状态', 'World State')}**`,
+      `| ${t(lang, '参数', 'Metric')} | ${t(lang, '值', 'Value')} |`,
       `|------|-----|`,
-      `| 奖励倍率 | ${mul(rewardMul)} |`,
-      `| PK上限 | ${pkStakeLimit} CLW |`,
-      `| 变异倍率 | ${mul(mutationBonus)} |`,
-      `| 日常消耗 | ${mul(dailyCostMul)} |`,
-      activeEvents.length > 0 ? `\n🎭 **活跃事件:** ${activeEvents.join(', ')}` : '',
+      `| ${t(lang, '奖励倍率', 'Reward Multiplier')} | ${mul(rewardMul)} |`,
+      `| ${t(lang, 'PK上限', 'PK Limit')} | ${pkStakeLimit} CLW |`,
+      `| ${t(lang, '变异倍率', 'Mutation Multiplier')} | ${mul(mutationBonus)} |`,
+      `| ${t(lang, '日常消耗', 'Daily Cost')} | ${mul(dailyCostMul)} |`,
+      activeEvents.length > 0 ? `\n🎭 **${t(lang, '活跃事件', 'Active Events')}:** ${activeEvents.join(', ')}` : '',
     ].filter(Boolean).join('\n'),
   };
 }
@@ -273,44 +274,44 @@ export function formatTaskList(
   lang: SkillLang = 'zh'
 ): GameResponse {
   if (format === 'plain') {
-    const lines = [`=== 🦞 可接任务 (#${nfaId}) ===`];
-    tasks.forEach((t, i) => {
+    const lines = [`=== 🦞 ${t(lang, '可接任务', 'Available Tasks')} (#${nfaId}) ===`];
+    tasks.forEach((task, i) => {
       const mul = (matchScores[i] / 10000).toFixed(1);
       const bar = _bar(Math.min(matchScores[i] / 200, 100));
-      lines.push(`[${i + 1}] ${TASK_TYPE_ICONS[t.taskType]} ${t.title.padEnd(14)} 匹配: ${bar} ${mul}x   类型: ${getTaskTypeName(lang, t.taskType)}`);
-      lines.push(`    "${t.description}"`);
-      lines.push(`    奖励: ${t.baseCLW} CLW + ${t.baseXP} XP\n`);
+      lines.push(`[${i + 1}] ${TASK_TYPE_ICONS[task.taskType]} ${task.title.padEnd(14)} ${lang === 'zh' ? '匹配' : 'Match'}: ${bar} ${mul}x   ${lang === 'zh' ? '类型' : 'Type'}: ${getTaskTypeName(lang, task.taskType)}`);
+      lines.push(`    "${task.description}"`);
+      lines.push(`    ${lang === 'zh' ? '奖励' : 'Reward'}: ${task.baseCLW} CLW + ${task.baseXP} XP\n`);
     });
     lines.push('> /task accept <1|2|3>');
     return { text: lines.join('\n') };
   }
 
   if (format === 'telegram') {
-    const lines = [`🦞 *龙虾 #${nfaId} 可接任务*\n`];
-    tasks.forEach((t, i) => {
+    const lines = [`🦞 *${t(lang, '龙虾', 'Lobster')} #${nfaId} ${t(lang, '可接任务', 'Available Tasks')}*\n`];
+    tasks.forEach((task, i) => {
       const mul = (matchScores[i] / 10000).toFixed(1);
       const emoji = matchScores[i] >= 15000 ? '🟢' : matchScores[i] >= 10000 ? '🟡' : '🔴';
-      lines.push(`${emoji} *${i + 1}. ${t.title}* (${getTaskTypeName(lang, t.taskType)}) ${mul}x`);
-      lines.push(`  ${t.description}`);
-      lines.push(`  💰 ${t.baseCLW} CLW + ${t.baseXP} XP\n`);
+      lines.push(`${emoji} *${i + 1}. ${task.title}* (${getTaskTypeName(lang, task.taskType)}) ${mul}x`);
+      lines.push(`  ${task.description}`);
+      lines.push(`  💰 ${task.baseCLW} CLW + ${task.baseXP} XP\n`);
     });
     return {
       text: lines.join('\n'),
-      buttons: tasks.map((_, i) => ({ label: `接取任务${i + 1}`, action: `/task accept ${i + 1}` })),
+      buttons: tasks.map((_, i) => ({ label: lang === 'zh' ? `接取任务${i + 1}` : `Take Task ${i + 1}`, action: `/task accept ${i + 1}` })),
     };
   }
 
   // Rich (Feishu)
-  const lines = [`## 🦞 龙虾 #${nfaId} 可接任务\n`];
-  lines.push('| # | 任务 | 类型 | 匹配度 | 奖励 |');
+  const lines = [`## 🦞 ${t(lang, '龙虾', 'Lobster')} #${nfaId} ${t(lang, '可接任务', 'Available Tasks')}\n`];
+  lines.push(`| # | ${lang === 'zh' ? '任务' : 'Task'} | ${lang === 'zh' ? '类型' : 'Type'} | ${lang === 'zh' ? '匹配度' : 'Match'} | ${lang === 'zh' ? '奖励' : 'Reward'} |`);
   lines.push('|---|------|------|--------|------|');
-  tasks.forEach((t, i) => {
+  tasks.forEach((task, i) => {
     const mul = (matchScores[i] / 10000).toFixed(1);
-    lines.push(`| ${i + 1} | ${t.title} | ${getTaskTypeName(lang, t.taskType)} | ${mul}x | ${t.baseCLW} CLW + ${t.baseXP} XP |`);
+    lines.push(`| ${i + 1} | ${task.title} | ${getTaskTypeName(lang, task.taskType)} | ${mul}x | ${task.baseCLW} CLW + ${task.baseXP} XP |`);
   });
   return {
     text: lines.join('\n'),
-    buttons: tasks.map((_, i) => ({ label: `接取任务${i + 1}`, action: `/task accept ${i + 1}` })),
+    buttons: tasks.map((_, i) => ({ label: lang === 'zh' ? `接取任务${i + 1}` : `Take Task ${i + 1}`, action: `/task accept ${i + 1}` })),
   };
 }
 
@@ -328,9 +329,9 @@ export function formatStrategyAdvice(
   if (format === 'plain') {
     return {
       text: [
-        `=== ⚔️ 策略建议 (PK #${matchId}) ===`,
-        `龙虾建议: 「${advice.reasoning}」`,
-        `推荐策略: [${advice.recommendedStrategy}] ${stName} (信心: ${advice.confidence}%)`,
+        `=== ⚔️ ${t(lang, '策略建议', 'Strategy Advice')} (PK #${matchId}) ===`,
+        `${t(lang, '龙虾建议', 'Lobster Advice')}: 「${advice.reasoning}」`,
+        `${t(lang, '推荐策略', 'Recommended Strategy')}: [${advice.recommendedStrategy}] ${stName} (${t(lang, '信心', 'Confidence')}: ${advice.confidence}%)`,
         ``,
         `> /pk commit ${advice.recommendedStrategy}`,
       ].join('\n'),
@@ -338,9 +339,9 @@ export function formatStrategyAdvice(
   }
   return {
     text: [
-      `⚔️ **策略建议** (PK #${matchId})`,
+      `⚔️ **${t(lang, '策略建议', 'Strategy Advice')}** (PK #${matchId})`,
       `💬 _${advice.reasoning}_`,
-      `🎯 推荐: **${stName}** (信心 ${advice.confidence}%)`,
+      `🎯 ${t(lang, '推荐', 'Recommended')}: **${stName}** (${t(lang, '信心', 'Confidence')} ${advice.confidence}%)`,
     ].join('\n'),
     buttons: [0, 1, 2].map(s => ({ label: getStrategyName(lang, s), action: `/pk commit ${s}` })),
   };
@@ -361,21 +362,21 @@ export function formatBattleNarrative(
   if (format === 'plain') {
     return {
       text: [
-        `=== ⚔️ 战斗报告 (PK #${matchId}) ===`,
+        `=== ⚔️ ${t(lang, '战斗报告', 'Battle Report')} (PK #${matchId}) ===`,
         ``,
         narrative,
         ``,
-        `胜者: #${winnerId} | 败者: #${loserId}`,
+        `${t(lang, '胜者', 'Winner')}: #${winnerId} | ${t(lang, '败者', 'Loser')}: #${loserId}`,
       ].join('\n'),
     };
   }
   return {
     text: [
-      `⚔️ **战斗报告** (PK #${matchId})`,
+      `⚔️ **${t(lang, '战斗报告', 'Battle Report')}** (PK #${matchId})`,
       ``,
       `_${narrative}_`,
       ``,
-      `🏆 胜者: **#${winnerId}** | 败者: #${loserId}`,
+      `🏆 ${t(lang, '胜者', 'Winner')}: **#${winnerId}** | ${t(lang, '败者', 'Loser')}: #${loserId}`,
     ].join('\n'),
   };
 }
