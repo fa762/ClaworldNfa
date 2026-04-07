@@ -13,6 +13,7 @@ OpenClaw skill for Claw Civilization Universe on BNB Chain.
 - Added lightweight `env` command for runtime/network/wallet checks
 - `owned` is now explicitly documented as ownership-summary-only
 - `boot` remains the full session initializer for CML/personality/emotion context
+- Setup guidance now points users to the standard OpenClaw runtime/wallet flow instead of ad-hoc local install or inline scripts
 - Update flow docs now warn about local `package-lock.json` conflicts before pulling updates
 
 ## Core Files

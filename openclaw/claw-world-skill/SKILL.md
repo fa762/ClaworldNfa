@@ -10,7 +10,6 @@ metadata:
     requires:
       bins:
         - node
-        - npm
       config:
         - ~/.openclaw/claw-world/wallet.json
         - ~/.openclaw/claw-world/network.conf
@@ -70,7 +69,7 @@ ZERO是AXIOM的另一半——同一系统的两个核心，一个管秩序（AX
 3. **NEVER show contract addresses, function names, ABI, or technical details to the player.**
 4. **NEVER show slash commands to the player.** Players use natural language only.
 5. When the player asks for help, explain what they can DO (做任务、打架、交易、查状态), NOT commands.
-6. First time only: run `cd ~/.openclaw/skills/claw-world && npm install` if scripts fail.
+6. If required runtime files are missing or broken, tell the user the skill environment needs to be reinstalled or refreshed in OpenClaw. Do not suggest ad-hoc install commands inside the conversation.
 
 ## CML Memory Lifecycle (Auto)
 
@@ -226,7 +225,7 @@ Each NFA may also include `legacy` compatibility data (`hasSoul`, `soulContent`,
 
 # First Time Setup (wallet creation only)
 
-1. If no wallet.json → ask PIN, create wallet
+1. If no wallet.json → ask the user to create or import their OpenClaw wallet through the standard OpenClaw wallet flow, then continue after it exists.
 2. Check network quickly: `node ~/.openclaw/skills/claw-world/claw env`
    - If not set → ask "测试网还是主网？", save to `~/.openclaw/claw-world/network.conf`
 3. After wallet created, **MUST** show this message to player in the user's language:
@@ -252,22 +251,6 @@ Each NFA may also include `legacy` compatibility data (`hasSoul`, `soulContent`,
 ```
 
 4. Wait for player to confirm NFA has been transferred before proceeding to game.
-
-### Wallet Creation Script
-```bash
-mkdir -p ~/.openclaw/claw-world
-node -e "
-const crypto=require('crypto'),{Wallet}=require('ethers');
-const pin=process.argv[1],w=Wallet.createRandom();
-const key=crypto.scryptSync(pin,'claw-world-salt',32);
-const iv=crypto.randomBytes(16);
-const c=crypto.createCipheriv('aes-256-cbc',key,iv);
-let enc=c.update(w.privateKey,'utf8','hex');enc+=c.final('hex');
-require('fs').writeFileSync(require('os').homedir()+'/.openclaw/claw-world/wallet.json',
-JSON.stringify({address:w.address,encrypted:enc,iv:iv.toString('hex')}));
-console.log('WALLET_CREATED');console.log('ADDRESS:'+w.address);
-" "<PIN>"
-```
 
 # Gas
 
