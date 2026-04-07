@@ -8,8 +8,10 @@
 const { ethers } = require('ethers');
 const crypto = require('crypto');
 const fs = require('fs');
+const path = require('path');
 const home = require('os').homedir();
 const SKILL_DIR = __dirname;
+const SKILL_PKG = JSON.parse(fs.readFileSync(path.join(SKILL_DIR, 'package.json'), 'utf8'));
 
 let NET = 'testnet';
 try { NET = fs.readFileSync(home + '/.openclaw/claw-world/network.conf', 'utf8').trim(); } catch {}
@@ -233,7 +235,14 @@ async function cmdPkScout(matchId) {
   const phase = m[7];
   const phaseNames = ['OPEN','JOINED','COMMITTED','REVEALED','SETTLED','CANCELLED'];
 
-  if (nfaA === 0) { console.log('MATCH_NOT_FOUND'); return null; }
+  if (nfaA === 0) {
+    console.log(JSON.stringify({
+      status: 'MATCH_NOT_FOUND',
+      message: 'Match not found. pk-scout expects a matchId, not an nfaId.',
+      matchId: Number(matchId)
+    }, null, 2));
+    return null;
+  }
 
   const [s, bal, ts, ps] = await Promise.all([
     router.getLobsterState(nfaA),
@@ -736,9 +745,77 @@ async function cmdWithdrawStatus(nfaId) {
   }, null, 2));
 }
 
+async function getWallets() {
+  const wallets = [];
+  const w1 = getWalletData();
+  if (w1) wallets.push({ id: 'wallet1', address: w1.address });
+  try {
+    const w2 = JSON.parse(fs.readFileSync(home + '/.openclaw/claw-world/wallet2.json', 'utf8'));
+    if (w2) wallets.push({ id: 'wallet2', address: w2.address });
+  } catch {}
+  return wallets;
+}
+
+async function findOwnedNFABasic(wallets) {
+  const rNames = ['Common','Rare','Epic','Legendary','Mythic'];
+  const shelterNames = ['SHELTER-01','SHELTER-02','SHELTER-03','SHELTER-04','SHELTER-05','SHELTER-06','废土','SHELTER-00'];
+  const nfaContract = new ethers.Contract(CONTRACTS.nfa, [
+    'function getTotalSupply() view returns (uint256)',
+    'function ownerOf(uint256) view returns (address)'
+  ], provider);
+  const router = new ethers.Contract(CONTRACTS.router, [
+    'function getLobsterState(uint256) view returns (tuple(uint8 rarity, uint8 shelter, uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit, uint8 str, uint8 def, uint8 spd, uint8 vit, bytes32 mutation1, bytes32 mutation2, uint16 level, uint32 xp, uint40 lastUpkeep))'
+  ], provider);
+
+  const totalSupply = (await nfaContract.getTotalSupply()).toNumber();
+  const walletAddrs = wallets.map(function(w) { return w.address.toLowerCase(); });
+  const ownedNFAs = [];
+
+  for (var i = 1; i <= totalSupply; i++) {
+    try {
+      var owner = await nfaContract.ownerOf(i);
+      if (walletAddrs.indexOf(owner.toLowerCase()) >= 0) {
+        var s = await router.getLobsterState(i);
+        ownedNFAs.push({
+          tokenId: i,
+          wallet: owner,
+          rarity: rNames[s.rarity] || String(s.rarity),
+          shelter: shelterNames[s.shelter] || 'SHELTER-' + s.shelter,
+          level: s.level,
+          xp: s.xp
+        });
+      }
+    } catch {}
+  }
+
+  return ownedNFAs;
+}
+
+async function cmdOwned() {
+  const wallets = await getWallets();
+  if (wallets.length === 0) {
+    console.log(JSON.stringify({ status: 'NO_WALLET', message: 'No wallet found. Ask player for PIN to create one.' }));
+    return;
+  }
+
+  const ownedNFAs = await findOwnedNFABasic(wallets);
+  console.log(JSON.stringify({
+    status: 'OK',
+    version: CURRENT_VERSION,
+    wallets: wallets.map(function(w) { return w.address; }),
+    ownedNFAs: ownedNFAs,
+    count: ownedNFAs.length,
+    instructions: ownedNFAs.length === 0
+      ? 'No NFAs found. Tell player to mint at https://clawnfaterminal.xyz'
+      : ownedNFAs.length === 1
+        ? 'Owned 1 NFA. Use claw status <tokenId> or claw boot for full session context.'
+        : 'Owned ' + ownedNFAs.length + ' NFAs. Use claw boot for full session context.'
+  }, null, 2));
+}
+
 // ─── Version Check ───
 
-const CURRENT_VERSION = '1.0.7';
+const CURRENT_VERSION = SKILL_PKG.version;
 const TG_GROUP = 'https://t.me/Claworldgroup';
 const CLAWHUB_API = 'https://clawhub.ai/api/skills/claw-world';
 
@@ -769,13 +846,7 @@ async function cmdBoot() {
   const shelterNames = ['SHELTER-01','SHELTER-02','SHELTER-03','SHELTER-04','SHELTER-05','SHELTER-06','废土','SHELTER-00'];
 
   // 1. Wallet check
-  const wallets = [];
-  const w1 = getWalletData();
-  if (w1) wallets.push({ id: 'wallet1', address: w1.address });
-  try {
-    const w2 = JSON.parse(fs.readFileSync(home + '/.openclaw/claw-world/wallet2.json', 'utf8'));
-    if (w2) wallets.push({ id: 'wallet2', address: w2.address });
-  } catch {}
+  const wallets = await getWallets();
 
   if (wallets.length === 0) {
     console.log(JSON.stringify({ status: 'NO_WALLET', message: 'No wallet found. Ask player for PIN to create one.' }));
@@ -889,6 +960,12 @@ async function cmdBoot() {
           hoursSinceActivity,
           hasCML,
           cml: cmlBoot,
+          legacy: {
+            hasSoul,
+            soulContent,
+            hasMemory,
+            recentMemories
+          },
           hasSoul,
           soulContent,
           hasMemory,
@@ -1395,6 +1472,7 @@ const [,, cmd, ...args] = process.argv;
 
 const commands = {
   boot:         () => cmdBoot(),
+  owned:        () => cmdOwned(),
   'cml-init':   () => cmdCmlInit(args[0]),
   'cml-load':   () => cmdCmlLoad(args[0], args[1]),
   'cml-recall': () => cmdCmlRecall(args[0], args[1]),
@@ -1437,7 +1515,8 @@ const commands = {
 if (!cmd || !commands[cmd]) {
   console.log('Claw World CLI v' + CURRENT_VERSION);
   console.log('🌐 https://clawnfaterminal.xyz  💬 TG: https://t.me/Claworldgroup');
-  console.log('  claw boot                          — session init (wallet+NFA+soul+memory)');
+  console.log('  claw boot                          — full session init (wallet+NFA+CML+legacy+emotion)');
+  console.log('  claw owned                         — quick owned NFA summary');
   console.log('  claw status <tokenId>              — read lobster data');
   console.log('  claw wallet                        — show wallet');
   console.log('  claw world                         — world state');
@@ -1446,7 +1525,7 @@ if (!cmd || !commands[cmd]) {
   console.log('  claw upkeep <pin> <nfa>                        — process daily upkeep');
   console.log('  claw market-search                             — browse active listings');
   console.log('  claw task <pin> <nfa> <type> <xp> <clw> <score>  — do task');
-  console.log('  claw pk-scout <matchId>                          — scout opponent before PK');
+  console.log('  claw pk-scout <matchId>                          — scout opponent in match by matchId');
   console.log('  claw pk-create <pin> <nfa> <stake> [strategy]   — create PK (arena: +strategy)');
   console.log('  claw pk-join <pin> <matchId> <nfa> [strategy]   — join PK (auto-scout + arena)');
   console.log('  claw pk-auto-settle <pin> <matchId> [pin2]      — reveal+settle (auto)');
@@ -1472,7 +1551,7 @@ if (!cmd || !commands[cmd]) {
   console.log('  claw cml-load <tokenId> --full                  — load complete CML with full CORTEX (use before SLEEP)');
   console.log('  claw cml-recall <tokenId> <id1,id2,...>         — recall full vivid memories by ID');
   console.log('  claw cml-match <tokenId> <message>              — match message against triggers');
-  console.log('  claw cml-save <tokenId> [pin]                   — save CML from stdin and optionally sync root');
+  console.log('  claw cml-save <tokenId> [pin]                   — save CML locally; with pin also try root sync');
   process.exit(1);
 }
 
