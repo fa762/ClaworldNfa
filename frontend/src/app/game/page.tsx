@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAccount, useConnect, useWriteContract } from 'wagmi';
+import { useAccount, useBalance, useConnect, useWriteContract } from 'wagmi';
 import { decodeEventLog, formatEther, parseEther, type Address, type TransactionReceipt } from 'viem';
 
 import { GameCommandShell } from '@/components/game/GameCommandShell';
@@ -152,6 +152,7 @@ export default function GamePage() {
 
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  const { data: nativeBalance } = useBalance({ address, query: { enabled: Boolean(address) } });
   const { connect, connectors } = useConnect();
   const { writeContractAsync } = useWriteContract();
   const { lang, setLang } = useI18n();
@@ -180,6 +181,10 @@ export default function GamePage() {
   );
 
   const activeSummary = activeNfaId ? nfaSummaries[activeNfaId] : undefined;
+  const gasBnb = useMemo(() => {
+    if (!nativeBalance?.value) return '0';
+    return Number(formatEther(nativeBalance.value)).toFixed(4);
+  }, [nativeBalance]);
 
   const connectWallet = useCallback((query?: string) => {
     if (walletOptions.length === 0) {
@@ -325,7 +330,8 @@ export default function GamePage() {
     eventBus.emit('nfa:fullStats', {
       level: state.level,
       clw: state.clwBalance.toFixed(0),
-      bnb: '0',
+      gasBnb,
+      walletAddress: address ?? null,
       courage: state.courage,
       wisdom: state.wisdom,
       social: state.social,
@@ -348,7 +354,7 @@ export default function GamePage() {
         grit: state.grit,
       },
     });
-  }, []);
+  }, [address, gasBnb]);
 
   const refreshOwnedNfas = useCallback(async () => {
     if (!isConnected || !address) return [];

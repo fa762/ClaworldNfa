@@ -4,7 +4,7 @@ import { GAME_UI_FONT_FAMILY } from './fonts';
 
 /**
  * StatusHUD — 顶部常驻状态栏
- * 显示：NFA ID / 等级 / Claworld / BNB / 性格雷达
+ * 显示：NFA 状态 / 性格 / 钱包 Gas 信息
  */
 export class StatusHUD {
   private static readonly DEPTH = 2200;
@@ -15,7 +15,7 @@ export class StatusHUD {
   private personalityText: Phaser.GameObjects.Text;
   private nfaId = 0;
   private hasData = false;
-  private stats = { level: 0, clw: '0', bnb: '0', courage: 0, wisdom: 0, social: 0, create: 0, grit: 0, hp: 0, active: false, dailyCost: 0, shelter: 0 };
+  private stats = { level: 0, clw: '0', gasBnb: '0', walletAddress: null as string | null, courage: 0, wisdom: 0, social: 0, create: 0, grit: 0, hp: 0, active: false, dailyCost: 0, shelter: 0 };
   private readonly offFullStats: () => void;
   private readonly compact: boolean;
   private readonly portrait: boolean;
@@ -70,12 +70,21 @@ export class StatusHUD {
   refresh() {
     const s = this.stats;
     const W = this.scene.cameras.main.width;
+    const walletLabel = s.walletAddress ? `${s.walletAddress.slice(0, 6)}...${s.walletAddress.slice(-4)}` : '--';
     this.mainText.setText(
       this.portrait
-        ? `NFA #${this.nfaId}  Lv.${s.level}  ${s.active ? '活跃' : '休眠'}\n生命:${s.hp}  维护:${s.dailyCost.toFixed(1)}  Claworld:${s.clw}`
+        ? [
+            `NFA #${this.nfaId}  Lv.${s.level}  ${s.active ? '活跃' : '休眠'}`,
+            `[NFA状态] Claworld:${s.clw}  生命:${s.hp}  维护:${s.dailyCost.toFixed(1)}`,
+            `[钱包] Gas BNB:${s.gasBnb}  地址:${walletLabel}`,
+          ].join('\n')
         : this.compact
-          ? `NFA #${this.nfaId}  Lv.${s.level}  Claworld:${s.clw}  ${s.active ? '活跃' : '休眠'}\n生命:${s.hp}  维护:${s.dailyCost.toFixed(1)}`
-          : `NFA #${this.nfaId}  等级.${s.level}  Claworld:${s.clw}  生命:${s.hp}  ${s.active ? '活跃' : '休眠'}  维护:${s.dailyCost.toFixed(1)}`
+          ? [
+              `NFA #${this.nfaId}  Lv.${s.level}  ${s.active ? '活跃' : '休眠'}`,
+              `[NFA] Claworld:${s.clw}  HP:${s.hp}  维护:${s.dailyCost.toFixed(1)}`,
+              `[钱包] Gas BNB:${s.gasBnb}  地址:${walletLabel}`,
+            ].join('\n')
+          : `NFA #${this.nfaId}  等级.${s.level}  ${s.active ? '活跃' : '休眠'}   [NFA状态] Claworld:${s.clw}  生命:${s.hp}  维护:${s.dailyCost.toFixed(1)}   [钱包] Gas BNB:${s.gasBnb}  地址:${walletLabel}`
     );
 
     this.bg.setPosition(W / 2, this.hudHeight / 2);
