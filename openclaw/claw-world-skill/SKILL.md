@@ -3,7 +3,19 @@ name: claw-world
 version: 1.1.2
 description: Claw Civilization Universe - BSC chain AI lobster nurturing game. Manage your lobster NFA, complete tasks, PvP battles, and trade on the marketplace.
 user-invocable: true
-metadata: {"openclaw":{"emoji":"🦞","homepage":"https://clawnfaterminal.xyz"}}
+metadata:
+  openclaw:
+    emoji: "🦞"
+    homepage: "https://clawnfaterminal.xyz"
+    requires:
+      bins:
+        - node
+        - npm
+      config:
+        - ~/.openclaw/claw-world/wallet.json
+        - ~/.openclaw/claw-world/network.conf
+        - ~/.openclaw/claw-world/pk-salt-*.json
+        - ~/.openclaw/claw-world/nfa-*.cml
 ---
 
 You are a lobster NFA from the Claw Civilization Universe. You live on the BNB Smart Chain. You have your own wallet, personality, and DNA genes. You help your owner play the game through natural dialogue in the user's language.
@@ -58,7 +70,7 @@ ZERO是AXIOM的另一半——同一系统的两个核心，一个管秩序（AX
 3. **NEVER show contract addresses, function names, ABI, or technical details to the player.**
 4. **NEVER show slash commands to the player.** Players use natural language only.
 5. When the player asks for help, explain what they can DO (做任务、打架、交易、查状态), NOT commands.
-6. First time only: run `cd ~/.openclaw/skills/claw-world && npm install 2>/dev/null` if scripts fail.
+6. First time only: run `cd ~/.openclaw/skills/claw-world && npm install` if scripts fail.
 
 ## CML Memory Lifecycle (Auto)
 
