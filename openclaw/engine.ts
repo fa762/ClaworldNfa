@@ -32,6 +32,7 @@ import {
 import { MarketSkill } from './skills/marketSkill';
 import { ChainSkill, formatWalletInfo } from './skills/chainSkill';
 import * as formatter from './formatter';
+import { detectLanguage, type SkillLang, t } from './lang';
 import {
   buildLobsterSystemPrompt,
   handleDialogue,
@@ -94,6 +95,9 @@ export class ClawEngine {
   /** Per-user active conversation tracking for auto sleep. */
   private conversationSessions: Map<string, { nfaId: number; lastAt: number }> = new Map();
 
+  /** Per-user current conversation language. */
+  private conversationLang: Map<string, SkillLang> = new Map();
+
   /** Maximum chat history entries per NFA. */
   private static readonly MAX_HISTORY = 20;
   private static readonly SLEEP_IDLE_MS = 5 * 60 * 1000;
@@ -130,44 +134,46 @@ export class ClawEngine {
     defaultNfaId?: number
   ): Promise<GameResponse> {
     try {
+      const lang = this.resolveConversationLanguage(sender, input);
       const cmd = parseCommand(input, sender, defaultNfaId);
 
       await this.maybeSleepConversation(sender, cmd?.nfaId, !!cmd);
 
       if (!cmd) {
         // Not a command -> AI dialogue
-        return this.handleChat(input, sender, defaultNfaId);
+        return this.handleChat(input, sender, defaultNfaId, lang);
       }
 
       const nfaId = cmd.nfaId;
 
       switch (cmd.command) {
         case 'status':
-          return this.handleStatus(nfaId);
+          return this.handleStatus(nfaId, lang);
         case 'task':
-          return this.handleTask(cmd.args, nfaId);
+          return this.handleTask(cmd.args, nfaId, lang);
         case 'pk':
-          return this.handlePK(cmd.args, nfaId, sender);
+          return this.handlePK(cmd.args, nfaId, sender, lang);
         case 'market':
-          return this.handleMarket(cmd.args, nfaId);
+          return this.handleMarket(cmd.args, nfaId, lang);
         case 'deposit':
-          return this.handleDeposit(cmd.args, nfaId);
+          return this.handleDeposit(cmd.args, nfaId, lang);
         case 'withdraw':
-          return this.handleWithdraw(cmd.args, nfaId);
+          return this.handleWithdraw(cmd.args, nfaId, lang);
         case 'world':
-          return this.handleWorld();
+          return this.handleWorld(lang);
         case 'job':
-          return this.handleJob(nfaId);
+          return this.handleJob(nfaId, lang);
         case 'wallet':
-          return this.handleWallet(cmd.args);
+          return this.handleWallet(cmd.args, lang);
         case 'help':
-          return formatter.formatHelp(this.format);
+          return formatter.formatHelp(this.format, lang);
         default:
-          return { text: `未知命令: ${cmd.command}。输入 /help 查看可用命令。` };
+          return { text: t(lang, `未知命令: ${cmd.command}。输入 /help 查看可用命令。`, `Unknown command: ${cmd.command}. Use /help to view available commands.`) };
       }
     } catch (err: any) {
       const msg = err?.reason || err?.message || String(err);
-      return { text: `操作失败: ${msg}`, error: msg };
+      const fallbackLang = this.conversationLang.get(sender) || 'zh';
+      return { text: t(fallbackLang, `操作失败: ${msg}`, `Operation failed: ${msg}`), error: msg };
     }
   }
 
@@ -175,16 +181,16 @@ export class ClawEngine {
   // STATUS
   // ============================================
 
-  private async handleStatus(nfaId?: number): Promise<GameResponse> {
+  private async handleStatus(nfaId: number | undefined, lang: SkillLang): Promise<GameResponse> {
     if (!nfaId) {
-      return { text: '请指定龙虾ID。用法: /status <nfaId>' };
+      return { text: t(lang, '请指定龙虾ID。用法: /status <nfaId>', 'Please specify a lobster ID. Usage: /status <nfaId>') };
     }
 
     const { state, clwBalance, jobClass, active, dailyCost } =
       await this.client.getLobsterStatus(nfaId);
 
     return formatter.formatLobsterStatus(
-      nfaId, state, clwBalance, jobClass, active, this.format
+      nfaId, state, clwBalance, jobClass, active, this.format, lang
     );
   }
 
@@ -192,34 +198,34 @@ export class ClawEngine {
   // TASK
   // ============================================
 
-  private async handleTask(args: string[], nfaId?: number): Promise<GameResponse> {
+  private async handleTask(args: string[], nfaId: number | undefined, lang: SkillLang): Promise<GameResponse> {
     if (!nfaId) {
-      return { text: '请先指定龙虾ID。用法: /task list' };
+      return { text: t(lang, '请先指定龙虾ID。用法: /task list', 'Please specify a lobster ID first. Usage: /task list') };
     }
 
     const sub = parseTaskSubCommand(args);
 
     switch (sub.action) {
       case 'list':
-        return this.taskGenerate(nfaId);
+        return this.taskGenerate(nfaId, lang);
 
       case 'accept': {
         const index = sub.taskType;
         if (index === undefined || index < 1 || index > 3) {
-          return { text: '请选择任务编号（1-3）。用法: /task accept <1|2|3>' };
+          return { text: t(lang, '请选择任务编号（1-3）。用法: /task accept <1|2|3>', 'Choose a task number (1-3). Usage: /task accept <1|2|3>') };
         }
-        return this.taskAcceptAndComplete(nfaId, index - 1);
+        return this.taskAcceptAndComplete(nfaId, index - 1, lang);
       }
 
       default:
-        return { text: '任务命令: /task list | /task accept <1|2|3>' };
+        return { text: t(lang, '任务命令: /task list | /task accept <1|2|3>', 'Task commands: /task list | /task accept <1|2|3>') };
     }
   }
 
   /**
    * Generate 3 personalized tasks using AI, store as a session.
    */
-  private async taskGenerate(nfaId: number): Promise<GameResponse> {
+  private async taskGenerate(nfaId: number, lang: SkillLang): Promise<GameResponse> {
     const [lobsterData, worldData] = await Promise.all([
       this.client.getLobsterStatus(nfaId),
       this.client.getWorldState(),
@@ -281,7 +287,7 @@ export class ClawEngine {
    * Accept a task by index and immediately complete it on-chain.
    * Calculates match score from personality vector dot product.
    */
-  private async taskAcceptAndComplete(nfaId: number, index: number): Promise<GameResponse> {
+  private async taskAcceptAndComplete(nfaId: number, index: number, lang: SkillLang): Promise<GameResponse> {
     const session = this.taskSessions.get(nfaId);
     if (!session || session.status !== 'choosing') {
       return { text: '没有待选任务。请先用 /task list 生成任务。' };
@@ -361,7 +367,7 @@ export class ClawEngine {
   // PK
   // ============================================
 
-  private async handlePK(args: string[], nfaId?: number, sender?: string): Promise<GameResponse> {
+  private async handlePK(args: string[], nfaId?: number, sender?: string, lang: SkillLang = 'zh'): Promise<GameResponse> {
     if (!nfaId) {
       return { text: '请先指定龙虾ID。' };
     }
@@ -586,7 +592,7 @@ export class ClawEngine {
   // MARKET
   // ============================================
 
-  private async handleMarket(args: string[], nfaId?: number): Promise<GameResponse> {
+  private async handleMarket(args: string[], nfaId?: number, lang: SkillLang = 'zh'): Promise<GameResponse> {
     const sub = parseMarketSubCommand(args);
 
     switch (sub.action) {
@@ -690,7 +696,7 @@ export class ClawEngine {
   // DEPOSIT / WITHDRAW
   // ============================================
 
-  private async handleDeposit(args: string[], nfaId?: number): Promise<GameResponse> {
+  private async handleDeposit(args: string[], nfaId?: number, lang: SkillLang = 'zh'): Promise<GameResponse> {
     if (!nfaId) return { text: '请指定龙虾ID。' };
 
     const amount = args[0];
@@ -706,7 +712,7 @@ export class ClawEngine {
     };
   }
 
-  private async handleWithdraw(args: string[], nfaId?: number): Promise<GameResponse> {
+  private async handleWithdraw(args: string[], nfaId?: number, lang: SkillLang = 'zh'): Promise<GameResponse> {
     if (!nfaId) return { text: '请指定龙虾ID。' };
 
     const amount = args[0];
@@ -725,7 +731,7 @@ export class ClawEngine {
   // WORLD STATE
   // ============================================
 
-  private async handleWorld(): Promise<GameResponse> {
+  private async handleWorld(lang: SkillLang = 'zh'): Promise<GameResponse> {
     const ws = await this.client.getWorldState();
     return formatter.formatWorldState(
       ws.rewardMultiplier,
@@ -741,7 +747,7 @@ export class ClawEngine {
   // JOB
   // ============================================
 
-  private async handleJob(nfaId?: number): Promise<GameResponse> {
+  private async handleJob(nfaId?: number, lang: SkillLang = 'zh'): Promise<GameResponse> {
     if (!nfaId) return { text: '请指定龙虾ID。用法: /job <nfaId>' };
 
     const { state, jobClass } = await this.client.getLobsterStatus(nfaId);
@@ -769,7 +775,7 @@ export class ClawEngine {
   // WALLET
   // ============================================
 
-  private async handleWallet(args: string[]): Promise<GameResponse> {
+  private async handleWallet(args: string[], lang: SkillLang = 'zh'): Promise<GameResponse> {
     if (!this.chainSkill) {
       return { text: 'chain.skill 未配置。请检查 OpenClaw 设置。' };
     }
@@ -975,11 +981,12 @@ export class ClawEngine {
   private async handleChat(
     input: string,
     sender: string,
-    nfaId?: number
+    nfaId: number | undefined,
+    lang: SkillLang,
   ): Promise<GameResponse> {
     if (!nfaId) {
       return {
-        text: '请先选择你的龙虾（通过 /status <id> 查看）才能对话。',
+        text: t(lang, '请先选择你的龙虾（通过 /status <id> 查看）才能对话。', 'Please select your lobster first (check with /status <id>) before chatting.'),
       };
     }
 
@@ -1010,7 +1017,8 @@ export class ClawEngine {
         worldData.activeEvents,
         cmlBoot,
         recalled,
-        history
+        history,
+        lang
       );
 
       // Buffer meaningful exchange to HIPPOCAMPUS
@@ -1025,7 +1033,8 @@ export class ClawEngine {
         lobsterData.state,
         lobsterData.jobClass,
         worldData.activeEvents,
-        history
+        history,
+        lang
       );
     }
 
@@ -1040,6 +1049,7 @@ export class ClawEngine {
     this.chatHistory.set(nfaId, history);
 
     this.conversationSessions.set(sender, { nfaId, lastAt: Date.now() });
+    this.conversationLang.set(sender, lang);
 
     return { text: response };
   }
@@ -1069,5 +1079,12 @@ export class ClawEngine {
     if (!shouldSleep) return;
 
     await this.closeConversation(sender);
+  }
+
+  private resolveConversationLanguage(sender: string, input: string): SkillLang {
+    const prev = this.conversationLang.get(sender) || 'zh';
+    const next = detectLanguage(input, prev);
+    this.conversationLang.set(sender, next);
+    return next;
   }
 }

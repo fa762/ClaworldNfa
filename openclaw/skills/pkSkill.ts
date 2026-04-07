@@ -18,11 +18,8 @@ import type {
   PKMatch,
 } from '../types';
 import {
-  STRATEGY_NAMES,
-  RARITY_NAMES,
-  SHELTER_NAMES,
-  PK_PHASE_NAMES,
 } from '../types';
+import { getRarityName, getShelterName, getStrategyName, type SkillLang, t } from '../lang';
 
 // --------------------------------------------------------------------------
 // Constants
@@ -47,15 +44,16 @@ function buildAnalysisPrompt(
   opState: LobsterState,
   myNfaId: number,
   opNfaId: number,
+  lang: SkillLang = 'zh',
 ): string {
   return [
     'You are the PK strategy advisor for Claw Civilization Universe, an AI NFT game about lobsters.',
     '',
-    `Your lobster #${myNfaId} — Level ${myState.level}, Rarity ${RARITY_NAMES[myState.rarity] ?? myState.rarity}`,
+      `Your lobster #${myNfaId} — Level ${myState.level}, Rarity ${getRarityName(lang, myState.rarity)}`,
     `  Personality: courage=${myState.courage}, wisdom=${myState.wisdom}, social=${myState.social}, create=${myState.create}, grit=${myState.grit}`,
     `  Genes: STR=${myState.str}, DEF=${myState.def}, SPD=${myState.spd}, VIT=${myState.vit}`,
     '',
-    `Opponent lobster #${opNfaId} — Level ${opState.level}, Rarity ${RARITY_NAMES[opState.rarity] ?? opState.rarity}`,
+      `Opponent lobster #${opNfaId} — Level ${opState.level}, Rarity ${getRarityName(lang, opState.rarity)}`,
     `  Genes: STR=${opState.str}, DEF=${opState.def}, SPD=${opState.spd}, VIT=${opState.vit}`,
     '',
     'Strategies: 0=AllAttack (max damage, low defense), 1=Balanced, 2=AllDefense (tank, low damage)',
@@ -70,7 +68,7 @@ function buildAnalysisPrompt(
     'Return a JSON object with:',
     '  recommendedStrategy: 0, 1, or 2',
     '  confidence: 0-100',
-    '  reasoning: string (1-2 sentences, personality-flavored advice in Chinese)',
+    t(lang, '  reasoning: string (1-2句中文建议，带性格语气)', '  reasoning: string (1-2 sentences of advice in English, flavored by personality)'),
     '',
     'Return ONLY the JSON object. No markdown, no explanation.',
   ].join('\n');
@@ -84,9 +82,10 @@ function buildNarrativePrompt(
   strategyA: number,
   strategyB: number,
   winner: 'A' | 'B' | 'draw',
+  lang: SkillLang = 'zh',
 ): string {
-  const stratA = STRATEGY_NAMES[strategyA] ?? 'unknown';
-  const stratB = STRATEGY_NAMES[strategyB] ?? 'unknown';
+  const stratA = getStrategyName(lang, strategyA);
+  const stratB = getStrategyName(lang, strategyB);
   const outcomeText = winner === 'draw'
     ? 'The battle ended in a draw.'
     : `Lobster #${winner === 'A' ? nfaA : nfaB} won the battle.`;
@@ -95,11 +94,11 @@ function buildNarrativePrompt(
     'You are the battle narrator for Claw Civilization Universe.',
     'Write a short, dramatic battle narrative (3-5 sentences) in Chinese.',
     '',
-    `Lobster #${nfaA}: Level ${stateA.level}, Shelter ${SHELTER_NAMES[stateA.shelter] ?? stateA.shelter}, Strategy: ${stratA}`,
+      `Lobster #${nfaA}: Level ${stateA.level}, Shelter ${getShelterName(lang, stateA.shelter)}, Strategy: ${stratA}`,
     `  STR=${stateA.str}, DEF=${stateA.def}, SPD=${stateA.spd}, VIT=${stateA.vit}`,
     `  Personality: courage=${stateA.courage}, wisdom=${stateA.wisdom}, social=${stateA.social}`,
     '',
-    `Lobster #${nfaB}: Level ${stateB.level}, Shelter ${SHELTER_NAMES[stateB.shelter] ?? stateB.shelter}, Strategy: ${stratB}`,
+      `Lobster #${nfaB}: Level ${stateB.level}, Shelter ${getShelterName(lang, stateB.shelter)}, Strategy: ${stratB}`,
     `  STR=${stateB.str}, DEF=${stateB.def}, SPD=${stateB.spd}, VIT=${stateB.vit}`,
     `  Personality: courage=${stateB.courage}, wisdom=${stateB.wisdom}, social=${stateB.social}`,
     '',
@@ -145,7 +144,7 @@ export class PKSkill {
 
     // AI enhancement
     try {
-      const systemPrompt = buildAnalysisPrompt(myState, opState, myNfaId, opponentNfaId);
+      const systemPrompt = buildAnalysisPrompt(myState, opState, myNfaId, opponentNfaId, 'zh');
       const aiAdvice = await this.ai.chatJSON<{
         recommendedStrategy: number;
         confidence: number;

@@ -18,11 +18,9 @@ import type {
   LobsterState,
 } from '../types';
 import {
-  TASK_TYPE_NAMES,
   TASK_TYPE_ICONS,
-  RARITY_NAMES,
-  SHELTER_NAMES,
 } from '../types';
+import { getRarityName, getShelterName, getTaskTypeName, type SkillLang, t } from '../lang';
 
 // --------------------------------------------------------------------------
 // Constants
@@ -51,15 +49,16 @@ function buildTaskGenerationPrompt(
   state: LobsterState,
   worldRewardMultiplier: number,
   activeEvents: string[],
+  lang: SkillLang = 'zh',
 ): string {
   const personality = `courage=${state.courage}, wisdom=${state.wisdom}, social=${state.social}, create=${state.create}, grit=${state.grit}`;
   const genes = `STR=${state.str}, DEF=${state.def}, SPD=${state.spd}, VIT=${state.vit}`;
   const eventText = activeEvents.length > 0 ? activeEvents.join(', ') : 'none';
 
   return [
-    'You are the task generator for Claw Civilization Universe, an AI NFT game about lobsters.',
+    t(lang, '你是 Claw Civilization Universe 的任务生成器。', 'You are the task generator for Claw Civilization Universe.'),
     '',
-    `Lobster stats — Level ${state.level}, Rarity ${RARITY_NAMES[state.rarity] ?? state.rarity}, Shelter ${SHELTER_NAMES[state.shelter] ?? state.shelter}`,
+    `Lobster stats — Level ${state.level}, Rarity ${getRarityName(lang, state.rarity)}, Shelter ${getShelterName(lang, state.shelter)}`,
     `Personality: ${personality}`,
     `Genes: ${genes}`,
     `World reward multiplier: ${worldRewardMultiplier}%, Active events: ${eventText}`,
@@ -67,8 +66,8 @@ function buildTaskGenerationPrompt(
     'Generate exactly 3 tasks the player can choose from.',
     'Each task MUST be a JSON object with these fields:',
     '  taskType: integer 0-4 (0=courage, 1=wisdom, 2=social, 3=create, 4=grit)',
-    '  title: short task name in Chinese (max 20 chars)',
-    '  description: 1-2 sentence description in Chinese',
+    t(lang, '  title: 中文短任务名（最多20字）', '  title: short task name in English (max 20 chars)'),
+    t(lang, '  description: 1-2句中文描述', '  description: 1-2 sentence description in English'),
     '  personalityVector: array of 5 integers that sum to 100, representing [courage, wisdom, social, create, grit] weight',
     '  difficulty: one of "easy", "medium", "hard"',
     '',

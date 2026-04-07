@@ -8,11 +8,8 @@
  */
 
 import type { LobsterState, PKMatch, GameResponse, OutputFormat, TaskDefinition, MarketListing } from './types';
-import {
-  RARITY_NAMES_CN, SHELTER_NAMES, STRATEGY_NAMES,
-  JOB_NAMES_CN, PK_PHASE_NAMES, TASK_TYPE_NAMES, TASK_TYPE_ICONS,
-  LISTING_TYPE_NAMES
-} from './types';
+import { TASK_TYPE_ICONS } from './types';
+import { getJobName, getListingTypeName, getPkPhaseName, getRarityName, getShelterName, getStrategyName, getTaskTypeName, type SkillLang, t } from './lang';
 
 // ============================================
 // LOBSTER STATUS
@@ -24,21 +21,22 @@ export function formatLobsterStatus(
   clwBalance: string,
   jobClass: number,
   active: boolean,
-  format: OutputFormat
+  format: OutputFormat,
+  lang: SkillLang = 'zh'
 ): GameResponse {
-  const rarity = RARITY_NAMES_CN[state.rarity] || '未知';
-  const shelter = SHELTER_NAMES[state.shelter] || '未知';
-  const job = JOB_NAMES_CN[jobClass] || '未知';
-  const status = active ? '● 活跃' : '○ 休眠';
+  const rarity = getRarityName(lang, state.rarity);
+  const shelter = getShelterName(lang, state.shelter);
+  const job = getJobName(lang, jobClass);
+  const status = active ? t(lang, '● 活跃', '● Active') : t(lang, '○ 休眠', '○ Dormant');
 
   if (format === 'plain') {
     return {
       text: [
-        `=== 龙虾 #${nfaId} ===`,
-        `稀有度: ${rarity} | 避难所: ${shelter}`,
-        `等级: ${state.level} | XP: ${state.xp}/${(state.level + 1) * 100}`,
-        `职业: ${job} | 状态: ${status}`,
-        `CLW: ${clwBalance}`,
+          `=== ${t(lang, '龙虾', 'Lobster')} #${nfaId} ===`,
+          `${t(lang, '稀有度', 'Rarity')}: ${rarity} | ${t(lang, '避难所', 'Shelter')}: ${shelter}`,
+          `${t(lang, '等级', 'Level')}: ${state.level} | XP: ${state.xp}/${(state.level + 1) * 100}`,
+          `${t(lang, '职业', 'Job')}: ${job} | ${t(lang, '状态', 'Status')}: ${status}`,
+          `CLW: ${clwBalance}`,
         ``,
         `-- SPECIAL --`,
         `勇气: ${_bar(state.courage)} ${state.courage}`,
@@ -59,7 +57,7 @@ export function formatLobsterStatus(
   if (format === 'telegram') {
     return {
       text: [
-        `🦞 *龙虾 #${nfaId}* ${status}`,
+         `🦞 *${t(lang, '龙虾', 'Lobster')} #${nfaId}* ${status}`,
         `\`${rarity}\` | \`${shelter}\` | \`${job}\``,
         `📊 Lv.${state.level} | XP: ${state.xp}/${(state.level + 1) * 100}`,
         `💰 CLW: ${clwBalance}`,
@@ -80,9 +78,9 @@ export function formatLobsterStatus(
   // Rich (Feishu)
   return {
     text: [
-      `## 🦞 龙虾 #${nfaId} ${status}`,
-      `**稀有度:** ${rarity} | **避难所:** ${shelter} | **职业:** ${job}`,
-      `**等级:** ${state.level} | **XP:** ${state.xp}/${(state.level + 1) * 100} | **CLW:** ${clwBalance}`,
+       `## 🦞 ${t(lang, '龙虾', 'Lobster')} #${nfaId} ${status}`,
+       `**${t(lang, '稀有度', 'Rarity')}:** ${rarity} | **${t(lang, '避难所', 'Shelter')}:** ${shelter} | **${t(lang, '职业', 'Job')}:** ${job}`,
+       `**${t(lang, '等级', 'Level')}:** ${state.level} | **XP:** ${state.xp}/${(state.level + 1) * 100} | **CLW:** ${clwBalance}`,
       ``,
       `### SPECIAL`,
       `| 维度 | 值 | 进度 |`,
@@ -112,9 +110,10 @@ export function formatLobsterStatus(
 export function formatPKMatch(
   matchId: number,
   match: PKMatch,
-  format: OutputFormat
+  format: OutputFormat,
+  lang: SkillLang = 'zh'
 ): GameResponse {
-  const phase = PK_PHASE_NAMES[match.phase] || '未知';
+  const phase = getPkPhaseName(lang, match.phase);
   const stakeStr = (Number(match.stake) / 1e18).toFixed(0);
 
   if (format === 'plain') {
@@ -124,7 +123,7 @@ export function formatPKMatch(
         `状态: ${phase}`,
         `A: #${match.nfaA} | B: #${match.nfaB || '等待'}`,
         `赌注: ${stakeStr} CLW (每方)`,
-        match.phase === 4 ? `结果: A-${STRATEGY_NAMES[match.strategyA]} vs B-${STRATEGY_NAMES[match.strategyB]}` : '',
+        match.phase === 4 ? `结果: A-${getStrategyName(lang, match.strategyA)} vs B-${getStrategyName(lang, match.strategyB)}` : '',
       ].filter(Boolean).join('\n'),
     };
   }
@@ -135,7 +134,7 @@ export function formatPKMatch(
       `⚔️ **PK #${matchId}** — ${phase}`,
       `🦞 A: #${match.nfaA} vs B: #${match.nfaB || '等待对手'}`,
       `💰 赌注: ${stakeStr} CLW`,
-      match.phase === 4 ? `🎯 策略: ${STRATEGY_NAMES[match.strategyA]} vs ${STRATEGY_NAMES[match.strategyB]}` : '',
+      match.phase === 4 ? `🎯 策略: ${getStrategyName(lang, match.strategyA)} vs ${getStrategyName(lang, match.strategyB)}` : '',
     ].filter(Boolean).join('\n'),
     buttons: match.phase === 0 ? [{ label: '加入对战', action: `/pk join ${matchId}` }] : undefined,
   };
@@ -189,20 +188,21 @@ export function formatWorldState(
   mutationBonus: number,
   dailyCostMul: number,
   activeEvents: string[],
-  format: OutputFormat
+  format: OutputFormat,
+  lang: SkillLang = 'zh'
 ): GameResponse {
   const mul = (v: number) => (v / 10000).toFixed(1) + 'x';
 
   if (format === 'plain') {
     return {
       text: [
-        `=== 世界状态 ===`,
-        `奖励倍率: ${mul(rewardMul)}`,
-        `PK 上限: ${pkStakeLimit} CLW`,
-        `变异倍率: ${mul(mutationBonus)}`,
-        `日常消耗: ${mul(dailyCostMul)}`,
-        activeEvents.length > 0 ? `活跃事件: ${activeEvents.join(', ')}` : '无活跃事件',
-      ].join('\n'),
+         `=== ${t(lang, '世界状态', 'World State')} ===`,
+         `${t(lang, '奖励倍率', 'Reward Multiplier')}: ${mul(rewardMul)}`,
+         `${t(lang, 'PK 上限', 'PK Limit')}: ${pkStakeLimit} CLW`,
+         `${t(lang, '变异倍率', 'Mutation Multiplier')}: ${mul(mutationBonus)}`,
+         `${t(lang, '日常消耗', 'Daily Cost')}: ${mul(dailyCostMul)}`,
+         activeEvents.length > 0 ? `${t(lang, '活跃事件', 'Active Events')}: ${activeEvents.join(', ')}` : t(lang, '无活跃事件', 'No active events'),
+       ].join('\n'),
     };
   }
 
@@ -224,40 +224,40 @@ export function formatWorldState(
 // HELP
 // ============================================
 
-export function formatHelp(format: OutputFormat): GameResponse {
+export function formatHelp(format: OutputFormat, lang: SkillLang = 'zh'): GameResponse {
   const commands = [
-    ['/wallet [init|unlock]', '钱包管理'],
-    ['/status [id]', '查看龙虾状态'],
-    ['/task list|accept', '任务系统'],
-    ['/pk create|join|commit|reveal|settle', 'PvP 对战'],
-    ['/market list|sell|buy|cancel', '市场交易'],
-    ['/deposit <amount>', '充值 CLW'],
-    ['/withdraw <amount>', '提取 CLW'],
-    ['/job [id]', '查看职业'],
-    ['/world', '查看世界状态'],
-    ['/help', '显示帮助'],
+    ['/wallet [init|unlock]', t(lang, '钱包管理', 'Wallet management')],
+    ['/status [id]', t(lang, '查看龙虾状态', 'View lobster status')],
+    ['/task list|accept', t(lang, '任务系统', 'Task system')],
+    ['/pk create|join|commit|reveal|settle', t(lang, 'PvP 对战', 'PvP battle')],
+    ['/market list|sell|buy|cancel', t(lang, '市场交易', 'Market trading')],
+    ['/deposit <amount>', t(lang, '充值 CLW', 'Deposit CLW')],
+    ['/withdraw <amount>', t(lang, '提取 CLW', 'Withdraw CLW')],
+    ['/job [id]', t(lang, '查看职业', 'View job')],
+    ['/world', t(lang, '查看世界状态', 'View world state')],
+    ['/help', t(lang, '显示帮助', 'Show help')],
   ];
 
   if (format === 'plain') {
     return {
       text: [
-        '=== Claw World 命令 ===',
-        ...commands.map(([cmd, desc]) => `  ${cmd.padEnd(35)} ${desc}`),
-        '',
-        '直接输入文字与你的龙虾对话！',
-      ].join('\n'),
+         `=== ${t(lang, 'Claw World 命令', 'Claw World Commands')} ===`,
+         ...commands.map(([cmd, desc]) => `  ${cmd.padEnd(35)} ${desc}`),
+         '',
+         t(lang, '直接输入文字与你的龙虾对话！', 'Just type naturally to talk with your lobster!'),
+       ].join('\n'),
     };
   }
 
   return {
     text: [
-      '## 🦞 Claw World 命令',
-      '| 命令 | 说明 |',
-      '|------|------|',
-      ...commands.map(([cmd, desc]) => `| \`${cmd}\` | ${desc} |`),
-      '',
-      '💬 直接输入文字与你的龙虾对话！',
-    ].join('\n'),
+       `## 🦞 ${t(lang, 'Claw World 命令', 'Claw World Commands')}`,
+       `| ${t(lang, '命令', 'Command')} | ${t(lang, '说明', 'Description')} |`,
+       '|------|------|',
+       ...commands.map(([cmd, desc]) => `| \`${cmd}\` | ${desc} |`),
+       '',
+       `💬 ${t(lang, '直接输入文字与你的龙虾对话！', 'Just type naturally to talk with your lobster!')}`,
+     ].join('\n'),
   };
 }
 
@@ -269,14 +269,15 @@ export function formatTaskList(
   nfaId: number,
   tasks: TaskDefinition[],
   matchScores: number[],
-  format: OutputFormat
+  format: OutputFormat,
+  lang: SkillLang = 'zh'
 ): GameResponse {
   if (format === 'plain') {
     const lines = [`=== 🦞 可接任务 (#${nfaId}) ===`];
     tasks.forEach((t, i) => {
       const mul = (matchScores[i] / 10000).toFixed(1);
       const bar = _bar(Math.min(matchScores[i] / 200, 100));
-      lines.push(`[${i + 1}] ${TASK_TYPE_ICONS[t.taskType]} ${t.title.padEnd(14)} 匹配: ${bar} ${mul}x   类型: ${TASK_TYPE_NAMES[t.taskType]}`);
+      lines.push(`[${i + 1}] ${TASK_TYPE_ICONS[t.taskType]} ${t.title.padEnd(14)} 匹配: ${bar} ${mul}x   类型: ${getTaskTypeName(lang, t.taskType)}`);
       lines.push(`    "${t.description}"`);
       lines.push(`    奖励: ${t.baseCLW} CLW + ${t.baseXP} XP\n`);
     });
@@ -289,7 +290,7 @@ export function formatTaskList(
     tasks.forEach((t, i) => {
       const mul = (matchScores[i] / 10000).toFixed(1);
       const emoji = matchScores[i] >= 15000 ? '🟢' : matchScores[i] >= 10000 ? '🟡' : '🔴';
-      lines.push(`${emoji} *${i + 1}. ${t.title}* (${TASK_TYPE_NAMES[t.taskType]}) ${mul}x`);
+      lines.push(`${emoji} *${i + 1}. ${t.title}* (${getTaskTypeName(lang, t.taskType)}) ${mul}x`);
       lines.push(`  ${t.description}`);
       lines.push(`  💰 ${t.baseCLW} CLW + ${t.baseXP} XP\n`);
     });
@@ -305,7 +306,7 @@ export function formatTaskList(
   lines.push('|---|------|------|--------|------|');
   tasks.forEach((t, i) => {
     const mul = (matchScores[i] / 10000).toFixed(1);
-    lines.push(`| ${i + 1} | ${t.title} | ${TASK_TYPE_NAMES[t.taskType]} | ${mul}x | ${t.baseCLW} CLW + ${t.baseXP} XP |`);
+    lines.push(`| ${i + 1} | ${t.title} | ${getTaskTypeName(lang, t.taskType)} | ${mul}x | ${t.baseCLW} CLW + ${t.baseXP} XP |`);
   });
   return {
     text: lines.join('\n'),
@@ -320,9 +321,10 @@ export function formatTaskList(
 export function formatStrategyAdvice(
   matchId: number,
   advice: { recommendedStrategy: number; confidence: number; reasoning: string },
-  format: OutputFormat
+  format: OutputFormat,
+  lang: SkillLang = 'zh'
 ): GameResponse {
-  const stName = STRATEGY_NAMES[advice.recommendedStrategy] || '未知';
+  const stName = getStrategyName(lang, advice.recommendedStrategy);
   if (format === 'plain') {
     return {
       text: [
@@ -340,7 +342,7 @@ export function formatStrategyAdvice(
       `💬 _${advice.reasoning}_`,
       `🎯 推荐: **${stName}** (信心 ${advice.confidence}%)`,
     ].join('\n'),
-    buttons: [0, 1, 2].map(s => ({ label: STRATEGY_NAMES[s], action: `/pk commit ${s}` })),
+    buttons: [0, 1, 2].map(s => ({ label: getStrategyName(lang, s), action: `/pk commit ${s}` })),
   };
 }
 
@@ -353,7 +355,8 @@ export function formatBattleNarrative(
   narrative: string,
   winnerId: number,
   loserId: number,
-  format: OutputFormat
+  format: OutputFormat,
+  lang: SkillLang = 'zh'
 ): GameResponse {
   if (format === 'plain') {
     return {
@@ -383,7 +386,8 @@ export function formatBattleNarrative(
 
 export function formatMarketList(
   listings: MarketListing[],
-  format: OutputFormat
+  format: OutputFormat,
+  lang: SkillLang = 'zh'
 ): GameResponse {
   if (listings.length === 0) {
     return { text: format === 'plain' ? '=== 🏪 市场 ===\n暂无在售商品' : '🏪 **市场** — 暂无在售商品' };
@@ -392,7 +396,7 @@ export function formatMarketList(
   if (format === 'plain') {
     const lines = ['=== 🏪 市场 ===', 'ID   类型    NFA    价格         状态'];
     for (const l of listings) {
-      const typeName = LISTING_TYPE_NAMES[l.listingType] || '未知';
+      const typeName = getListingTypeName(lang, l.listingType);
       let priceStr = `${l.price} BNB`;
       if (l.listingType === 1) priceStr = `${l.price} BNB起`;
       if (l.listingType === 2) priceStr = `换 #${l.swapTargetId}`;
@@ -406,7 +410,7 @@ export function formatMarketList(
   lines.push('| ID | 类型 | NFA | 价格 | 状态 |');
   lines.push('|----|------|-----|------|------|');
   for (const l of listings) {
-    const typeName = LISTING_TYPE_NAMES[l.listingType] || '未知';
+    const typeName = getListingTypeName(lang, l.listingType);
     let priceStr = `${l.price} BNB`;
     if (l.listingType === 1) priceStr = `${l.price} BNB起`;
     if (l.listingType === 2) priceStr = `换 #${l.swapTargetId}`;
