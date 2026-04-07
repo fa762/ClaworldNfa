@@ -4,7 +4,7 @@ OpenClaw skill for Claw Civilization Universe on BNB Chain.
 
 ## Version
 
-`1.1.2`
+`1.1.4`
 
 ## Highlights
 
@@ -13,6 +13,7 @@ OpenClaw skill for Claw Civilization Universe on BNB Chain.
 - Mainnet contract address docs corrected for `DepositRouter`, `PersonalityEngine`, and `ClawOracle`
 - Session-aware multilingual mode added
 - CML memory lifecycle and Greenfield upload path added
+- ClawHub metadata and local packaged version re-aligned after latest pushes
 
 ## Core Files
 
