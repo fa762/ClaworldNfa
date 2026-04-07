@@ -805,11 +805,39 @@ async function cmdOwned() {
     wallets: wallets.map(function(w) { return w.address; }),
     ownedNFAs: ownedNFAs,
     count: ownedNFAs.length,
+    scope: 'OWNERSHIP_SUMMARY_ONLY',
     instructions: ownedNFAs.length === 0
-      ? 'No NFAs found. Tell player to mint at https://clawnfaterminal.xyz'
+      ? 'No NFAs found. Tell player to mint at https://clawnfaterminal.xyz. Use claw env for runtime checks.'
       : ownedNFAs.length === 1
-        ? 'Owned 1 NFA. Use claw status <tokenId> or claw boot for full session context.'
-        : 'Owned ' + ownedNFAs.length + ' NFAs. Use claw boot for full session context.'
+        ? 'Owned 1 NFA. Use claw status <tokenId> for details, claw env for runtime checks, or claw boot for full session context.'
+        : 'Owned ' + ownedNFAs.length + ' NFAs. Use claw env for runtime checks or claw boot for full session context.'
+  }, null, 2));
+}
+
+async function cmdEnv() {
+  const wallets = await getWallets();
+  const latestVersion = await checkForUpdate();
+  console.log(JSON.stringify({
+    status: 'OK',
+    version: CURRENT_VERSION,
+    network: NET,
+    chain: NET === 'mainnet' ? 'BNB Smart Chain Mainnet' : 'BNB Smart Chain Testnet',
+    rpc: RPC,
+    isMainnet: NET === 'mainnet',
+    hasWallet: wallets.length > 0,
+    walletCount: wallets.length,
+    wallets: wallets.map(function(w) { return w.address; }),
+    commands: {
+      env: 'Runtime/network/wallet check only',
+      owned: 'Ownership summary only',
+      boot: 'Full session init with NFA+CML+legacy+emotion'
+    },
+    updateAvailable: latestVersion ? {
+      current: CURRENT_VERSION,
+      latest: latestVersion,
+      message: '⚠️ 有新版本 v' + latestVersion + '！运行以下命令更新：openclaw skills update claw-world',
+      tg: '加入 TG 社区获取最新消息：' + TG_GROUP
+    } : null
   }, null, 2));
 }
 
@@ -907,7 +935,7 @@ async function cmdBoot() {
         var cmlLonging = cmlHoursSince < 8 ? 0 : cmlHoursSince < 24 ? 0.2 : cmlHoursSince < 48 ? 0.5 : cmlHoursSince < 72 ? 0.8 : 1.0;
         var cmlBoot = cmlData ? {
           identity: cmlData.IDENTITY,
-          pulse: { valence: cmlData.PULSE.valence, arousal: cmlData.PULSE.arousal, longing: cmlLonging },
+          pulse: { valence: cmlData.PULSE.valence, arousal: cmlData.PULSE.arousal, longing: cmlLonging, last_interaction: cmlData.PULSE.last_interaction || 0 },
           prefrontal: cmlData.PREFRONTAL,
           basal: cmlData.BASAL,
           triggerIndex: cmlData.CORTEX.vivid.map(function(m) { return { id: m.id, triggers: m.triggers }; }),
@@ -1457,9 +1485,28 @@ async function cmdCmlSave(tokenId, pin) {
     }
 
     var hash = saveCMLFile(Number(tokenId), cml);
-    var syncResult = await updateLearningRoot(pin, Number(tokenId), hash).catch(function() { return { synced: false, reason: 'SYNC_FAILED' }; });
-    if (!syncResult.synced) queueRootSync(Number(tokenId), hash);
-    console.log(JSON.stringify({ status: 'SAVED', nfa_id: Number(tokenId), hash: hash, rootSynced: !!syncResult.synced, txHash: syncResult.txHash || null, pendingReason: syncResult.reason || null }));
+    var rootSyncAttempted = !!pin;
+    var syncResult = rootSyncAttempted
+      ? await updateLearningRoot(pin, Number(tokenId), hash).catch(function() { return { synced: false, reason: 'SYNC_FAILED' }; })
+      : { synced: false, reason: 'NO_PIN' };
+    var pendingRootSyncQueued = !syncResult.synced;
+    if (pendingRootSyncQueued) queueRootSync(Number(tokenId), hash);
+    console.log(JSON.stringify({
+      status: 'SAVED',
+      nfa_id: Number(tokenId),
+      hash: hash,
+      localSaved: true,
+      rootSyncAttempted: rootSyncAttempted,
+      rootSynced: !!syncResult.synced,
+      txHash: syncResult.txHash || null,
+      pendingRootSyncQueued: pendingRootSyncQueued,
+      pendingReason: syncResult.reason || null,
+      instructions: rootSyncAttempted
+        ? (syncResult.synced
+            ? 'Local CML save succeeded and root sync completed.'
+            : 'Local CML save succeeded, but root sync is still pending or failed. Retry later if needed.')
+        : 'Local CML save succeeded. Root sync was not attempted because no PIN was provided.'
+    }, null, 2));
   } catch (e) {
     console.error('CML_PARSE_ERROR: ' + e.message);
     process.exit(1);
@@ -1472,6 +1519,7 @@ const [,, cmd, ...args] = process.argv;
 
 const commands = {
   boot:         () => cmdBoot(),
+  env:          () => cmdEnv(),
   owned:        () => cmdOwned(),
   'cml-init':   () => cmdCmlInit(args[0]),
   'cml-load':   () => cmdCmlLoad(args[0], args[1]),
@@ -1515,8 +1563,9 @@ const commands = {
 if (!cmd || !commands[cmd]) {
   console.log('Claw World CLI v' + CURRENT_VERSION);
   console.log('🌐 https://clawnfaterminal.xyz  💬 TG: https://t.me/Claworldgroup');
+  console.log('  claw env                           — runtime/network/wallet check only');
   console.log('  claw boot                          — full session init (wallet+NFA+CML+legacy+emotion)');
-  console.log('  claw owned                         — quick owned NFA summary');
+  console.log('  claw owned                         — ownership summary only');
   console.log('  claw status <tokenId>              — read lobster data');
   console.log('  claw wallet                        — show wallet');
   console.log('  claw world                         — world state');
@@ -1551,7 +1600,7 @@ if (!cmd || !commands[cmd]) {
   console.log('  claw cml-load <tokenId> --full                  — load complete CML with full CORTEX (use before SLEEP)');
   console.log('  claw cml-recall <tokenId> <id1,id2,...>         — recall full vivid memories by ID');
   console.log('  claw cml-match <tokenId> <message>              — match message against triggers');
-  console.log('  claw cml-save <tokenId> [pin]                   — save CML locally; with pin also try root sync');
+  console.log('  claw cml-save <tokenId> [pin]                   — save CML locally; with pin try root sync now');
   process.exit(1);
 }
 
