@@ -391,49 +391,49 @@ export function formatMarketList(
   lang: SkillLang = 'zh'
 ): GameResponse {
   if (listings.length === 0) {
-    return { text: format === 'plain' ? '=== 🏪 市场 ===\n暂无在售商品' : '🏪 **市场** — 暂无在售商品' };
+    return { text: format === 'plain' ? `=== 🏪 ${t(lang, '市场', 'Market')} ===\n${t(lang, '暂无在售商品', 'No active listings')}` : `🏪 **${t(lang, '市场', 'Market')}** — ${t(lang, '暂无在售商品', 'No active listings')}` };
   }
 
   if (format === 'plain') {
-    const lines = ['=== 🏪 市场 ===', 'ID   类型    NFA    价格         状态'];
+    const lines = [`=== 🏪 ${t(lang, '市场', 'Market')} ===`, `ID   ${t(lang, '类型', 'Type')}    NFA    ${t(lang, '价格', 'Price')}         ${t(lang, '状态', 'Status')}`];
     for (const l of listings) {
       const typeName = getListingTypeName(lang, l.listingType);
       let priceStr = `${l.price} BNB`;
-      if (l.listingType === 1) priceStr = `${l.price} BNB起`;
-      if (l.listingType === 2) priceStr = `换 #${l.swapTargetId}`;
-      const timeStr = l.listingType === 1 ? _remainingTime(l.endTime) : '在售';
+      if (l.listingType === 1) priceStr = lang === 'zh' ? `${l.price} BNB起` : `${l.price} BNB start`;
+      if (l.listingType === 2) priceStr = lang === 'zh' ? `换 #${l.swapTargetId}` : `Swap #${l.swapTargetId}`;
+      const timeStr = l.listingType === 1 ? _remainingTime(l.endTime, lang) : t(lang, '在售', 'Live');
       lines.push(`#${String(l.listingId).padEnd(4)} ${typeName.padEnd(6)} #${String(l.nfaId).padEnd(5)} ${priceStr.padEnd(13)} ${timeStr}`);
     }
     return { text: lines.join('\n') };
   }
 
-  const lines = [`🏪 **市场** (${listings.length} 件在售)\n`];
-  lines.push('| ID | 类型 | NFA | 价格 | 状态 |');
+  const lines = [`🏪 **${t(lang, '市场', 'Market')}** (${listings.length} ${t(lang, '件在售', 'live listings')})\n`];
+  lines.push(`| ID | ${t(lang, '类型', 'Type')} | NFA | ${t(lang, '价格', 'Price')} | ${t(lang, '状态', 'Status')} |`);
   lines.push('|----|------|-----|------|------|');
   for (const l of listings) {
     const typeName = getListingTypeName(lang, l.listingType);
     let priceStr = `${l.price} BNB`;
-    if (l.listingType === 1) priceStr = `${l.price} BNB起`;
-    if (l.listingType === 2) priceStr = `换 #${l.swapTargetId}`;
-    const timeStr = l.listingType === 1 ? _remainingTime(l.endTime) : '在售';
+    if (l.listingType === 1) priceStr = lang === 'zh' ? `${l.price} BNB起` : `${l.price} BNB start`;
+    if (l.listingType === 2) priceStr = lang === 'zh' ? `换 #${l.swapTargetId}` : `Swap #${l.swapTargetId}`;
+    const timeStr = l.listingType === 1 ? _remainingTime(l.endTime, lang) : t(lang, '在售', 'Live');
     lines.push(`| #${l.listingId} | ${typeName} | #${l.nfaId} | ${priceStr} | ${timeStr} |`);
   }
   return {
     text: lines.join('\n'),
     buttons: listings.slice(0, 3).map(l => ({
-      label: l.listingType === 0 ? `购买 #${l.listingId}` : `查看 #${l.listingId}`,
+      label: l.listingType === 0 ? (lang === 'zh' ? `购买 #${l.listingId}` : `Buy #${l.listingId}`) : (lang === 'zh' ? `查看 #${l.listingId}` : `View #${l.listingId}`),
       action: l.listingType === 0 ? `/market buy ${l.listingId}` : `/market info ${l.listingId}`,
     })),
   };
 }
 
-function _remainingTime(endTimestamp: number): string {
+function _remainingTime(endTimestamp: number, lang: SkillLang = 'zh'): string {
   const now = Math.floor(Date.now() / 1000);
   const diff = endTimestamp - now;
-  if (diff <= 0) return '已结束';
+  if (diff <= 0) return t(lang, '已结束', 'Ended');
   const hours = Math.floor(diff / 3600);
   const mins = Math.floor((diff % 3600) / 60);
-  return hours > 0 ? `剩余 ${hours}h${mins}m` : `剩余 ${mins}m`;
+  return hours > 0 ? (lang === 'zh' ? `剩余 ${hours}h${mins}m` : `${hours}h${mins}m left`) : (lang === 'zh' ? `剩余 ${mins}m` : `${mins}m left`);
 }
 
 // ============================================

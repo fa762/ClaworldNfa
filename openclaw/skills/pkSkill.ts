@@ -130,6 +130,7 @@ export class PKSkill {
   async analyzeOpponent(
     myNfaId: number,
     opponentNfaId: number,
+    lang: SkillLang = 'zh',
   ): Promise<StrategyAdvice> {
     const [myStatus, opStatus] = await Promise.all([
       this.client.getLobsterStatus(myNfaId),
@@ -140,11 +141,11 @@ export class PKSkill {
     const opState = opStatus.state;
 
     // Rule-based baseline
-    const baseline = this.computeBaselineStrategy(myState, opState);
+    const baseline = this.computeBaselineStrategy(myState, opState, lang);
 
     // AI enhancement
     try {
-      const systemPrompt = buildAnalysisPrompt(myState, opState, myNfaId, opponentNfaId, 'zh');
+      const systemPrompt = buildAnalysisPrompt(myState, opState, myNfaId, opponentNfaId, lang);
       const aiAdvice = await this.ai.chatJSON<{
         recommendedStrategy: number;
         confidence: number;
@@ -399,6 +400,7 @@ export class PKSkill {
   private computeBaselineStrategy(
     myState: LobsterState,
     opState: LobsterState,
+    lang: SkillLang = 'zh',
   ): Omit<StrategyAdvice, 'opponentAnalysis'> {
     // Wisdom-based: analyze opponent stats ratio
     if (myState.wisdom >= PERSONALITY_LEAN_THRESHOLD) {
@@ -407,7 +409,7 @@ export class PKSkill {
         return {
           recommendedStrategy: STRATEGY.BALANCED,
           confidence: 50,
-          reasoning: '对手数据不足，建议采用均衡策略以应对未知情况。',
+          reasoning: t(lang, '对手数据不足，建议采用均衡策略以应对未知情况。', 'Opponent data is incomplete. Balanced is the safest response to uncertainty.'),
         };
       }
 
@@ -419,7 +421,7 @@ export class PKSkill {
         return {
           recommendedStrategy: STRATEGY.ALL_DEFENSE,
           confidence: 70,
-          reasoning: '智者之眼洞察一切——对手攻击倾向明显，全防可以消耗其锋芒。',
+          reasoning: t(lang, '智者之眼洞察一切——对手攻击倾向明显，全防可以消耗其锋芒。', 'The opponent leans heavily into attack. Full defense should blunt that edge.'),
         };
       }
 
@@ -428,14 +430,14 @@ export class PKSkill {
         return {
           recommendedStrategy: STRATEGY.ALL_ATTACK,
           confidence: 65,
-          reasoning: '经过冷静分析，对手防御过重，全力攻击方能突破其龟壳。',
+          reasoning: t(lang, '经过冷静分析，对手防御过重，全力攻击方能突破其龟壳。', 'The opponent is overinvested in defense. Full attack gives the best chance to break through.'),
         };
       }
 
       return {
         recommendedStrategy: STRATEGY.BALANCED,
         confidence: 55,
-        reasoning: '对手属性均衡，智者建议以不变应万变，均衡迎敌。',
+        reasoning: t(lang, '对手属性均衡，智者建议以不变应万变，均衡迎敌。', 'The opponent looks balanced. A balanced stance is the steadiest answer.'),
       };
     }
 
@@ -444,7 +446,7 @@ export class PKSkill {
       return {
         recommendedStrategy: STRATEGY.ALL_ATTACK,
         confidence: 65,
-        reasoning: '勇者无惧！全力进攻，以气势压倒对手！',
+        reasoning: t(lang, '勇者无惧！全力进攻，以气势压倒对手！', 'No hesitation. Commit to full attack and overwhelm the opponent with momentum.'),
       };
     }
 
@@ -453,7 +455,7 @@ export class PKSkill {
       return {
         recommendedStrategy: STRATEGY.ALL_DEFENSE,
         confidence: 65,
-        reasoning: '坚韧如磐石，全防守住阵地，让对手自己消耗殆尽。',
+        reasoning: t(lang, '坚韧如磐石，全防守住阵地，让对手自己消耗殆尽。', 'Hold like stone. Full defense and let the opponent drain themselves out.'),
       };
     }
 
@@ -461,7 +463,7 @@ export class PKSkill {
     return {
       recommendedStrategy: STRATEGY.BALANCED,
       confidence: 50,
-      reasoning: '综合考虑，均衡策略最为稳妥。',
+      reasoning: t(lang, '综合考虑，均衡策略最为稳妥。', 'Taking everything together, a balanced strategy is the safest play.'),
     };
   }
 }
