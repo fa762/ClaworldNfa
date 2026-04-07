@@ -8,6 +8,7 @@ OpenClaw skill for Claw Civilization Universe on BNB Chain.
 
 ## Highlights
 
+- Status output now separates NFA assets from wallet gas via `wallet.address` and `wallet.gasBnb`
 - Runtime/save semantics clarified: local CML save is separate from root/onchain sync
 - Added lightweight `env` command for runtime/network/wallet checks
 - `owned` is now explicitly documented as ownership-summary-only

@@ -115,17 +115,19 @@ Each lobster NFA has:
 ```bash
 node ~/.openclaw/skills/claw-world/claw status <tokenId>
 ```
-Returns JSON with full stats including task/PK resume (履历). Display nicely. Example:
+Returns JSON with full stats including task/PK resume (履历). Display nicely. Keep NFA status and wallet info separated: `clwBalance` / `dailyCost` / `daysRemaining` are NFA fields, while `wallet.gasBnb` is wallet gas only. Example:
 ```json
 {
   "personality": { "courage": 25, "wisdom": 40, "social": 72, "create": 33, "grit": 42 },
   "dna": { "STR": 20, "DEF": 46, "SPD": 27, "VIT": 21 },
   "level": 1, "xp": 104, "clwBalance": 1000, "dailyCost": 7.9, "daysRemaining": 126,
+  "wallet": { "address": "0x0e77...9e76", "gasBnb": 0.0251 },
   "taskRecord": { "total": 12, "clwEarned": 3200, "byType": { "courage": 5, "wisdom": 3, "social": 2, "create": 1, "grit": 1 } },
   "pkRecord": { "wins": 6, "losses": 2, "winRate": "75%", "clwWon": 1800, "clwLost": 400 }
 }
 ```
 **Always show taskRecord and pkRecord when displaying status** — this is the lobster's resume/履历.
+**When formatting status for players, show wallet info last and label it as `Gas BNB`.**
 
 ### Check wallet
 ```bash

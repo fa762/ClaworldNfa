@@ -81,7 +81,7 @@ async function cmdStatus(tokenId) {
     task.getTaskStats(tokenId).catch(function() { return [0,0,0,0,0,0,0]; }),
     pk.getPkStats(tokenId).catch(function() { return [0,0,0,0]; })
   ]);
-  const tbnb = await provider.getBalance(owner);
+  const gasBnb = await provider.getBalance(owner);
   const rNames = ['Common','Rare','Epic','Legendary','Mythic'];
 
   const pkTotal = (ts[0] || 0);
@@ -99,8 +99,10 @@ async function cmdStatus(tokenId) {
     clwBalance: parseFloat(ethers.utils.formatEther(bal)),
     dailyCost: parseFloat(ethers.utils.formatEther(cost)),
     daysRemaining: cost.gt(0) ? Math.floor(bal.div(cost).toNumber()) : 999,
-    owner,
-    tbnb: parseFloat(ethers.utils.formatEther(tbnb)),
+    wallet: {
+      address: owner,
+      gasBnb: parseFloat(ethers.utils.formatEther(gasBnb))
+    },
     mutation1: s.mutation1 === ethers.constants.HashZero ? null : s.mutation1,
     mutation2: s.mutation2 === ethers.constants.HashZero ? null : s.mutation2,
     taskRecord: {
