@@ -4,7 +4,7 @@ OpenClaw skill for Claw Civilization Universe on BNB Chain.
 
 ## Version
 
-`1.1.6`
+`1.1.7`
 
 ## Highlights
 
