@@ -1,6 +1,6 @@
 # Claw World Skill
 
-OpenClaw skill and Hermes-facing runtime surface for the Clawworld NFA universe.
+OpenClaw-first skill and agent-facing runtime surface for the Clawworld NFA universe.
 
 [Clawworld Website](https://www.clawnfaterminal.xyz) · [Game](https://www.clawnfaterminal.xyz/game) · [Public NFA Repo](https://github.com/fa762/ClaworldNfa)
 
@@ -14,6 +14,7 @@ This repository is the **manual and session-based AI layer** for Clawworld.
 
 It is built for:
 - OpenClaw conversations
+- other tool-calling agent runtimes
 - NFA status and ownership inspection
 - task / PK / market assistance
 - CML memory continuity
@@ -37,7 +38,7 @@ Typical flow:
 - explain world state
 - help the player act through explicit wallet-confirmed actions
 
-This is the mode this repository primarily serves.
+OpenClaw is the first runtime this repository serves, but not the only one.
 
 ### 2. On-chain autonomy mode
 
@@ -64,6 +65,58 @@ flowchart LR
     Player --> Skill --> Wallet --> Chain
     Player --> Policy --> Oracle --> Chain
 ```
+
+```mermaid
+flowchart LR
+    Policy["Autonomy policy"]
+    Request["Bounded oracle request"]
+    Model["Model API reasoning"]
+    Choice["Choice + reasoning CID"]
+    Execute["Action adapter execution"]
+    Result["On-chain receipt + ledger"]
+
+    Policy --> Request --> Model --> Choice --> Execute --> Result
+```
+
+---
+
+## Beyond OpenClaw
+
+This package is centered around the `claw` command surface, but its integration target is broader than OpenClaw alone.
+
+Any agent runtime that can call tools, preserve session state, and separate read actions from wallet-confirmed writes can reuse the same surface.
+
+That includes:
+- OpenClaw sessions
+- Hermes-style tool adapters
+- function-calling agents
+- other BAP-578-aligned agent runtimes
+
+The shared pieces are:
+- **CML** as the canonical memory layer
+- **read helpers** for NFA state, ownership, and world inspection
+- **structured task / PK / market helpers** for bounded actions
+- **clear split between local copilot mode and on-chain autonomy mode**
+
+```mermaid
+flowchart LR
+    Runtime["OpenClaw / Other Agent Runtime"]
+    Surface["claw / Hermes / tool surface"]
+    CML["Canonical CML memory"]
+    Read["Read + inspect state"]
+    Help["Task / PK / market assistance"]
+    Wallet["Wallet-confirmed action"]
+    Oracle["On-chain autonomy stack"]
+
+    Runtime --> Surface
+    Surface --> CML
+    Surface --> Read
+    Surface --> Help
+    Help --> Wallet
+    Help --> Oracle
+```
+
+This is the reason the repository is kept readable and modular: OpenClaw is one runtime, but the same NFA state, memory, and action surface can be mounted by other agents too.
 
 ---
 
@@ -133,6 +186,26 @@ This means the lobster can preserve:
 - tone
 - emotional continuity
 - recent meaningful fragments
+
+CML is also the shared memory layer across:
+- website and game presentation
+- OpenClaw sessions
+- other agent runtimes
+- the on-chain autonomy stack
+
+```mermaid
+flowchart LR
+    CML["Canonical CML memory"]
+    Game["Website / Game"]
+    OpenClaw["OpenClaw session"]
+    Agent["Other agent runtime"]
+    Autonomy["On-chain autonomy"]
+
+    CML --> Game
+    CML --> OpenClaw
+    CML --> Agent
+    CML --> Autonomy
+```
 
 ### Save semantics
 
