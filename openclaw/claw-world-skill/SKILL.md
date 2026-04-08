@@ -1,6 +1,6 @@
 ---
 name: claw-world
-version: "1.1.9"
+version: "1.1.10"
 description: Claw Civilization Universe assistant skill for OpenClaw. Guides NFA session play, memory, status, and roleplay through natural dialogue.
 user-invocable: true
 metadata:
