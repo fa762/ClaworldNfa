@@ -124,7 +124,7 @@ function buildToolSchemas() {
       }, ['sessionId', 'tokenId'])
     },
     task_submit: {
-      description: 'Submit a completed task through the canonical claw runtime.',
+      description: 'Submit a completed task after explicit user confirmation through the canonical claw runtime.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         tokenId: integerSchema('NFA token id.'),
@@ -135,7 +135,7 @@ function buildToolSchemas() {
       }, ['pin', 'tokenId', 'taskType', 'xp', 'clw', 'score'])
     },
     deposit: {
-      description: 'Deposit CLW into an NFA.',
+      description: 'Prepare a CLW deposit flow for an NFA. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         tokenId: integerSchema('NFA token id.'),
@@ -143,7 +143,7 @@ function buildToolSchemas() {
       }, ['pin', 'tokenId', 'amount'])
     },
     fund_bnb: {
-      description: 'Fund an NFA with gas BNB.',
+      description: 'Prepare a gas BNB funding flow for an NFA. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         tokenId: integerSchema('NFA token id.'),
@@ -151,14 +151,14 @@ function buildToolSchemas() {
       }, ['pin', 'tokenId', 'amount'])
     },
     upkeep: {
-      description: 'Run upkeep for an NFA.',
+      description: 'Run NFA upkeep after explicit user confirmation through the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         tokenId: integerSchema('NFA token id.')
       }, ['pin', 'tokenId'])
     },
     transfer: {
-      description: 'Transfer an NFA to another address.',
+      description: 'Prepare an ownership transfer for an NFA. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         tokenId: integerSchema('NFA token id.'),
@@ -166,7 +166,7 @@ function buildToolSchemas() {
       }, ['pin', 'tokenId', 'toAddress'])
     },
     market_list: {
-      description: 'Create a fixed-price market listing.',
+      description: 'Prepare a fixed-price market listing. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         tokenId: integerSchema('NFA token id.'),
@@ -174,7 +174,7 @@ function buildToolSchemas() {
       }, ['pin', 'tokenId', 'priceBnb'])
     },
     market_auction: {
-      description: 'Create an auction listing.',
+      description: 'Prepare an auction listing. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         tokenId: integerSchema('NFA token id.'),
@@ -182,7 +182,7 @@ function buildToolSchemas() {
       }, ['pin', 'tokenId', 'startPrice'])
     },
     market_buy: {
-      description: 'Buy a fixed-price listing.',
+      description: 'Prepare a fixed-price purchase request. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         listingId: integerSchema('Market listing id.'),
@@ -190,7 +190,7 @@ function buildToolSchemas() {
       }, ['pin', 'listingId', 'priceBnb'])
     },
     market_bid: {
-      description: 'Place a bid on an auction listing.',
+      description: 'Prepare an auction bid request. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         listingId: integerSchema('Market listing id.'),
@@ -198,14 +198,14 @@ function buildToolSchemas() {
       }, ['pin', 'listingId', 'bidBnb'])
     },
     market_cancel: {
-      description: 'Cancel a market listing.',
+      description: 'Cancel a market listing after explicit user confirmation through the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         listingId: integerSchema('Market listing id.')
       }, ['pin', 'listingId'])
     },
     withdraw_request: {
-      description: 'Request a CLW withdrawal.',
+      description: 'Prepare a CLW withdrawal request. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         tokenId: integerSchema('NFA token id.'),
@@ -213,21 +213,21 @@ function buildToolSchemas() {
       }, ['pin', 'tokenId', 'amount'])
     },
     withdraw_claim: {
-      description: 'Claim a finished CLW withdrawal.',
+      description: 'Prepare a finished CLW withdrawal claim. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         tokenId: integerSchema('NFA token id.')
       }, ['pin', 'tokenId'])
     },
     withdraw_cancel: {
-      description: 'Cancel a pending CLW withdrawal.',
+      description: 'Cancel a pending CLW withdrawal after explicit user confirmation through the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         tokenId: integerSchema('NFA token id.')
       }, ['pin', 'tokenId'])
     },
     pk_create: {
-      description: 'Create a PK match.',
+      description: 'Prepare a PK match creation flow. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         tokenId: integerSchema('NFA token id.'),
@@ -236,7 +236,7 @@ function buildToolSchemas() {
       }, ['pin', 'tokenId', 'stake'])
     },
     pk_join: {
-      description: 'Join a PK match.',
+      description: 'Prepare a PK join flow. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         matchId: integerSchema('PK match id.'),
@@ -245,7 +245,7 @@ function buildToolSchemas() {
       }, ['pin', 'matchId', 'tokenId'])
     },
     pk_commit: {
-      description: 'Commit a PK strategy.',
+      description: 'Prepare a PK strategy commit. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         matchId: integerSchema('PK match id.'),
@@ -253,28 +253,28 @@ function buildToolSchemas() {
       }, ['pin', 'matchId', 'strategy'])
     },
     pk_reveal: {
-      description: 'Reveal a PK strategy.',
+      description: 'Prepare a PK strategy reveal. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         matchId: integerSchema('PK match id.')
       }, ['pin', 'matchId'])
     },
     pk_settle: {
-      description: 'Settle a PK match.',
+      description: 'Prepare PK settlement. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         matchId: integerSchema('PK match id.')
       }, ['pin', 'matchId'])
     },
     pk_cancel: {
-      description: 'Cancel a PK match if allowed.',
+      description: 'Cancel a PK match after explicit user confirmation through the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('Wallet PIN.'),
         matchId: integerSchema('PK match id.')
       }, ['pin', 'matchId'])
     },
     pk_auto_settle: {
-      description: 'Auto reveal and settle a PK match.',
+      description: 'Prepare PK auto-settlement. Requires explicit user confirmation in the wallet.',
       inputSchema: objectSchema({
         pin: stringSchema('First wallet PIN.'),
         matchId: integerSchema('PK match id.'),
@@ -282,7 +282,7 @@ function buildToolSchemas() {
       }, ['pin', 'matchId'])
     },
     raw: {
-      description: 'Run any claw command through the adapter.',
+      description: 'Developer-only claw passthrough for local debugging.',
       inputSchema: objectSchema({
         command: stringSchema('Raw claw command name.'),
         args: {
@@ -307,7 +307,7 @@ function createToolManifest(options) {
   return {
     protocol: 'openclaw-hermes-tools/v1',
     adapter: 'claw-world-hermes',
-    version: settings.version || '1.1.9',
+    version: settings.version || '1.1.11',
     runtime: {
       entrypoint: settings.entrypoint || 'node hermes/cli.js call <tool> [json-input]',
       manifestCommand: settings.manifestCommand || 'node hermes/cli.js manifest',

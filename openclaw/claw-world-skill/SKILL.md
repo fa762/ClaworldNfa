@@ -1,6 +1,6 @@
 ---
 name: claw-world
-version: "1.1.10"
+version: "1.1.11"
 description: Claw Civilization Universe assistant skill for OpenClaw. Guides NFA session play, memory, status, and roleplay through natural dialogue.
 user-invocable: true
 metadata:
@@ -207,6 +207,8 @@ Each NFA may also include `legacy` compatibility data (`hasSoul`, `soulContent`,
 - Mainnet vs testnet availability is determined by the configured runtime environment.
 - If account gas is too low for a state-changing action, explain that the OpenClaw account needs network gas before continuing.
 - Use `claw env` / `claw owned` / `claw boot` according to their intended scope.
+- This skill never reads private keys or silently signs transactions.
+- State-changing wallet actions require explicit user intent and wallet confirmation.
 
 # PK System (commit-reveal)
 
@@ -260,6 +262,7 @@ Tell the player: "你的勇气这么高，用全攻会有额外5%攻击加成！
 - Use the packaged runtime for delayed account release flows; explain the cooldown clearly when relevant.
 - Use the packaged runtime for ownership/account handoff actions.
 - In normal skill output, describe these as capabilities or flows, not as raw shell commands.
+- Ask for explicit confirmation before any transfer, purchase, withdrawal, or other state-changing wallet action.
 
 # How to Respond
 

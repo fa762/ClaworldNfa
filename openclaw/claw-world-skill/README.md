@@ -4,7 +4,7 @@ OpenClaw skill for Claw Civilization Universe.
 
 ## Version
 
-`1.1.9`
+`1.1.11`
 
 ## Highlights
 
@@ -36,6 +36,13 @@ OpenClaw skill for Claw Civilization Universe.
 - `claw cml-save <tokenId> <pin>`: saves locally and attempts root sync immediately
 - Without a PIN, local save can still succeed while root sync remains pending
 - Optional remote backup only runs when the local environment supports it
+
+## Safety
+
+- This skill never reads private keys or silently signs transactions.
+- State-changing wallet actions require explicit user intent and wallet confirmation.
+- Read tools are kept separate from transaction tools.
+- The public Hermes adapter marks raw passthrough as developer-only local debugging.
 
 ## Update Notes
 

@@ -12,6 +12,15 @@ const {
   createMcpToolDescriptors
 } = require('./tool-schemas');
 
+function omitDeveloperOnlyTools(record) {
+  return Object.keys(record).reduce(function(result, key) {
+    if (key !== 'raw') {
+      result[key] = record[key];
+    }
+    return result;
+  }, {});
+}
+
 function createHermesAdapter(options) {
   const settings = options || {};
   const skillDir = settings.skillDir || path.resolve(__dirname, '..');
@@ -25,9 +34,11 @@ function createHermesAdapter(options) {
   const memoryAdapter = settings.memoryAdapter || new HermesMemoryAdapter(runtime, sessionStore);
   const tools = settings.tools || createToolRegistry(runtime, sessionStore, memoryAdapter);
   const toolSchemas = settings.toolSchemas || buildToolSchemas();
+  const publicTools = omitDeveloperOnlyTools(tools);
+  const publicToolSchemas = omitDeveloperOnlyTools(toolSchemas);
   const manifestOptions = {
-    tools,
-    schemas: toolSchemas,
+    tools: publicTools,
+    schemas: publicToolSchemas,
     version: settings.version,
     entrypoint: settings.entrypoint,
     manifestCommand: settings.manifestCommand,

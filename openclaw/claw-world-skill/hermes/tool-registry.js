@@ -109,127 +109,127 @@ function createToolRegistry(runtime, sessionStore, memoryAdapter) {
       }
     },
     task_submit: {
-      description: 'Submit a completed task through the canonical claw runtime.',
+      description: 'Submit a completed task after explicit user confirmation through the canonical claw runtime.',
       execute: async function(input) {
         return (await runtime.task(input.pin, input.tokenId, input.taskType, input.xp, input.clw, input.score)).parsed;
       }
     },
     deposit: {
-      description: 'Deposit CLW into an NFA.',
+      description: 'Prepare a CLW deposit flow for an NFA. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.deposit(input.pin, input.tokenId, input.amount)).parsed;
       }
     },
     fund_bnb: {
-      description: 'Fund an NFA with gas BNB.',
+      description: 'Prepare a gas BNB funding flow for an NFA. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.fundBnb(input.pin, input.tokenId, input.amount)).parsed;
       }
     },
     upkeep: {
-      description: 'Run upkeep for an NFA.',
+      description: 'Run NFA upkeep after explicit user confirmation through the wallet.',
       execute: async function(input) {
         return (await runtime.upkeep(input.pin, input.tokenId)).parsed;
       }
     },
     transfer: {
-      description: 'Transfer an NFA to another address.',
+      description: 'Prepare an ownership transfer for an NFA. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.transfer(input.pin, input.tokenId, input.toAddress)).parsed;
       }
     },
     market_list: {
-      description: 'Create a fixed-price market listing.',
+      description: 'Prepare a fixed-price market listing. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.marketList(input.pin, input.tokenId, input.priceBnb)).parsed;
       }
     },
     market_auction: {
-      description: 'Create an auction listing.',
+      description: 'Prepare an auction listing. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.marketAuction(input.pin, input.tokenId, input.startPrice)).parsed;
       }
     },
     market_buy: {
-      description: 'Buy a fixed-price listing.',
+      description: 'Prepare a fixed-price purchase request. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.marketBuy(input.pin, input.listingId, input.priceBnb)).parsed;
       }
     },
     market_bid: {
-      description: 'Place a bid on an auction listing.',
+      description: 'Prepare an auction bid request. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.marketBid(input.pin, input.listingId, input.bidBnb)).parsed;
       }
     },
     market_cancel: {
-      description: 'Cancel a market listing.',
+      description: 'Cancel a market listing after explicit user confirmation through the wallet.',
       execute: async function(input) {
         return (await runtime.marketCancel(input.pin, input.listingId)).parsed;
       }
     },
     withdraw_request: {
-      description: 'Request a CLW withdrawal.',
+      description: 'Prepare a CLW withdrawal request. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.withdrawRequest(input.pin, input.tokenId, input.amount)).parsed;
       }
     },
     withdraw_claim: {
-      description: 'Claim a finished CLW withdrawal.',
+      description: 'Prepare a finished CLW withdrawal claim. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.withdrawClaim(input.pin, input.tokenId)).parsed;
       }
     },
     withdraw_cancel: {
-      description: 'Cancel a pending CLW withdrawal.',
+      description: 'Cancel a pending CLW withdrawal after explicit user confirmation through the wallet.',
       execute: async function(input) {
         return (await runtime.withdrawCancel(input.pin, input.tokenId)).parsed;
       }
     },
     pk_create: {
-      description: 'Create a PK match.',
+      description: 'Prepare a PK match creation flow. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.pkCreate(input.pin, input.tokenId, input.stake, input.strategy)).parsed;
       }
     },
     pk_join: {
-      description: 'Join a PK match.',
+      description: 'Prepare a PK join flow. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.pkJoin(input.pin, input.matchId, input.tokenId, input.strategy)).parsed;
       }
     },
     pk_commit: {
-      description: 'Commit a PK strategy.',
+      description: 'Prepare a PK strategy commit. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.pkCommit(input.pin, input.matchId, input.strategy)).parsed;
       }
     },
     pk_reveal: {
-      description: 'Reveal a PK strategy.',
+      description: 'Prepare a PK strategy reveal. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.pkReveal(input.pin, input.matchId)).parsed;
       }
     },
     pk_settle: {
-      description: 'Settle a PK match.',
+      description: 'Prepare PK settlement. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.pkSettle(input.pin, input.matchId)).parsed;
       }
     },
     pk_cancel: {
-      description: 'Cancel a PK match if allowed.',
+      description: 'Cancel a PK match after explicit user confirmation through the wallet.',
       execute: async function(input) {
         return (await runtime.pkCancel(input.pin, input.matchId)).parsed;
       }
     },
     pk_auto_settle: {
-      description: 'Auto reveal and settle a PK match.',
+      description: 'Prepare PK auto-settlement. Requires explicit user confirmation in the wallet.',
       execute: async function(input) {
         return (await runtime.pkAutoSettle(input.pin, input.matchId, input.pin2)).parsed;
       }
     },
     raw: {
-      description: 'Run any claw command through the adapter.',
+      description: 'Developer-only claw passthrough for local debugging.',
       execute: async function(input) {
         const result = await runtime.raw(input.command, input.args || [], {
           expectJson: input.expectJson,
