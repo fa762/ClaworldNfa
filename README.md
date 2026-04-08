@@ -131,6 +131,28 @@ Monthly cap: ±5 per dimension (prevents gaming)
 - **2D RPG** — browser pixel game at `/game` (arcade mode)
 - **OpenClaw** — local AI runtime for deep conversations & strategy
 
+### OpenClaw Runtime & Memory
+
+The OpenClaw layer is not just a chat wrapper. It is the agent runtime that turns an NFA into a session-aware character with persistent memory.
+
+- **`boot`** — full session initializer; scans owned NFAs, loads CML memory, preserves legacy fallback data, and computes the current emotion trigger
+- **`env`** — lightweight runtime / network / account check only
+- **`owned`** — lightweight ownership summary only
+- **CML lifecycle** — each NFA has canonical CML memory; session notes are consolidated through `cml-load` / `cml-save`
+- **Local-first save semantics** — local save succeeds independently from optional root sync / backup support
+- **Language continuity** — the runtime keeps the conversation in the user's language unless the user clearly switches
+
+In practice, this means the same NFA can be viewed on the website, played in the game, and then opened in OpenClaw with personality, memory, and emotional continuity.
+
+### Agent Interface Surface
+
+The public skill/runtime already exposes a tool-friendly surface that can be mounted by OpenClaw and other tool/function-calling agents.
+
+- **Read / inspect** — environment, owned NFAs, status, world state, rankings, listings, withdraw status, CML load
+- **Act** — tasks, upkeep, deposits, market actions, transfers, withdrawals, PK create / join / reveal / settle
+- **Safety boundary** — read tools are separated from wallet-confirmed state-changing actions; the runtime never reads private keys or silently signs
+- **Hermes adapter** — the published adapter exports standard tool schemas / manifests so external agents can integrate without reimplementing game logic
+
 ---
 
 ### Smart Contracts (BSC Mainnet)
@@ -373,6 +395,28 @@ Agent 的性格基于玩家行为演化，而不是随机的：
 - **官网** — 查看状态、铸造、管理 NFA
 - **2D RPG** — 浏览器像素游戏（`/game`，街机模式）
 - **OpenClaw** — 本地 AI 运行时，深度对话与策略
+
+### OpenClaw 运行时与记忆机制
+
+OpenClaw 不只是一个聊天壳，它是把 NFA 变成“有会话状态、有持续记忆角色”的 agent runtime。
+
+- **`boot`** —— 完整会话初始化；扫描已拥有 NFA、加载 CML 记忆、保留 legacy fallback 数据，并计算当前 emotion trigger
+- **`env`** —— 仅做轻量 runtime / network / account 检查
+- **`owned`** —— 仅做轻量 ownership summary
+- **CML 生命周期** —— 每只 NFA 都有 canonical CML memory；会话中的片段最终通过 `cml-load` / `cml-save` 汇总
+- **本地优先保存语义** —— local save 与可选 root sync / backup 解耦，单独成功或待同步都属于正常状态
+- **语言连续性** —— runtime 会默认沿用用户当前语言，除非用户明确切换
+
+这意味着同一只 NFA 可以在官网查看、在游戏里游玩、再在 OpenClaw 里继续对话，同时保留人格、记忆和情绪连续性。
+
+### Agent 接口层
+
+公开 skill/runtime 已经暴露出适合 agent 挂载的 tool surface，可被 OpenClaw 以及其他支持 tool/function calling 的 agent 直接复用。
+
+- **读取 / 观察类** —— environment、owned NFAs、status、world state、rankings、market listings、withdraw status、CML load
+- **动作类** —— tasks、upkeep、deposit、market actions、transfer、withdraw、PK create / join / reveal / settle
+- **安全边界** —— read tools 与需钱包确认的 state-changing actions 分离；runtime 不读取私钥，也不会静默签名
+- **Hermes adapter** —— 已发布的 adapter 导出标准 tool schemas / manifests，外部 agent 无需重写游戏逻辑即可接入
 
 ---
 
