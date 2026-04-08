@@ -30,7 +30,7 @@ const nfa = new ethers.Contract(NFA_CA, ['function ownerOf(uint256) view returns
     router.getDailyCost(id),
     nfa.ownerOf(id)
   ]);
-  const tbnb = await p.getBalance(owner);
+  const gasBnb = await p.getBalance(owner);
   const rNames = ['Common','Rare','Epic','Legendary','Mythic'];
   console.log(JSON.stringify({
     tokenId: Number(id),
@@ -43,8 +43,10 @@ const nfa = new ethers.Contract(NFA_CA, ['function ownerOf(uint256) view returns
     clwBalance: parseFloat(ethers.utils.formatEther(bal)),
     dailyCost: parseFloat(ethers.utils.formatEther(cost)),
     daysRemaining: cost.gt(0) ? Math.floor(bal.div(cost).toNumber()) : 999,
-    owner: owner,
-    tbnb: parseFloat(ethers.utils.formatEther(tbnb)),
+    wallet: {
+      address: owner,
+      gasBnb: parseFloat(ethers.utils.formatEther(gasBnb))
+    },
     mutation1: s.mutation1 === ethers.constants.HashZero ? null : s.mutation1,
     mutation2: s.mutation2 === ethers.constants.HashZero ? null : s.mutation2
   }, null, 2));

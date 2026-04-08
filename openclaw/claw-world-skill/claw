@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Claw World CLI — unified entry point
 // Usage: claw <command> [args...]
-//   claw status <tokenId>           — read lobster data (JSON)
-//   claw task <pin> <nfaId> <type> <xp> <clw> <score>  — submit task
-//   claw wallet                     — show wallet address
-//   claw balance <address>          — check tBNB balance
+//   claw env                          — runtime check
+//   claw owned                        — ownership summary
+//   claw boot                         — full session init
+//   claw status <tokenId>             — read lobster data
 const { ethers } = require('ethers');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -1565,44 +1565,22 @@ const commands = {
 if (!cmd || !commands[cmd]) {
   console.log('Claw World CLI v' + CURRENT_VERSION);
   console.log('🌐 https://clawnfaterminal.xyz  💬 TG: https://t.me/Claworldgroup');
-  console.log('  claw env                           — runtime/network/wallet check only');
-  console.log('  claw boot                          — full session init (wallet+NFA+CML+legacy+emotion)');
+  console.log('  claw env                           — runtime/network/account check only');
+  console.log('  claw boot                          — full session init (account+NFA+CML+legacy+emotion)');
   console.log('  claw owned                         — ownership summary only');
   console.log('  claw status <tokenId>              — read lobster data');
-  console.log('  claw wallet                        — show wallet');
   console.log('  claw world                         — world state');
-  console.log('  claw deposit <pin> <nfa> <clwAmount>           — deposit Claworld');
-  console.log('  claw fund-bnb <pin> <nfa> <bnbAmount>          — fund BNB');
-  console.log('  claw upkeep <pin> <nfa>                        — process daily upkeep');
-  console.log('  claw market-search                             — browse active listings');
-  console.log('  claw task <pin> <nfa> <type> <xp> <clw> <score>  — do task');
-  console.log('  claw pk-scout <matchId>                          — scout opponent in match by matchId');
-  console.log('  claw pk-create <pin> <nfa> <stake> [strategy]   — create PK (arena: +strategy)');
-  console.log('  claw pk-join <pin> <matchId> <nfa> [strategy]   — join PK (auto-scout + arena)');
-  console.log('  claw pk-auto-settle <pin> <matchId> [pin2]      — reveal+settle (auto)');
-  console.log('  claw pk-commit <pin> <matchId> <strategy>       — commit (0/1/2) [legacy]');
-  console.log('  claw pk-reveal <pin> <matchId>                  — reveal [legacy]');
-  console.log('  claw pk-settle <pin> <matchId>                  — settle [legacy]');
-  console.log('  claw market-list <pin> <nfa> <priceBNB>         — sell fixed');
-  console.log('  claw market-auction <pin> <nfa> <startBNB>      — auction');
-  console.log('  claw market-buy <pin> <listingId> <priceBNB>    — buy');
-  console.log('  claw market-bid <pin> <listingId> <bidBNB>      — bid');
-  console.log('  claw market-cancel <pin> <listingId>            — cancel');
-  console.log('  claw withdraw-request <pin> <nfa> <amount>     — request Claworld withdraw');
-  console.log('  claw withdraw-claim <pin> <nfa>                — claim after 6h cooldown');
-  console.log('  claw withdraw-cancel <pin> <nfa>               — cancel withdraw');
-  console.log('  claw withdraw-status <nfa>                     — check withdraw status');
-  console.log('  claw transfer <pin> <nfa> <toAddress>           — transfer NFA');
-  console.log('  claw leaderboard [metric]                       — top 10 (xp/clw/level/tasks/earned/pk/dna)');
-  console.log('  claw rank <nfa>                                 — NFA ranking across all metrics');
-  console.log('  claw supply                                     — total minted count');
+  console.log('  claw leaderboard [metric]          — top 10 summary');
+  console.log('  claw rank <nfa>                    — NFA ranking summary');
+  console.log('  claw supply                        — total minted count');
   console.log('  --- CML Memory System ---');
-  console.log('  claw cml-init <tokenId>                         — init/migrate CML file');
-  console.log('  claw cml-load <tokenId>                         — load CML boot data (lightweight, trigger index only)');
-  console.log('  claw cml-load <tokenId> --full                  — load complete CML with full CORTEX (use before SLEEP)');
-  console.log('  claw cml-recall <tokenId> <id1,id2,...>         — recall full vivid memories by ID');
-  console.log('  claw cml-match <tokenId> <message>              — match message against triggers');
-  console.log('  claw cml-save <tokenId> [pin]                   — save CML locally; with pin try root sync now');
+  console.log('  claw cml-init <tokenId>            — init/migrate CML file');
+  console.log('  claw cml-load <tokenId>            — load CML boot data');
+  console.log('  claw cml-load <tokenId> --full     — load complete CML before SLEEP');
+  console.log('  claw cml-recall <tokenId> <ids>    — recall vivid memories by ID');
+  console.log('  claw cml-match <tokenId> <message> — match message against triggers');
+  console.log('  claw cml-save <tokenId> [auth]     — save locally; with auth try root sync now');
+  console.log('  advanced state-changing commands remain available for internal runtime use');
   process.exit(1);
 }
 
