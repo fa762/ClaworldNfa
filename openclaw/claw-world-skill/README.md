@@ -96,6 +96,27 @@ Full session initializer:
 
 This is the command that restores the lobster as a continuous role rather than a blank assistant.
 
+```mermaid
+flowchart LR
+    User["User"]
+    Boot["claw boot"]
+    CML["Canonical CML memory"]
+    Trigger["Emotion trigger"]
+    Session["Live session"]
+    Save["claw cml-save"]
+    Local["Local save"]
+    Root["Optional root sync"]
+
+    User --> Boot
+    Boot --> CML
+    Boot --> Trigger
+    CML --> Session
+    Trigger --> Session
+    Session --> Save
+    Save --> Local
+    Save --> Root
+```
+
 ---
 
 ## CML Memory Model

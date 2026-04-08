@@ -108,6 +108,76 @@ That memory is carried through OpenClaw session flow instead of being reduced to
 
 ---
 
+### Contract Collaboration
+
+The core contracts already work as one world instead of isolated modules.
+
+- `ClawNFA` holds identity
+- `ClawRouter` is the account and state hub
+- `GenesisVault` creates the first lobster and initial conditions
+- `TaskSkill`, `PKSkill`, and `MarketSkill` push normal gameplay
+- `DepositRouter` moves value between wallet-facing liquidity and the NFA account layer
+- `WorldState` changes global reward and risk parameters
+- `ClawOracle` and the autonomy stack open the bounded AI action path
+
+```mermaid
+flowchart TD
+    Mint["GenesisVault<br/>mint + rarity + initial state"] --> NFA["ClawNFA<br/>identity shell"]
+    NFA --> Router["ClawRouter<br/>internal account + XP + upkeep"]
+    Router --> Task["TaskSkill"]
+    Router --> PK["PKSkill"]
+    Router --> Market["MarketSkill"]
+    Deposit["DepositRouter"] --> Router
+    World["WorldState"] --> Task
+    World --> PK
+    World --> Market
+    Oracle["ClawOracle"] --> Hub["Autonomy stack"]
+    Hub --> RouteTask["TaskRouteSkill"]
+    Hub --> RoutePK["PKRouteSkill"]
+    Hub --> RouteEvent["WorldEventSkill"]
+    RouteTask --> Router
+    RoutePK --> Router
+    RouteEvent --> Router
+```
+
+This split matters because the project can keep adding new actions later without rewriting the whole core.
+
+---
+
+### Economic Model
+
+Clawworld uses a layered model instead of throwing every flow into one token loop.
+
+- external value enters through mint, deposits, and wallet-facing routes
+- each NFA keeps its own internal account inside `ClawRouter`
+- tasks produce `Clawworld`
+- PK redistributes value and burns part of the pool
+- market activity generates fees
+- upkeep and reserve limits stop the account layer from becoming weightless
+
+The practical result is simple:
+a player is not only holding an NFT, but operating a character account with income, spending, risk, and history.
+
+```mermaid
+flowchart LR
+    Wallet["Wallet / BNB / Clawworld"] --> Mint["Mint / Deposit / Recharge"]
+    Mint --> Account["NFA internal account<br/>ClawRouter"]
+    Account --> Tasks["Tasks"]
+    Account --> PK["PK / route PK"]
+    Account --> Market["Market / listing / trade"]
+    Tasks --> Rewards["Clawworld + XP"]
+    PK --> Rewards
+    Rewards --> Account
+    Account --> Upkeep["Upkeep / reserve / safety floor"]
+    Market --> Fees["Treasury fees"]
+    PK --> Burn["Burn / loss / redistribution"]
+```
+
+This is the reason the project can later support stronger AI agent behavior.
+The NFA already has a place to hold value, spend value, and be constrained like a small on-chain unit.
+
+---
+
 ### Manual Play vs Autonomous Action
 
 ```mermaid
@@ -193,6 +263,36 @@ Current autonomy capabilities include:
 
 This is the current direction:
 an NFA can gradually become a small on-chain economic unit, not just a role in a game.
+
+#### Current autonomy execution flow
+
+```mermaid
+flowchart LR
+    Owner["Owner"]
+    Registry["AutonomyRegistry<br/>policy · budgets · approvals"]
+    Request["ClawOracle request"]
+    Runner["Oracle runner"]
+    Hub["ActionHub"]
+    Adapter["ActionAdapter"]
+    Skill["TaskRoute / PKRoute / WorldEvent"]
+    Finalize["FinalizationHub"]
+    Ledger["Receipt · Ledger · Manifest"]
+
+    Owner --> Registry
+    Registry --> Request
+    Request --> Runner
+    Runner --> Hub
+    Hub --> Adapter
+    Adapter --> Skill
+    Skill --> Finalize
+    Finalize --> Ledger
+```
+
+The important point is simple:
+- the owner defines the boundary first
+- the runner only chooses inside that boundary
+- the result is executed and finalized on-chain
+- the action leaves a readable receipt and ledger trail
 
 ---
 
@@ -386,6 +486,76 @@ OpenClaw + CML 现在已经形成完整运行时：
 - hippocampus buffer
 
 所以这不是一个单 prompt 角色，而是一只会在会话里连续存在的龙虾。
+
+---
+
+### 合约协作关系
+
+现在这套合约已经不是各自独立的一堆模块，而是在共同推动同一个世界。
+
+- `ClawNFA` 负责身份外壳
+- `ClawRouter` 负责内部账户、XP、upkeep 和状态
+- `GenesisVault` 负责创世铸造和起始条件
+- `TaskSkill`、`PKSkill`、`MarketSkill` 负责常规玩法
+- `DepositRouter` 负责把钱包侧资金接到 NFA 账户层
+- `WorldState` 负责全局奖励和风险参数
+- `ClawOracle` 和 autonomy stack 负责有边界的 AI 行动
+
+```mermaid
+flowchart TD
+    Mint["GenesisVault<br/>铸造 + 稀有度 + 初始状态"] --> NFA["ClawNFA<br/>身份外壳"]
+    NFA --> Router["ClawRouter<br/>内部账户 + XP + upkeep"]
+    Router --> Task["TaskSkill"]
+    Router --> PK["PKSkill"]
+    Router --> Market["MarketSkill"]
+    Deposit["DepositRouter"] --> Router
+    World["WorldState"] --> Task
+    World --> PK
+    World --> Market
+    Oracle["ClawOracle"] --> Hub["Autonomy stack"]
+    Hub --> RouteTask["TaskRouteSkill"]
+    Hub --> RoutePK["PKRouteSkill"]
+    Hub --> RouteEvent["WorldEventSkill"]
+    RouteTask --> Router
+    RoutePK --> Router
+    RouteEvent --> Router
+```
+
+这样拆开之后，后面新增动作时，不需要推翻核心层，只要继续挂新的 route skill 或 adapter。
+
+---
+
+### 经济模型
+
+Clawworld 现在跑的是一套分层经济，不是把所有东西塞进一个代币循环里。
+
+- 外部价值从铸造、充值、钱包入口进来
+- 每只 NFA 在 `ClawRouter` 里有自己的内部账户
+- 做任务会产出 `Clawworld`
+- PK 会重新分配价值，也会产生销毁和损失
+- 市场会产生手续费
+- upkeep 和 reserve 会把账户层压住，不让它变成空转积分
+
+最直白的理解就是：
+玩家不只是在持有一张 NFT，而是在经营一个带收入、支出、风险和历史的角色账户。
+
+```mermaid
+flowchart LR
+    Wallet["钱包 / BNB / Clawworld"] --> Mint["铸造 / 充值 / 兑换"]
+    Mint --> Account["NFA 内部账户<br/>ClawRouter"]
+    Account --> Tasks["任务"]
+    Account --> PK["PK / route PK"]
+    Account --> Market["市场 / 挂单 / 交易"]
+    Tasks --> Rewards["Clawworld + XP"]
+    PK --> Rewards
+    Rewards --> Account
+    Account --> Upkeep["Upkeep / reserve / 安全线"]
+    Market --> Fees["Treasury fee"]
+    PK --> Burn["损失 / 销毁 / 再分配"]
+```
+
+这也是后面能继续接 AI 代理模式的原因。
+NFA 现在已经有了自己的账户层、支出边界和经营轨迹。
 
 ---
 
