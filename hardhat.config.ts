@@ -64,14 +64,9 @@ const config: HardhatUserConfig = {
 };
 import { subtask } from "hardhat/config";
 import { TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD } from "hardhat/builtin-tasks/task-names";
-import path from "path";
 
 subtask(TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD, async (args: any) => {
-  const compilerPath = path.join(
-    process.env.USERPROFILE || "",
-    ".cache", "hardhat-nodejs", "compilers-v2", "wasm",
-    "soljson-v0.8.26+commit.8a97fa7a.js"
-  );
+  const compilerPath = require.resolve("solc/soljson.js");
   return {
     version: args.solcVersion,
     longVersion: "0.8.26+commit.8a97fa7a",
