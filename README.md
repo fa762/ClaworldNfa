@@ -275,26 +275,38 @@ This makes the runtime useful beyond one client. The same lobster state, memory,
 
 ### CML as a Shared Memory Layer
 
-CML is no longer just a local session file.
+CML is the runtime memory format that carries a lobster across sessions.
 
-It now acts as the shared memory layer across:
-- website and game presentation
-- OpenClaw sessions
-- other agent runtimes
-- the on-chain autonomy stack
+In practice, the important part is not just that memory exists, but how it is stored and synchronized:
+- a lobster is initialized with identity and baseline state
+- the live session accumulates short-term fragments in the hippocampus buffer
+- `sleep` rebuilds the full CML document
+- the new CML file is saved locally and can be backed up remotely
+- the new memory root can be synced back on-chain
+- the next runtime boot reads that updated memory again
 
 ```mermaid
 flowchart LR
-    CML["Canonical CML memory"]
-    Game["Website / Game"]
-    OpenClaw["OpenClaw session"]
-    Agent["Other agent runtime"]
-    Autonomy["On-chain autonomy"]
+    Mint["NFA minted"]
+    Boot["boot / session start"]
+    Buffer["Hippocampus buffer"]
+    Sleep["sleep / consolidation"]
+    Build["Rebuild full CML"]
+    Local["Local CML save"]
+    Remote["Greenfield / remote backup"]
+    Root["learningTreeRoot sync"]
+    Reuse["Next boot / game / other agent / autonomy"]
 
-    CML --> Game
-    CML --> OpenClaw
-    CML --> Agent
-    CML --> Autonomy
+    Mint --> Boot
+    Boot --> Buffer
+    Buffer --> Sleep
+    Sleep --> Build
+    Build --> Local
+    Build --> Remote
+    Build --> Root
+    Local --> Reuse
+    Remote --> Reuse
+    Root --> Reuse
 ```
 
 ---
@@ -719,29 +731,42 @@ flowchart LR
 
 ### CML 共享记忆层
 
-CML 现在已经不是单纯的本地对话缓存。
+CML 现在不只是一个本地聊天缓存。
 
-它会作为共享记忆层，贯穿下面几条运行时：
-- 网站 / 游戏展示层
-- OpenClaw 会话层
-- 其他 agent runtime
-- 链上 autonomy / oracle 栈
+更重要的是，它已经有了明确的记忆存储流程：
+- 龙虾创建时初始化基础身份和初始状态
+- 会话过程中，把有意义的片段先放进 hippocampus 缓冲
+- `sleep` 阶段再把这些内容整合成完整 CML
+- 新的 CML 会先落本地
+- 也可以继续备份到 Greenfield / 远端存储
+- 新的 memory root 会同步回链上
+- 下一次 boot、游戏、其他 agent、链上 autonomy 都继续读这份记忆
 
 ```mermaid
 flowchart LR
-    CML["标准 CML 记忆"]
-    Game["网页 / 游戏"]
-    OpenClaw["OpenClaw 会话"]
-    Agent["其他 Agent Runtime"]
-    Autonomy["链上自主执行"]
+    Mint["NFA 创建"]
+    Boot["boot / 会话启动"]
+    Buffer["Hippocampus 缓冲"]
+    Sleep["sleep / 记忆整合"]
+    Build["重建完整 CML"]
+    Local["本地保存"]
+    Remote["Greenfield / 远端备份"]
+    Root["learningTreeRoot 同步上链"]
+    Reuse["下次 boot / 游戏 / 其他 agent / autonomy 继续读取"]
 
-    CML --> Game
-    CML --> OpenClaw
-    CML --> Agent
-    CML --> Autonomy
+    Mint --> Boot
+    Boot --> Buffer
+    Buffer --> Sleep
+    Sleep --> Build
+    Build --> Local
+    Build --> Remote
+    Build --> Root
+    Local --> Reuse
+    Remote --> Reuse
+    Root --> Reuse
 ```
 
-所以同一只龙虾的记忆、状态、情绪和行为轨迹，不会只停在一个本地窗口里，而是能跨运行时继续被使用。
+所以同一只龙虾的记忆、状态、情绪和行为轨迹，不会只停在一个本地窗口里，而是会被持续保存、同步，再被下一次运行继续使用。
 
 ---
 
