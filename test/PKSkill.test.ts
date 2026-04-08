@@ -237,11 +237,13 @@ describe("PKSkill", function () {
       expect(balAfter).to.equal(balBefore);
     });
 
-    it("should settle in favor of revealer on timeout", async function () {
+    it("should cancel and refund both sides on reveal timeout", async function () {
       const stake = ethers.utils.parseEther("100");
       const saltA = ethers.utils.formatBytes32String("saltA");
       const saltB = ethers.utils.formatBytes32String("saltB");
 
+      const balAStart = await router.clwBalances(tokenA);
+      const balBStart = await router.clwBalances(tokenB);
       await pk.connect(playerA).createMatch(tokenA, stake);
       await pk.connect(playerB).joinMatch(1, tokenB);
 
@@ -260,12 +262,14 @@ describe("PKSkill", function () {
 
       await increaseTime(31 * 60); // 31 minutes
 
-      const balA0 = await router.clwBalances(tokenA);
       await pk.settle(1);
-      const balA1 = await router.clwBalances(tokenA);
+      const balAEnd = await router.clwBalances(tokenA);
+      const balBEnd = await router.clwBalances(tokenB);
+      const match = await pk.getMatch(1);
 
-      // A wins by timeout, gets 180 (200 - 20 burned)
-      expect(balA1.sub(balA0)).to.equal(ethers.utils.parseEther("180"));
+      expect(match.phase).to.equal(5); // CANCELLED
+      expect(balAEnd).to.equal(balAStart);
+      expect(balBEnd).to.equal(balBStart);
     });
   });
 

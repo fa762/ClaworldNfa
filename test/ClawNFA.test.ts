@@ -116,14 +116,14 @@ describe("ClawNFA", function () {
     });
 
     it("should allow public mint with correct fee", async function () {
-      const fee = ethers.utils.parseEther("0.08");
+      const fee = ethers.utils.parseEther("0.02");
       await nfa.connect(user1).publicMint("ipfs://public", defaultMetadata, { value: fee });
 
       expect(await nfa.ownerOf(1)).to.equal(user1.address);
     });
 
     it("should send fee to treasury", async function () {
-      const fee = ethers.utils.parseEther("0.08");
+      const fee = ethers.utils.parseEther("0.02");
       const balBefore = await treasury.getBalance();
       await nfa.connect(user1).publicMint("ipfs://public", defaultMetadata, { value: fee });
       const balAfter = await treasury.getBalance();
@@ -141,7 +141,7 @@ describe("ClawNFA", function () {
 
     it("should reject when not enabled", async function () {
       await nfa.setPostGenesisMintEnabled(false);
-      const fee = ethers.utils.parseEther("0.08");
+      const fee = ethers.utils.parseEther("0.02");
       await expect(
         nfa.connect(user1).publicMint("ipfs://public", defaultMetadata, { value: fee })
       ).to.be.revertedWith("Post-genesis mint not enabled");

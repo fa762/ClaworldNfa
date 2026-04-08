@@ -85,7 +85,7 @@ describe("GenesisVault", function () {
       const salt = ethers.utils.formatBytes32String("mysalt");
       const hash = computeHash(0, salt, user1.address);
 
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.02") });
       await increaseTime(61);
       await vault.connect(user1).reveal(0, salt);
 
@@ -96,7 +96,7 @@ describe("GenesisVault", function () {
     it("should reject reveal before delay", async function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.02") });
 
       await expect(vault.connect(user1).reveal(0, salt)).to.be.revertedWith("Too early");
     });
@@ -104,7 +104,7 @@ describe("GenesisVault", function () {
     it("should reject reveal after window", async function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.02") });
 
       await increaseTime(24 * 3600 + 1); // Past window
       await expect(vault.connect(user1).reveal(0, salt)).to.be.revertedWith("Reveal expired");
@@ -125,9 +125,9 @@ describe("GenesisVault", function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
 
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.02") });
       await expect(
-        vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") })
+        vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.02") })
       ).to.be.revertedWith("Already committed");
     });
 
@@ -135,17 +135,17 @@ describe("GenesisVault", function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
 
-      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") });
+      await vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.02") });
       await increaseTime(61);
       await vault.connect(user1).reveal(0, salt);
 
-      await expect(vault.connect(user1).reveal(0, salt)).to.be.revertedWith("Already revealed");
+      await expect(vault.connect(user1).reveal(0, salt)).to.be.revertedWith("No commitment");
     });
   });
 
   describe("Rarity Pricing", function () {
     it("should accept correct Common price", async function () {
-      await commitAndReveal(user1, 0, "0.08");
+      await commitAndReveal(user1, 0, "0.02");
       expect(await vault.mintedCount()).to.equal(1);
     });
 
@@ -181,7 +181,7 @@ describe("GenesisVault", function () {
     it("should refund excess BNB", async function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
-      const excess = ethers.utils.parseEther("1"); // Sending 1 BNB for 0.08 price
+      const excess = ethers.utils.parseEther("1"); // Sending 1 BNB for 0.02 price
 
       const balBefore = await user1.getBalance();
       const tx1 = await vault.connect(user1).commit(hash, { value: excess });
@@ -193,14 +193,14 @@ describe("GenesisVault", function () {
 
       const gasCost = r1.gasUsed.mul(r1.effectiveGasPrice).add(r2.gasUsed.mul(r2.effectiveGasPrice));
       const spent = balBefore.sub(balAfter).sub(gasCost);
-      // Should have spent exactly 0.08 BNB (price) net
-      expect(spent).to.equal(ethers.utils.parseEther("0.08"));
+      // Should have spent exactly 0.02 BNB (price) net
+      expect(spent).to.equal(ethers.utils.parseEther("0.02"));
     });
   });
 
   describe("Attribute Generation", function () {
     it("should generate personality in [20, 80] range", async function () {
-      await commitAndReveal(user1, 0, "0.08");
+      await commitAndReveal(user1, 0, "0.02");
       const state = await router.getLobsterState(1);
 
       expect(state.courage).to.be.gte(20).and.lte(80);
@@ -211,7 +211,7 @@ describe("GenesisVault", function () {
     });
 
     it("should generate DNA within Common range (80-140)", async function () {
-      await commitAndReveal(user1, 0, "0.08");
+      await commitAndReveal(user1, 0, "0.02");
       const state = await router.getLobsterState(1);
 
       const dnaSum = state.str + state.def + state.spd + state.vit;
@@ -303,7 +303,7 @@ describe("GenesisVault", function () {
       const gasCost = receipt.gasUsed.mul(receipt.effectiveGasPrice);
       const balAfter = await owner.getBalance();
 
-      expect(balAfter.sub(balBefore).add(gasCost)).to.equal(ethers.utils.parseEther("0.08"));
+      expect(balAfter.sub(balBefore).add(gasCost)).to.equal(ethers.utils.parseEther("0.02"));
     });
 
     it("should allow owner to toggle minting", async function () {
@@ -311,7 +311,7 @@ describe("GenesisVault", function () {
       const salt = ethers.utils.formatBytes32String("salt");
       const hash = computeHash(0, salt, user1.address);
       await expect(
-        vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.08") })
+        vault.connect(user1).commit(hash, { value: ethers.utils.parseEther("0.02") })
       ).to.be.revertedWith("Minting not active");
     });
   });
@@ -328,7 +328,7 @@ describe("GenesisVault", function () {
     });
 
     it("should return correct prices", async function () {
-      expect(await vault.getPrice(0)).to.equal(ethers.utils.parseEther("0.08"));
+      expect(await vault.getPrice(0)).to.equal(ethers.utils.parseEther("0.02"));
       expect(await vault.getPrice(1)).to.equal(ethers.utils.parseEther("0.38"));
       expect(await vault.getPrice(4)).to.equal(ethers.utils.parseEther("3.88"));
     });
