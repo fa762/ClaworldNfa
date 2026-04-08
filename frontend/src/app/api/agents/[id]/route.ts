@@ -62,6 +62,47 @@ function normalizeAgentState(raw: any) {
   };
 }
 
+function buildAttributes(
+  tokenId: bigint,
+  metadata: ReturnType<typeof normalizeAgentMetadata>,
+  agentState: ReturnType<typeof normalizeAgentState>,
+  offchainAttributes: unknown,
+) {
+  if (Array.isArray(offchainAttributes) && offchainAttributes.length > 0) {
+    return offchainAttributes;
+  }
+
+  const attributes = [
+    { trait_type: 'Token ID', value: tokenId.toString() },
+    { trait_type: 'Owner', value: agentState.tokenOwner },
+    { trait_type: 'Active', value: agentState.active ? 'true' : 'false' },
+    { trait_type: 'Balance', value: agentState.balance },
+    { trait_type: 'Created At', value: String(agentState.createdAt) },
+    { trait_type: 'Logic Address', value: agentState.logicAddress },
+  ];
+
+  if (metadata.persona) {
+    attributes.push({ trait_type: 'Persona', value: metadata.persona });
+  }
+  if (metadata.experience) {
+    attributes.push({ trait_type: 'Experience', value: metadata.experience });
+  }
+  if (metadata.voiceHash) {
+    attributes.push({ trait_type: 'Voice Hash', value: metadata.voiceHash });
+  }
+  if (metadata.animationURI) {
+    attributes.push({ trait_type: 'Animation URI', value: metadata.animationURI });
+  }
+  if (metadata.vaultURI) {
+    attributes.push({ trait_type: 'Vault URI', value: metadata.vaultURI });
+  }
+  if (metadata.vaultHash) {
+    attributes.push({ trait_type: 'Vault Hash', value: metadata.vaultHash });
+  }
+
+  return attributes;
+}
+
 async function loadOffchainMetadata(metadataURI: string) {
   const metadataUrl = resolveMetadataUrl(metadataURI);
   if (!metadataUrl) {
@@ -120,6 +161,8 @@ export async function GET(
 
     const { metadataUrl, offchainMetadata, directImageUrl } = await loadOffchainMetadata(metadataURI);
     const image = directImageUrl ?? resolveIpfsUrl(String(offchainMetadata?.image ?? metadata.vaultURI ?? ''));
+    const animationUrl = resolveMetadataUrl(String(offchainMetadata?.animation_url ?? metadata.animationURI ?? ''));
+    const attributes = buildAttributes(tokenId, metadata, agentState, offchainMetadata?.attributes);
 
     return NextResponse.json({
       id: Number(tokenId),
@@ -135,7 +178,8 @@ export async function GET(
       name: offchainMetadata?.name ?? `Claworld NFA #${id}`,
       description: offchainMetadata?.description ?? 'On-chain autonomous NFA in Claworld.',
       image,
-      attributes: Array.isArray(offchainMetadata?.attributes) ? offchainMetadata.attributes : [],
+      animation_url: animationUrl,
+      attributes,
       metadata,
       agentState,
       rawOffchainMetadata: offchainMetadata,
