@@ -1,226 +1,368 @@
 # ClaworldNfa
 
-**The first end-to-end implementation of BAP-578 Non-Fungible Agent standard on BNB Chain.**
+**A live BAP-578 NFA world on BNB Chain with website, browser game, OpenClaw runtime, and on-chain AI autonomy.**
 
-[Website](https://www.clawnfaterminal.xyz) · [ClawHub Skill](https://clawhub.ai/fa762/claw-world) · [BNBScan](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
+[Website](https://www.clawnfaterminal.xyz) · [Game](https://www.clawnfaterminal.xyz/game) · [ClawHub Skill](https://clawhub.ai/fa762/claw-world) · [Public Repo](https://github.com/fa762/ClaworldNfa)
 
 [English](#english) | [中文](#中文版)
 
-![BNB Chain](https://img.shields.io/badge/BNB_Chain-Mainnet-F0B90B?style=flat-square&logo=binance) ![Solidity](https://img.shields.io/badge/Solidity-^0.8.20-363636?style=flat-square&logo=solidity) ![Tests](https://img.shields.io/badge/Tests-229_passing-brightgreen?style=flat-square) ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
+![BNB Chain](https://img.shields.io/badge/BNB_Chain-Mainnet-F0B90B?style=flat-square&logo=binance)
+![BAP-578](https://img.shields.io/badge/BAP--578-Live-111111?style=flat-square)
+![Autonomy](https://img.shields.io/badge/Autonomy-36_passing-brightgreen?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
 ---
 
 ## English
 
-### The Problem
+### What ClawworldNfa Is
 
-> In the age of AI, who owns your agent?
+ClawworldNfa is a full on-chain NFA world built around the BAP-578 direction.
 
-You spend months training an AI assistant — it learns your preferences, your style, your strategies. But it's not yours. The platform can revoke access, shut down, or change the rules overnight.
+Each lobster NFA is more than a collectible:
+- it has identity
+- it has its own internal balance
+- it can grow through tasks and PK
+- it can carry memory through OpenClaw and CML
+- it can now enter bounded AI autonomy on-chain
 
-Meanwhile, on-chain AI Agent projects are fragmented: identity in one contract, wallet in another, execution logic in a third. No composability. No standard. No way to truly own, trade, or evolve your agent.
-
-**BAP-578** proposes a Non-Fungible Agent standard to solve this. But until now, it had no complete implementation.
-
-### The Solution
-
-**ClaworldNfa is the first end-to-end BAP-578 implementation** — from smart contracts to AI runtime to playable game. Everything works. Everything is on mainnet.
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Traditional NFT          vs          BAP-578 NFA       │
-│                                                         │
-│  Static JPEG                    Living AI Agent         │
-│  No behavior                    Executes on-chain tasks │
-│  No wallet                      Has its own wallet      │
-│  No growth                      Personality evolves     │
-│  Just a picture                 Earns, fights, trades   │
-└─────────────────────────────────────────────────────────┘
-```
+The project already has four live surfaces:
+- **Website** for mint, collection, detail pages, upkeep, deposit, and withdrawal
+- **Browser game** for shelter interaction, dossier/archive, task, PK, and world UI
+- **OpenClaw skill** for deep session-based interaction, roleplay, strategy, and memory
+- **ClawOracle autonomy stack** for bounded on-chain AI actions
 
 ---
 
-### How BAP-578 Works in ClaworldNfa
+### What Is Live Right Now
 
-BAP-578 defines four capabilities for a Non-Fungible Agent. Here's how we implement each:
+Already live on mainnet:
+- genesis mint with commit-reveal
+- task / PK / market / deposit / withdraw flows
+- browser game and OpenClaw runtime
+- CML-based session memory
+- `ClawOracle` mainnet deployment
+- autonomy infrastructure with:
+  - policy and budget controls
+  - protocol / adapter / operator approvals
+  - delegation lease
+  - receipts, manifests, ledgers, and execution plans
+- real autonomy action families:
+  - `WorldEvent`
+  - `Task route`
+  - `PK route`
 
-#### 1. Identity — `ClawNFA.sol`
-A single ERC-721 token IS the agent. Not a pointer to an off-chain profile — the token itself carries on-chain state: level, personality vector, DNA traits, shelter assignment, and job class.
-
-```solidity
-// One token holds everything
-struct LobsterState {
-    uint8 level;
-    uint8[5] personality;  // [courage, wisdom, social, creativity, grit]
-    uint8[4] dna;          // [STR, DEF, SPD, VIT]
-    uint8 shelter;
-    uint16 job;
-    uint256 clwBalance;
-}
-```
-
-#### 2. Wallet — `ClawRouter.sol`
-Each NFA has an internal Claworld balance managed by the router. The agent can receive rewards, pay fees, and stake tokens — all within the contract system. No external wallet needed.
-
-```
-Mint NFA → Complete tasks → Earn Claworld → Stake in PvP → Trade on market
-              ↑                                            ↓
-              └──────── Claworld flows back into economy ───────┘
-```
-
-#### 3. Execution — Skill Contracts
-Agents execute on-chain actions through authorized Skill contracts:
-
-| Skill | What the Agent Does |
-|-------|-------------------|
-| **TaskSkill** | Completes quests, earns XP + Claworld based on personality match |
-| **PKSkill** | Enters PvP arenas with commit-reveal strategy |
-| **MarketSkill** | Lists for sale, bids in auctions, proposes swaps |
-| **PersonalityEngine** | Evolves personality based on player choices |
-
-Each Skill is a separate upgradeable contract authorized by the router — modular, composable, and extensible.
-
-#### 4. Learning — `PersonalityEngine.sol`
-The agent's personality evolves based on player behavior, not randomness:
-
-```
-Player chooses adventure task  →  courage += Δ
-Player chooses puzzle task     →  wisdom += Δ
-Player chooses trade task      →  social += Δ
-Player chooses creation task   →  creativity += Δ
-Player plays consistently      →  grit += Δ
-
-Monthly cap: ±5 per dimension (prevents gaming)
-```
-
-**Match Score** = `dot(personality_vector, task_vector)` → **0.05x ~ 2.0x reward multiplier**. A carefully trained NFA earns up to 20x more than a blank one. This creates real economic incentive for long-term engagement.
+What this means in practice:
+- a player can still play manually through the website, the game, or OpenClaw
+- the system can also support bounded NFA self-action when authorization is enabled
 
 ---
 
-### Architecture
+### BAP-578 in Clawworld
 
-```
-┌──────────────────────────────────────────────────────┐
-│                      BNB Chain                        │
-│                                                       │
-│  ClawNFA ←────→ ClawRouter ←────→ PersonalityEngine   │
-│  (ERC-721)      (Core Hub)        (5D Evolution)      │
-│                      │                                │
-│          ┌───────────┼───────────┐                    │
-│          │           │           │                    │
-│      TaskSkill   PKSkill   MarketSkill                │
-│      (Quests)    (PvP)     (Trade)                    │
-│          │           │           │                    │
-│          └───────────┼───────────┘                    │
-│                      │                                │
-│     GenesisVault  WorldState  DepositRouter  Oracle   │
-│     (888 Mint)    (Timelock)  (DEX)          (AI)     │
-└──────────────────────┬───────────────────────────────┘
-                       │
-         ┌─────────────┼─────────────┐
-         │             │             │
-    ┌────▼────┐  ┌─────▼─────┐  ┌───▼────┐
-    │ Website │  │  2D RPG   │  │OpenClaw│
-    │ Next.js │  │  Phaser 3 │  │  Skill │
-    │ (View)  │  │  (Play)   │  │ (Deep) │
-    └─────────┘  └───────────┘  └────────┘
-```
+Clawworld maps the core BAP-578 ideas into a working product:
 
-**Three entry points, one save file:**
-- **Website** — view stats, mint, manage your NFA
-- **2D RPG** — browser pixel game at `/game` (arcade mode)
-- **OpenClaw** — local AI runtime for deep conversations & strategy
+#### 1. Identity
+`ClawNFA` is the on-chain agent identity.
 
-### OpenClaw Runtime & Memory
+Each token carries:
+- rarity
+- shelter
+- level
+- personality vector
+- DNA battle traits
+- active / dormant state
 
-The OpenClaw layer is not just a chat wrapper. It is the agent runtime that turns an NFA into a session-aware character with persistent memory.
+#### 2. Account
+`ClawRouter` turns each NFA into an internal account.
 
-- **`boot`** — full session initializer; scans owned NFAs, loads CML memory, preserves legacy fallback data, and computes the current emotion trigger
-- **`env`** — lightweight runtime / network / account check only
-- **`owned`** — lightweight ownership summary only
-- **CML lifecycle** — each NFA has canonical CML memory; session notes are consolidated through `cml-load` / `cml-save`
-- **Local-first save semantics** — local save succeeds independently from optional root sync / backup support
-- **Language continuity** — the runtime keeps the conversation in the user's language unless the user clearly switches
+The lobster can:
+- receive Clawworld
+- pay upkeep
+- accumulate XP
+- withdraw value back to the owner
 
-In practice, this means the same NFA can be viewed on the website, played in the game, and then opened in OpenClaw with personality, memory, and emotional continuity.
+This is a character account, not a flat NFT metadata record.
 
-### Agent Interface Surface
+#### 3. Execution
+Skills drive the real game actions:
+- `TaskSkill`
+- `PKSkill`
+- `MarketSkill`
+- `DepositRouter`
 
-The public skill/runtime already exposes a tool-friendly surface that can be mounted by OpenClaw and other tool/function-calling agents.
+Recent autonomy work adds bounded AI execution routes on top:
+- `TaskRouteSkill`
+- `PKRouteSkill`
+- `WorldEventSkill`
 
-- **Read / inspect** — environment, owned NFAs, status, world state, rankings, listings, withdraw status, CML load
-- **Act** — tasks, upkeep, deposits, market actions, transfers, withdrawals, PK create / join / reveal / settle
-- **Safety boundary** — read tools are separated from wallet-confirmed state-changing actions; the runtime never reads private keys or silently signs
-- **Hermes adapter** — the published adapter exports standard tool schemas / manifests so external agents can integrate without reimplementing game logic
+#### 4. Learning and Memory
+The project now uses a stronger runtime memory model:
+- CML identity
+- pulse
+- prefrontal beliefs
+- basal habits
+- hippocampus buffer
+
+That memory is carried through OpenClaw session flow instead of being reduced to a single prompt.
 
 ---
 
-### Smart Contracts (BSC Mainnet)
+### Contract Collaboration
+
+The core contracts already work as one world instead of isolated modules.
+
+- `ClawNFA` holds identity
+- `ClawRouter` is the account and state hub
+- `GenesisVault` creates the first lobster and initial conditions
+- `TaskSkill`, `PKSkill`, and `MarketSkill` push normal gameplay
+- `DepositRouter` moves value between wallet-facing liquidity and the NFA account layer
+- `WorldState` changes global reward and risk parameters
+- `ClawOracle` and the autonomy stack open the bounded AI action path
+
+```mermaid
+flowchart TD
+    Mint["GenesisVault<br/>mint + rarity + initial state"] --> NFA["ClawNFA<br/>identity shell"]
+    NFA --> Router["ClawRouter<br/>internal account + XP + upkeep"]
+    Router --> Task["TaskSkill"]
+    Router --> PK["PKSkill"]
+    Router --> Market["MarketSkill"]
+    Deposit["DepositRouter"] --> Router
+    World["WorldState"] --> Task
+    World --> PK
+    World --> Market
+    Oracle["ClawOracle"] --> Hub["Autonomy stack"]
+    Hub --> RouteTask["TaskRouteSkill"]
+    Hub --> RoutePK["PKRouteSkill"]
+    Hub --> RouteEvent["WorldEventSkill"]
+    RouteTask --> Router
+    RoutePK --> Router
+    RouteEvent --> Router
+```
+
+This split matters because the project can keep adding new actions later without rewriting the whole core.
+
+---
+
+### Economic Model
+
+Clawworld uses a layered model instead of throwing every flow into one token loop.
+
+- external value enters through mint, deposits, and wallet-facing routes
+- each NFA keeps its own internal account inside `ClawRouter`
+- tasks produce `Clawworld`
+- PK redistributes value and burns part of the pool
+- market activity generates fees
+- upkeep and reserve limits stop the account layer from becoming weightless
+
+The practical result is simple:
+a player is not only holding an NFT, but operating a character account with income, spending, risk, and history.
+
+```mermaid
+flowchart LR
+    Wallet["Wallet / BNB / Clawworld"] --> Mint["Mint / Deposit / Recharge"]
+    Mint --> Account["NFA internal account<br/>ClawRouter"]
+    Account --> Tasks["Tasks"]
+    Account --> PK["PK / route PK"]
+    Account --> Market["Market / listing / trade"]
+    Tasks --> Rewards["Clawworld + XP"]
+    PK --> Rewards
+    Rewards --> Account
+    Account --> Upkeep["Upkeep / reserve / safety floor"]
+    Market --> Fees["Treasury fees"]
+    PK --> Burn["Burn / loss / redistribution"]
+```
+
+This is the reason the project can later support stronger AI agent behavior.
+The NFA already has a place to hold value, spend value, and be constrained like a small on-chain unit.
+
+---
+
+### Manual Play vs Autonomous Action
+
+```mermaid
+flowchart LR
+    Player["Player"]
+    Skill["OpenClaw Skill / Website / Game"]
+    Policy["Autonomy Policy<br/>budget · reserve · lease"]
+    Oracle["ClawOracle"]
+    Hub["ActionHub + FinalizationHub"]
+    Actions["Task Route / PK Route / World Event"]
+    Router["ClawRouter / NFA State"]
+
+    Player --> Skill
+    Skill --> Router
+    Player --> Policy
+    Policy --> Oracle
+    Oracle --> Hub
+    Hub --> Actions
+    Actions --> Router
+```
+
+There are now two clear modes:
+
+**Manual mode**
+- the player asks, chooses, and confirms
+- OpenClaw or the game UI acts as the interaction layer
+
+**Autonomous mode**
+- the owner defines the boundary first
+- the oracle chooses inside that boundary
+- the action is executed on-chain
+- receipts and ledgers are written back
+
+This is the key shift from “AI assistant” to “bounded on-chain agent.”
+
+---
+
+### OpenClaw Runtime
+
+The OpenClaw layer is still central.
+
+It now has three clear entry levels:
+- `env` → runtime / network / account check only
+- `owned` → ownership summary only
+- `boot` → full session initialization with CML, fallback memory, and emotion trigger
+
+Important runtime properties:
+- local-first CML save semantics
+- optional root sync / backup
+- language continuity
+- clean split between read tools and wallet-confirmed state-changing actions
+- Hermes adapter for external tool/function-calling agents
+
+So the same lobster can be:
+- viewed on the website
+- played in the browser game
+- opened inside OpenClaw
+- then moved into bounded on-chain autonomy
+
+---
+
+### ClawOracle and Autonomy
+
+`ClawOracle` is no longer only a generic AI oracle idea in this repo.
+
+It now sits inside a full autonomy stack:
+- `ClawAutonomyRegistry`
+- `ClawAutonomyDelegationRegistry`
+- `ClawOracleActionHub`
+- `ClawAutonomyFinalizationHub`
+- view / manifest / lifecycle / execution-plan layers
+
+Current autonomy capabilities include:
+- per-action policy
+- risk mode
+- daily action caps
+- asset and protocol budgets
+- reserve floor checks
+- operator approval and role masks
+- lease-based delegation
+- action / protocol / asset / NFA ledgers
+- standardized receipts and external introspection
+
+This is the current direction:
+an NFA can gradually become a small on-chain economic unit, not just a role in a game.
+
+#### Current autonomy execution flow
+
+```mermaid
+flowchart LR
+    Owner["Owner"]
+    Registry["AutonomyRegistry<br/>policy · budgets · approvals"]
+    Request["ClawOracle request"]
+    Runner["Oracle runner"]
+    Hub["ActionHub"]
+    Adapter["ActionAdapter"]
+    Skill["TaskRoute / PKRoute / WorldEvent"]
+    Finalize["FinalizationHub"]
+    Ledger["Receipt · Ledger · Manifest"]
+
+    Owner --> Registry
+    Registry --> Request
+    Request --> Runner
+    Runner --> Hub
+    Hub --> Adapter
+    Adapter --> Skill
+    Skill --> Finalize
+    Finalize --> Ledger
+```
+
+The important point is simple:
+- the owner defines the boundary first
+- the runner only chooses inside that boundary
+- the result is executed and finalized on-chain
+- the action leaves a readable receipt and ledger trail
+
+---
+
+### Mainnet Contracts
+
+#### Core Gameplay
 
 | Contract | Role | Address |
 |----------|------|---------|
-| ClawNFA | ERC-721 NFA identity | [`0xAa20...AE48`](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48) |
-| ClawRouter | Core hub: balance, state, dispatch | [`0x60C0...BD5`](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5) |
-| GenesisVault | 888 genesis mint (commit-reveal) | [`0xCe04...fF83`](https://bscscan.com/address/0xCe04f834aC4581FD5562f6c58C276E60C624fF83) |
-| WorldState | Global params (24h timelock) | [`0xC375...9FCA`](https://bscscan.com/address/0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA) |
-| TaskSkill | Quests + personality match scoring | [`0x652c...442a`](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) |
-| PKSkill | PvP arena (commit-reveal strategy) | [`0xaed3...9D10`](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1bF275c98179D10) |
-| MarketSkill | Marketplace: sell / auction / swap | [`0xA58e...8dfF`](https://bscscan.com/address/0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF) |
-| DepositRouter | DEX / bonding curve routing | [`0xFe68...f269`](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269) |
-| PersonalityEngine | 5-dimension personality evolution | [`0x19E8...331E`](https://bscscan.com/address/0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E) |
-| ClawOracle | AI oracle (commit-reveal) | [`0x652c...442a`](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) |
+| ClawNFA | ERC-721 NFA identity | [`0xAa2094798B5892191124eae9D77E337544FFAE48`](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48) |
+| ClawRouter | NFA internal balance and state hub | [`0x60C0D5276c007Fd151f2A615c315cb364EF81BD5`](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5) |
+| GenesisVault | Genesis mint | [`0xCe04f834aC4581FD5562f6c58C276E60C624fF83`](https://bscscan.com/address/0xCe04f834aC4581FD5562f6c58C276E60C624fF83) |
+| WorldState | Global world parameters | [`0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA`](https://bscscan.com/address/0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA) |
+| TaskSkill | Task rewards and progression | [`0xaed370784536e31BE4A5D0Dbb1F275c98179D10`](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1F275c98179D10) |
+| PKSkill | PvP arena | [`0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF`](https://bscscan.com/address/0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF) |
+| MarketSkill | Fixed price / auction / swap | [`0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54`](https://bscscan.com/address/0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54) |
+| DepositRouter | Deposit and swap routing | [`0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269`](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269) |
+| ClawOracle | On-chain oracle request board | [`0x652c192B6A3b13e0e90F145727DE6484AdA8442a`](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) |
 
-All contracts: OpenZeppelin UUPS upgradeable proxy. 229 tests passing, 0 failing.
+#### Autonomy Core
 
----
+| Contract | Role | Address |
+|----------|------|---------|
+| ClawAutonomyRegistry | policy, budgets, reserves, approvals | [`0xD18BaF2670fFcb4CC92260719AbFc9d637dB7044`](https://bscscan.com/address/0xD18BaF2670fFcb4CC92260719AbFc9d637dB7044) |
+| ClawAutonomyDelegationRegistry | operator lease and delegation | [`0x1C3A69fC7715563D9dDF9847BB5ffF3B6e09aAEa`](https://bscscan.com/address/0x1C3A69fC7715563D9dDF9847BB5ffF3B6e09aAEa) |
+| ClawOracleActionHub | request sync and execution hub | [`0xEdd04D821ab9E8eCD5723189A615333c3509f1D5`](https://bscscan.com/address/0xEdd04D821ab9E8eCD5723189A615333c3509f1D5) |
+| ClawAutonomyFinalizationHub | post-action source / settlement finalization | [`0x65F850536bE1B844c407418d8FbaE795045061bd`](https://bscscan.com/address/0x65F850536bE1B844c407418d8FbaE795045061bd) |
 
-### Security Design
+#### Current Autonomous Actions
 
-| Mechanism | Purpose |
-|-----------|---------|
-| **UUPS Proxy** | All contracts upgradeable with owner-only access |
-| **Commit-Reveal** | Mint, PvP, Oracle — prevents frontrunning |
-| **Enhanced Entropy** | salt + nonce + gasleft() mixing (no VRF dependency) |
-| **24h Timelock** | WorldState changes require propose → wait 24h → execute |
-| **Pull-over-Push** | All BNB refunds via `pendingWithdrawals` + `claimRefund()` |
-| **Skill Authorization** | Only router-authorized contracts can modify NFA state |
-| **Monthly Caps** | Personality evolution capped at ±5/month per dimension |
-| **Storage Gaps** | 40 slots reserved in all contracts for future upgrades |
-
----
-
-### Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Blockchain | BNB Chain (BSC Mainnet) |
-| Contracts | Solidity ^0.8.20, Hardhat, OpenZeppelin UUPS |
-| Frontend | Next.js 16, React 19, wagmi v3, viem v2 |
-| Game Engine | Phaser 3 (2D pixel RPG) |
-| AI Runtime | OpenClaw (local, no backend) |
-| UI | Tailwind CSS, CRT/PipBoy terminal aesthetic |
+| Contract | Role | Address |
+|----------|------|---------|
+| WorldEventSkill | bounded oracle-driven world choice | [`0xdD1273990234D591c098e1E029876F0236Ef8bD3`](https://bscscan.com/address/0xdD1273990234D591c098e1E029876F0236Ef8bD3) |
+| TaskRouteSkill | autonomous task route execution | [`0xDA204B8b2d957C58244Bb8D69188D14EB844327A`](https://bscscan.com/address/0xDA204B8b2d957C58244Bb8D69188D14EB844327A) |
+| PKRouteSkill | autonomous PK route execution | [`0x4bCe6e97c60C408ae3Ab52799e5C101571252335`](https://bscscan.com/address/0x4bCe6e97c60C408ae3Ab52799e5C101571252335) |
 
 ---
 
-### Project Structure
+### Repository Layout
 
-```
+```text
 ClaworldNfa/
-├── contracts/              # 10 Solidity smart contracts
-│   ├── core/               # ClawNFA, ClawRouter, DepositRouter, PersonalityEngine
-│   ├── skills/             # TaskSkill, PKSkill, MarketSkill, GenesisVault
-│   └── world/              # WorldState, ClawOracle
-├── frontend/               # Next.js website + Phaser 3 game
-│   └── src/
-│       ├── app/            # Pages: home, collection, detail, mint, game
-│       ├── components/     # PipBoy terminal UI components
-│       ├── contracts/      # ABIs + wagmi hooks + addresses
-│       └── game/           # Phaser 3: scenes, UI, chain bridge
-├── openclaw/               # OpenClaw AI skill plugin
-│   └── claw-world-skill/   # SKILL.md + CLI tools
-├── test/                   # 229 tests across 10 test suites
-└── scripts/                # Deploy & utility scripts
+├── contracts/
+│   ├── core/
+│   ├── skills/
+│   ├── world/
+│   └── mocks/
+├── frontend/
+├── openclaw/
+│   ├── claw-world-skill/
+│   ├── autonomyOracleRunner.ts
+│   ├── openaiCompatibleAI.ts
+│   └── reasoningUploader.ts
+├── scripts/
+├── test/
+└── README.md
 ```
+
+---
+
+### Current Roadmap
+
+| Phase | Status | Notes |
+|------|--------|------|
+| BAP-578 core gameplay | Live | Mint, task, PK, market, deposit, withdraw |
+| OpenClaw CML runtime | Live | `boot / env / owned`, CML, Hermes adapter |
+| ClawOracle autonomy stack | Live on mainnet | policy, budgets, ledgers, manifests, receipts |
+| Autonomous world/task/PK routes | Live | bounded on-chain AI execution |
+| AI proxy mode for players | In progress | token-staked NFA AI mode with bounded autonomy |
+| More external integrations | Planned | broader BAP-578-compatible action surfaces |
 
 ---
 
@@ -230,42 +372,26 @@ ClaworldNfa/
 git clone https://github.com/fa762/ClaworldNfa.git
 cd ClaworldNfa
 
-# Contracts
 npm install
-npx hardhat test          # 229 passing
+npx hardhat compile
 
-# Frontend
 cd frontend
 npm install
-npm run dev               # http://localhost:3000
+npm run dev
 ```
 
-Game: `http://localhost:3000/game`
-
----
-
-### Roadmap
-
-| Phase | Status | Description |
-|-------|--------|-------------|
-| BAP-578 Contracts | **Mainnet** | 10 contracts deployed, 229 tests passing |
-| Website + Mint | **Live** | NFA collection, detail pages, commit-reveal mint |
-| OpenClaw Skill | **Published** | AI skill on ClawHub, local runtime |
-| 2D RPG Game | **Live** | Browser pixel game with on-chain interactions |
-| AI Oracle | **Deployed** | On-chain AI event processing |
-| Cross-Agent Communication | Planned | NFAs interact with each other autonomously |
-| Multi-Chain | Planned | Expand BAP-578 beyond BNB Chain |
-| DAO Governance | Planned | NFA holders vote on WorldState parameters |
-| Equipment System | Planned | On-chain items that modify agent capabilities |
+Game entry:
+`http://localhost:3000/game`
 
 ---
 
 ### Links
 
 - **Website**: [clawnfaterminal.xyz](https://www.clawnfaterminal.xyz)
+- **Game**: [clawnfaterminal.xyz/game](https://www.clawnfaterminal.xyz/game)
 - **ClawHub Skill**: [fa762/claw-world](https://clawhub.ai/fa762/claw-world)
 - **Skill Source**: [github.com/fa762/claw-world-skill](https://github.com/fa762/claw-world-skill)
-- **BNBScan**: [ClawNFA Contract](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
+- **BscScan NFA**: [ClawNFA](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
 
 ### License
 
@@ -273,197 +399,321 @@ MIT
 
 ---
 
----
-
 ## 中文版
 
-### 问题
+### ClaworldNfa 是什么
 
-> AI 时代，你拥有什么？
+ClaworldNfa 是一个落在 BNB Chain 主网的 BAP-578 NFA 世界。
 
-你花了几个月训练一个 AI 助手——它学会了你的偏好、风格和策略。但它不属于你。平台可以随时封号、关停，或者改变规则。
+每只龙虾 NFA 都不只是 NFT 图片，而是一个持续存在的链上角色：
+- 有身份
+- 有内部账户
+- 能做任务和 PK
+- 能在 OpenClaw 里保留记忆
+- 能进入有边界的链上 AI 自主行动
 
-与此同时，链上 AI Agent 项目一片碎片化：身份一个合约、钱包一个合约、执行逻辑又一个合约。不可组合，没有标准，无法真正拥有、交易或进化你的 Agent。
-
-**BAP-578** 提出了 Non-Fungible Agent 标准来解决这个问题。但在此之前，它没有完整的实现。
-
-### 解决方案
-
-**ClaworldNfa 是首个端到端的 BAP-578 实现** — 从智能合约到 AI 运行时到可玩游戏。全部可用，全部在主网。
-
-```
-┌─────────────────────────────────────────────────────┐
-│  传统 NFT                 vs          BAP-578 NFA   │
-│                                                     │
-│  静态图片                        活的 AI Agent       │
-│  没有行为                        执行链上任务        │
-│  没有钱包                        自带钱包            │
-│  不会成长                        性格持续演化        │
-│  只是一张图                      能赚钱、能战斗、能交易│
-└─────────────────────────────────────────────────────┘
-```
+现在已经有四个真实入口：
+- **官网**：铸造、合集、详情、维护、充值、提现
+- **浏览器游戏**：Shelter、任务、PK、档案、战报
+- **OpenClaw skill**：深度对话、策略、角色记忆
+- **ClawOracle autonomy**：有预算和授权边界的链上 AI 行动
 
 ---
 
-### BAP-578 在 ClaworldNfa 中的实现
+### 现在已经落地了什么
 
-BAP-578 定义了 NFA 的四项能力。以下是我们的具体实现：
+主网上已经跑通：
+- 创世铸造 commit-reveal
+- 任务 / PK / 市场 / 充值 / 提现
+- 浏览器游戏和 OpenClaw runtime
+- 基于 CML 的会话记忆
+- `ClawOracle` 主网部署
+- autonomy 基础设施：
+  - policy
+  - 预算
+  - protocol / adapter / operator 批准
+  - delegation lease
+  - receipt / manifest / ledger / execution plan
+- 三类真实 autonomy 动作：
+  - `WorldEvent`
+  - `Task route`
+  - `PK route`
 
-#### 1. 身份 — `ClawNFA.sol`
-一个 ERC-721 代币**就是** Agent 本身。不是指向链下资料的指针——代币本身携带链上状态：等级、性格向量、DNA 特征、避难所归属、职业。
-
-```solidity
-// 一个代币包含一切
-struct LobsterState {
-    uint8 level;
-    uint8[5] personality;  // [勇气, 智慧, 社交, 创造, 毅力]
-    uint8[4] dna;          // [力量, 防御, 速度, 体力]
-    uint8 shelter;
-    uint16 job;
-    uint256 clwBalance;
-}
-```
-
-#### 2. 钱包 — `ClawRouter.sol`
-每个 NFA 都有由路由合约管理的内部 Claworld 余额。Agent 可以接收奖励、支付费用、质押代币——全部在合约体系内完成，无需外部钱包。
-
-```
-铸造 NFA → 完成任务 → 赚取 Claworld → PvP 质押 → 市场交易
-              ↑                                    ↓
-              └────── Claworld 回流到经济循环 ───────────┘
-```
-
-#### 3. 执行 — Skill 合约
-Agent 通过授权的 Skill 合约执行链上操作：
-
-| Skill | Agent 的行为 |
-|-------|-------------|
-| **TaskSkill** | 完成任务，根据性格匹配度获得 XP + Claworld |
-| **PKSkill** | 参加 PvP 擂台，commit-reveal 策略对决 |
-| **MarketSkill** | 挂售、竞拍、互换 |
-| **PersonalityEngine** | 根据玩家选择演化性格 |
-
-每个 Skill 都是独立的可升级合约，由路由器授权——模块化、可组合、可扩展。
-
-#### 4. 学习 — `PersonalityEngine.sol`
-Agent 的性格基于玩家行为演化，而不是随机的：
-
-```
-玩家选择冒险任务  →  勇气 += Δ
-玩家选择解谜任务  →  智慧 += Δ
-玩家选择交易任务  →  社交 += Δ
-玩家选择创造任务  →  创造 += Δ
-玩家持续游玩      →  毅力 += Δ
-
-月度上限：每维度 ±5（防止刷分）
-```
-
-**匹配度** = `dot(性格向量, 任务向量)` → **0.05x ~ 2.0x 奖励倍率**。精心培养的 NFA 收益最高是白板的 20 倍。这创造了长期参与的真实经济激励。
+也就是说，现在既能手动玩，也已经开始支持 NFA 在授权范围里自己行动。
 
 ---
 
-### 架构
+### BAP-578 在 Clawworld 里的落地
 
-```
-┌──────────────────────────────────────────────────────┐
-│                      BNB Chain                        │
-│                                                       │
-│  ClawNFA ←────→ ClawRouter ←────→ PersonalityEngine   │
-│  (ERC-721)      (核心枢纽)        (五维演化)           │
-│                      │                                │
-│          ┌───────────┼───────────┐                    │
-│          │           │           │                    │
-│      TaskSkill   PKSkill   MarketSkill                │
-│      (任务)       (对战)     (交易)                    │
-│          │           │           │                    │
-│          └───────────┼───────────┘                    │
-│                      │                                │
-│     GenesisVault  WorldState  DepositRouter  Oracle   │
-│     (888铸造)     (时间锁)    (充值路由)     (AI)     │
-└──────────────────────┬───────────────────────────────┘
-                       │
-         ┌─────────────┼─────────────┐
-         │             │             │
-    ┌────▼────┐  ┌─────▼─────┐  ┌───▼────┐
-    │  官网   │  │  2D RPG   │  │OpenClaw│
-    │ Next.js │  │  Phaser 3 │  │  Skill │
-    │ (查看)  │  │  (游玩)   │  │ (深度) │
-    └─────────┘  └───────────┘  └────────┘
-```
+#### 1. 身份
+`ClawNFA` 是链上身份外壳。
 
-**三个入口，同一个存档：**
-- **官网** — 查看状态、铸造、管理 NFA
-- **2D RPG** — 浏览器像素游戏（`/game`，街机模式）
-- **OpenClaw** — 本地 AI 运行时，深度对话与策略
+每只龙虾自带：
+- rarity
+- shelter
+- level
+- personality
+- DNA
+- active / dormant 状态
 
-### OpenClaw 运行时与记忆机制
+#### 2. 账户
+`ClawRouter` 把每只 NFA 变成一个内部账户。
 
-OpenClaw 不只是一个聊天壳，它是把 NFA 变成“有会话状态、有持续记忆角色”的 agent runtime。
+它可以：
+- 收到 Clawworld
+- 支付 upkeep
+- 累积 XP
+- 把价值提现回 owner
 
-- **`boot`** —— 完整会话初始化；扫描已拥有 NFA、加载 CML 记忆、保留 legacy fallback 数据，并计算当前 emotion trigger
-- **`env`** —— 仅做轻量 runtime / network / account 检查
-- **`owned`** —— 仅做轻量 ownership summary
-- **CML 生命周期** —— 每只 NFA 都有 canonical CML memory；会话中的片段最终通过 `cml-load` / `cml-save` 汇总
-- **本地优先保存语义** —— local save 与可选 root sync / backup 解耦，单独成功或待同步都属于正常状态
-- **语言连续性** —— runtime 会默认沿用用户当前语言，除非用户明确切换
+#### 3. 执行
+玩法层已经有：
+- `TaskSkill`
+- `PKSkill`
+- `MarketSkill`
+- `DepositRouter`
 
-这意味着同一只 NFA 可以在官网查看、在游戏里游玩、再在 OpenClaw 里继续对话，同时保留人格、记忆和情绪连续性。
+最近继续长出来的 autonomy 执行层有：
+- `TaskRouteSkill`
+- `PKRouteSkill`
+- `WorldEventSkill`
 
-### Agent 接口层
+#### 4. 学习与记忆
+OpenClaw + CML 现在已经形成完整运行时：
+- identity
+- pulse
+- prefrontal
+- basal
+- hippocampus buffer
 
-公开 skill/runtime 已经暴露出适合 agent 挂载的 tool surface，可被 OpenClaw 以及其他支持 tool/function calling 的 agent 直接复用。
-
-- **读取 / 观察类** —— environment、owned NFAs、status、world state、rankings、market listings、withdraw status、CML load
-- **动作类** —— tasks、upkeep、deposit、market actions、transfer、withdraw、PK create / join / reveal / settle
-- **安全边界** —— read tools 与需钱包确认的 state-changing actions 分离；runtime 不读取私钥，也不会静默签名
-- **Hermes adapter** —— 已发布的 adapter 导出标准 tool schemas / manifests，外部 agent 无需重写游戏逻辑即可接入
+所以这不是一个单 prompt 角色，而是一只会在会话里连续存在的龙虾。
 
 ---
 
-### 智能合约（BSC 主网）
+### 合约协作关系
 
-| 合约 | 角色 | 地址 |
+现在这套合约已经不是各自独立的一堆模块，而是在共同推动同一个世界。
+
+- `ClawNFA` 负责身份外壳
+- `ClawRouter` 负责内部账户、XP、upkeep 和状态
+- `GenesisVault` 负责创世铸造和起始条件
+- `TaskSkill`、`PKSkill`、`MarketSkill` 负责常规玩法
+- `DepositRouter` 负责把钱包侧资金接到 NFA 账户层
+- `WorldState` 负责全局奖励和风险参数
+- `ClawOracle` 和 autonomy stack 负责有边界的 AI 行动
+
+```mermaid
+flowchart TD
+    Mint["GenesisVault<br/>铸造 + 稀有度 + 初始状态"] --> NFA["ClawNFA<br/>身份外壳"]
+    NFA --> Router["ClawRouter<br/>内部账户 + XP + upkeep"]
+    Router --> Task["TaskSkill"]
+    Router --> PK["PKSkill"]
+    Router --> Market["MarketSkill"]
+    Deposit["DepositRouter"] --> Router
+    World["WorldState"] --> Task
+    World --> PK
+    World --> Market
+    Oracle["ClawOracle"] --> Hub["Autonomy stack"]
+    Hub --> RouteTask["TaskRouteSkill"]
+    Hub --> RoutePK["PKRouteSkill"]
+    Hub --> RouteEvent["WorldEventSkill"]
+    RouteTask --> Router
+    RoutePK --> Router
+    RouteEvent --> Router
+```
+
+这样拆开之后，后面新增动作时，不需要推翻核心层，只要继续挂新的 route skill 或 adapter。
+
+---
+
+### 经济模型
+
+Clawworld 现在跑的是一套分层经济，不是把所有东西塞进一个代币循环里。
+
+- 外部价值从铸造、充值、钱包入口进来
+- 每只 NFA 在 `ClawRouter` 里有自己的内部账户
+- 做任务会产出 `Clawworld`
+- PK 会重新分配价值，也会产生销毁和损失
+- 市场会产生手续费
+- upkeep 和 reserve 会把账户层压住，不让它变成空转积分
+
+最直白的理解就是：
+玩家不只是在持有一张 NFT，而是在经营一个带收入、支出、风险和历史的角色账户。
+
+```mermaid
+flowchart LR
+    Wallet["钱包 / BNB / Clawworld"] --> Mint["铸造 / 充值 / 兑换"]
+    Mint --> Account["NFA 内部账户<br/>ClawRouter"]
+    Account --> Tasks["任务"]
+    Account --> PK["PK / route PK"]
+    Account --> Market["市场 / 挂单 / 交易"]
+    Tasks --> Rewards["Clawworld + XP"]
+    PK --> Rewards
+    Rewards --> Account
+    Account --> Upkeep["Upkeep / reserve / 安全线"]
+    Market --> Fees["Treasury fee"]
+    PK --> Burn["损失 / 销毁 / 再分配"]
+```
+
+这也是后面能继续接 AI 代理模式的原因。
+NFA 现在已经有了自己的账户层、支出边界和经营轨迹。
+
+---
+
+### 手动模式和自主模式
+
+```mermaid
+flowchart LR
+    Player["玩家"]
+    Skill["OpenClaw / 官网 / 游戏"]
+    Policy["自主策略<br/>预算 · reserve · lease"]
+    Oracle["ClawOracle"]
+    Hub["ActionHub + FinalizationHub"]
+    Actions["Task Route / PK Route / World Event"]
+    Router["ClawRouter / NFA 状态"]
+
+    Player --> Skill
+    Skill --> Router
+    Player --> Policy
+    Policy --> Oracle
+    Oracle --> Hub
+    Hub --> Actions
+    Actions --> Router
+```
+
+现在有两种清楚的使用方式：
+
+**手动模式**
+- 玩家自己问、自己选、自己确认
+- OpenClaw 和网页游戏负责交互体验
+
+**自主模式**
+- owner 先设边界
+- Oracle 在边界里做选择
+- 动作落到链上
+- receipt 和 ledger 留痕
+
+这就是从“AI 助手”往“链上代理”走的那一步。
+
+---
+
+### OpenClaw Runtime
+
+OpenClaw 仍然是非常关键的一层。
+
+现在已经有三种清楚入口：
+- `env`：只看 runtime / network / account
+- `owned`：只看 ownership summary
+- `boot`：完整会话初始化，带 CML 和记忆触发
+
+它现在具备：
+- 本地优先的 CML 保存语义
+- 可选 root sync / backup
+- 语言连续性
+- 读写边界分离
+- Hermes adapter
+
+所以同一只龙虾可以：
+- 在官网被查看
+- 在游戏里被操作
+- 在 OpenClaw 里继续对话
+- 最后进入链上自主动作
+
+---
+
+### ClawOracle 与 Autonomy
+
+`ClawOracle` 现在已经不是一个孤立的 AI 合约概念。
+
+它已经长成完整 autonomy stack：
+- `ClawAutonomyRegistry`
+- `ClawAutonomyDelegationRegistry`
+- `ClawOracleActionHub`
+- `ClawAutonomyFinalizationHub`
+- account / manifest / lifecycle / execution plan 只读层
+
+当前 autonomy 能力包括：
+- action policy
+- 风险模式
+- 每日动作上限
+- asset / protocol 预算
+- reserve floor
+- operator approval 和 role mask
+- lease 委托
+- action / protocol / asset / NFA 账本
+- 标准化 receipt 和外部 introspection
+
+这个方向的目标很明确：
+让 NFA 逐步长成一个可以被授权、可以执行、可以被外部系统读懂的链上经济体。
+
+---
+
+### 主网合约
+
+#### 核心玩法
+
+| 合约 | 作用 | 地址 |
 |------|------|------|
-| ClawNFA | ERC-721 NFA 身份 | [`0xAa20...AE48`](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48) |
-| ClawRouter | 核心枢纽 | [`0x60C0...BD5`](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5) |
-| GenesisVault | 888 创世铸造 | [`0xCe04...fF83`](https://bscscan.com/address/0xCe04f834aC4581FD5562f6c58C276E60C624fF83) |
-| WorldState | 世界参数（24h 时间锁） | [`0xC375...9FCA`](https://bscscan.com/address/0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA) |
-| TaskSkill | 任务 + 匹配度评分 | [`0x652c...442a`](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) |
-| PKSkill | PvP（commit-reveal） | [`0xaed3...9D10`](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1bF275c98179D10) |
-| MarketSkill | 市场：售卖/拍卖/互换 | [`0xA58e...8dfF`](https://bscscan.com/address/0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF) |
-| DepositRouter | DEX/Bonding Curve 路由 | [`0xFe68...f269`](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269) |
-| PersonalityEngine | 五维性格演化 | [`0x19E8...331E`](https://bscscan.com/address/0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E) |
-| ClawOracle | AI 预言机 | [`0x652c...442a`](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) |
+| ClawNFA | NFA 身份 | [`0xAa2094798B5892191124eae9D77E337544FFAE48`](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48) |
+| ClawRouter | 内部账户与状态枢纽 | [`0x60C0D5276c007Fd151f2A615c315cb364EF81BD5`](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5) |
+| GenesisVault | 创世铸造 | [`0xCe04f834aC4581FD5562f6c58C276E60C624fF83`](https://bscscan.com/address/0xCe04f834aC4581FD5562f6c58C276E60C624fF83) |
+| WorldState | 世界参数 | [`0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA`](https://bscscan.com/address/0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA) |
+| TaskSkill | 任务 | [`0xaed370784536e31BE4A5D0Dbb1F275c98179D10`](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1F275c98179D10) |
+| PKSkill | PK | [`0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF`](https://bscscan.com/address/0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF) |
+| MarketSkill | 市场 | [`0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54`](https://bscscan.com/address/0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54) |
+| DepositRouter | 充值与兑换路由 | [`0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269`](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269) |
+| ClawOracle | Oracle 请求板 | [`0x652c192B6A3b13e0e90F145727DE6484AdA8442a`](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) |
 
-全部合约：OpenZeppelin UUPS 可升级代理。229 测试通过，0 失败。
+#### Autonomy Core
+
+| 合约 | 作用 | 地址 |
+|------|------|------|
+| ClawAutonomyRegistry | policy / budget / reserve / approval | [`0xD18BaF2670fFcb4CC92260719AbFc9d637dB7044`](https://bscscan.com/address/0xD18BaF2670fFcb4CC92260719AbFc9d637dB7044) |
+| ClawAutonomyDelegationRegistry | operator 租约与委托 | [`0x1C3A69fC7715563D9dDF9847BB5ffF3B6e09aAEa`](https://bscscan.com/address/0x1C3A69fC7715563D9dDF9847BB5ffF3B6e09aAEa) |
+| ClawOracleActionHub | 请求同步与执行 | [`0xEdd04D821ab9E8eCD5723189A615333c3509f1D5`](https://bscscan.com/address/0xEdd04D821ab9E8eCD5723189A615333c3509f1D5) |
+| ClawAutonomyFinalizationHub | 执行后收口 | [`0x65F850536bE1B844c407418d8FbaE795045061bd`](https://bscscan.com/address/0x65F850536bE1B844c407418d8FbaE795045061bd) |
+
+#### 当前自主动作
+
+| 合约 | 作用 | 地址 |
+|------|------|------|
+| WorldEventSkill | 世界事件自主选择 | [`0xdD1273990234D591c098e1E029876F0236Ef8bD3`](https://bscscan.com/address/0xdD1273990234D591c098e1E029876F0236Ef8bD3) |
+| TaskRouteSkill | 自主任务路线 | [`0xDA204B8b2d957C58244Bb8D69188D14EB844327A`](https://bscscan.com/address/0xDA204B8b2d957C58244Bb8D69188D14EB844327A) |
+| PKRouteSkill | 自主 PK 路线 | [`0x4bCe6e97c60C408ae3Ab52799e5C101571252335`](https://bscscan.com/address/0x4bCe6e97c60C408ae3Ab52799e5C101571252335) |
 
 ---
 
-### 安全设计
+### 仓库结构
 
-| 机制 | 目的 |
-|------|------|
-| **UUPS 代理** | 所有合约可升级，仅 owner 可操作 |
-| **Commit-Reveal** | Mint、PvP、Oracle — 防止抢跑 |
-| **增强熵源** | salt + nonce + gasleft() 混合（不依赖 VRF） |
-| **24h 时间锁** | WorldState 变更需 提议 → 等待24h → 执行 |
-| **Pull-over-Push** | 所有 BNB 退款通过 `pendingWithdrawals` + `claimRefund()` |
-| **Skill 授权** | 只有路由器授权的合约才能修改 NFA 状态 |
-| **月度上限** | 性格演化每维度每月 ±5 |
-| **存储间隙** | 所有合约预留 40 slot 给未来升级 |
+```text
+ClaworldNfa/
+├── contracts/
+│   ├── core/
+│   ├── skills/
+│   ├── world/
+│   └── mocks/
+├── frontend/
+├── openclaw/
+│   ├── claw-world-skill/
+│   ├── autonomyOracleRunner.ts
+│   ├── openaiCompatibleAI.ts
+│   └── reasoningUploader.ts
+├── scripts/
+├── test/
+└── README.md
+```
 
 ---
 
-### 技术栈
+### 当前路线
 
-| 层 | 技术 |
-|----|------|
-| 区块链 | BNB Chain（BSC 主网） |
-| 合约 | Solidity ^0.8.20, Hardhat, OpenZeppelin UUPS |
-| 前端 | Next.js 16, React 19, wagmi v3, viem v2 |
-| 游戏引擎 | Phaser 3（2D 像素 RPG） |
-| AI 运行时 | OpenClaw（本地运行，无后端） |
-| UI | Tailwind CSS, CRT/PipBoy 终端风格 |
+| 阶段 | 状态 | 说明 |
+|------|------|------|
+| BAP-578 核心玩法 | 已上线 | 铸造、任务、PK、市场、充值、提现 |
+| OpenClaw CML runtime | 已上线 | `boot / env / owned`、CML、Hermes adapter |
+| ClawOracle autonomy stack | 主网上线 | policy、budget、ledger、manifest、receipt |
+| Autonomous world/task/PK routes | 已上线 | 有边界的链上 AI 执行 |
+| 玩家 AI 代理模式 | 开发中 | 计划通过代币质押开启 NFA AI 代理 |
+| 更多外部集成 | 计划中 | 更广义的 BAP-578 兼容动作面 |
 
 ---
 
@@ -473,42 +723,26 @@ OpenClaw 不只是一个聊天壳，它是把 NFA 变成“有会话状态、有
 git clone https://github.com/fa762/ClaworldNfa.git
 cd ClaworldNfa
 
-# 合约
 npm install
-npx hardhat test          # 229 passing
+npx hardhat compile
 
-# 前端
 cd frontend
 npm install
-npm run dev               # http://localhost:3000
+npm run dev
 ```
 
-游戏入口：`http://localhost:3000/game`
-
----
-
-### 路线图
-
-| 阶段 | 状态 | 描述 |
-|------|------|------|
-| BAP-578 合约 | **主网上线** | 10 个合约已部署，229 测试通过 |
-| 官网 + 铸造 | **已上线** | NFA 合集、详情页、commit-reveal 铸造 |
-| OpenClaw Skill | **已发布** | AI Skill 上架 ClawHub，本地运行 |
-| 2D RPG 游戏 | **已上线** | 浏览器像素游戏，链上交互 |
-| AI 预言机 | **已部署** | 链上 AI 事件处理 |
-| Agent 间通信 | 计划中 | NFA 之间自主交互 |
-| 多链扩展 | 计划中 | 将 BAP-578 扩展到 BNB Chain 之外 |
-| DAO 治理 | 计划中 | NFA 持有者投票决定 WorldState 参数 |
-| 装备系统 | 计划中 | 链上道具修改 Agent 能力 |
+游戏入口：
+`http://localhost:3000/game`
 
 ---
 
 ### 相关链接
 
 - **官网**: [clawnfaterminal.xyz](https://www.clawnfaterminal.xyz)
+- **游戏**: [clawnfaterminal.xyz/game](https://www.clawnfaterminal.xyz/game)
 - **ClawHub Skill**: [fa762/claw-world](https://clawhub.ai/fa762/claw-world)
 - **Skill 源码**: [github.com/fa762/claw-world-skill](https://github.com/fa762/claw-world-skill)
-- **BNBScan**: [ClawNFA 合约](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
+- **BscScan**: [ClawNFA](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48)
 
 ### 许可证
 
