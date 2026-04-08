@@ -237,6 +237,66 @@ So the same lobster can be:
 - opened inside OpenClaw
 - then moved into bounded on-chain autonomy
 
+### Beyond OpenClaw
+
+This runtime surface is no longer tied to OpenClaw alone.
+
+Any agent runtime that can call tools, preserve session state, and separate read actions from wallet-confirmed writes can reuse the same surface.
+
+That already includes:
+- OpenClaw sessions
+- Hermes-style adapters
+- other tool-calling agent runtimes
+
+The shared pieces are:
+- `CML` as the canonical memory layer
+- read helpers for NFA state, ownership, and world inspection
+- bounded task / PK / market / autonomy action surfaces
+
+```mermaid
+flowchart LR
+    Runtime["OpenClaw / Other Agent Runtime"]
+    Surface["claw / Hermes / tool surface"]
+    CML["Canonical CML memory"]
+    Read["Read + inspect state"]
+    Help["Task / PK / market assistance"]
+    Wallet["Wallet-confirmed action"]
+    Oracle["On-chain autonomy stack"]
+
+    Runtime --> Surface
+    Surface --> CML
+    Surface --> Read
+    Surface --> Help
+    Help --> Wallet
+    Help --> Oracle
+```
+
+This makes the runtime useful beyond one client. The same lobster state, memory, and action boundaries can be mounted by other agents too.
+
+### CML as a Shared Memory Layer
+
+CML is no longer just a local session file.
+
+It now acts as the shared memory layer across:
+- website and game presentation
+- OpenClaw sessions
+- other agent runtimes
+- the on-chain autonomy stack
+
+```mermaid
+flowchart LR
+    CML["Canonical CML memory"]
+    Game["Website / Game"]
+    OpenClaw["OpenClaw session"]
+    Agent["Other agent runtime"]
+    Autonomy["On-chain autonomy"]
+
+    CML --> Game
+    CML --> OpenClaw
+    CML --> Agent
+    CML --> Autonomy
+```
+
 ---
 
 ### ClawOracle and Autonomy
@@ -618,6 +678,71 @@ OpenClaw 仍然是非常关键的一层。
 - 在 OpenClaw 里继续对话
 - 最后进入链上自主动作
 
+### 不只是 OpenClaw
+
+这套运行时表面层现在已经不只服务 OpenClaw。
+
+只要一个 agent runtime 能做到下面几件事，就可以复用同一套表面层：
+- 能调用工具
+- 能保留会话状态
+- 能区分只读动作和钱包确认写动作
+
+这已经包括：
+- OpenClaw 会话
+- Hermes 风格适配器
+- 其他 tool-calling agent runtime
+
+共享的核心有三块：
+- `CML` 作为标准记忆层
+- NFA 状态 / 资产 / 世界读取面
+- 有边界的任务 / PK / 市场 / autonomy 动作面
+
+```mermaid
+flowchart LR
+    Runtime["OpenClaw / 其他 Agent Runtime"]
+    Surface["claw / Hermes / 工具表面层"]
+    CML["标准 CML 记忆"]
+    Read["读取 NFA / 世界状态"]
+    Help["任务 / PK / 市场辅助"]
+    Wallet["钱包确认动作"]
+    Oracle["链上自主执行栈"]
+
+    Runtime --> Surface
+    Surface --> CML
+    Surface --> Read
+    Surface --> Help
+    Help --> Wallet
+    Help --> Oracle
+```
+
+这也是为什么这套 skill 现在可以被继续移植到其他 agent 运行时，而不是只能绑定在 OpenClaw 里。
+
+### CML 共享记忆层
+
+CML 现在已经不是单纯的本地对话缓存。
+
+它会作为共享记忆层，贯穿下面几条运行时：
+- 网站 / 游戏展示层
+- OpenClaw 会话层
+- 其他 agent runtime
+- 链上 autonomy / oracle 栈
+
+```mermaid
+flowchart LR
+    CML["标准 CML 记忆"]
+    Game["网页 / 游戏"]
+    OpenClaw["OpenClaw 会话"]
+    Agent["其他 Agent Runtime"]
+    Autonomy["链上自主执行"]
+
+    CML --> Game
+    CML --> OpenClaw
+    CML --> Agent
+    CML --> Autonomy
+```
+
+所以同一只龙虾的记忆、状态、情绪和行为轨迹，不会只停在一个本地窗口里，而是能跨运行时继续被使用。
+
 ---
 
 ### ClawOracle 与 Autonomy
@@ -644,6 +769,36 @@ OpenClaw 仍然是非常关键的一层。
 
 这个方向的目标很明确：
 让 NFA 逐步长成一个可以被授权、可以执行、可以被外部系统读懂的链上经济体。
+
+#### 当前链上代理执行流程
+
+```mermaid
+flowchart LR
+    Owner["主人"]
+    Registry["AutonomyRegistry<br/>policy / budget / approval"]
+    Request["ClawOracle 请求"]
+    Runner["Oracle runner"]
+    Hub["ActionHub"]
+    Adapter["ActionAdapter"]
+    Skill["TaskRoute / PKRoute / WorldEvent"]
+    Finalize["FinalizationHub"]
+    Ledger["Receipt / Ledger / Manifest"]
+
+    Owner --> Registry
+    Registry --> Request
+    Request --> Runner
+    Runner --> Hub
+    Hub --> Adapter
+    Adapter --> Skill
+    Skill --> Finalize
+    Finalize --> Ledger
+```
+
+这一层现在已经很清楚：
+- 主人先定义边界
+- runner 只在边界里做选择
+- 动作真正落到链上
+- 最后留下可读的 receipt 和 ledger
 
 ---
 
