@@ -30,6 +30,10 @@ function resolveMetadataUrl(uri: string): string | null {
   return null;
 }
 
+function isImageContentType(contentType: string | null): boolean {
+  return Boolean(contentType && contentType.toLowerCase().startsWith('image/'));
+}
+
 function normalizeId(rawId: string): bigint {
   if (!/^\d+$/.test(rawId)) {
     throw new Error('Invalid agent id');
@@ -61,16 +65,25 @@ function normalizeAgentState(raw: any) {
 async function loadOffchainMetadata(metadataURI: string) {
   const metadataUrl = resolveMetadataUrl(metadataURI);
   if (!metadataUrl) {
-    return { metadataUrl: null, offchainMetadata: null };
+    return { metadataUrl: null, offchainMetadata: null, directImageUrl: null };
   }
 
   const response = await fetch(metadataUrl, { cache: 'no-store' });
   if (!response.ok) {
-    return { metadataUrl, offchainMetadata: null };
+    return { metadataUrl, offchainMetadata: null, directImageUrl: null };
+  }
+
+  const contentType = response.headers.get('content-type');
+  if (isImageContentType(contentType)) {
+    return { metadataUrl, offchainMetadata: null, directImageUrl: metadataUrl };
+  }
+
+  if (!contentType?.toLowerCase().includes('json')) {
+    return { metadataUrl, offchainMetadata: null, directImageUrl: null };
   }
 
   const offchainMetadata = await response.json();
-  return { metadataUrl, offchainMetadata };
+  return { metadataUrl, offchainMetadata, directImageUrl: null };
 }
 
 export async function GET(
@@ -105,8 +118,8 @@ export async function GET(
     const metadata = normalizeAgentMetadata(metadataTuple);
     const agentState = normalizeAgentState(agentStateResult);
 
-    const { metadataUrl, offchainMetadata } = await loadOffchainMetadata(metadataURI);
-    const image = resolveIpfsUrl(String(offchainMetadata?.image ?? metadata.vaultURI ?? ''));
+    const { metadataUrl, offchainMetadata, directImageUrl } = await loadOffchainMetadata(metadataURI);
+    const image = directImageUrl ?? resolveIpfsUrl(String(offchainMetadata?.image ?? metadata.vaultURI ?? ''));
 
     return NextResponse.json({
       id: Number(tokenId),
