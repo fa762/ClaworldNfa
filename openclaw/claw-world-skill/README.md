@@ -256,3 +256,133 @@ The README now reflects:
 - `boot / env / owned` role separation
 - the split between local player copilot mode and on-chain autonomy mode
 - current Hermes-facing integration surface
+
+---
+
+## 中文说明
+
+### Clawworld 里的两种 AI 模式
+
+#### 1. 本地协作模式
+
+玩家在线，通过 `claw` 命令和龙虾交互。
+
+这时候这套 skill 主要负责：
+- 读取 NFA 状态
+- 读取 CML 记忆
+- 提供任务 / PK / 市场建议
+- 帮玩家整理信息
+- 把真正上链动作留给钱包确认
+
+#### 2. 链上代理模式
+
+玩家提前在链上给 NFA 开启自主权限。
+
+之后主仓里的 autonomy / oracle stack 可以让龙虾：
+- 自己选任务路线
+- 自己选 PK 路线
+- 自己选世界事件分支
+- 把结果真正执行到链上
+- 把 receipt、ledger、reasoning CID 留下来
+
+```mermaid
+flowchart LR
+    Player["玩家"]
+    Skill["本地 skill / OpenClaw"]
+    Wallet["钱包确认动作"]
+    Policy["链上自主策略"]
+    Oracle["ClawOracle runner"]
+    Chain["任务 / PK / 世界事件"]
+
+    Player --> Skill --> Wallet --> Chain
+    Player --> Policy --> Oracle --> Chain
+```
+
+```mermaid
+flowchart LR
+    Policy["自主策略"]
+    Request["有边界的预言机请求"]
+    Model["模型 API 推理"]
+    Choice["选择结果 + reasoning CID"]
+    Execute["adapter 执行"]
+    Result["链上回执 + 账本"]
+
+    Policy --> Request --> Model --> Choice --> Execute --> Result
+```
+
+### 不只是 OpenClaw
+
+这套 skill 以 `claw` 命令为中心，但它的目标并不只是在 OpenClaw 里运行。
+
+只要一个 agent runtime 能做到下面几件事，就可以复用同一套表面层：
+- 能调用工具
+- 能保留会话状态
+- 能区分只读动作和真正要钱包确认的写动作
+
+所以它同样适合：
+- OpenClaw
+- Hermes 风格工具适配层
+- function-calling agent
+- 其他兼容 BAP-578 思路的 agent runtime
+
+共享的核心有三块：
+- `CML` 记忆层
+- NFA 状态与资产读取面
+- 有边界的任务 / PK / 市场动作面
+
+```mermaid
+flowchart LR
+    Runtime["OpenClaw / 其他 Agent Runtime"]
+    Surface["claw / Hermes / 工具表面层"]
+    CML["标准 CML 记忆"]
+    Read["读取 NFA / 世界状态"]
+    Help["任务 / PK / 市场辅助"]
+    Wallet["钱包确认动作"]
+    Oracle["链上自主执行栈"]
+
+    Runtime --> Surface
+    Surface --> CML
+    Surface --> Read
+    Surface --> Help
+    Help --> Wallet
+    Help --> Oracle
+```
+
+### CML 共享记忆层
+
+每只 NFA 都会挂一份运行时记忆：
+- identity
+- pulse
+- prefrontal
+- basal
+- hippocampus buffer
+
+这让龙虾能保留：
+- 角色感
+- 情绪连续性
+- 最近的重要片段
+- 行为倾向
+
+CML 现在已经不只是本地对话缓存，它是几条运行时共同使用的记忆层：
+- 网站 / 游戏展示层
+- OpenClaw 会话层
+- 其他 agent runtime
+- 链上 autonomy / oracle 栈
+
+```mermaid
+flowchart LR
+    CML["标准 CML 记忆"]
+    Game["网页 / 游戏"]
+    OpenClaw["OpenClaw 会话"]
+    Agent["其他 Agent Runtime"]
+    Autonomy["链上自主执行"]
+
+    CML --> Game
+    CML --> OpenClaw
+    CML --> Agent
+    CML --> Autonomy
+```
+
+`claw cml-save` 的语义也保持不变：
+- 不带 auth：先本地保存
+- 带 auth：本地保存 + 立即尝试 root sync
