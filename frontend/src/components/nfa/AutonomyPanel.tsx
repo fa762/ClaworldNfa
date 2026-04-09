@@ -1194,6 +1194,7 @@ export function AutonomyPanel({
   const { address } = useAccount();
   const { lang } = useI18n();
   const zh = lang === 'zh';
+  const [selectedActionKey, setSelectedActionKey] = useState<ActionCardConfig['key']>('task');
   const ownerWallet = ownerAddress as Address | undefined;
 
   const walletBalanceQuery = useReadContract({
@@ -1213,6 +1214,7 @@ export function AutonomyPanel({
     !!address && !!ownerAddress && address.toLowerCase() === ownerAddress.toLowerCase();
   const holderWalletEligible = walletBalance >= AUTONOMY_MIN_WALLET_HOLDING;
   const walletThresholdLabel = `${AUTONOMY_MIN_WALLET_HOLDING_RAW} Claworld`;
+  const selectedAction = ACTIONS.find((item) => item.key === selectedActionKey) ?? ACTIONS[0];
 
   const refreshEligibility = async () => {
     if (!ownerWallet || !addresses.clwToken) return false;
@@ -1285,25 +1287,49 @@ export function AutonomyPanel({
         {isOwner && !holderWalletEligible ? (
           <div className="term-warn">
             {zh
-              ? '当前持有者钱包的 Claworld 还没达到代理门槛。达到门槛后，下面两张卡片才可以继续开通。'
-              : 'The owner wallet does not meet the Claworld threshold yet. Once it does, the Task and PK cards below can continue onboarding.'}
+              ? '当前持有者钱包的 Claworld 还没达到代理门槛。达到门槛后，下面的代理动作才可以继续开通。'
+              : 'The owner wallet does not meet the Claworld threshold yet. Once it does, the selected agent action can continue onboarding.'}
           </div>
         ) : null}
 
-        {ACTIONS.map((config) => (
-          <ActionCard
-            key={config.key}
-            tokenId={tokenId}
-            ownerAddress={ownerAddress}
-            currentClwBalance={clwBalance}
-            dailyCost={dailyCost}
-            holderWalletEligible={holderWalletEligible}
-            holderWalletBalance={walletBalance}
-            walletThresholdLabel={walletThresholdLabel}
-            onRefreshEligibility={refreshEligibility}
-            config={config}
-          />
-        ))}
+        <div className="term-box p-2 space-y-2">
+          <div className="term-bright text-[11px]">
+            {zh ? '代理动作' : 'Agent actions'}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ACTIONS.map((config) => {
+              const active = config.key === selectedAction.key;
+              return (
+                <button
+                  key={config.key}
+                  type="button"
+                  onClick={() => setSelectedActionKey(config.key)}
+                  className={`term-btn text-xs ${active ? 'term-btn-primary' : ''}`}
+                >
+                  [{zh ? config.titleZh : config.titleEn}]
+                </button>
+              );
+            })}
+          </div>
+          <div className="term-dim text-[11px]">
+            {zh
+              ? '先选一个动作类型，再看这条代理链路的预算、风控、证明和最近结果。'
+              : 'Pick one action type first, then inspect its budget, risk controls, proofs, and latest results.'}
+          </div>
+        </div>
+
+        <ActionCard
+          key={selectedAction.key}
+          tokenId={tokenId}
+          ownerAddress={ownerAddress}
+          currentClwBalance={clwBalance}
+          dailyCost={dailyCost}
+          holderWalletEligible={holderWalletEligible}
+          holderWalletBalance={walletBalance}
+          walletThresholdLabel={walletThresholdLabel}
+          onRefreshEligibility={refreshEligibility}
+          config={selectedAction}
+        />
 
         <div className="grid gap-2 md:grid-cols-2 text-[11px]">
           <div className="term-box p-2 space-y-1">

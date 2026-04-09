@@ -11,7 +11,7 @@ const translations: Record<string, Record<Lang, string>> = {
   'nav.mint': { zh: '铸造', en: 'MINT' },
   'nav.vault': { zh: '合集', en: 'VAULT' },
   'nav.data': { zh: '指南', en: 'DATA' },
-  'nav.lore': { zh: '世界观', en: 'LORE' },
+  'nav.lore': { zh: 'AI代理', en: 'AI AGENT' },
   'nav.openclaw': { zh: '开始', en: 'PLAY' },
   'nav.game': { zh: '游戏', en: 'GAME' },
   'openclaw.title': { zh: 'OpenClaw 游戏指南', en: 'OpenClaw Game Guide' },
@@ -143,6 +143,7 @@ const translations: Record<string, Record<Lang, string>> = {
   // ─── NFA Detail Tabs ───
   'tab.status': { zh: '状态', en: 'Status' },
   'tab.special': { zh: 'SPECIAL', en: 'SPECIAL' },
+  'tab.ai': { zh: 'AI代理', en: 'AI AGENT' },
   'tab.gene': { zh: '基因', en: 'Gene' },
   'tab.maintain': { zh: '维护', en: 'Maintain' },
 
@@ -292,7 +293,7 @@ const translations: Record<string, Record<Lang, string>> = {
   'guide.title': { zh: '文档: 游戏指南', en: 'Docs: Game Guide' },
 
   // ─── Lore Page ───
-  'lore.title': { zh: '数据库: 龙虾世界', en: 'Database: Lobster World' },
+  'lore.title': { zh: 'AI代理', en: 'AI AGENT' },
 };
 
 type TranslationKey = string;
