@@ -6,11 +6,22 @@
     "compile": "npx hardhat compile",
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage",
+    "build": "npm --prefix frontend run build",
+    "build:testnet": "npm --prefix frontend run build:testnet",
+    "build:mainnet": "npm --prefix frontend run build:mainnet",
     "deploy:local": "npx hardhat run scripts/deploy-phase1.ts --network localhost",
     "deploy:testnet": "npx hardhat run scripts/deploy-phase1.ts --network bscTestnet",
     "node": "npx hardhat node",
     "clean": "npx hardhat clean",
-    "size": "npx hardhat size-contracts"
+    "size": "npx hardhat size-contracts",
+    "runner:autonomy": "node -r ts-node/register/transpile-only openclaw/start-autonomy-runner.ts",
+    "runner:autonomy:once": "node -r ts-node/register/transpile-only openclaw/start-autonomy-runner.ts --once",
+    "runner:autonomy:check": "node -r ts-node/register/transpile-only openclaw/start-autonomy-runner.ts --check-env",
+    "migrate:autonomy:battle-royale:mainnet": "npx hardhat run scripts/migrate-battle-royale-autonomy-mainnet.ts --network bscMainnet",
+    "smoke:battle-royale:autonomy:mainnet": "npx hardhat run scripts/smoke-battle-royale-autonomy-mainnet.ts --network bscMainnet",
+    "watch:battle-royale": "node -e \"process.env.HARDHAT_NETWORK='bscMainnet'; process.env.BATTLE_ROYALE_WATCH_MODE='serve'; require('ts-node/register/transpile-only'); require('./scripts/watch-battle-royale-reveal.ts');\"",
+    "watch:battle-royale:once": "node -e \"process.env.HARDHAT_NETWORK='bscMainnet'; process.env.BATTLE_ROYALE_WATCH_MODE='once'; require('ts-node/register/transpile-only'); require('./scripts/watch-battle-royale-reveal.ts');\"",
+    "watch:battle-royale:check": "node -e \"process.env.HARDHAT_NETWORK='bscMainnet'; process.env.BATTLE_ROYALE_WATCH_MODE='check-env'; require('ts-node/register/transpile-only'); require('./scripts/watch-battle-royale-reveal.ts');\""
   },
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.97",
