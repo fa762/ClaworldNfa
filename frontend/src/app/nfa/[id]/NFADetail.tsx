@@ -13,6 +13,7 @@ import { MutationSlots } from '@/components/nfa/MutationSlots';
 import { DepositPanel } from '@/components/nfa/DepositPanel';
 import { WithdrawPanel } from '@/components/nfa/WithdrawPanel';
 import { TransferToOpenClaw } from '@/components/nfa/TransferToOpenClaw';
+import { AutonomyPanel } from '@/components/nfa/AutonomyPanel';
 import { TerminalBar } from '@/components/terminal/TerminalBar';
 import { formatCLW, truncateAddress } from '@/lib/format';
 import { getXpProgress } from '@/lib/xp';
@@ -252,6 +253,7 @@ export function NFADetail({ tokenId }: { tokenId: string }) {
               <UpkeepButton tokenId={id} />
               <DepositPanel tokenId={id} />
               <WithdrawPanel tokenId={id} ownerAddress={ownerAddress} />
+              <AutonomyPanel tokenId={id} ownerAddress={ownerAddress} clwBalance={balance} dailyCost={cost} />
               <TransferToOpenClaw tokenId={id} ownerAddress={ownerAddress} />
             </div>
           )}
