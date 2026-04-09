@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build:testnet",
+  "buildCommand": "npm run build:mainnet",
   "outputDirectory": ".next",
   "framework": "nextjs"
 }

@@ -57,7 +57,7 @@ function AiAgentWorkspace({
             <div className="term-dim mb-1">{zh ? '代理主体说明' : 'Actor semantics'}</div>
             <div>
               {zh
-                ? '任务、PK、Battle Royale 的参赛主体都是当前选中的 NFA。owner 钱包只负责交互权限和 2M Claworld 门槛验证。'
+                ? '任务、PK、Battle Royale 的参赛主体都是当前选中的 NFA。Owner 钱包只负责交互权限和 2M Claworld 门槛验证。'
                 : 'Task, PK, and Battle Royale all execute with the selected NFA as the actor. The owner wallet is only used for interaction permission and the 2M Claworld threshold.'}
             </div>
           </div>
@@ -148,15 +148,11 @@ export function LoreContent() {
             </div>
             <div className="term-box p-2 space-y-1">
               <div className="term-dim">{zh ? '可控制龙虾' : 'Controllable lobsters'}</div>
-              <div className="term-bright">
-                {isLoading ? (zh ? '读取中...' : 'Loading...') : tokens.length}
-              </div>
+              <div className="term-bright">{isLoading ? (zh ? '读取中...' : 'Loading...') : tokens.length}</div>
             </div>
             <div className="term-box p-2 space-y-1">
               <div className="term-dim">{zh ? '当前选中' : 'Current selection'}</div>
-              <div className="term-bright">
-                {selectedTokenId ? `#${selectedTokenId.toString()}` : '--'}
-              </div>
+              <div className="term-bright">{selectedTokenId ? `#${selectedTokenId.toString()}` : '--'}</div>
             </div>
           </div>
         </div>
@@ -165,9 +161,7 @@ export function LoreContent() {
       <TerminalBox title={zh ? '龙虾切换' : 'Lobster switcher'}>
         {tokens.length === 0 ? (
           <div className="term-dim text-xs">
-            {zh
-              ? '当前钱包下还没有可控制的 NFA。'
-              : 'This wallet does not currently own any controllable NFA.'}
+            {zh ? '当前钱包下还没有可控制的 NFA。' : 'This wallet does not currently own any controllable NFA.'}
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -188,9 +182,7 @@ export function LoreContent() {
         )}
       </TerminalBox>
 
-      {selectedTokenId ? (
-        <AiAgentWorkspace tokenId={selectedTokenId} ownerAddress={ownerAddress} />
-      ) : null}
+      {selectedTokenId ? <AiAgentWorkspace tokenId={selectedTokenId} ownerAddress={ownerAddress} /> : null}
     </div>
   );
 }

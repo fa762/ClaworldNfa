@@ -1,6 +1,8 @@
 import { type Address } from 'viem';
 
-const rawChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || '97');
+const appEnv = (process.env.NEXT_PUBLIC_APP_ENV || 'mainnet').toLowerCase();
+const fallbackChainId = appEnv === 'testnet' ? '97' : '56';
+const rawChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || fallbackChainId);
 const isMainnet = rawChainId === 56;
 
 const MAINNET_AUTONOMY_DEFAULTS = {
