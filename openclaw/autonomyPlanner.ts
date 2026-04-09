@@ -222,7 +222,7 @@ export class AutonomyPlanner {
     this.pkMatchLookback = Math.max(1, config.pkMatchLookback ?? 50);
     this.pkAllowCreate = config.pkAllowCreate ?? false;
     this.pkCreateStakeWei = ethers.utils.parseEther(config.pkCreateStakeClw ?? "100");
-    this.battleRoyaleMaxCandidates = Math.max(1, config.battleRoyaleMaxCandidates ?? 3);
+    this.battleRoyaleMaxCandidates = Math.max(1, Math.min(10, config.battleRoyaleMaxCandidates ?? 10));
     this.battleRoyaleClaimLookback = Math.max(1, config.battleRoyaleClaimLookback ?? 12);
     this.taskCandidateCount = Math.max(1, config.taskCandidateCount ?? 3);
     this.taskBaseClwWei = ethers.utils.parseEther(config.taskBaseClw ?? "18");
@@ -585,7 +585,6 @@ export class AutonomyPlanner {
       return null;
     }
 
-    const owner = (await this.client.getNFAOwner(nfaId)).toLowerCase();
     const totalMatches = await this.client.getBattleRoyaleMatchCount();
     if (totalMatches <= 0) {
       return null;
@@ -598,12 +597,12 @@ export class AutonomyPlanner {
         continue;
       }
 
-      const effectiveNfa = await this.client.getBattleRoyaleEffectiveNfa(matchId, owner);
-      if (effectiveNfa !== nfaId) {
+      const participantContext = await this.client.resolveBattleRoyaleParticipantContext(matchId, nfaId);
+      if (participantContext.effectiveNfa !== nfaId) {
         continue;
       }
 
-      const claimable = await this.client.getBattleRoyaleClaimable(matchId, owner);
+      const claimable = participantContext.claimable;
       if (claimable <= 0n) {
         continue;
       }
@@ -774,20 +773,19 @@ export class AutonomyPlanner {
       return [];
     }
 
-    const [owner, matchInfo, matchConfig, snapshot, policy] = await Promise.all([
-      this.client.getNFAOwner(nfaId),
+    const [matchInfo, matchConfig, snapshot, policy, participantContext] = await Promise.all([
       this.client.getBattleRoyaleMatchInfo(matchId),
       this.client.getBattleRoyaleMatchConfig(matchId),
       this.client.getBattleRoyaleSnapshot(matchId),
       this.getActionPolicy(nfaId, ACTION_KIND.BATTLE_ROYALE),
+      this.client.resolveBattleRoyaleParticipantContext(matchId, nfaId),
     ]);
 
     if (matchInfo.status !== BATTLE_ROYALE_STATUS.OPEN) {
       return [];
     }
 
-    const playerInfo = await this.client.getBattleRoyalePlayerInfo(matchId, owner);
-    if (playerInfo.roomId > 0) {
+    if (participantContext.roomId > 0) {
       return [];
     }
 
