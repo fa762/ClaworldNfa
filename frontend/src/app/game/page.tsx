@@ -88,6 +88,12 @@ function getErrorMessage(error: unknown): string {
   if (error.message.includes('Not NFA owner')) return 'Current wallet does not own this NFA';
   if (error.message.includes('Insufficient CLW')) return 'Not enough Claworld balance';
   if (error.message.includes('Invalid reveal')) return 'Saved strategy does not match on-chain commit';
+  if (error.message.includes('third-party contract') || error.message.includes('Third-party contract')) {
+    return 'Wallet blocked the call as a third-party contract. Confirm the TaskSkill contract request in wallet and retry';
+  }
+  if (error.message.includes('ContractFunctionExecutionError') || error.message.includes('execution reverted')) {
+    return 'Contract call reverted. Check ownership, cooldown, and wallet confirmation, then retry';
+  }
 
   return error.message;
 }
@@ -702,6 +708,10 @@ export default function GamePage() {
     const unsubTask = eventBus.on('task:submit', async (...args: unknown[]) => {
       const data = args[0] as { nfaId: number; taskType: number; xp: number; clw: number; matchScore: number };
       try {
+        if (!addresses.taskSkill) {
+          throw new Error('TaskSkill contract is not configured');
+        }
+
         await tryProcessUpkeep(data.nfaId);
 
         const hash = await writeContractAsync(taskSubmitArgs(data.nfaId, data.taskType, data.xp, data.clw, data.matchScore));
@@ -734,6 +744,15 @@ export default function GamePage() {
           } catch (cooldownError) {
             console.error('Task cooldown lookup failed:', cooldownError);
           }
+        }
+        if (error instanceof Error && error.message.includes('third-party contract')) {
+          eventBus.emit('task:result', {
+            status: 'failed',
+            error: lang === 'zh'
+              ? '钱包把这次 TaskSkill 调用标成了第三方合约。请在钱包里确认该合约请求后再重试。'
+              : 'Wallet flagged this TaskSkill request as a third-party contract. Confirm the contract request in your wallet and retry.',
+          });
+          return;
         }
         eventBus.emit('task:result', { status: 'failed', error: getErrorMessage(error) });
       }

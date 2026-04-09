@@ -67,14 +67,19 @@ export function pickTasks(
   // 按性格值排序，确保高匹配类型优先
   const sorted = [...dims].sort((a, b) => b.val - a.val);
 
-  // 选3个不同类型：最高、第二高、第三个受 shelter 偏向影响
-  const types = [sorted[0].type, sorted[1].type];
+  // 选 3 个不同类型：最高、第二高，再补一个偏向或剩余随机类型
+  const types = Array.from(new Set([sorted[0].type, sorted[1].type]));
   const remaining = sorted.filter(d => !types.includes(d.type));
 
-  if (preferredType !== undefined && !types.includes(preferredType)) {
+  if (preferredType !== undefined && remaining.some(d => d.type === preferredType)) {
     types.push(preferredType);
-  } else {
-    types.push(remaining[Math.floor(Math.random() * remaining.length)].type);
+  }
+
+  while (types.length < 3 && remaining.length > 0) {
+    const candidates = remaining.filter(d => !types.includes(d.type));
+    if (candidates.length === 0) break;
+    const picked = candidates[Math.floor(Math.random() * candidates.length)];
+    types.push(picked.type);
   }
 
   // 从每个类型中随机选一个模板

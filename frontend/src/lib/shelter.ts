@@ -63,8 +63,8 @@ export function getShelterSpecialty(index: number, lang: 'zh' | 'en' = 'zh') {
 }
 
 export function getShelterTaskBias(index: number): number | undefined {
-  const item = SHELTER_SPECIALTIES[index as keyof typeof SHELTER_SPECIALTIES] ?? SHELTER_SPECIALTIES[0];
-  return item.taskBias;
+  const item = SHELTER_SPECIALTIES[index as keyof typeof SHELTER_SPECIALTIES];
+  return item?.focus === 'task' ? item.taskBias : undefined;
 }
 
 export function getShelterSceneHint(index: number, scene: 'task' | 'pk' | 'market', lang: 'zh' | 'en' = 'zh'): string {
