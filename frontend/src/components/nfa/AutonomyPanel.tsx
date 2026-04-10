@@ -562,6 +562,7 @@ function ActionCard({
   dailyCost,
   holderWalletEligible,
   holderWalletBalance,
+  holderWalletBalanceError,
   walletThresholdLabel,
   onRefreshEligibility,
   config,
@@ -572,6 +573,7 @@ function ActionCard({
   dailyCost: bigint;
   holderWalletEligible: boolean;
   holderWalletBalance: bigint;
+  holderWalletBalanceError: boolean;
   walletThresholdLabel: string;
   onRefreshEligibility: () => Promise<boolean>;
   config: ActionCardConfig;
@@ -1078,7 +1080,11 @@ function ActionCard({
 
         <div className="grid grid-cols-2 gap-1 text-[11px] term-box p-2">
           <div className="term-dim">{zh ? '持有者钱包余额' : 'Owner wallet balance'}</div>
-          <div className={holderWalletEligible ? 'text-crt-green' : 'term-danger'}>{formatCLW(holderWalletBalance)} Claworld</div>
+          <div className={holderWalletEligible ? 'text-crt-green' : 'term-danger'}>
+            {holderWalletBalanceError
+              ? (zh ? '读取失败' : 'Read failed')
+              : `${formatCLW(holderWalletBalance)} Claworld`}
+          </div>
           <div className="term-dim">{zh ? '门槛要求' : 'Threshold'}</div>
           <div>{walletThresholdLabel}</div>
           <div className="term-dim">{zh ? 'NFA 当前内部余额' : 'NFA internal balance'}</div>
@@ -1238,7 +1244,11 @@ export function AutonomyPanel({
             <div className="term-dim">{zh ? '当前持有者钱包' : 'Current owner wallet'}</div>
             <div className="term-bright">{ownerAddress ? truncateAddress(ownerAddress) : '--'}</div>
             <div className="text-[11px]">
-              {walletBalanceQuery.isLoading ? (zh ? '读取中...' : 'Loading...') : `${formatCLW(walletBalance)} Claworld`}
+              {walletBalanceQuery.isLoading
+                ? (zh ? '读取中...' : 'Loading...')
+                : walletBalanceQuery.isError
+                ? (zh ? '读取失败，请检查 BSC 主网 RPC' : 'Read failed; check BSC mainnet RPC')
+                : `${formatCLW(walletBalance)} Claworld`}
             </div>
           </div>
 
@@ -1327,6 +1337,7 @@ export function AutonomyPanel({
           dailyCost={dailyCost}
           holderWalletEligible={holderWalletEligible}
           holderWalletBalance={walletBalance}
+          holderWalletBalanceError={walletBalanceQuery.isError}
           walletThresholdLabel={walletThresholdLabel}
           onRefreshEligibility={refreshEligibility}
           config={selectedAction}

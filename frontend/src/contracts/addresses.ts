@@ -72,7 +72,8 @@ export const addresses = {
 
 export const chainId = rawChainId;
 
-export const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'https://data-seed-prebsc-1-s1.binance.org:8545';
+export const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ||
+  (isMainnet ? 'https://bsc-rpc.publicnode.com' : 'https://data-seed-prebsc-1-s1.binance.org:8545');
 
 export const ipfsGateway = process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/';
 

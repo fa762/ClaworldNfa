@@ -197,6 +197,7 @@ export interface AutonomyOracleRunnerConfig {
   maxGasPriceGwei?: string;
   gasLimitBufferBps?: number;
   gasLimitExtra?: number;
+  finalizationEnabled?: boolean;
   gasLimits?: {
     fulfill?: number;
     sync?: number;
@@ -243,6 +244,7 @@ export class AutonomyOracleRunner {
   private readonly maxGasPriceGwei?: string;
   private readonly gasLimitBufferBps: number;
   private readonly gasLimitExtra: number;
+  private readonly finalizationEnabled: boolean;
   private readonly afterRequestProcessed?: (info: ProcessedRequestInfo) => Promise<void> | void;
   private listening = false;
   private eventHandler: ((...args: any[]) => void) | null = null;
@@ -274,6 +276,7 @@ export class AutonomyOracleRunner {
     this.maxGasPriceGwei = config.maxGasPriceGwei;
     this.gasLimitBufferBps = Math.max(10_000, config.gasLimitBufferBps ?? 11_000);
     this.gasLimitExtra = Math.max(0, config.gasLimitExtra ?? 10_000);
+    this.finalizationEnabled = config.finalizationEnabled ?? false;
     this.gasLimits = {
       fulfill: config.gasLimits?.fulfill ?? 400000,
       sync: config.gasLimits?.sync ?? 400000,
@@ -521,7 +524,7 @@ export class AutonomyOracleRunner {
       }
 
       let needsFollowUp = this.needsFollowUp(Number(action.status));
-      if (Number(action.status) === PendingStatus.EXECUTED && this.finalizationHub) {
+      if (this.finalizationEnabled && Number(action.status) === PendingStatus.EXECUTED && this.finalizationHub) {
         const finalized = await this.finalizationHub.isFinalized(requestId);
         if (!finalized) {
           try {

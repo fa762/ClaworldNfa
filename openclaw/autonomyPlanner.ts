@@ -1070,13 +1070,9 @@ export class AutonomyPlanner {
         [1, ethers.utils.defaultAbiCoder.encode(["uint256[]"], [pkCandidates.map((candidate) => candidate.matchId)])]
       ),
       prompt: this.appendDirectivePrompt(
-        `Choose the best open public PK match and strategy. Planner context: ${reason}. ` +
-          `Candidate analysis: ${pkCandidates
-            .map(
-              (candidate) =>
-                `#${candidate.matchId}->${candidate.summary}; ${candidate.strategySummary}`
-            )
-            .join(" || ")}`,
+        `PK.join nfa=${nfaId} reason=${reason.slice(0, 96)} matches=${pkCandidates
+          .map((candidate) => `#${candidate.matchId}:s${candidate.recommendedStrategy}:fav${candidate.favorable ? 1 : 0}`)
+          .join(",")}`,
         nfaId,
         ACTION_KIND.PK
       ),
@@ -1131,8 +1127,9 @@ export class AutonomyPlanner {
         ]
       ),
       prompt: this.appendDirectivePrompt(
-        `Choose the best Battle Royale room and stake option for this lobster. Planner context: ${reason}. ` +
-          `Candidate analysis: ${battleRoyaleCandidates.map((candidate) => candidate.summary).join(" || ")}`,
+        `BattleRoyale.enter nfa=${nfaId} reason=${reason.slice(0, 96)} match=${matchId} rooms=${battleRoyaleCandidates
+          .map((candidate) => `${candidate.roomId}:${ethers.utils.formatEther(candidate.stakeWei)}:p${candidate.roomPlayers}:t${ethers.utils.formatEther(candidate.roomTotalWei)}`)
+          .join(",")}`,
         nfaId,
         ACTION_KIND.BATTLE_ROYALE
       ),

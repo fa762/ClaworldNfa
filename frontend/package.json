@@ -8,7 +8,7 @@
     "dev:mainnet": "node -e \"require('fs').copyFileSync('.env.mainnet','.env.local')\" && node -e \"try{require('fs').unlinkSync('.next/dev/lock')}catch(e){}\" && next dev",
     "build": "next build",
     "build:testnet": "node -e \"const fs=require('fs'); if(fs.existsSync('.env.testnet')) fs.copyFileSync('.env.testnet','.env.local')\" && next build",
-    "build:mainnet": "node -e \"process.env.NEXT_PUBLIC_APP_ENV='mainnet';process.env.NEXT_PUBLIC_CHAIN_ID=process.env.NEXT_PUBLIC_CHAIN_ID||'56';require('child_process').execSync('next build',{stdio:'inherit',env:process.env})\"",
+    "build:mainnet": "node -e \"process.env.NEXT_PUBLIC_APP_ENV='mainnet';process.env.NEXT_PUBLIC_CHAIN_ID=process.env.NEXT_PUBLIC_CHAIN_ID||'56';process.env.NEXT_PUBLIC_RPC_URL=process.env.NEXT_PUBLIC_RPC_URL||'https://bsc-rpc.publicnode.com';require('child_process').execSync('next build',{stdio:'inherit',env:process.env})\"",
     "start": "next start"
   },
   "dependencies": {

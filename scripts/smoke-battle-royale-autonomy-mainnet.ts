@@ -431,15 +431,12 @@ async function main() {
       ethers.utils.defaultAbiCoder.encode(["uint256", "uint8[]", "uint256[]"], [latestOpenMatch, roomIds, stakeArray]),
     ]
   );
-  const candidateSummary = roomIds
-    .map((roomId, index) => `room ${roomId}, stake ${ethers.utils.formatEther(stakeArray[index].toString())} Claworld`)
-    .join(" || ");
   const prompt = [
-    `Choose the best Battle Royale room and stake option for NFA #${nfaId}.`,
-    `Risk posture is ${riskMode}.`,
-    `Current live match is #${latestOpenMatch}.`,
-    `Candidates: ${candidateSummary}.`,
-    `Prefer bounded risk and stronger prize positioning.`,
+    `BattleRoyale.enter nfa=${nfaId}`,
+    `match=${latestOpenMatch}`,
+    `risk=${riskMode}`,
+    `rooms=${roomIds.join(",")}`,
+    `stake=${ethers.utils.formatEther(stakeWei.toString())}`,
   ].join(" ");
 
   if (checkOnly) {
