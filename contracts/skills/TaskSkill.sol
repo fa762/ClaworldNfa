@@ -71,6 +71,7 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
         uint16 matchScore
     );
     event TaskPersonalityDrift(uint256 indexed nfaId, uint8 taskType, int8 delta);
+    event TaskPersonalityDriftSkipped(uint256 indexed nfaId, uint8 taskType, string reason);
     event OperatorUpdated(address operator, bool authorized);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -155,8 +156,7 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
         // Personality drift: +1 to matching dimension when matchScore >= 1.0x (10000)
         // This allows gradual specialization through consistent task completion
         if (matchScore >= 10000) {
-            router.evolvePersonality(nfaId, taskType, int8(1));
-            emit TaskPersonalityDrift(nfaId, taskType, int8(1));
+            _tryEvolvePersonality(nfaId, taskType);
         }
 
         _trackTaskStats(nfaId, taskType, actualClw);
@@ -220,12 +220,32 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
             router.addXP(nfaId, xpReward);
         }
         if (matchScore >= 10000) {
-            router.evolvePersonality(nfaId, taskType, int8(1));
-            emit TaskPersonalityDrift(nfaId, taskType, int8(1));
+            _tryEvolvePersonality(nfaId, taskType);
         }
 
         _trackTaskStats(nfaId, taskType, actualClw);
         emit TaskCompleted(nfaId, xpReward, clwReward, actualClw, matchScore);
+    }
+
+    function _tryEvolvePersonality(uint256 nfaId, uint8 taskType) internal {
+        try router.evolvePersonality(nfaId, taskType, int8(1)) {
+            emit TaskPersonalityDrift(nfaId, taskType, int8(1));
+        } catch Error(string memory reason) {
+            if (_isMonthlyCapReason(reason)) {
+                emit TaskPersonalityDriftSkipped(nfaId, taskType, reason);
+                return;
+            }
+
+            revert(reason);
+        } catch (bytes memory lowLevelData) {
+            assembly {
+                revert(add(lowLevelData, 32), mload(lowLevelData))
+            }
+        }
+    }
+
+    function _isMonthlyCapReason(string memory reason) internal pure returns (bool) {
+        return keccak256(bytes(reason)) == keccak256(bytes("Monthly cap exceeded"));
     }
 
     /**

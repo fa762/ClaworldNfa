@@ -87,12 +87,13 @@ function getErrorMessage(error: unknown): string {
   if (error.message.includes('Cooldown active')) return 'Task cooldown is still active';
   if (error.message.includes('Not NFA owner')) return 'Current wallet does not own this NFA';
   if (error.message.includes('Insufficient CLW')) return 'Not enough Claworld balance';
+  if (error.message.includes('Monthly cap exceeded')) return 'This NFA has reached the monthly personality evolution cap for this task type. Choose another task type or wait for the monthly reset';
   if (error.message.includes('Invalid reveal')) return 'Saved strategy does not match on-chain commit';
   if (error.message.includes('third-party contract') || error.message.includes('Third-party contract')) {
     return 'Wallet blocked the call as a third-party contract. Confirm the TaskSkill contract request in wallet and retry';
   }
   if (error.message.includes('ContractFunctionExecutionError') || error.message.includes('execution reverted')) {
-    return 'Contract call reverted. Check ownership, cooldown, and wallet confirmation, then retry';
+    return 'Contract call reverted. Check ownership, cooldown, and monthly personality caps, then retry';
   }
 
   return error.message;
@@ -711,10 +712,17 @@ export default function GamePage() {
         if (!addresses.taskSkill) {
           throw new Error('TaskSkill contract is not configured');
         }
+        if (!address) throw new Error('Wallet not connected');
+        const txArgs = taskSubmitArgs(data.nfaId, data.taskType, data.xp, data.clw, data.matchScore);
+
+        await publicClient.simulateContract({
+          ...txArgs,
+          account: address,
+        });
 
         await tryProcessUpkeep(data.nfaId);
 
-        const hash = await writeContractAsync(taskSubmitArgs(data.nfaId, data.taskType, data.xp, data.clw, data.matchScore));
+        const hash = await writeContractAsync(txArgs);
         eventBus.emit('task:result', { status: 'pending', txHash: hash });
 
         const receipt = await waitForReceipt(hash, 'SUBMITTING TASK');

@@ -18,7 +18,6 @@ export function taskSubmitArgs(nfaId: number, taskType: number, xp: number, clw:
     abi: TaskSkillABI,
     functionName: 'ownerCompleteTypedTask' as const,
     args: [BigInt(nfaId), taskType, xp, parseEther(String(clw)), matchScore] as const,
-    gas: 500_000n,
   };
 }
 

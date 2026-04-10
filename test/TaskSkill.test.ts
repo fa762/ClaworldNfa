@@ -184,6 +184,28 @@ describe("TaskSkill", function () {
       expect(state.social).to.equal(51); // was 50, +1
     });
 
+    it("should still complete task when the monthly personality cap is reached", async function () {
+      await router.authorizeSkill(operator.address, true);
+      await router.connect(operator).evolvePersonality(tokenId, 0, 5);
+
+      const stateBefore = await router.getLobsterState(tokenId);
+      expect(stateBefore.courage).to.equal(55);
+      const balanceBefore = await router.clwBalances(tokenId);
+
+      const clwReward = ethers.utils.parseEther("50");
+      await expect(
+        taskSkill.connect(user1).ownerCompleteTypedTask(tokenId, 0, 30, clwReward, 0)
+      ).to.emit(taskSkill, "TaskPersonalityDriftSkipped").withArgs(tokenId, 0, "Monthly cap exceeded");
+
+      const stateAfter = await router.getLobsterState(tokenId);
+      expect(stateAfter.courage).to.equal(55);
+      expect(await router.clwBalances(tokenId)).to.be.gt(balanceBefore);
+
+      const stats = await taskSkill.getTaskStats(tokenId);
+      expect(stats.total).to.equal(1);
+      expect(stats.courage).to.equal(1);
+    });
+
     it("should calculate matchScore on-chain, ignore player input", async function () {
       // Lobster has courage=50, so courage matchScore = 50*200 = 10000 = 1.0x
       // clwReward=100 CLW * 1.0x * worldMul(1.0x) = 100 CLW
