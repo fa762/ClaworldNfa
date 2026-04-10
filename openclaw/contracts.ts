@@ -480,14 +480,35 @@ export class GameContractClient {
       this.getBattleRoyaleRoomChangeCount(matchId, owner),
     ]);
 
+    const ownerRoomId = ownerInfo.roomId;
+    const ownerStake = ownerInfo.stake;
+    const ownerClaimableBig = ownerClaimable;
+    const ownerEffective = ownerEffectiveNfa;
+
+    if (
+      ownerEffective === nfaId ||
+      ((ownerRoomId > 0 || ownerStake > 0n || ownerClaimableBig > 0n || ownerRoomChangeCount > 0) &&
+        ownerEffective === 0)
+    ) {
+      return {
+        participant: owner,
+        roomId: ownerRoomId,
+        stake: ownerStake,
+        claimable: ownerClaimableBig,
+        effectiveNfa: ownerEffective,
+        roomChangeCount: ownerRoomChangeCount,
+        isLegacyOwnerParticipant: true,
+      };
+    }
+
     return {
-      participant: owner,
-      roomId: ownerInfo.roomId,
-      stake: ownerInfo.stake,
-      claimable: ownerClaimable,
-      effectiveNfa: ownerEffectiveNfa,
-      roomChangeCount: ownerRoomChangeCount,
-      isLegacyOwnerParticipant: true,
+      participant: autonomyParticipant,
+      roomId: 0,
+      stake: 0n,
+      claimable: 0n,
+      effectiveNfa: 0,
+      roomChangeCount: 0,
+      isLegacyOwnerParticipant: false,
     };
   }
 
