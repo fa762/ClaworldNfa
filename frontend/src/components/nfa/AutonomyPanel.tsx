@@ -918,8 +918,8 @@ function ActionCard({
           <div className="term-bright">{zh ? 'AI 思考怎么对外展示' : 'How the AI thinking is exposed'}</div>
           <div>
             {zh
-              ? '前端不会让模型自由乱操作，而是把智能限制在受控选择里：你先设预算、保底余额、失败熔断和风格档位，AI 再在真实候选里做判断。'
-              : 'The frontend does not let the model act freely. You set budget, reserve, failure breaker, and style posture first, then the AI judges among real bounded candidates.'}
+              ? '前端不会让模型自由乱操作，而是把智能限制在受控选择里：你先设预算、保底余额、失败熔断和风格档位，AI 再结合 CML 记忆、用户提示词和真实候选做判断。'
+              : 'The frontend does not let the model act freely. You set budget, reserve, failure breaker, and style posture first, then the AI judges using CML memory, the user directive, and real bounded candidates.'}
           </div>
           <div>
             {config.key === 'battleRoyale'
@@ -945,8 +945,8 @@ function ActionCard({
           <div className="term-bright">{zh ? 'AI 风格 / 约束输入' : 'AI style / constraint input'}</div>
           <div>
             {zh
-              ? '这里先把用户想要的风格和额外约束明确展示出来。当前版本先做产品落地：你可以定义风格、补一句约束或提示词，前端会把它作为可见策略口径展示；真正链上动作仍然只会落在既有预算、reserve、daily limit 和候选动作边界里。'
-              : 'This makes the user-defined style and extra constraints explicit. In this version, you can set the posture and add one short prompt-like directive, and the UI exposes that policy clearly; the actual on-chain action still stays inside the existing budget, reserve, daily limit, and candidate-action boundaries.'}
+              ? '这里把用户想要的风格和额外约束明确展示出来。你可以定义风格、补一句约束或提示词；runner 决策时会同时读取这段口径和本地 CML 记忆。真正链上动作仍然只会落在既有预算、reserve、daily limit 和候选动作边界里。'
+              : 'This makes the user-defined style and extra constraints explicit. You can set the posture and add one short prompt-like directive; the runner reads this directive together with local CML memory. The actual on-chain action still stays inside the existing budget, reserve, daily limit, and candidate-action boundaries.'}
           </div>
           <div className="grid gap-2 md:grid-cols-2">
             <label className="space-y-1">
@@ -991,7 +991,7 @@ function ActionCard({
                 }
               />
               <div className="term-dim text-[11px]">
-                {zh ? '当前会把这段口径直接签名后保存，并注入 planner prompt。' : 'This directive is now signed, stored, and injected directly into planner prompts.'}
+                {zh ? '当前会把这段口径签名后保存，并注入 planner / runner prompt。' : 'This directive is signed, stored, and injected into planner / runner prompts.'}
               </div>
             </label>
           </div>

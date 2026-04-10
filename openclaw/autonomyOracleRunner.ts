@@ -3,6 +3,7 @@ import type { GameContractClient } from "./contracts";
 import type { AIProvider } from "./types";
 import type { IPFSUploader } from "./skills/oracleSkill";
 import { evaluatePkCandidate, PK_STRATEGY_LABELS, summarizePkProjection } from "./pkStrategy";
+import { loadAutonomyMemoryContext, type AutonomyMemoryOptions } from "./autonomyMemory";
 
 const ORACLE_ABI = [
   "function requests(uint256) view returns (uint256 nfaId, address consumer, string prompt, uint8 numOfChoices, uint8 choice, string reasoningCid, uint8 status, uint64 timestamp)",
@@ -198,6 +199,7 @@ export interface AutonomyOracleRunnerConfig {
   gasLimitBufferBps?: number;
   gasLimitExtra?: number;
   finalizationEnabled?: boolean;
+  memory?: AutonomyMemoryOptions;
   gasLimits?: {
     fulfill?: number;
     sync?: number;
@@ -245,6 +247,7 @@ export class AutonomyOracleRunner {
   private readonly gasLimitBufferBps: number;
   private readonly gasLimitExtra: number;
   private readonly finalizationEnabled: boolean;
+  private readonly memory: AutonomyMemoryOptions;
   private readonly afterRequestProcessed?: (info: ProcessedRequestInfo) => Promise<void> | void;
   private listening = false;
   private eventHandler: ((...args: any[]) => void) | null = null;
@@ -277,6 +280,7 @@ export class AutonomyOracleRunner {
     this.gasLimitBufferBps = Math.max(10_000, config.gasLimitBufferBps ?? 11_000);
     this.gasLimitExtra = Math.max(0, config.gasLimitExtra ?? 10_000);
     this.finalizationEnabled = config.finalizationEnabled ?? false;
+    this.memory = { enabled: true, ...(config.memory ?? {}) };
     this.gasLimits = {
       fulfill: config.gasLimits?.fulfill ?? 400000,
       sync: config.gasLimits?.sync ?? 400000,
@@ -439,12 +443,18 @@ export class AutonomyOracleRunner {
       if (requestStatus === OracleRequestStatus.PENDING) {
         const { state } = await this.client.getLobsterStatus(resolvedNfaId);
         const choiceContext = await this.buildChoiceContext(action, numChoices);
+        const memoryContext = loadAutonomyMemoryContext(
+          resolvedNfaId,
+          buildMemoryTriggerText(prompt, choiceContext),
+          this.memory
+        );
         const systemPrompt = this.buildDecisionPrompt(
           resolvedNfaId,
           state,
           prompt,
           numChoices,
-          choiceContext
+          choiceContext,
+          memoryContext?.prompt
         );
         let aiResponse: string;
         try {
@@ -477,6 +487,13 @@ export class AutonomyOracleRunner {
             numChoices,
             choice,
             choiceContext,
+            memoryContext: memoryContext
+              ? {
+                  source: memoryContext.source,
+                  matchedMemoryIds: memoryContext.matchedMemoryIds,
+                  prompt: memoryContext.prompt,
+                }
+              : null,
             aiResponse,
             lobsterState: state,
             timestamp: Date.now(),
@@ -901,7 +918,8 @@ export class AutonomyOracleRunner {
     state: Awaited<ReturnType<GameContractClient["getLobsterStatus"]>>["state"],
     requestPrompt: string,
     numChoices: number,
-    choiceContext: ActionChoiceContext
+    choiceContext: ActionChoiceContext,
+    memoryPrompt?: string
   ): string {
     return [
       `You are ClawOracle for Clawworld autonomy.`,
@@ -913,6 +931,7 @@ export class AutonomyOracleRunner {
       `Personality: courage ${state.courage}, wisdom ${state.wisdom}, social ${state.social}, create ${state.create}, grit ${state.grit}`,
       `Combat DNA: STR ${state.str}, DEF ${state.def}, SPD ${state.spd}, VIT ${state.vit}`,
       ``,
+      ...(memoryPrompt ? [memoryPrompt, ``] : []),
       `=== Action Context ===`,
       choiceContext.title,
       choiceContext.summary ?? "",
@@ -1013,6 +1032,17 @@ export class AutonomyOracleRunner {
 
     return { gasPrice };
   }
+}
+
+function buildMemoryTriggerText(requestPrompt: string, choiceContext: ActionChoiceContext): string {
+  return [
+    requestPrompt,
+    choiceContext.title,
+    choiceContext.summary ?? "",
+    ...choiceContext.options,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function sleep(ms: number) {

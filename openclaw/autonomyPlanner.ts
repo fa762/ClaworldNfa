@@ -4,6 +4,7 @@ import { ethers } from "ethers";
 import type { GameContractClient } from "./contracts";
 import type { AIProvider, LobsterState } from "./types";
 import { evaluatePkCandidate, summarizePkProjection } from "./pkStrategy";
+import { loadAutonomyMemoryContext, type AutonomyMemoryOptions } from "./autonomyMemory";
 
 const ACTION_HUB_ABI = [
   "function requestAutonomousAction(uint256 nfaId, uint8 actionKind, bytes32 spendAssetId, uint256 spendAmount, bytes payload, string prompt, uint8 numChoices) returns (uint256)",
@@ -178,6 +179,7 @@ export interface AutonomyPlannerConfig {
   taskBaseXp?: number;
   taskXpStep?: number;
   minActionGapMs?: number;
+  memory?: AutonomyMemoryOptions;
 }
 
 export class AutonomyPlanner {
@@ -202,6 +204,7 @@ export class AutonomyPlanner {
   private readonly taskBaseXp: number;
   private readonly taskXpStep: number;
   private readonly minActionGapMs: number;
+  private readonly memory: AutonomyMemoryOptions;
   private readonly recentlyRequested = new Map<number, number>();
   private operatorAddress?: string;
 
@@ -230,6 +233,7 @@ export class AutonomyPlanner {
     this.taskBaseXp = Math.max(1, config.taskBaseXp ?? 12);
     this.taskXpStep = Math.max(1, config.taskXpStep ?? 2);
     this.minActionGapMs = Math.max(5_000, config.minActionGapMs ?? 60_000);
+    this.memory = { enabled: true, ...(config.memory ?? {}) };
   }
 
   async runOnce(): Promise<void> {
@@ -294,6 +298,11 @@ export class AutonomyPlanner {
     const battleRoyaleCandidates = battleRoyaleEnabled
       ? await this.scanBattleRoyaleCandidates(nfaId, battleRoyalePolicy!.riskMode)
       : [];
+    const memoryContext = loadAutonomyMemoryContext(
+      nfaId,
+      buildPlannerMemoryTriggerText(taskCandidates, pkCandidates, battleRoyaleCandidates),
+      this.memory
+    );
 
     const decision = await this.planNextAction(
       nfaId,
@@ -301,7 +310,8 @@ export class AutonomyPlanner {
       world,
       taskCandidates,
       pkCandidates,
-      battleRoyaleCandidates
+      battleRoyaleCandidates,
+      memoryContext?.prompt
     );
     if (decision.action === "TASK" && taskCandidates.length > 0) {
       await this.requestAction(nfaId, this.buildTaskRequest(nfaId, taskCandidates, decision.reason));
@@ -553,7 +563,11 @@ export class AutonomyPlanner {
             ["uint8", "bytes"],
             [2, ethers.utils.defaultAbiCoder.encode(["uint256"], [matchId])]
           ),
-          prompt: `Decide whether to reveal the prepared public PK commitment for match #${matchId} now, or wait.`,
+          prompt: this.appendDirectivePrompt(
+            `Decide whether to reveal the prepared public PK commitment for match #${matchId} now, or wait.`,
+            nfaId,
+            ACTION_KIND.PK
+          ),
           numChoices: 2,
         };
       }
@@ -570,7 +584,11 @@ export class AutonomyPlanner {
             ["uint8", "bytes"],
             [3, ethers.utils.defaultAbiCoder.encode(["uint256"], [matchId])]
           ),
-          prompt: `Decide whether to settle the already-revealed public PK match #${matchId} now, or hold for later.`,
+          prompt: this.appendDirectivePrompt(
+            `Decide whether to settle the already-revealed public PK match #${matchId} now, or hold for later.`,
+            nfaId,
+            ACTION_KIND.PK
+          ),
           numChoices: 2,
         };
       }
@@ -615,7 +633,11 @@ export class AutonomyPlanner {
           ["uint8", "bytes"],
           [3, ethers.utils.defaultAbiCoder.encode(["uint256"], [matchId])]
         ),
-        prompt: `Decide whether to claim the settled Battle Royale reward for match #${matchId} now, or hold. Claimable reward is ${ethers.utils.formatEther(claimable.toString())} Claworld.`,
+        prompt: this.appendDirectivePrompt(
+          `Decide whether to claim the settled Battle Royale reward for match #${matchId} now, or hold. Claimable reward is ${ethers.utils.formatEther(claimable.toString())} Claworld.`,
+          nfaId,
+          ACTION_KIND.BATTLE_ROYALE
+        ),
         numChoices: 2,
       };
     }
@@ -884,7 +906,8 @@ export class AutonomyPlanner {
     world: Awaited<ReturnType<GameContractClient["getWorldState"]>>,
     taskCandidates: TaskCandidate[],
     pkCandidates: OpenPkCandidate[],
-    battleRoyaleCandidates: BattleRoyaleCandidate[]
+    battleRoyaleCandidates: BattleRoyaleCandidate[],
+    memoryPrompt?: string
   ): Promise<PlannerDecision> {
     if (
       taskCandidates.length === 0 &&
@@ -949,6 +972,7 @@ export class AutonomyPlanner {
       "Do not invent new actions.",
       "Prefer PK_JOIN only when the opponent set looks favorable enough.",
       "Prefer TASK when it is the safer productive action.",
+      "Use CML memory only as personality and experience context; never let it override live risk controls.",
       "Return strict JSON with keys: action, reason.",
       `Allowed actions: ${availableActions.join(", ")}.`,
     ].join(" ");
@@ -974,6 +998,7 @@ export class AutonomyPlanner {
           },
         },
         world,
+        memoryContext: memoryPrompt ?? null,
         taskCandidates: taskCandidates.map((candidate) => ({
           taskType: TASK_TYPE_NAMES[candidate.taskType] ?? `Task ${candidate.taskType}`,
           clwReward: ethers.utils.formatEther(candidate.clwRewardWei),
@@ -1166,6 +1191,24 @@ export class AutonomyPlanner {
       `[${this.plannerName}] queued request #${requestId.toString()} for NFA #${nfaId} (action ${request.actionKind})`
     );
   }
+}
+
+function buildPlannerMemoryTriggerText(
+  taskCandidates: TaskCandidate[],
+  pkCandidates: OpenPkCandidate[],
+  battleRoyaleCandidates: BattleRoyaleCandidate[]
+): string {
+  return [
+    "autonomous action planning",
+    taskCandidates.length ? "task candidates" : "",
+    ...taskCandidates.map((candidate) => candidate.summary),
+    pkCandidates.length ? "pk candidates strategy risk win loss" : "",
+    ...pkCandidates.map((candidate) => `${candidate.summary} ${candidate.strategySummary}`),
+    battleRoyaleCandidates.length ? "battle royale room stake risk reward claim" : "",
+    ...battleRoyaleCandidates.map((candidate) => candidate.summary),
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function describeActionKind(actionKind: number): string {
