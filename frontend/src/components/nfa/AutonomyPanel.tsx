@@ -6,7 +6,7 @@ import { type Address, formatEther, parseEther } from 'viem';
 
 import { TerminalBox } from '@/components/terminal/TerminalBox';
 import { ERC20ABI } from '@/contracts/abis/ERC20';
-import { addresses, getBscScanAddressUrl, getBscScanTxUrl } from '@/contracts/addresses';
+import { addresses, chainId as appChainId, getBscScanAddressUrl, getBscScanTxUrl } from '@/contracts/addresses';
 import {
   AUTONOMY_ACTION_KIND,
   AUTONOMY_MIN_WALLET_HOLDING,
@@ -1202,6 +1202,7 @@ export function AutonomyPanel({
     abi: ERC20ABI,
     functionName: 'balanceOf',
     args: ownerWallet ? [ownerWallet] : undefined,
+    chainId: appChainId,
     query: {
       enabled: !!ownerWallet && !!addresses.clwToken,
       refetchInterval: 15000,
