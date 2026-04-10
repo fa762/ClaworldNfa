@@ -329,11 +329,17 @@ function resolveBackfillStart(
   if (typeof forcedFromBlock === "number") {
     return forcedFromBlock;
   }
-  if (state?.lastProcessedCursor) {
-    return Math.max(0, state.lastProcessedCursor.blockNumber - overlapBlocks);
-  }
-  if (typeof state?.lastScannedBlock === "number" && state.lastScannedBlock > 0) {
-    return Math.max(0, state.lastScannedBlock - overlapBlocks);
+  const cursorBlock =
+    state?.lastProcessedCursor && state.lastProcessedCursor.blockNumber >= 0
+      ? state.lastProcessedCursor.blockNumber
+      : -1;
+  const scannedBlock =
+    typeof state?.lastScannedBlock === "number" && state.lastScannedBlock >= 0
+      ? state.lastScannedBlock
+      : -1;
+  const stateBlock = Math.max(cursorBlock, scannedBlock);
+  if (stateBlock >= 0) {
+    return Math.max(0, stateBlock - overlapBlocks);
   }
   return Math.max(0, latestBlock - backfillBlocks);
 }
