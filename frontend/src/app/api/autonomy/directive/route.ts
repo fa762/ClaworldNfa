@@ -90,7 +90,7 @@ function parseBody(body: unknown): {
 export async function GET(request: Request) {
   try {
     const { tokenId, actionKind } = parseQuery(request);
-    const record = getStoredAutonomyDirective(tokenId, actionKind);
+    const record = await getStoredAutonomyDirective(tokenId, actionKind);
     return NextResponse.json({
       tokenId,
       actionKind,
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Signature does not match signer.' }, { status: 401 });
     }
 
-    const saved = saveStoredAutonomyDirective({
+    const saved = await saveStoredAutonomyDirective({
       tokenId: payload.tokenId,
       actionKind: payload.actionKind,
       style: payload.style,
