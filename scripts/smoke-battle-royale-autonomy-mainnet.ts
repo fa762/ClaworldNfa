@@ -39,16 +39,18 @@ function sleep(ms: number) {
 
 async function waitTx(txPromise: Promise<any>, label: string) {
   const tx = await txPromise;
-  await tx.wait();
-  console.log(`${label}: ${tx.hash}`);
-}
-
-async function waitTxIfNeeded(needed: boolean, txFactory: () => Promise<any>, label: string) {
-  if (!needed) {
-    console.log(`${label}: already configured`);
-    return;
-  }
-  await waitTx(txFactory(), label);
+  const receipt = await tx.wait();
+  const gasUsed = receipt.gasUsed ?? ethers.constants.Zero;
+  const effectiveGasPrice =
+    receipt.effectiveGasPrice ?? tx.gasPrice ?? ethers.constants.Zero;
+  const costWei = gasUsed.mul(effectiveGasPrice);
+  console.log(
+    `${label}: ${tx.hash} gasUsed=${gasUsed.toString()} gasPriceGwei=${ethers.utils.formatUnits(
+      effectiveGasPrice,
+      "gwei"
+    )} costBNB=${ethers.utils.formatEther(costWei)}`
+  );
+  return receipt;
 }
 
 async function waitForCompletion(
@@ -134,10 +136,6 @@ function autonomyParticipantForNfa(nfaId: number): string {
   return ethers.utils.getAddress(`0x${digest.slice(-40)}`);
 }
 
-function sameBigNumberish(actual: any, expected: any) {
-  return BigInt(actual.toString()) === BigInt(expected.toString());
-}
-
 async function resolveParticipantContext(
   battleRoyale: any,
   matchId: number,
@@ -202,6 +200,35 @@ async function resolveParticipantContext(
   };
 }
 
+async function findLatestClaimableMatch(
+  battleRoyale: any,
+  matchCount: number,
+  nfaId: number,
+  owner: string,
+  lookback = 12
+) {
+  const fromMatchId = Math.max(1, matchCount - lookback + 1);
+  for (let matchId = matchCount; matchId >= fromMatchId; matchId--) {
+    const matchInfo = await battleRoyale.getMatchInfo(matchId);
+    const status = Number(matchInfo.status ?? matchInfo[0] ?? 0);
+    if (status !== 2) {
+      continue;
+    }
+
+    const participantContext = await resolveParticipantContext(battleRoyale, matchId, nfaId, owner);
+    if (participantContext.effectiveNfa !== nfaId || participantContext.claimable <= 0n) {
+      continue;
+    }
+
+    return {
+      matchId,
+      participantContext,
+    };
+  }
+
+  return null;
+}
+
 async function main() {
   const outputPath = path.join(__dirname, "output", "autonomy-mainnet.json");
   const output = loadJson<OutputShape>(outputPath);
@@ -211,7 +238,7 @@ async function main() {
   const waitMs = Number(process.env.WAIT_MS || "180000");
   const pollMs = Number(process.env.POLL_MS || "5000");
   const leaseDays = Number(process.env.LEASE_DAYS || "30");
-  const dailyLimit = Number(process.env.DAILY_LIMIT || "2");
+  const dailyLimit = Number(process.env.DAILY_LIMIT || "10");
   const riskMode = clampRiskMode(Number(process.env.RISK_MODE || "1"));
   const roomCandidateCount = Math.max(1, Math.min(10, Number(process.env.ROOM_CANDIDATE_COUNT || "10")));
   const maxSpend = ethers.utils.parseEther(process.env.MAX_SPEND_CLAWORLD || "300");
@@ -240,10 +267,24 @@ async function main() {
   }
 
   const latestOpenMatch = Number((await battleRoyale.latestOpenMatch()).toString());
-  const latestMatch = latestOpenMatch > 0 ? await battleRoyale.getMatchInfo(latestOpenMatch) : null;
+  const matchCount = Number((await battleRoyale.matchCount()).toString());
+  const candidateMatchId = latestOpenMatch > 0 ? latestOpenMatch : matchCount;
+  const latestMatch = candidateMatchId > 0 ? await battleRoyale.getMatchInfo(candidateMatchId) : null;
   const matchStatus = latestMatch ? Number(latestMatch.status ?? latestMatch[0] ?? 0) : -1;
   const matchTotalPlayers = latestMatch ? Number(latestMatch.totalPlayers ?? latestMatch[1] ?? 0) : 0;
-  const matchConfig = latestOpenMatch > 0 ? await battleRoyale.getMatchConfig(latestOpenMatch) : null;
+  const matchConfig = candidateMatchId > 0 ? await battleRoyale.getMatchConfig(candidateMatchId) : null;
+  const actualBattleRoyaleAdapter = await actionHub.adapters(ACTION_BATTLE_ROYALE);
+  const configuredBattleRoyaleAdapter = output.autonomy.battleRoyaleAdapter;
+
+  if (
+    actualBattleRoyaleAdapter &&
+    configuredBattleRoyaleAdapter &&
+    actualBattleRoyaleAdapter.toLowerCase() !== configuredBattleRoyaleAdapter.toLowerCase()
+  ) {
+    console.warn(
+      `[battle-royale-smoke] output adapter ${configuredBattleRoyaleAdapter} does not match ActionHub adapter ${actualBattleRoyaleAdapter}; using ActionHub adapter for approvals.`
+    );
+  }
 
   console.log(
     JSON.stringify(
@@ -252,9 +293,12 @@ async function main() {
         nfaId,
         owner,
         latestOpenMatch,
+        matchCount,
+        candidateMatchId,
         matchStatus,
         matchTotalPlayers,
         riskMode,
+        dailyLimit,
         roomCandidateCount,
         checkOnly,
       },
@@ -269,100 +313,148 @@ async function main() {
     const [
       protocolApproved,
       adapterApproved,
-      operatorRoleMask,
+      currentRoleMask,
       lease,
       riskState,
-      policy,
-      assetBudget,
+      currentPolicy,
+      currentAssetBudget,
     ] = await Promise.all([
       registry.isProtocolApproved(nfaId, output.ids.PROTOCOL_BATTLE_ROYALE),
-      registry.isAdapterApproved(nfaId, ACTION_BATTLE_ROYALE, output.autonomy.battleRoyaleAdapter),
+      registry.isAdapterApproved(nfaId, ACTION_BATTLE_ROYALE, actualBattleRoyaleAdapter),
       registry.getOperatorRoleMask(nfaId, ACTION_BATTLE_ROYALE, output.operator),
       delegationRegistry.getDelegationLease(nfaId, ACTION_BATTLE_ROYALE, output.operator),
       registry.getRiskState(nfaId, ACTION_BATTLE_ROYALE),
       registry.getPolicy(nfaId, ACTION_BATTLE_ROYALE),
       registry.getAssetBudget(nfaId, ACTION_BATTLE_ROYALE, output.ids.ASSET_CLAWORLD),
     ]);
-    const now = BigInt(Math.floor(Date.now() / 1000));
+
+    const targetLeaseExpiry = BigInt(Math.floor(Date.now() / 1000) + leaseDays * 86400);
+
+    if (!protocolApproved) {
+      await waitTx(
+        registry.setApprovedProtocol(nfaId, output.ids.PROTOCOL_BATTLE_ROYALE, true),
+        "setApprovedProtocol"
+      );
+    } else {
+      console.log("setApprovedProtocol: skipped (already approved)");
+    }
+
+    if (!adapterApproved) {
+      await waitTx(
+        registry.setApprovedAdapter(nfaId, ACTION_BATTLE_ROYALE, actualBattleRoyaleAdapter, true),
+        "setApprovedAdapter"
+      );
+    } else {
+      console.log("setApprovedAdapter: skipped (already approved)");
+    }
+
+    if (Number(currentRoleMask) !== ROLE_FULL) {
+      await waitTx(
+        registry.setOperatorRoleMask(nfaId, ACTION_BATTLE_ROYALE, output.operator, ROLE_FULL),
+        "setOperatorRoleMask"
+      );
+    } else {
+      console.log("setOperatorRoleMask: skipped (already full)");
+    }
+
+    const leaseEnabled = Boolean(lease.enabled ?? lease[0]);
     const leaseRoleMask = Number(lease.roleMask ?? lease[1] ?? 0);
     const leaseExpiresAt = BigInt((lease.expiresAt ?? lease[3] ?? 0).toString());
-    const leaseEnabled = Boolean(lease.enabled ?? lease[0]);
-    const leaseActive = leaseEnabled && (leaseRoleMask & ROLE_FULL) === ROLE_FULL && (leaseExpiresAt === 0n || leaseExpiresAt > now);
+    if (!leaseEnabled || leaseRoleMask !== ROLE_FULL || leaseExpiresAt < targetLeaseExpiry - 86400n) {
+      await waitTx(
+        delegationRegistry.setDelegationLease(
+          nfaId,
+          ACTION_BATTLE_ROYALE,
+          output.operator,
+          ROLE_FULL,
+          targetLeaseExpiry
+        ),
+        "setDelegationLease"
+      );
+    } else {
+      console.log("setDelegationLease: skipped (lease already active)");
+    }
 
-    await waitTxIfNeeded(
-      !protocolApproved,
-      () => registry.setApprovedProtocol(nfaId, output.ids.PROTOCOL_BATTLE_ROYALE, true),
-      "setApprovedProtocol"
-    );
-    await waitTxIfNeeded(
-      !adapterApproved,
-      () => registry.setApprovedAdapter(nfaId, ACTION_BATTLE_ROYALE, output.autonomy.battleRoyaleAdapter, true),
-      "setApprovedAdapter"
-    );
-    await waitTxIfNeeded(
-      Number(operatorRoleMask) !== ROLE_FULL,
-      () => registry.setOperatorRoleMask(nfaId, ACTION_BATTLE_ROYALE, output.operator, ROLE_FULL),
-      "setOperatorRoleMask"
-    );
-    await waitTxIfNeeded(
-      !leaseActive,
-      () => delegationRegistry.setDelegationLease(
-        nfaId,
-        ACTION_BATTLE_ROYALE,
-        output.operator,
-        ROLE_FULL,
-        BigInt(Math.floor(Date.now() / 1000) + leaseDays * 86400)
-      ),
-      "setDelegationLease"
-    );
-    await waitTxIfNeeded(
-      Number(riskState.maxFailureStreak ?? riskState[1]) !== 3 || !sameBigNumberish(riskState.minClwReserve ?? riskState[6], minReserve),
-      () => registry.setRiskControls(nfaId, ACTION_BATTLE_ROYALE, 3, minReserve),
-      "setRiskControls"
-    );
-    await waitTxIfNeeded(
-      !Boolean(policy.enabled ?? policy[0]) ||
-        Number(policy.riskMode ?? policy[1]) !== riskMode ||
-        Number(policy.dailyLimit ?? policy[2]) !== dailyLimit ||
-        !sameBigNumberish(policy.maxClwPerAction ?? policy[5], maxSpend),
-      () => registry.setPolicy(nfaId, ACTION_BATTLE_ROYALE, true, riskMode, dailyLimit, maxSpend),
-      "setPolicy"
-    );
-    await waitTxIfNeeded(
-      !Boolean(assetBudget.enabled ?? assetBudget[0]) ||
-        !sameBigNumberish(assetBudget.maxPerAction ?? assetBudget[4], maxSpend) ||
-        !sameBigNumberish(assetBudget.minReserve ?? assetBudget[5], 0) ||
-        !sameBigNumberish(assetBudget.dailyAmountLimit ?? assetBudget[6], dailyBudget),
-      () => registry.setAssetBudget(
-        nfaId,
-        ACTION_BATTLE_ROYALE,
-        output.ids.ASSET_CLAWORLD,
-        true,
-        maxSpend,
-        0,
-        dailyBudget
-      ),
-      "setAssetBudget"
-    );
+    const currentMaxFailureStreak = Number(riskState.maxFailureStreak ?? riskState[1] ?? 0);
+    const currentMinReserve = ethers.BigNumber.from(riskState.minClwReserve ?? riskState[3] ?? 0);
+    if (currentMaxFailureStreak !== 3 || !currentMinReserve.eq(minReserve)) {
+      await waitTx(
+        registry.setRiskControls(nfaId, ACTION_BATTLE_ROYALE, 3, minReserve),
+        "setRiskControls"
+      );
+    } else {
+      console.log("setRiskControls: skipped (already matches target)");
+    }
+
+    const currentEnabled = Boolean(currentPolicy.enabled ?? currentPolicy[0]);
+    const currentRiskMode = Number(currentPolicy.riskMode ?? currentPolicy[1] ?? 0);
+    const currentDailyLimit = Number(currentPolicy.dailyLimit ?? currentPolicy[2] ?? 0);
+    const currentMaxClwPerAction = ethers.BigNumber.from(currentPolicy.maxClwPerAction ?? currentPolicy[5] ?? 0);
+    const targetDailyLimit = Math.max(currentDailyLimit, dailyLimit);
+    if (
+      !currentEnabled ||
+      currentRiskMode !== riskMode ||
+      currentDailyLimit < dailyLimit ||
+      !currentMaxClwPerAction.eq(maxSpend)
+    ) {
+      await waitTx(
+        registry.setPolicy(nfaId, ACTION_BATTLE_ROYALE, true, riskMode, targetDailyLimit, maxSpend),
+        "setPolicy"
+      );
+    } else {
+      console.log("setPolicy: skipped (already matches target)");
+    }
+
+    const assetBudgetEnabled = Boolean(currentAssetBudget.enabled ?? currentAssetBudget[0]);
+    const assetBudgetMaxPerAction = ethers.BigNumber.from(currentAssetBudget.maxPerAction ?? currentAssetBudget[4] ?? 0);
+    const assetBudgetMinReserve = ethers.BigNumber.from(currentAssetBudget.minReserve ?? currentAssetBudget[5] ?? 0);
+    const assetBudgetDailyLimit = ethers.BigNumber.from(currentAssetBudget.dailyAmountLimit ?? currentAssetBudget[6] ?? 0);
+    if (
+      !assetBudgetEnabled ||
+      !assetBudgetMaxPerAction.eq(maxSpend) ||
+      !assetBudgetMinReserve.isZero() ||
+      !assetBudgetDailyLimit.eq(dailyBudget)
+    ) {
+      await waitTx(
+        registry.setAssetBudget(
+          nfaId,
+          ACTION_BATTLE_ROYALE,
+          output.ids.ASSET_CLAWORLD,
+          true,
+          maxSpend,
+          0,
+          dailyBudget
+        ),
+        "setAssetBudget"
+      );
+    } else {
+      console.log("setAssetBudget: skipped (already matches target)");
+    }
   }
 
-  if (latestOpenMatch <= 0 || !matchConfig) {
-    console.log("[battle-royale-smoke] No open Battle Royale match. Policy is configured; wait for the next arena.");
-    return;
-  }
+  const claimableMatch = matchCount > 0
+    ? await findLatestClaimableMatch(battleRoyale, matchCount, nfaId, owner)
+    : null;
 
-  const participantContext = await resolveParticipantContext(battleRoyale, latestOpenMatch, nfaId, owner);
-  const currentRoom = participantContext.roomId;
-  const claimable = ethers.BigNumber.from(participantContext.claimable.toString());
-
-  if (matchStatus === 2 && claimable.gt(0)) {
+  if (claimableMatch) {
     const claimPayload = ethers.utils.defaultAbiCoder.encode(
       ["uint8", "bytes"],
-      [MODE_CLAIM_EXISTING, ethers.utils.defaultAbiCoder.encode(["uint256"], [latestOpenMatch])]
+      [MODE_CLAIM_EXISTING, ethers.utils.defaultAbiCoder.encode(["uint256"], [claimableMatch.matchId])]
     );
-    const prompt = `Claim the settled Battle Royale reward for NFA #${nfaId} in match #${latestOpenMatch} if it is available now.`;
+    const prompt = `Claim the settled Battle Royale reward for NFA #${nfaId} in match #${claimableMatch.matchId} if it is available now.`;
     if (checkOnly) {
-      console.log("[battle-royale-smoke] Would request CLAIM autonomy action.");
+      console.log(
+        JSON.stringify(
+          {
+            action: "claim",
+            matchId: claimableMatch.matchId,
+            claimable: claimableMatch.participantContext.claimable.toString(),
+            prompt,
+          },
+          null,
+          2
+        )
+      );
       return;
     }
 
@@ -392,24 +484,46 @@ async function main() {
       ),
       "requestAutonomousAction(claim)"
     );
-    await waitForCompletion(actionHub, finalizationHub, requestId, waitMs, pollMs);
+    const receipt = await waitForCompletion(actionHub, finalizationHub, requestId, waitMs, pollMs);
+    console.log(
+      JSON.stringify(
+        {
+          requestId,
+          status: Number(receipt.status),
+          choice: Number(receipt.resolvedChoice),
+          spend: ethers.utils.formatEther(receipt.actualSpend.toString()),
+          reward: ethers.utils.formatEther(receipt.clwCredit.toString()),
+          reasoningCid: receipt.reasoningCid,
+        },
+        null,
+        2
+      )
+    );
     return;
   }
 
+  if (candidateMatchId <= 0 || !matchConfig) {
+    console.log("[battle-royale-smoke] No Battle Royale match found. Policy is configured; wait for the next arena.");
+    return;
+  }
+
+  const participantContext = await resolveParticipantContext(battleRoyale, candidateMatchId, nfaId, owner);
+  const currentRoom = participantContext.roomId;
+
   if (matchStatus !== 0) {
-    console.log("[battle-royale-smoke] Latest open match is not OPEN. Watcher will handle reveal maintenance when needed.");
+    console.log(`[battle-royale-smoke] Match #${candidateMatchId} is not OPEN. Watcher or claim flow will handle the next step.`);
     return;
   }
 
   if (currentRoom > 0) {
     console.log(
-      `[battle-royale-smoke] Participant ${participantContext.participant}${participantContext.isLegacyOwnerParticipant ? " (legacy owner participant)" : ""} already entered room ${currentRoom} in match #${latestOpenMatch}.`
+      `[battle-royale-smoke] Participant ${participantContext.participant}${participantContext.isLegacyOwnerParticipant ? " (legacy owner participant)" : ""} already entered room ${currentRoom} in match #${candidateMatchId}.`
     );
     return;
   }
 
   const [snapshot, policy] = await Promise.all([
-    battleRoyale.getMatchSnapshot(latestOpenMatch),
+    battleRoyale.getMatchSnapshot(candidateMatchId),
     registry.getPolicy(nfaId, ACTION_BATTLE_ROYALE),
   ]);
 
@@ -428,15 +542,18 @@ async function main() {
     ["uint8", "bytes"],
     [
       MODE_ENTER_OPTIONS,
-      ethers.utils.defaultAbiCoder.encode(["uint256", "uint8[]", "uint256[]"], [latestOpenMatch, roomIds, stakeArray]),
+      ethers.utils.defaultAbiCoder.encode(["uint256", "uint8[]", "uint256[]"], [candidateMatchId, roomIds, stakeArray]),
     ]
   );
+  const candidateSummary = roomIds
+    .map((roomId, index) => `room ${roomId}, stake ${ethers.utils.formatEther(stakeArray[index].toString())} Claworld`)
+    .join(" || ");
   const prompt = [
-    `BattleRoyale.enter nfa=${nfaId}`,
-    `match=${latestOpenMatch}`,
-    `risk=${riskMode}`,
-    `rooms=${roomIds.join(",")}`,
-    `stake=${ethers.utils.formatEther(stakeWei.toString())}`,
+    `Choose the best Battle Royale room and stake option for NFA #${nfaId}.`,
+    `Risk posture is ${riskMode}.`,
+    `Current live match is #${candidateMatchId}.`,
+    `Candidates: ${candidateSummary}.`,
+    `Prefer bounded risk and stronger prize positioning.`,
   ].join(" ");
 
   if (checkOnly) {
@@ -444,7 +561,7 @@ async function main() {
       JSON.stringify(
         {
           action: "enter",
-          latestOpenMatch,
+          candidateMatchId,
           roomIds,
           stakeArray: stakeArray.map((v) => ethers.utils.formatEther(v.toString())),
           prompt,

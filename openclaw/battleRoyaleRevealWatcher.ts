@@ -1,8 +1,13 @@
 import { Contract, type Signer, type providers } from "ethers";
+import {
+  buildAutonomyTxOverrides,
+  type AutonomyTxPolicy,
+} from "./autonomyTxPolicy";
 
 const BATTLE_ROYALE_REVEAL_ABI = [
   "function owner() view returns (address)",
   "function latestOpenMatch() view returns (uint256)",
+  "function matchCount() view returns (uint256)",
   "function getMatchInfo(uint256 matchId) view returns (uint8 status, uint8 totalPlayers, uint256 revealBlock, uint8 losingRoom, uint256 total, uint256 roundId)",
   "function reveal(uint256 matchId)",
   "function emergencyReveal(uint256 matchId)",
@@ -22,6 +27,8 @@ export type BattleRoyaleRevealScan = {
   signer: string;
   signerIsOwner: boolean;
   latestOpenMatch: number;
+  matchCount: number;
+  candidateMatchId: number;
   currentBlock: number;
 };
 
@@ -47,6 +54,7 @@ export type BattleRoyaleRevealWatcherConfig = {
   proxy: string;
   provider: providers.Provider;
   signer: Signer;
+  txPolicy?: AutonomyTxPolicy;
   logger?: {
     info?: (...args: unknown[]) => void;
     warn?: (...args: unknown[]) => void;
@@ -56,34 +64,39 @@ export type BattleRoyaleRevealWatcherConfig = {
 export async function revealBattleRoyaleIfReady(
   config: BattleRoyaleRevealWatcherConfig
 ): Promise<BattleRoyaleRevealResult> {
-  const { proxy, provider, signer, logger } = config;
+  const { proxy, provider, signer, txPolicy, logger } = config;
   const battleRoyale = new Contract(proxy, BATTLE_ROYALE_REVEAL_ABI, signer);
 
-  const [currentBlock, owner, latestOpenMatchBn, signerAddress] = await Promise.all([
+  const [currentBlock, owner, latestOpenMatchBn, matchCountBn, signerAddress] = await Promise.all([
     provider.getBlockNumber(),
     battleRoyale.owner() as Promise<string>,
     battleRoyale.latestOpenMatch(),
+    battleRoyale.matchCount(),
     signer.getAddress(),
   ]);
 
   const latestOpenMatch = Number(latestOpenMatchBn.toString());
+  const matchCount = Number(matchCountBn.toString());
+  const candidateMatchId = latestOpenMatch > 0 ? latestOpenMatch : matchCount;
   const scan: BattleRoyaleRevealScan = {
     proxy,
     owner,
     signer: signerAddress,
     signerIsOwner: signerAddress.toLowerCase() === owner.toLowerCase(),
     latestOpenMatch,
+    matchCount,
+    candidateMatchId,
     currentBlock,
   };
 
-  if (latestOpenMatch <= 0) {
+  if (candidateMatchId <= 0) {
     return { kind: "no-open-match", scan };
   }
 
-  const matchInfo = await battleRoyale.getMatchInfo(latestOpenMatch);
+  const matchInfo = await battleRoyale.getMatchInfo(candidateMatchId);
   const revealBlock = Number(matchInfo.revealBlock ?? matchInfo[2] ?? 0);
   const match: BattleRoyaleRevealMatch = {
-    matchId: latestOpenMatch,
+    matchId: candidateMatchId,
     status: Number(matchInfo.status ?? matchInfo[0] ?? 0),
     totalPlayers: Number(matchInfo.totalPlayers ?? matchInfo[1] ?? 0),
     revealBlock,
@@ -113,13 +126,31 @@ export async function revealBattleRoyaleIfReady(
       return { kind: "need-owner", scan, match };
     }
 
-    const tx = await battleRoyale.emergencyReveal(match.matchId);
+    const overrides = await buildAutonomyTxOverrides(
+      battleRoyale,
+      "emergencyReveal",
+      [match.matchId],
+      txPolicy ?? { gasLimitBufferBps: 10750, gasLimitExtra: 8000 }
+    );
+    const tx =
+      Object.keys(overrides).length > 0
+        ? await battleRoyale.emergencyReveal(match.matchId, overrides)
+        : await battleRoyale.emergencyReveal(match.matchId);
     await tx.wait();
     logger?.info?.(`[battle-royale-reveal] emergencyReveal #${match.matchId}: ${tx.hash}`);
     return { kind: "emergency-revealed", scan, match, txHash: tx.hash };
   }
 
-  const tx = await battleRoyale.reveal(match.matchId);
+  const overrides = await buildAutonomyTxOverrides(
+    battleRoyale,
+    "reveal",
+    [match.matchId],
+    txPolicy ?? { gasLimitBufferBps: 10750, gasLimitExtra: 8000 }
+  );
+  const tx =
+    Object.keys(overrides).length > 0
+      ? await battleRoyale.reveal(match.matchId, overrides)
+      : await battleRoyale.reveal(match.matchId);
   await tx.wait();
   logger?.info?.(`[battle-royale-reveal] reveal #${match.matchId}: ${tx.hash}`);
   return { kind: "revealed", scan, match, txHash: tx.hash };
