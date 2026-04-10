@@ -193,6 +193,10 @@ export interface AutonomyOracleRunnerConfig {
   finalizationHubAddress?: string;
   runnerName?: string;
   maxLogRangeBlocks?: number;
+  gasPriceGwei?: string;
+  maxGasPriceGwei?: string;
+  gasLimitBufferBps?: number;
+  gasLimitExtra?: number;
   gasLimits?: {
     fulfill?: number;
     sync?: number;
@@ -235,6 +239,10 @@ export class AutonomyOracleRunner {
   private readonly maxLogRangeBlocks: number;
   private readonly minLogRangeBlocks: number;
   private readonly gasLimits: Required<NonNullable<AutonomyOracleRunnerConfig["gasLimits"]>>;
+  private readonly gasPriceGwei?: string;
+  private readonly maxGasPriceGwei?: string;
+  private readonly gasLimitBufferBps: number;
+  private readonly gasLimitExtra: number;
   private readonly afterRequestProcessed?: (info: ProcessedRequestInfo) => Promise<void> | void;
   private listening = false;
   private eventHandler: ((...args: any[]) => void) | null = null;
@@ -262,6 +270,10 @@ export class AutonomyOracleRunner {
       : undefined;
     this.maxLogRangeBlocks = Math.max(1, config.maxLogRangeBlocks ?? 40000);
     this.minLogRangeBlocks = Math.min(250, this.maxLogRangeBlocks);
+    this.gasPriceGwei = config.gasPriceGwei;
+    this.maxGasPriceGwei = config.maxGasPriceGwei;
+    this.gasLimitBufferBps = Math.max(10_000, config.gasLimitBufferBps ?? 11_000);
+    this.gasLimitExtra = Math.max(0, config.gasLimitExtra ?? 10_000);
     this.gasLimits = {
       fulfill: config.gasLimits?.fulfill ?? 400000,
       sync: config.gasLimits?.sync ?? 400000,
@@ -963,7 +975,7 @@ export class AutonomyOracleRunner {
     if (contract.estimateGas?.[method]) {
       try {
         const estimated = await contract.estimateGas[method](...args);
-        resolvedGasLimit = estimated.mul(120).div(100).add(20_000);
+        resolvedGasLimit = estimated.mul(this.gasLimitBufferBps).div(10_000).add(this.gasLimitExtra);
       } catch {
         // Fall back to configured gas limit if estimateGas is unavailable or unstable.
       }
@@ -973,11 +985,30 @@ export class AutonomyOracleRunner {
       resolvedGasLimit = ethers.BigNumber.from(gasLimit);
     }
 
+    const gasOverrides = await this.buildGasOverrides(contract);
+    const overrides = resolvedGasLimit
+      ? { ...gasOverrides, gasLimit: resolvedGasLimit }
+      : gasOverrides;
     const tx = resolvedGasLimit
-      ? await contract[method](...args, { gasLimit: resolvedGasLimit })
-      : await contract[method](...args);
+      ? await contract[method](...args, overrides)
+      : await contract[method](...args, overrides);
 
     return tx.wait();
+  }
+
+  private async buildGasOverrides(contract: ethers.Contract) {
+    let gasPrice = this.gasPriceGwei
+      ? ethers.utils.parseUnits(this.gasPriceGwei, "gwei")
+      : await contract.provider.getGasPrice();
+
+    if (this.maxGasPriceGwei) {
+      const maxGasPrice = ethers.utils.parseUnits(this.maxGasPriceGwei, "gwei");
+      if (gasPrice.gt(maxGasPrice)) {
+        gasPrice = maxGasPrice;
+      }
+    }
+
+    return { gasPrice };
   }
 }
 
