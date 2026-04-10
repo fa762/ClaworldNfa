@@ -44,7 +44,7 @@ function AiAgentWorkspace({
             <div className="term-bright">{getLobsterName(Number(tokenId))}</div>
           </div>
           <div className="term-box p-2 space-y-1">
-            <div className="term-dim">{zh ? '当前内部余额' : 'Internal balance'}</div>
+            <div className="term-dim">{zh ? '内部余额' : 'Internal balance'}</div>
             <div className="term-bright">{formatCLW(BigInt((balance as bigint | undefined) ?? 0n))} Claworld</div>
           </div>
           <div className="term-box p-2 space-y-1">
@@ -57,7 +57,7 @@ function AiAgentWorkspace({
             <div className="term-dim mb-1">{zh ? '代理主体说明' : 'Actor semantics'}</div>
             <div>
               {zh
-                ? '任务、PK、Battle Royale 的参赛主体都是当前选中的 NFA。Owner 钱包只负责交互权限和 2M Claworld 门槛验证。'
+                ? '任务、PK、Battle Royale 的参赛主体都是当前选中的 NFA。owner 钱包只负责交互权限和 2M Claworld 门槛验证。'
                 : 'Task, PK, and Battle Royale all execute with the selected NFA as the actor. The owner wallet is only used for interaction permission and the 2M Claworld threshold.'}
             </div>
           </div>
@@ -71,7 +71,7 @@ function AiAgentWorkspace({
               <span>G {grit}</span>
             </div>
             <div className="term-dim text-[11px] mt-1">
-              {zh ? `等级 Lv.${level} · 稀有度 ${rarity}` : `Level Lv.${level} · Rarity ${rarity}`}
+              {zh ? `等级 Lv.${level} / 稀有度 ${rarity}` : `Level Lv.${level} / Rarity ${rarity}`}
             </div>
           </div>
         </div>
@@ -116,12 +116,12 @@ export function LoreContent() {
   if (!isConnected || !ownerAddress) {
     return (
       <div className="p-4 space-y-3">
-        <TerminalBox title={zh ? '连接钱包以进入 AI 代理' : 'Connect wallet to enter AI Agent'} bright>
+        <TerminalBox title={zh ? '连接钱包进入 AI 代理' : 'Connect wallet to enter AI Agent'} bright>
           <div className="space-y-3 text-xs">
             <div className="term-dim">
               {zh
-                ? '这个页面已经完全替换成 AI 代理工作台。先连接持有 NFA 的钱包，才能查看可控制的龙虾、验证 2M Claworld 门槛，并开启任务 / PK / Battle Royale 代理。'
-                : 'This page is now the dedicated AI agent workspace. Connect the wallet that owns your NFAs to view controllable lobsters, validate the 2M Claworld threshold, and enable Task / PK / Battle Royale autonomy.'}
+                ? '这个页面已经替换为独立 AI 代理工作台。连接持有 NFA 的钱包后，可以选择龙虾、验证 2M Claworld 门槛，并开启 Task / PK / Battle Royale 代理。'
+                : 'This page is now the dedicated AI agent workspace. Connect the wallet that owns your NFAs to select a lobster, validate the 2M Claworld threshold, and enable Task / PK / Battle Royale autonomy.'}
             </div>
             <div>
               <ConnectButton />
@@ -138,8 +138,8 @@ export function LoreContent() {
         <div className="space-y-3 text-xs">
           <div className="term-dim">
             {zh
-              ? '这里是独立的 AI 代理页。原来的世界观内容已经移除。你可以直接切换自己钱包下的龙虾，分别开启任务、PK 和 Battle Royale 代理。'
-              : 'This is now a dedicated AI agent page. The old lore content has been removed. You can switch between lobsters in your wallet and enable Task, PK, and Battle Royale autonomy individually.'}
+              ? '这里是独立的 AI 代理页。你可以切换当前钱包下的龙虾，并分别开启任务、PK 和 Battle Royale 代理。'
+              : 'This is the dedicated AI agent page. You can switch between lobsters in your wallet and enable Task, PK, and Battle Royale autonomy individually.'}
           </div>
           <div className="grid gap-2 md:grid-cols-3">
             <div className="term-box p-2 space-y-1">

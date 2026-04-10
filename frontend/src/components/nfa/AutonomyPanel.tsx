@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useAccount, useReadContract, useSignMessage } from 'wagmi';
+import { useAccount, usePublicClient, useReadContract, useSignMessage } from 'wagmi';
 import { type Address, formatEther, parseEther } from 'viem';
 
 import { TerminalBox } from '@/components/terminal/TerminalBox';
@@ -1202,6 +1202,9 @@ export function AutonomyPanel({
   const zh = lang === 'zh';
   const [selectedActionKey, setSelectedActionKey] = useState<ActionCardConfig['key']>('task');
   const ownerWallet = ownerAddress as Address | undefined;
+  const publicClient = usePublicClient({ chainId: appChainId });
+  const [walletBalanceFallback, setWalletBalanceFallback] = useState<bigint | null>(null);
+  const [walletBalanceFallbackError, setWalletBalanceFallbackError] = useState(false);
 
   const walletBalanceQuery = useReadContract({
     address: addresses.clwToken,
@@ -1216,7 +1219,35 @@ export function AutonomyPanel({
     },
   });
 
-  const walletBalance = BigInt((walletBalanceQuery.data as bigint | undefined) ?? 0n);
+  useEffect(() => {
+    let cancelled = false;
+    setWalletBalanceFallback(null);
+    setWalletBalanceFallbackError(false);
+
+    if (!ownerWallet || !addresses.clwToken || !publicClient) return;
+
+    publicClient
+      .readContract({
+        address: addresses.clwToken,
+        abi: ERC20ABI,
+        functionName: 'balanceOf',
+        args: [ownerWallet],
+      })
+      .then((value) => {
+        if (!cancelled) setWalletBalanceFallback(BigInt(value as bigint));
+      })
+      .catch(() => {
+        if (!cancelled) setWalletBalanceFallbackError(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ownerWallet, publicClient]);
+
+  const walletBalanceFromQuery = BigInt((walletBalanceQuery.data as bigint | undefined) ?? 0n);
+  const walletBalance = maxBigInt(walletBalanceFromQuery, walletBalanceFallback ?? 0n);
+  const walletBalanceReadFailed = walletBalanceQuery.isError && walletBalanceFallbackError;
   const isOwner =
     !!address && !!ownerAddress && address.toLowerCase() === ownerAddress.toLowerCase();
   const holderWalletEligible = walletBalance >= AUTONOMY_MIN_WALLET_HOLDING;
@@ -1226,7 +1257,7 @@ export function AutonomyPanel({
   const refreshEligibility = async () => {
     if (!ownerWallet || !addresses.clwToken) return false;
     const latest = await walletBalanceQuery.refetch();
-    const value = BigInt((latest.data as bigint | undefined) ?? 0n);
+    const value = maxBigInt(BigInt((latest.data as bigint | undefined) ?? 0n), walletBalanceFallback ?? 0n);
     return value >= AUTONOMY_MIN_WALLET_HOLDING;
   };
 
@@ -1246,7 +1277,7 @@ export function AutonomyPanel({
             <div className="text-[11px]">
               {walletBalanceQuery.isLoading
                 ? (zh ? '读取中...' : 'Loading...')
-                : walletBalanceQuery.isError
+                : walletBalanceReadFailed
                 ? (zh ? '读取失败，请检查 BSC 主网 RPC' : 'Read failed; check BSC mainnet RPC')
                 : `${formatCLW(walletBalance)} Claworld`}
             </div>
@@ -1337,7 +1368,7 @@ export function AutonomyPanel({
           dailyCost={dailyCost}
           holderWalletEligible={holderWalletEligible}
           holderWalletBalance={walletBalance}
-          holderWalletBalanceError={walletBalanceQuery.isError}
+          holderWalletBalanceError={walletBalanceReadFailed}
           walletThresholdLabel={walletThresholdLabel}
           onRefreshEligibility={refreshEligibility}
           config={selectedAction}
