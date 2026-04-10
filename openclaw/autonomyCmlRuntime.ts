@@ -1,4 +1,5 @@
 import {
+  hashCML,
   loadCML,
   queueRootSync,
   saveCML,
@@ -22,6 +23,13 @@ export interface AutonomyCmlActionEvent {
   xpCredit?: number;
   reasoningCid?: string;
   lastError?: string;
+}
+
+export interface AutonomyCmlEventResult {
+  cml: CMLFile;
+  hash: string;
+  memoryId: number;
+  changed: boolean;
 }
 
 const MAX_VIVID_MEMORIES = 30;
@@ -69,9 +77,19 @@ export function recordAutonomyCmlEvent(
   state: LobsterState,
   event: AutonomyCmlActionEvent,
   options: AutonomyCmlRuntimeOptions = {}
-): { cml: CMLFile; hash: string; memoryId: number } {
+): AutonomyCmlEventResult {
   const ensured = ensureAutonomyCML(nfaId, state, options);
   const cml = normalizeForRuntime(ensured.cml, nfaId);
+  const existing = findRecordedRequest(cml, event.requestId);
+  if (existing) {
+    return {
+      cml,
+      hash: hashCML(nfaId) ?? ensured.hash ?? "",
+      memoryId: existing.id,
+      changed: false,
+    };
+  }
+
   const success = event.status === 4;
   const now = Math.floor(Date.now() / 1000);
 
@@ -88,7 +106,7 @@ export function recordAutonomyCmlEvent(
   if (options.queueRootSync !== false) {
     queueRootSync(nfaId, hash);
   }
-  return { cml, hash, memoryId: memory.id };
+  return { cml, hash, memoryId: memory.id, changed: true };
 }
 
 function buildInitialAutonomyCML(nfaId: number, state: LobsterState): CMLFile {
@@ -216,6 +234,11 @@ function buildActionMemory(cml: CMLFile, event: AutonomyCmlActionEvent, success:
     triggers: buildTriggers(action, event.prompt, success),
     content: `Autonomy request #${event.requestId} ${outcome} ${action} with ${choice}${spend}${reward}${xp}${reasoning}.`,
   };
+}
+
+function findRecordedRequest(cml: CMLFile, requestId: number): CMLVividMemory | undefined {
+  const needle = `Autonomy request #${requestId} `;
+  return cml.CORTEX.vivid.find((memory) => memory.content.includes(needle));
 }
 
 function buildTriggers(action: string, prompt: string, success: boolean): string[] {

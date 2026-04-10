@@ -648,9 +648,15 @@ export class AutonomyOracleRunner {
           queueRootSync: this.memory.queueRootSync !== false,
         }
       );
-      console.log(
-        `[${this.runnerName}] CML memory updated for NFA #${nfaId}: memory #${result.memoryId}, hash ${result.hash.slice(0, 12)}`
-      );
+      if (result.changed) {
+        console.log(
+          `[${this.runnerName}] CML memory updated for NFA #${nfaId}: memory #${result.memoryId}, hash ${result.hash.slice(0, 12)}`
+        );
+      } else {
+        console.log(
+          `[${this.runnerName}] CML memory already recorded for request #${requestId} on NFA #${nfaId}; skipped duplicate write`
+        );
+      }
     } catch (error) {
       console.warn(`[${this.runnerName}] CML memory update skipped for request #${requestId}:`, error);
     }
