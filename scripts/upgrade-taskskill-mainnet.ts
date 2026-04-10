@@ -32,20 +32,23 @@ async function main() {
     throw new Error(`Unexpected TaskSkill.nfa(). current=${currentNfa}, expected=${CLAW_NFA}`);
   }
 
-  await upgrades.validateUpgrade(TASK_SKILL_PROXY, TaskSkill);
-  console.log("Upgrade validation passed.");
+  await upgrades.validateImplementation(TaskSkill, { kind: "uups" });
+  console.log("Implementation validation passed.");
 
   if (process.env.UPGRADE_CONFIRM !== "1") {
-    console.log("Dry run only. Set UPGRADE_CONFIRM=1 to send the UUPS upgrade transaction.");
+    console.log("Dry run only. Set UPGRADE_CONFIRM=1 to deploy the implementation and send upgradeTo.");
     return;
   }
 
-  const upgraded = await upgrades.upgradeProxy(TASK_SKILL_PROXY, TaskSkill, {
-    kind: "uups",
-    txOverrides,
-  });
-  await upgraded.deployed();
-  console.log("TaskSkill upgraded at:", upgraded.address);
+  const implementation = await TaskSkill.deploy(txOverrides);
+  await implementation.deployed();
+  console.log("TaskSkill implementation:", implementation.address);
+  console.log("Implementation deploy tx:", implementation.deployTransaction.hash);
+
+  const upgradeTx = await taskSkill.upgradeTo(implementation.address, txOverrides);
+  console.log("upgradeTo tx:", upgradeTx.hash);
+  await upgradeTx.wait();
+  console.log("TaskSkill upgraded at proxy:", TASK_SKILL_PROXY);
 }
 
 main().catch((error) => {
