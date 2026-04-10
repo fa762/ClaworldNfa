@@ -13,6 +13,9 @@ export interface AutonomyMemoryOptions {
   ownerTrail?: string[];
   maxTriggeredMemories?: number;
   maxPromptChars?: number;
+  autoCreate?: boolean;
+  recordActions?: boolean;
+  queueRootSync?: boolean;
 }
 
 export interface AutonomyMemoryContext {

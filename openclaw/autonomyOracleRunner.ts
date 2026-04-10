@@ -4,6 +4,7 @@ import type { AIProvider } from "./types";
 import type { IPFSUploader } from "./skills/oracleSkill";
 import { evaluatePkCandidate, PK_STRATEGY_LABELS, summarizePkProjection } from "./pkStrategy";
 import { loadAutonomyMemoryContext, type AutonomyMemoryOptions } from "./autonomyMemory";
+import { ensureAutonomyCML, recordAutonomyCmlEvent } from "./autonomyCmlRuntime";
 
 const ORACLE_ABI = [
   "function requests(uint256) view returns (uint256 nfaId, address consumer, string prompt, uint8 numOfChoices, uint8 choice, string reasoningCid, uint8 status, uint64 timestamp)",
@@ -442,6 +443,11 @@ export class AutonomyOracleRunner {
 
       if (requestStatus === OracleRequestStatus.PENDING) {
         const { state } = await this.client.getLobsterStatus(resolvedNfaId);
+        if (this.memory.enabled !== false && this.memory.autoCreate !== false) {
+          ensureAutonomyCML(resolvedNfaId, state, {
+            queueRootSync: this.memory.queueRootSync !== false,
+          });
+        }
         const choiceContext = await this.buildChoiceContext(action, numChoices);
         const memoryContext = loadAutonomyMemoryContext(
           resolvedNfaId,
@@ -571,6 +577,9 @@ export class AutonomyOracleRunner {
       }
 
       finalStatus = Number(action.status);
+      if (this.isTerminalStatus(finalStatus)) {
+        await this.recordActionMemory(requestId, resolvedNfaId, prompt, action);
+      }
       await this.afterRequestProcessed?.({
         requestId,
         nfaId: resolvedNfaId,
@@ -605,6 +614,45 @@ export class AutonomyOracleRunner {
       throw error;
     } finally {
       this.inFlightRequests.delete(requestId);
+    }
+  }
+
+  private async recordActionMemory(
+    requestId: number,
+    nfaId: number,
+    prompt: string,
+    action: PendingActionView
+  ): Promise<void> {
+    if (this.memory.enabled === false || this.memory.recordActions === false) {
+      return;
+    }
+
+    try {
+      const { state } = await this.client.getLobsterStatus(nfaId);
+      const result = recordAutonomyCmlEvent(
+        nfaId,
+        state,
+        {
+          requestId,
+          actionKind: Number(action.actionKind),
+          status: Number(action.status),
+          prompt,
+          resolvedChoice: Number(action.resolvedChoice),
+          actualSpendClaworld: ethers.utils.formatEther(action.actualSpend.toString()),
+          clwCredit: ethers.utils.formatEther(action.clwCredit.toString()),
+          xpCredit: Number(action.xpCredit),
+          reasoningCid: action.reasoningCid,
+          lastError: action.lastError,
+        },
+        {
+          queueRootSync: this.memory.queueRootSync !== false,
+        }
+      );
+      console.log(
+        `[${this.runnerName}] CML memory updated for NFA #${nfaId}: memory #${result.memoryId}, hash ${result.hash.slice(0, 12)}`
+      );
+    } catch (error) {
+      console.warn(`[${this.runnerName}] CML memory update skipped for request #${requestId}:`, error);
     }
   }
 

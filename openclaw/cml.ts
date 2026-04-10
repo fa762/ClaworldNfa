@@ -87,7 +87,9 @@ export interface CMLFile {
 const CML_VERSION = 3;
 const MAX_VIVID = 30;
 const MAX_HIPPOCAMPUS = 5;
-const CML_DIR = path.join(os.homedir(), '.openclaw', 'claw-world');
+const CML_DIR = process.env.OPENCLAW_CML_DIR ||
+  process.env.AUTONOMY_CML_DIR ||
+  path.join(os.homedir(), '.openclaw', 'claw-world');
 const CML_ARCHIVE_DIR = path.join(CML_DIR, 'archive');
 const CML_PENDING_SYNC_DIR = path.join(CML_DIR, 'pending-sync');
 

@@ -1,0 +1,17 @@
+FROM node:20-bookworm-slim
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY tsconfig.openclaw.json ./tsconfig.openclaw.json
+COPY openclaw ./openclaw
+
+ENV TS_NODE_PROJECT=tsconfig.openclaw.json
+ENV NODE_ENV=production
+ENV OPENCLAW_CML_DIR=/app/.runtime/cml
+
+VOLUME ["/app/.runtime", "/app/.cache"]
+
+CMD ["node", "-r", "ts-node/register/transpile-only", "openclaw/start-autonomy-runner.ts"]

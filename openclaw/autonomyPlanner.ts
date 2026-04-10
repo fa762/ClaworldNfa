@@ -5,6 +5,7 @@ import type { GameContractClient } from "./contracts";
 import type { AIProvider, LobsterState } from "./types";
 import { evaluatePkCandidate, summarizePkProjection } from "./pkStrategy";
 import { loadAutonomyMemoryContext, type AutonomyMemoryOptions } from "./autonomyMemory";
+import { ensureAutonomyCML } from "./autonomyCmlRuntime";
 
 const ACTION_HUB_ABI = [
   "function requestAutonomousAction(uint256 nfaId, uint8 actionKind, bytes32 spendAssetId, uint256 spendAmount, bytes payload, string prompt, uint8 numChoices) returns (uint256)",
@@ -273,6 +274,11 @@ export class AutonomyPlanner {
     }
 
     const lobster = await this.client.getLobsterStatus(nfaId);
+    if (this.memory.enabled !== false && this.memory.autoCreate !== false) {
+      ensureAutonomyCML(nfaId, lobster.state, {
+        queueRootSync: this.memory.queueRootSync !== false,
+      });
+    }
     const world = await this.client.getWorldState();
     const taskPolicy = this.enableTask ? await this.getActionPolicy(nfaId, ACTION_KIND.TASK) : null;
     const pkPolicy = this.enablePk ? await this.getActionPolicy(nfaId, ACTION_KIND.PK) : null;
