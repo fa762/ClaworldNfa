@@ -278,6 +278,28 @@ flowchart LR
 
 ---
 
+### Autonomy Directives in Production
+
+Player directives are stored through the signed frontend API, then mirrored into the live runner.
+
+The intended production topology is:
+- Vercel frontend writes the directive to the shared KV store after `ownerOf(tokenId)` and signature checks
+- Vultr runner syncs the same KV key into its local `.cache/autonomy-directives.json` mirror
+- `autonomyPlanner.ts` reads the local mirror when building task, PK, and Battle Royale prompts
+
+This keeps the planner local and deterministic while avoiding the old split-brain problem where Vercel saved a directive that the runner never saw.
+
+Important environment variables:
+- `KV_REST_API_URL`
+- `KV_REST_API_TOKEN`
+- `AUTONOMY_DIRECTIVE_STORE_KEY`
+- `AUTONOMY_DIRECTIVE_SYNC_ENABLED`
+- `AUTONOMY_DIRECTIVE_FILE`
+- `AUTONOMY_DIRECTIVE_KV_REST_API_URL`
+- `AUTONOMY_DIRECTIVE_KV_REST_API_TOKEN`
+
+---
+
 ### ClawOracle and Autonomy
 
 `ClawOracle` is no longer only a generic AI oracle idea in this repo.
@@ -347,7 +369,13 @@ The current path supports:
 - watching for reveal readiness after the match fills
 - claiming settled rewards for the matching NFA participant
 
-The first live Battle Royale match is still open until it reaches its trigger count. That means the reveal and claim runner paths are implemented, but only execute after the match enters the correct on-chain state.
+The first live Battle Royale autonomy round has now been exercised end to end on mainnet: enter, finalize, fill, reveal / emergency reveal, settle, autonomous claim, and finalization. The ActionHub adapter is pinned to the participant-aware `BattleRoyaleAdapter` at `0xCD71fD0429DC82EfD6Ef019a7e1F7f93a5A1AEcc`.
+
+Operational fixes from the live smoke:
+- the reveal watcher scans the latest match by `matchCount` when `latestOpenMatch()` drops to zero after a match becomes `PENDING_REVEAL`
+- Battle Royale settlement no longer assumes autonomous router stakes are mirrored as ERC-20 balance in the BattleRoyale contract before reveal
+- the smoke script claims settled rewards before considering entry into a new open match
+- Battle Royale autonomy policy defaults use a higher daily action limit so zero-spend claim actions are not blocked after entry actions
 
 ```mermaid
 flowchart LR
@@ -368,6 +396,22 @@ flowchart LR
     Reveal --> Claim
     Claim --> CML
 ```
+
+---
+
+### World Map Direction
+
+The next world-layer contract should be a small position fact layer, not a full movement engine.
+
+Planned first model:
+- `worldId`
+- `zoneId`
+- `tileId`
+- `state`
+
+The important constraint is that `tileId` is a semantic anchor for scenes, not a geometry engine. The contract should record where an NFA is in the world and emit location-change events; frontend depth, animation, and scene presentation stay off-chain.
+
+The first integration targets are PK / Arena and TaskZone because those actions already have clear location semantics. Market and broader oracle / autonomy world-actions can attach later.
 
 ---
 
@@ -421,7 +465,8 @@ ClaworldNfa/
 ├── openclaw/
 │   ├── claw-world-skill/
 │   ├── autonomyOracleRunner.ts
-│   ├── autonomyCmlRuntime.ts
+│   ├── cml.ts
+│   ├── autonomyDirectiveRuntime.ts
 │   ├── autonomyPlanner.ts
 │   ├── openaiCompatibleAI.ts
 │   ├── battleRoyaleRevealWatcher.ts
@@ -441,7 +486,8 @@ ClaworldNfa/
 | OpenClaw CML runtime | Live | `boot / env / owned`, CML, Hermes adapter |
 | ClawOracle autonomy stack | Live on mainnet | policy, budgets, ledgers, manifests, receipts, CML-aware runner |
 | Autonomous world/task/PK routes | Live | bounded on-chain AI execution |
-| Battle Royale autonomy path | Live foundation | enter / reveal watcher / settled claim path; full round execution waits for match state |
+| Battle Royale autonomy path | Live on mainnet | enter / reveal / settle / autonomous claim path smoke-tested end to end |
+| WorldMap world layer | Planned | finite `worldId / zoneId / tileId / state` position fact layer; no free xyz |
 | AI proxy mode for players | In progress | owner-wallet Claworld balance threshold with bounded autonomy |
 | More external integrations | Planned | broader BAP-578-compatible action surfaces |
 
@@ -740,6 +786,28 @@ flowchart LR
 
 ---
 
+### 生产环境 Directive 存储
+
+玩家 directive 通过前端签名 API 写入，然后由线上 runner 镜像到本地。
+
+生产链路应该是：
+- Vercel 前端在 `ownerOf(tokenId)` 和签名校验后，把 directive 写入共享 KV
+- Vultr runner 从同一个 KV key 同步到本地 `.cache/autonomy-directives.json`
+- `autonomyPlanner.ts` 在生成 task、PK 和 Battle Royale prompt 时读取这个本地镜像
+
+这样 planner 仍然保持本地、稳定、可恢复，同时避免旧的割裂问题：Vercel 已经保存了 directive，但 runner 读不到。
+
+关键环境变量：
+- `KV_REST_API_URL`
+- `KV_REST_API_TOKEN`
+- `AUTONOMY_DIRECTIVE_STORE_KEY`
+- `AUTONOMY_DIRECTIVE_SYNC_ENABLED`
+- `AUTONOMY_DIRECTIVE_FILE`
+- `AUTONOMY_DIRECTIVE_KV_REST_API_URL`
+- `AUTONOMY_DIRECTIVE_KV_REST_API_TOKEN`
+
+---
+
 ### ClawOracle 与 Autonomy
 
 `ClawOracle` 现在已经不是一个孤立的 AI 合约概念。
@@ -779,7 +847,13 @@ Battle Royale 现在也接进了同一条 autonomy 路径。
 - 对局满足人数后，由 watcher 等待 reveal 条件
 - 对局结算后，为对应 NFA participant 领取奖励
 
-第一局主网 Battle Royale 目前还在 OPEN 状态，人数没满触发条件。所以 enter / reveal watcher / claim 路径已经接好，但 reveal 和 claim 要等链上对局进入对应状态才会执行。
+第一局主网 Battle Royale autonomy 已经完成真实端到端 smoke：进房、finalize、补满人数、reveal / emergency reveal、settle、自主领取和 finalization 都已经跑通。ActionHub 当前应指向带 participant 语义的 `BattleRoyaleAdapter`：`0xCD71fD0429DC82EfD6Ef019a7e1F7f93a5A1AEcc`。
+
+这次线上 smoke 修正了几个实际问题：
+- reveal watcher 不能只盯 `latestOpenMatch()`；对局进入 `PENDING_REVEAL` 后 `latestOpenMatch()` 会归零，所以 watcher 需要从 `matchCount` 找最新对局
+- Battle Royale 结算不能假设 autonomy router stake 已经变成 BattleRoyale 合约内的 ERC-20 余额
+- smoke 脚本会先领取已结算奖励，再考虑进入新的开放对局
+- Battle Royale autonomy policy 默认使用更高 daily action limit，避免零花费 claim 在 enter 后被每日动作次数挡住
 
 ```mermaid
 flowchart LR
@@ -800,6 +874,22 @@ flowchart LR
     Reveal --> Claim
     Claim --> CML
 ```
+
+---
+
+### WorldMap 方向
+
+下一步 world-layer contract 应该是轻量的位置事实层，而不是完整移动引擎。
+
+第一版计划模型：
+- `worldId`
+- `zoneId`
+- `tileId`
+- `state`
+
+这里的关键约束是：`tileId` 是场景语义锚点，不是几何引擎。合约只记录 NFA 在世界中的位置并输出位置变化事件；前端的层级、动画、场景表现都留在线下。
+
+第一批集成点建议是 PK / Arena 和 TaskZone，因为这些动作已经有清晰的位置语义。Market 和更多 oracle / autonomy world-action 可以后续再接。
 
 ---
 
@@ -853,7 +943,8 @@ ClaworldNfa/
 ├── openclaw/
 │   ├── claw-world-skill/
 │   ├── autonomyOracleRunner.ts
-│   ├── autonomyCmlRuntime.ts
+│   ├── cml.ts
+│   ├── autonomyDirectiveRuntime.ts
 │   ├── autonomyPlanner.ts
 │   ├── openaiCompatibleAI.ts
 │   ├── battleRoyaleRevealWatcher.ts
@@ -873,7 +964,8 @@ ClaworldNfa/
 | OpenClaw CML runtime | 已上线 | `boot / env / owned`、CML、Hermes adapter |
 | ClawOracle autonomy stack | 主网上线 | policy、budget、ledger、manifest、receipt、CML-aware runner |
 | Autonomous world/task/PK routes | 已上线 | 有边界的链上 AI 执行 |
-| Battle Royale autonomy path | 基础已上线 | enter / reveal watcher / settled claim 路径，完整回合等待对局状态 |
+| Battle Royale autonomy path | 主网跑通 | enter / reveal / settle / 自主 claim 端到端 smoke 已完成 |
+| WorldMap 世界层 | 计划中 | 有限 `worldId / zoneId / tileId / state` 位置事实层，不做自由 xyz |
 | 玩家 AI 代理模式 | 开发中 | owner 钱包 Claworld 持有门槛 + 有边界自主动作 |
 | 更多外部集成 | 计划中 | 更广义的 BAP-578 兼容动作面 |
 
