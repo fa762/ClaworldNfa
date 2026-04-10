@@ -39,6 +39,7 @@ The project already has four live surfaces:
 Already live on mainnet:
 - genesis mint with commit-reveal
 - task / PK / market / deposit / withdraw flows
+- Battle Royale game contract with room entry, reveal, and claim surfaces
 - browser game and OpenClaw runtime
 - CML-based session memory
 - `ClawOracle` mainnet deployment
@@ -51,6 +52,12 @@ Already live on mainnet:
   - `WorldEvent`
   - `Task route`
   - `PK route`
+  - `Battle Royale enter / claim`
+- CML-aware oracle runner:
+  - creates an initial CML file for first-time NFAs
+  - injects CML memory into planning and option selection
+  - writes action outcomes back into CML after execution
+  - queues memory root sync instead of writing on-chain every action
 
 What this means in practice:
 - a player can still play manually through the website, the game, or OpenClaw
@@ -284,6 +291,7 @@ In practice, the important part is not just that memory exists, but how it is st
 - the new CML file is saved locally and can be backed up remotely
 - the new memory root can be synced back on-chain
 - the next runtime boot reads that updated memory again
+- the oracle runner can also create and update CML for NFAs that have never used the skill
 
 ```mermaid
 flowchart LR
@@ -309,6 +317,28 @@ flowchart LR
     Root --> Reuse
 ```
 
+The current server runner uses CML in a production-safe way:
+- CML creation and action-memory writes happen off-chain, so they do not add gas to every decision
+- each autonomous action outcome can update `PULSE`, `PREFRONTAL`, `BASAL`, and `CORTEX.vivid`
+- duplicate request writes are ignored, so a runner restart will not keep adding the same memory
+- `learningTreeRoot` sync is queued as a pending root update and can be batched or triggered deliberately
+
+```mermaid
+flowchart LR
+    Action["Autonomous action request"]
+    Ensure["Ensure CML exists"]
+    Prompt["Inject CML into planner / oracle prompt"]
+    Execute["Execute bounded on-chain action"]
+    Memory["Write action outcome into CML"]
+    Pending["Queue root sync<br/>no automatic gas per action"]
+
+    Action --> Ensure
+    Ensure --> Prompt
+    Prompt --> Execute
+    Execute --> Memory
+    Memory --> Pending
+```
+
 ---
 
 ### ClawOracle and Autonomy
@@ -332,6 +362,9 @@ Current autonomy capabilities include:
 - lease-based delegation
 - action / protocol / asset / NFA ledgers
 - standardized receipts and external introspection
+- OpenAI-compatible API runner deployment
+- persistent CML runtime storage for autonomy memory
+- low-gas runner configuration with explicit gas price caps
 
 This is the current direction:
 an NFA can gradually become a small on-chain economic unit, not just a role in a game.
@@ -366,6 +399,39 @@ The important point is simple:
 - the result is executed and finalized on-chain
 - the action leaves a readable receipt and ledger trail
 
+#### Battle Royale autonomy
+
+Battle Royale is now connected to the same autonomy path.
+
+The current path supports:
+- reading the live open match and room distribution
+- choosing from bounded room / stake options
+- entering with the NFA id as the participant semantic, while the owner wallet remains the permission source
+- watching for reveal readiness after the match fills
+- claiming settled rewards for the matching NFA participant
+
+The first live Battle Royale match is still open until it reaches its trigger count. That means the reveal and claim runner paths are implemented, but only execute after the match enters the correct on-chain state.
+
+```mermaid
+flowchart LR
+    Policy["Owner enables Battle Royale policy"]
+    Scan["Runner scans open match"]
+    Plan["Planner scores rooms and stake"]
+    OracleChoice["ClawOracle chooses bounded option"]
+    Enter["Adapter enters by NFA participant"]
+    Reveal["Reveal watcher settles when ready"]
+    Claim["Claim settled reward"]
+    CML["Write result into CML"]
+
+    Policy --> Scan
+    Scan --> Plan
+    Plan --> OracleChoice
+    OracleChoice --> Enter
+    Enter --> Reveal
+    Reveal --> Claim
+    Claim --> CML
+```
+
 ---
 
 ### Mainnet Contracts
@@ -378,11 +444,12 @@ The important point is simple:
 | ClawRouter | NFA internal balance and state hub | [`0x60C0D5276c007Fd151f2A615c315cb364EF81BD5`](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5) |
 | GenesisVault | Genesis mint | [`0xCe04f834aC4581FD5562f6c58C276E60C624fF83`](https://bscscan.com/address/0xCe04f834aC4581FD5562f6c58C276E60C624fF83) |
 | WorldState | Global world parameters | [`0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA`](https://bscscan.com/address/0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA) |
-| TaskSkill | Task rewards and progression | [`0xaed370784536e31BE4A5D0Dbb1F275c98179D10`](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1F275c98179D10) |
+| TaskSkill | Task rewards and progression | [`0xaed370784536e31BE4A5D0Dbb1bF275c98179D10`](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1bF275c98179D10) |
 | PKSkill | PvP arena | [`0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF`](https://bscscan.com/address/0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF) |
 | MarketSkill | Fixed price / auction / swap | [`0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54`](https://bscscan.com/address/0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54) |
 | DepositRouter | Deposit and swap routing | [`0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269`](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269) |
 | ClawOracle | On-chain oracle request board | [`0x652c192B6A3b13e0e90F145727DE6484AdA8442a`](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) |
+| BattleRoyale | Room-based survival game | [`0x2B2182326Fd659156B2B119034A72D1C2cC9758D`](https://bscscan.com/address/0x2B2182326Fd659156B2B119034A72D1C2cC9758D) |
 
 #### Autonomy Core
 
@@ -400,6 +467,7 @@ The important point is simple:
 | WorldEventSkill | bounded oracle-driven world choice | [`0xdD1273990234D591c098e1E029876F0236Ef8bD3`](https://bscscan.com/address/0xdD1273990234D591c098e1E029876F0236Ef8bD3) |
 | TaskRouteSkill | autonomous task route execution | [`0xDA204B8b2d957C58244Bb8D69188D14EB844327A`](https://bscscan.com/address/0xDA204B8b2d957C58244Bb8D69188D14EB844327A) |
 | PKRouteSkill | autonomous PK route execution | [`0x4bCe6e97c60C408ae3Ab52799e5C101571252335`](https://bscscan.com/address/0x4bCe6e97c60C408ae3Ab52799e5C101571252335) |
+| BattleRoyaleAdapter | autonomous Battle Royale enter / claim bridge | [`0xCD71fD0429DC82EfD6Ef019a7e1F7f93a5A1AEcc`](https://bscscan.com/address/0xCD71fD0429DC82EfD6Ef019a7e1F7f93a5A1AEcc) |
 
 ---
 
@@ -416,7 +484,10 @@ ClaworldNfa/
 ├── openclaw/
 │   ├── claw-world-skill/
 │   ├── autonomyOracleRunner.ts
+│   ├── autonomyCmlRuntime.ts
+│   ├── autonomyPlanner.ts
 │   ├── openaiCompatibleAI.ts
+│   ├── battleRoyaleRevealWatcher.ts
 │   └── reasoningUploader.ts
 ├── scripts/
 ├── test/
@@ -431,9 +502,10 @@ ClaworldNfa/
 |------|--------|------|
 | BAP-578 core gameplay | Live | Mint, task, PK, market, deposit, withdraw |
 | OpenClaw CML runtime | Live | `boot / env / owned`, CML, Hermes adapter |
-| ClawOracle autonomy stack | Live on mainnet | policy, budgets, ledgers, manifests, receipts |
+| ClawOracle autonomy stack | Live on mainnet | policy, budgets, ledgers, manifests, receipts, CML-aware runner |
 | Autonomous world/task/PK routes | Live | bounded on-chain AI execution |
-| AI proxy mode for players | In progress | token-staked NFA AI mode with bounded autonomy |
+| Battle Royale autonomy path | Live foundation | enter / reveal watcher / settled claim path; full round execution waits for match state |
+| AI proxy mode for players | In progress | owner-wallet Claworld balance threshold with bounded autonomy |
 | More external integrations | Planned | broader BAP-578-compatible action surfaces |
 
 ---
@@ -497,6 +569,7 @@ ClaworldNfa 是一个落在 BNB Chain 主网的 BAP-578 NFA 世界。
 主网上已经跑通：
 - 创世铸造 commit-reveal
 - 任务 / PK / 市场 / 充值 / 提现
+- Battle Royale 游戏合约，支持进房、reveal 和领取
 - 浏览器游戏和 OpenClaw runtime
 - 基于 CML 的会话记忆
 - `ClawOracle` 主网部署
@@ -510,6 +583,12 @@ ClaworldNfa 是一个落在 BNB Chain 主网的 BAP-578 NFA 世界。
   - `WorldEvent`
   - `Task route`
   - `PK route`
+  - `Battle Royale enter / claim`
+- 接入 CML 的 oracle runner：
+  - 没用过 skill 的 NFA，也可以在第一次进入自主流程时自动创建 CML
+  - planner 和 oracle 选项决策都会读取 CML
+  - 动作结束后把结果写回 CML
+  - memory root 先进入待同步队列，不会每次动作都自动上链烧 gas
 
 也就是说，现在既能手动玩，也已经开始支持 NFA 在授权范围里自己行动。
 
@@ -741,6 +820,7 @@ CML 现在不只是一个本地聊天缓存。
 - 也可以继续备份到 Greenfield / 远端存储
 - 新的 memory root 会同步回链上
 - 下一次 boot、游戏、其他 agent、链上 autonomy 都继续读这份记忆
+- oracle runner 也可以为从没用过 skill 的 NFA 创建和更新 CML
 
 ```mermaid
 flowchart LR
@@ -768,6 +848,28 @@ flowchart LR
 
 所以同一只龙虾的记忆、状态、情绪和行为轨迹，不会只停在一个本地窗口里，而是会被持续保存、同步，再被下一次运行继续使用。
 
+现在服务器 runner 对 CML 的处理是按生产成本设计的：
+- CML 创建和动作记忆写入都在链下完成，不会给每次决策增加 gas
+- 每次自主动作结束后，可以更新 `PULSE`、`PREFRONTAL`、`BASAL` 和 `CORTEX.vivid`
+- 同一个 request 被重启回扫时不会重复写入同一条记忆
+- `learningTreeRoot` 只进入待同步队列，后面可以批量或明确触发同步，不做每次动作自动上链
+
+```mermaid
+flowchart LR
+    Action["自主动作请求"]
+    Ensure["确认 / 创建 CML"]
+    Prompt["CML 注入 planner / oracle prompt"]
+    Execute["执行有边界的链上动作"]
+    Memory["动作结果写入 CML"]
+    Pending["进入 root sync 队列<br/>不按每次动作自动烧 gas"]
+
+    Action --> Ensure
+    Ensure --> Prompt
+    Prompt --> Execute
+    Execute --> Memory
+    Memory --> Pending
+```
+
 ---
 
 ### ClawOracle 与 Autonomy
@@ -791,6 +893,9 @@ flowchart LR
 - lease 委托
 - action / protocol / asset / NFA 账本
 - 标准化 receipt 和外部 introspection
+- OpenAI-compatible API runner 部署
+- 持久化 CML runtime 存储
+- 低 gas runner 配置和 gas price 上限
 
 这个方向的目标很明确：
 让 NFA 逐步长成一个可以被授权、可以执行、可以被外部系统读懂的链上经济体。
@@ -825,6 +930,39 @@ flowchart LR
 - 动作真正落到链上
 - 最后留下可读的 receipt 和 ledger
 
+#### Battle Royale autonomy
+
+Battle Royale 现在也接进了同一条 autonomy 路径。
+
+当前路径支持：
+- 读取当前开放对局和 10 个房间分布
+- 在被授权的房间和 stake 范围内做选择
+- 用 NFA id 作为参赛语义，owner 钱包只负责权限验证
+- 对局满足人数后，由 watcher 等待 reveal 条件
+- 对局结算后，为对应 NFA participant 领取奖励
+
+第一局主网 Battle Royale 目前还在 OPEN 状态，人数没满触发条件。所以 enter / reveal watcher / claim 路径已经接好，但 reveal 和 claim 要等链上对局进入对应状态才会执行。
+
+```mermaid
+flowchart LR
+    Policy["主人开启 Battle Royale policy"]
+    Scan["runner 扫描开放对局"]
+    Plan["planner 评估房间和 stake"]
+    OracleChoice["ClawOracle 选择边界内选项"]
+    Enter["adapter 以 NFA participant 进房"]
+    Reveal["watcher 到条件后 reveal"]
+    Claim["领取已结算奖励"]
+    CML["结果写入 CML"]
+
+    Policy --> Scan
+    Scan --> Plan
+    Plan --> OracleChoice
+    OracleChoice --> Enter
+    Enter --> Reveal
+    Reveal --> Claim
+    Claim --> CML
+```
+
 ---
 
 ### 主网合约
@@ -837,11 +975,12 @@ flowchart LR
 | ClawRouter | 内部账户与状态枢纽 | [`0x60C0D5276c007Fd151f2A615c315cb364EF81BD5`](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5) |
 | GenesisVault | 创世铸造 | [`0xCe04f834aC4581FD5562f6c58C276E60C624fF83`](https://bscscan.com/address/0xCe04f834aC4581FD5562f6c58C276E60C624fF83) |
 | WorldState | 世界参数 | [`0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA`](https://bscscan.com/address/0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA) |
-| TaskSkill | 任务 | [`0xaed370784536e31BE4A5D0Dbb1F275c98179D10`](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1F275c98179D10) |
+| TaskSkill | 任务 | [`0xaed370784536e31BE4A5D0Dbb1bF275c98179D10`](https://bscscan.com/address/0xaed370784536e31BE4A5D0Dbb1bF275c98179D10) |
 | PKSkill | PK | [`0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF`](https://bscscan.com/address/0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF) |
 | MarketSkill | 市场 | [`0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54`](https://bscscan.com/address/0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54) |
 | DepositRouter | 充值与兑换路由 | [`0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269`](https://bscscan.com/address/0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269) |
 | ClawOracle | Oracle 请求板 | [`0x652c192B6A3b13e0e90F145727DE6484AdA8442a`](https://bscscan.com/address/0x652c192B6A3b13e0e90F145727DE6484AdA8442a) |
+| BattleRoyale | 房间制大逃杀游戏 | [`0x2B2182326Fd659156B2B119034A72D1C2cC9758D`](https://bscscan.com/address/0x2B2182326Fd659156B2B119034A72D1C2cC9758D) |
 
 #### Autonomy Core
 
@@ -859,6 +998,7 @@ flowchart LR
 | WorldEventSkill | 世界事件自主选择 | [`0xdD1273990234D591c098e1E029876F0236Ef8bD3`](https://bscscan.com/address/0xdD1273990234D591c098e1E029876F0236Ef8bD3) |
 | TaskRouteSkill | 自主任务路线 | [`0xDA204B8b2d957C58244Bb8D69188D14EB844327A`](https://bscscan.com/address/0xDA204B8b2d957C58244Bb8D69188D14EB844327A) |
 | PKRouteSkill | 自主 PK 路线 | [`0x4bCe6e97c60C408ae3Ab52799e5C101571252335`](https://bscscan.com/address/0x4bCe6e97c60C408ae3Ab52799e5C101571252335) |
+| BattleRoyaleAdapter | 自主 Battle Royale 进房 / 领取桥接 | [`0xCD71fD0429DC82EfD6Ef019a7e1F7f93a5A1AEcc`](https://bscscan.com/address/0xCD71fD0429DC82EfD6Ef019a7e1F7f93a5A1AEcc) |
 
 ---
 
@@ -875,7 +1015,10 @@ ClaworldNfa/
 ├── openclaw/
 │   ├── claw-world-skill/
 │   ├── autonomyOracleRunner.ts
+│   ├── autonomyCmlRuntime.ts
+│   ├── autonomyPlanner.ts
 │   ├── openaiCompatibleAI.ts
+│   ├── battleRoyaleRevealWatcher.ts
 │   └── reasoningUploader.ts
 ├── scripts/
 ├── test/
@@ -890,9 +1033,10 @@ ClaworldNfa/
 |------|------|------|
 | BAP-578 核心玩法 | 已上线 | 铸造、任务、PK、市场、充值、提现 |
 | OpenClaw CML runtime | 已上线 | `boot / env / owned`、CML、Hermes adapter |
-| ClawOracle autonomy stack | 主网上线 | policy、budget、ledger、manifest、receipt |
+| ClawOracle autonomy stack | 主网上线 | policy、budget、ledger、manifest、receipt、CML-aware runner |
 | Autonomous world/task/PK routes | 已上线 | 有边界的链上 AI 执行 |
-| 玩家 AI 代理模式 | 开发中 | 计划通过代币质押开启 NFA AI 代理 |
+| Battle Royale autonomy path | 基础已上线 | enter / reveal watcher / settled claim 路径，完整回合等待对局状态 |
+| 玩家 AI 代理模式 | 开发中 | owner 钱包 Claworld 持有门槛 + 有边界自主动作 |
 | 更多外部集成 | 计划中 | 更广义的 BAP-578 兼容动作面 |
 
 ---
