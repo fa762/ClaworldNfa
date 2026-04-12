@@ -4,6 +4,7 @@ import { Boxes, Flame } from 'lucide-react';
 
 import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
 import { useOwnedCompanionRoster } from '@/components/lobster/useOwnedCompanionRoster';
+import { useI18n } from '@/lib/i18n';
 
 type OwnedCompanionRailProps = {
   title?: string;
@@ -18,19 +19,29 @@ export function OwnedCompanionRail({
 }: OwnedCompanionRailProps) {
   const companion = useActiveCompanion();
   const roster = useOwnedCompanionRoster(companion.ownedTokens);
+  const { pick } = useI18n();
 
   if (companion.ownedCount <= 1) return null;
 
   return (
     <section className={`cw-section ${compact ? 'cw-section--compact' : ''}`}>
-      <div className={`cw-section-head ${compact ? 'cw-section-head--compact' : ''}`}>
+      <div className={compact ? 'cw-roster-toolbar' : `cw-section-head ${compact ? 'cw-section-head--compact' : ''}`}>
         <div>
-          <h2 className="cw-section-title">{title}</h2>
-          {!compact ? <p className="cw-muted">{subtitle}</p> : null}
+          {compact ? (
+            <>
+              <span className="cw-label">{pick('当前编组', 'Active roster')}</span>
+              <h2 className="cw-section-title">{pick('切换龙虾', 'Switch lobster')}</h2>
+            </>
+          ) : (
+            <>
+              <h2 className="cw-section-title">{title}</h2>
+              <p className="cw-muted">{subtitle}</p>
+            </>
+          )}
         </div>
         <span className="cw-chip cw-chip--cool">
           <Boxes size={14} />
-          {companion.ownedCount} owned
+          {pick(`${companion.ownedCount} 只`, `${companion.ownedCount} owned`)}
         </span>
       </div>
 
@@ -53,14 +64,14 @@ export function OwnedCompanionRail({
               <div key={item.tokenId.toString()} className="cw-roster-card cw-roster-card--loading" aria-hidden="true">
                 <div className="cw-roster-head">
                   <strong>#{item.tokenNumber}</strong>
-                  <span className="cw-chip cw-chip--cool">Loading</span>
+                  <span className="cw-chip cw-chip--cool">{pick('读取中', 'Loading')}</span>
                 </div>
                 <div className="cw-roster-copy">
                   <h3>{item.name}</h3>
                   <p className="cw-muted">{item.shelterName}</p>
                 </div>
                 <div className="cw-roster-meta">
-                  <span className="cw-label">Reserve</span>
+                  <span className="cw-label">{pick('储备', 'Reserve')}</span>
                   <strong>{item.reserveText}</strong>
                 </div>
               </div>
@@ -78,7 +89,7 @@ export function OwnedCompanionRail({
                 <strong>#{item.tokenNumber}</strong>
                 <span className={`cw-chip ${item.active ? 'cw-chip--growth' : 'cw-chip--cool'}`}>
                   <Flame size={12} />
-                  {item.active ? 'Ready' : 'Watch'}
+                  {item.active ? pick('就绪', 'Ready') : pick('观察', 'Watch')}
                 </span>
               </div>
               <div className="cw-roster-copy">
@@ -89,7 +100,7 @@ export function OwnedCompanionRail({
                 </p>
               </div>
               <div className="cw-roster-meta">
-                <span className="cw-label">Reserve</span>
+                <span className="cw-label">{pick('储备', 'Reserve')}</span>
                 <strong>{item.reserveText}</strong>
               </div>
             </button>
@@ -97,7 +108,7 @@ export function OwnedCompanionRail({
         })}
       </div>
 
-      {roster.isLoading && !compact ? <p className="cw-muted">Refreshing owned companion roster...</p> : null}
+      {roster.isLoading && !compact ? <p className="cw-muted">{pick('正在刷新已拥有的龙虾列表。', 'Refreshing owned companion roster...')}</p> : null}
     </section>
   );
 }

@@ -90,6 +90,22 @@ The rebuilt shell has now crossed the minimum product-closure threshold for the 
 
 This means the rebuild is no longer only a visual shell. The new navigation now contains the minimum owner-path maintenance controls needed to keep a lobster alive and usable without falling back to the old NFA detail screen.
 
+## Progress checkpoint - 2026-04-12 session 5
+
+This pass moved the rewrite from "usable shell" toward "testable product surface":
+
+- core rebuilt pages are now Chinese-first instead of relying on shell chrome only
+- wallet-gated pages now expose proper loading and signature states instead of leaving users guessing
+- the main transaction surfaces now distinguish:
+  - waiting for wallet signature
+  - waiting for on-chain confirmation
+  - queued / confirmed result
+- result panels are now more reward-forward and less clinical
+- compact roster and tighter tabs further reduced wasted vertical space on phones
+- settings placeholders are now clearly labeled as future controls instead of looking finished
+
+This pass deliberately did not try to normalize the whole legacy `i18n.tsx` file. That file still needs a dedicated cleanup because it carries historical encoding noise. New user-facing copy was stabilized locally on the live product surfaces first.
+
 ## Primary app structure
 
 ### 1. Home
@@ -283,6 +299,12 @@ Status:
 
 - in progress
 
+Current Phase C notes:
+
+- owner-path task mining flow now has a clearer Chinese-first preview -> confirm -> execute -> result loop
+- Battle Royale owner claim and autonomy request surfaces now expose clearer intermediate tx states
+- PK has meaningful Chinese-first action and result coverage, but still needs a smaller cleanup pass for residual English in deep detail text
+
 ### Phase D: autonomy UX
 
 Deliver:
@@ -295,6 +317,34 @@ Deliver:
 Status:
 
 - in progress
+
+Current Phase D notes:
+
+- directive editor and autonomy claim request are now usable in Chinese-first mode
+- autonomy UX now better explains bounded control without dumping users into raw receipts first
+- the next highest-value step is real mainnet wallet validation on deployed preview/prod, not more speculative UI expansion
+
+## Next execution order
+
+1. Real wallet validation on deployed frontend
+
+- `/play` task mining end-to-end
+- `/arena` PK create/join/reveal/settle flows
+- `/auto` autonomy claim request and directive save
+
+2. Fix issues discovered from live wallet testing
+
+- gas estimation edge cases
+- wallet rejection messaging
+- stale refetch / receipt timing issues
+- remaining English leaks in PK subflows
+
+3. PWA real-device validation
+
+- install prompt
+- standalone launch
+- offline fallback
+- mobile safe-area behavior
 
 ### Phase E: companion layer
 

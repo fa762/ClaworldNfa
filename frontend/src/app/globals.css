@@ -650,7 +650,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 16px 16px 88px;
+  padding: 16px 16px 84px;
 }
 
 .cw-page {
@@ -865,6 +865,48 @@
   margin-top: 14px;
 }
 
+.cw-loading-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cw-skeleton-line {
+  height: 12px;
+  width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: cw-shimmer 1.2s linear infinite;
+}
+
+.cw-skeleton-line--short {
+  width: 36%;
+}
+
+.cw-skeleton-line--mid {
+  width: 62%;
+}
+
+.cw-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cw-skeleton-block {
+  min-height: 68px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .cw-button {
   display: inline-flex;
   align-items: center;
@@ -1024,6 +1066,14 @@
   animation: cw-rise-in 220ms ease;
 }
 
+.cw-result-panel--success {
+  border-color: rgba(123, 200, 164, 0.2);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(123, 200, 164, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(123, 200, 164, 0.06), transparent 36%),
+    linear-gradient(180deg, rgba(29, 35, 45, 0.96), rgba(16, 20, 28, 0.96));
+}
+
 .cw-panel--presence {
   border-color: rgba(255, 180, 92, 0.2);
   background:
@@ -1094,6 +1144,21 @@
 .cw-result-panel {
   position: relative;
   overflow: hidden;
+}
+
+.cw-result-stat--hero strong {
+  color: var(--color-bunker-primary);
+  font-size: 1.22rem;
+}
+
+.cw-result-celebration {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--color-bunker-primary);
+  font-family: var(--font-heading);
+  font-size: 1.08rem;
 }
 
 .cw-result-panel::after {
@@ -1194,13 +1259,20 @@
   scrollbar-width: none;
 }
 
+.cw-roster-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .cw-roster::-webkit-scrollbar {
   display: none;
 }
 
 .cw-roster-card {
-  min-width: 176px;
-  padding: 10px;
+  min-width: 164px;
+  padding: 9px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: linear-gradient(180deg, rgba(29, 35, 45, 0.92), rgba(23, 27, 35, 0.92));
@@ -1230,7 +1302,7 @@
 }
 
 .cw-roster-copy {
-  padding: 12px 0;
+  padding: 8px 0;
 }
 
 .cw-roster-copy h3 {
@@ -1248,8 +1320,8 @@
 .cw-tabs {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  gap: 6px;
+  padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
   background:
     linear-gradient(180deg, rgba(10, 13, 18, 0), rgba(10, 13, 18, 0.96) 22%),
     rgba(10, 13, 18, 0.98);
@@ -1259,11 +1331,11 @@
 
 .cw-tab {
   display: flex;
-  min-height: 52px;
+  min-height: 48px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   border-radius: 8px;
   color: var(--color-bunker-text-soft);
   transition: transform 160ms ease, background-color 160ms ease, color 160ms ease;
@@ -1301,6 +1373,15 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+}
+
+@keyframes cw-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
 .cw-inline-form {

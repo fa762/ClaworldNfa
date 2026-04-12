@@ -258,6 +258,50 @@ Frontend arena-routing/presence checkpoint on 2026-04-12:
   - runway
   - immediate focus / momentum
 - this pass was about making the lobster feel more like the product anchor while keeping action routing legible
+
+Frontend UX pass 2 checkpoint on 2026-04-12:
+
+- the rebuilt frontend is now Chinese-first across the main live surfaces instead of remaining shell-only localized
+- the following pages/components were rewritten or heavily reworked in this pass:
+  - `Home`
+  - `Arena`
+  - `Auto`
+  - `Companion`
+  - `Settings`
+  - `WalletGate`
+  - `BattleRoyaleActionPanel`
+  - `BattleRoyaleClaimPanel`
+  - `AutonomyClaimRequestPanel`
+  - `AutonomyDirectivePanel`
+  - `PKArenaPanel`
+  - `OwnedCompanionRail`
+- wallet-dependent pages now expose clearer intermediate states:
+  - loading skeleton gate while ownership / reserve reads resolve
+  - explicit wallet-signature waiting state before tx hash exists
+  - explicit chain-confirming state after submission
+- result feedback is now stronger on the rebuilt owner-path loops:
+  - task result panel promotes reward amount visually
+  - Battle Royale owner claim success is no longer phrased as a cold technical log line
+  - autonomy request and directive save paths now expose success / queued language more clearly
+- roster and shell density were tightened again:
+  - compact owned roster toolbar
+  - narrower roster cards
+  - lower bottom-tab height
+  - slightly smaller bottom safe area consumption
+- Settings no longer presents roadmap cards as if they were finished controls:
+  - BYOK and notification surfaces are now clearly marked as coming soon
+- frontend production build passed after this UX pass:
+  - `npm --prefix frontend run build`
+
+Remaining high-value frontend gaps after this checkpoint:
+
+- real wallet verification still needs to be run on:
+  - `/play`
+  - `/arena`
+  - `/auto`
+- `PKArenaPanel` still has some secondary English fallback copy in deep detail rows and recent-tape lines
+- the global translation layer (`frontend/src/lib/i18n.tsx`) still contains legacy encoding noise and should be normalized in a dedicated cleanup pass instead of being touched opportunistically
+- PWA install / standalone / offline behavior still needs real-device validation on a deployed HTTPS environment
 - frontend production build passed again after the arena-routing and presence pass
 
 Frontend PK/autonomy-feedback checkpoint on 2026-04-12:

@@ -24,11 +24,11 @@ export function WalletGate({
       <section className="cw-panel cw-panel--cool">
         <div className="cw-section-head">
           <div>
-            <span className="cw-label">{pick('连接中', 'Loading')}</span>
+            <span className="cw-label">{pick('加载中', 'Loading')}</span>
             <h3>{pick('正在读取钱包与龙虾状态', 'Reading wallet and companion state')}</h3>
             <p className="cw-muted">
               {pick(
-                '保持这个页面打开，等链上持仓和维护状态加载完成。',
+                '保持页面打开，等待钱包持仓、储备和维护状态完成读取。',
                 'Keep this page open while ownership, reserve, and upkeep state resolve.',
               )}
             </p>
@@ -37,6 +37,16 @@ export function WalletGate({
             <Shield size={14} />
             {pick('读取中', 'Loading')}
           </span>
+        </div>
+        <div className="cw-loading-card">
+          <div className="cw-skeleton-line cw-skeleton-line--short" />
+          <div className="cw-skeleton-line" />
+          <div className="cw-skeleton-line cw-skeleton-line--mid" />
+          <div className="cw-skeleton-grid">
+            <div className="cw-skeleton-block" />
+            <div className="cw-skeleton-block" />
+            <div className="cw-skeleton-block" />
+          </div>
         </div>
       </section>
     );
@@ -52,7 +62,7 @@ export function WalletGate({
             <p className="cw-muted">
               {detail ??
                 pick(
-                  '这个页面需要真实的钱包持仓、NFA 所有权和链上余额，断开状态下不应该显示空数据。',
+                  '这个页面依赖真实的钱包持仓、NFA 所有权和链上余额，离线时不该继续展示空数据。',
                   'This page depends on real ownership, reserve, and on-chain state. It should not fall back to dead zero panels.',
                 )}
             </p>
@@ -79,7 +89,7 @@ export function WalletGate({
             <h3>{pick('当前钱包还没有龙虾，先去铸造。', 'This wallet does not own a lobster yet.')}</h3>
             <p className="cw-muted">
               {pick(
-                '新前端已经切成养成主入口，没有 NFA 时不应该继续展示竞技、自治或挖矿空面板。',
+                '新前端已经切到养成主入口，没有 NFA 时不该继续展示竞技、自治或挖矿空面板。',
                 'The rebuilt shell now starts from ownership. Without an NFA, the action surfaces should route you to mint instead of showing empty state.',
               )}
             </p>

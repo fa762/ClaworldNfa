@@ -29,6 +29,7 @@ import { WalletGate } from '@/components/wallet/WalletGate';
 import { TaskSkillABI } from '@/contracts/abis/TaskSkill';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { formatBasisPoints, formatBNB, formatCLW } from '@/lib/format';
+import { useI18n } from '@/lib/i18n';
 
 type TaskTone = 'cw-card--ready' | 'cw-card--watch' | 'cw-card--safe' | 'cw-card--warning';
 
@@ -73,13 +74,13 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function getErrorMessage(error: unknown) {
-  if (!(error instanceof Error)) return 'Task transaction failed.';
-  if (error.message.includes('Cooldown active')) return 'Task cooldown is still active.';
-  if (error.message.includes('Not NFA owner')) return 'Connected wallet does not own this NFA.';
-  if (error.message.includes('XP cap exceeded')) return 'XP reward exceeds the current TaskSkill cap.';
-  if (error.message.includes('CLW cap exceeded')) return 'Requested Claworld reward exceeds the current TaskSkill cap.';
-  if (error.message.includes('User rejected')) return 'Wallet signature was rejected.';
+function getErrorMessage(error: unknown, pick: <T,>(zh: T, en: T) => T) {
+  if (!(error instanceof Error)) return pick('任务交易失败。', 'Task transaction failed.');
+  if (error.message.includes('Cooldown active')) return pick('任务冷却还没结束。', 'Task cooldown is still active.');
+  if (error.message.includes('Not NFA owner')) return pick('当前钱包不是这只 NFA 的 owner。', 'Connected wallet does not own this NFA.');
+  if (error.message.includes('XP cap exceeded')) return pick('XP 奖励超过当前 TaskSkill 上限。', 'XP reward exceeds the current TaskSkill cap.');
+  if (error.message.includes('CLW cap exceeded')) return pick('请求的 Claworld 奖励超过当前 TaskSkill 上限。', 'Requested Claworld reward exceeds the current TaskSkill cap.');
+  if (error.message.includes('User rejected')) return pick('钱包拒绝了签名。', 'Wallet signature was rejected.');
   return error.message;
 }
 
@@ -108,13 +109,14 @@ function buildTaskTemplates(
   upkeepPressure: number,
   active: boolean,
   upkeepDays: number | null,
+  pick: <T,>(zh: T, en: T) => T,
 ) {
   const levelLift = level * 2;
 
   return [
     {
       key: 'adventure',
-      title: 'Adventure',
+      title: pick('冒险挖矿', 'Adventure'),
       taskType: 0,
       xpReward: clamp(16 + level * 2, 12, 32),
       requestedClw: parseEther(
@@ -131,14 +133,14 @@ function buildTaskTemplates(
       ),
       detail:
         traits.courage >= traits.wisdom
-          ? 'Leans into courage and grit. Best when you want upside and the reserve can handle it.'
-          : 'Still viable, but this lobster is not primarily aggression-led right now.',
+          ? pick('更吃勇气和韧性，适合在储备扛得住时追求更高回报。', 'Leans into courage and grit. Best when you want upside and the reserve can handle it.')
+          : pick('也能做，但当前这只龙虾并不是纯进攻型。', 'Still viable, but this lobster is not primarily aggression-led right now.'),
       icon: Swords,
       tone: active ? 'cw-card--ready' : 'cw-card--warning',
     },
     {
       key: 'puzzle',
-      title: 'Puzzle',
+      title: pick('解谜挖矿', 'Puzzle'),
       taskType: 1,
       xpReward: clamp(14 + level * 2, 12, 30),
       requestedClw: parseEther(
@@ -155,14 +157,14 @@ function buildTaskTemplates(
       ),
       detail:
         traits.wisdom >= 55
-          ? 'Stronger fit when the current goal is cleaner growth and lower variance.'
-          : 'Useful as a steadier line even when it is not the highest-upside task.',
+          ? pick('更适合当前想走稳一点、方差低一点的成长线。', 'Stronger fit when the current goal is cleaner growth and lower variance.')
+          : pick('即使不是收益最高，也是一条更平稳的路线。', 'Useful as a steadier line even when it is not the highest-upside task.'),
       icon: Shield,
       tone: 'cw-card--watch',
     },
     {
       key: 'crafting',
-      title: 'Crafting',
+      title: pick('制作挖矿', 'Crafting'),
       taskType: 3,
       xpReward: clamp(12 + level * 2, 10, 28),
       requestedClw: parseEther(
@@ -179,8 +181,8 @@ function buildTaskTemplates(
       ),
       detail:
         upkeepDays !== null && upkeepDays <= 2
-          ? 'Reserve is tighter, so the lower-variance route deserves more weight.'
-          : 'Best when preserving budget matters more than chasing the highest return.',
+          ? pick('当前储备偏紧，低波动路线更值得优先考虑。', 'Reserve is tighter, so the lower-variance route deserves more weight.')
+          : pick('当保预算比追最高回报更重要时，这条更合适。', 'Best when preserving budget matters more than chasing the highest return.'),
       icon: Hammer,
       tone: upkeepDays !== null && upkeepDays <= 2 ? 'cw-card--warning' : 'cw-card--safe',
     },
@@ -188,10 +190,11 @@ function buildTaskTemplates(
 }
 
 export default function PlayPage() {
+  const { pick } = useI18n();
   const companion = useActiveCompanion();
   const { address } = useAccount();
   const publicClient = usePublicClient();
-  const { data: hash, error, isPending, writeContract } = useWriteContract();
+  const { data: hash, error, isPending, writeContractAsync } = useWriteContract();
   const receiptQuery = useWaitForTransactionReceipt({ hash });
 
   const [selectedTaskKey, setSelectedTaskKey] = useState<string | null>(null);
@@ -203,6 +206,7 @@ export default function PlayPage() {
   const [submittedTask, setSubmittedTask] = useState<TaskTemplate | null>(null);
   const [submittedPreview, setSubmittedPreview] = useState<TaskPreview | null>(null);
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
+  const [awaitingWallet, setAwaitingWallet] = useState(false);
 
   const upkeepPressure =
     companion.upkeepDays === null ? 0 : clamp(100 - companion.upkeepDays * 12, 0, 42);
@@ -214,8 +218,9 @@ export default function PlayPage() {
         upkeepPressure,
         companion.active,
         companion.upkeepDays,
+        pick,
       ),
-    [companion.active, companion.level, companion.traits, companion.upkeepDays, upkeepPressure],
+    [companion.active, companion.level, companion.traits, companion.upkeepDays, upkeepPressure, pick],
   );
 
   const rankedTaskTemplates = useMemo(
@@ -349,7 +354,7 @@ export default function PlayPage() {
         if (!cancelled) {
           setGasUnits(null);
           setGasCostWei(null);
-          setGasEstimateError(getErrorMessage(estimateFailure));
+          setGasEstimateError(getErrorMessage(estimateFailure, pick));
         }
       }
     }
@@ -359,7 +364,7 @@ export default function PlayPage() {
     return () => {
       cancelled = true;
     };
-  }, [address, companion.hasToken, companion.tokenId, effectiveCooldownReady, preview, publicClient, selectedTask]);
+  }, [address, companion.hasToken, companion.tokenId, effectiveCooldownReady, pick, preview, publicClient, selectedTask]);
 
   useEffect(() => {
     if (!receiptQuery.data || !hash || !submittedTask) return;
@@ -422,24 +427,24 @@ export default function PlayPage() {
         chip: 'Failed',
         chipTone: 'cw-chip--alert',
         title: 'Task request failed',
-        detail: getErrorMessage(error),
+        detail: getErrorMessage(error, pick),
       }
-    : isPending
+    : awaitingWallet || isPending
       ? {
           tone: 'cw-panel--warm',
-          chip: 'Sign',
+          chip: pick('等待签名', 'Sign'),
           chipTone: 'cw-chip--warm',
-          title: selectedTask ? `Sign ${selectedTask.title}` : 'Sign task',
-          detail: 'The task preview is locked. Confirm the owner-path transaction in the wallet to continue.',
+          title: selectedTask ? pick(`请在钱包确认 ${selectedTask.title}`, `Sign ${selectedTask.title}`) : pick('请在钱包确认任务', 'Sign task'),
+          detail: pick('预览已经锁定，下一步去钱包确认 owner-path 交易。', 'The task preview is locked. Confirm the owner-path transaction in the wallet to continue.'),
         }
       : receiptQuery.isLoading && submittedTask
         ? {
-            tone: 'cw-panel--warm',
-            chip: 'Confirming',
-            chipTone: 'cw-chip--warm',
-            title: `${submittedTask.title} is confirming on-chain`,
-            detail: 'The transaction is live on BNB Chain. Hold this surface until the receipt lands and the result panel resolves.',
-          }
+          tone: 'cw-panel--warm',
+          chip: pick('确认中', 'Confirming'),
+          chipTone: 'cw-chip--warm',
+          title: pick(`${submittedTask.title} 链上确认中`, `${submittedTask.title} is confirming on-chain`),
+          detail: pick('交易已经发到 BNB Chain，等回执落地后结果面板会自动完成。', 'The transaction is live on BNB Chain. Hold this surface until the receipt lands and the result panel resolves.'),
+        }
         : null;
 
   function handleReview(taskKey: string) {
@@ -454,22 +459,29 @@ export default function PlayPage() {
     setResult(null);
   }
 
-  function handleExecute() {
+  async function handleExecute() {
     if (!selectedTask || !preview || !canExecute) return;
 
     setSubmittedTask(selectedTask);
     setSubmittedPreview(preview);
-    writeContract({
-      ...taskSkillContract,
-      functionName: 'ownerCompleteTypedTask',
-      args: [
-        companion.tokenId,
-        selectedTask.taskType,
-        selectedTask.xpReward,
-        selectedTask.requestedClw,
-        preview.matchScore,
-      ],
-    });
+    setAwaitingWallet(true);
+    try {
+      await writeContractAsync({
+        ...taskSkillContract,
+        functionName: 'ownerCompleteTypedTask',
+        args: [
+          companion.tokenId,
+          selectedTask.taskType,
+          selectedTask.xpReward,
+          selectedTask.requestedClw,
+          preview.matchScore,
+        ],
+      });
+    } catch {
+      // wagmi error renders via error state
+    } finally {
+      setAwaitingWallet(false);
+    }
   }
 
   return (
@@ -477,49 +489,49 @@ export default function PlayPage() {
       <section className="cw-band">
         <div className="cw-band--split">
           <div>
-            <p className="cw-eyebrow">Task mining</p>
-            <h2 className="cw-section-title">{companion.name} is ready to mine.</h2>
+            <p className="cw-eyebrow">{pick('任务挖矿', 'Task mining')}</p>
+            <h2 className="cw-section-title">{pick(`${companion.name} 准备开始挖矿。`, `${companion.name} is ready to mine.`)}</h2>
             <p className="cw-muted">
-              Pick a mining line, review the live quote, sign once, and read the result back on the same surface.
+              {pick('选一条挖矿路线，先看实时报价，再签一次，结果直接回到同一页。', 'Pick a mining line, review the live quote, sign once, and read the result back on the same surface.')}
             </p>
           </div>
           <div className="cw-score">
             <strong>{topTask.score}%</strong>
-            <span>top fit</span>
+            <span>{pick('最优匹配', 'top fit')}</span>
           </div>
         </div>
       </section>
 
       <WalletGate
-        title="Connect the owner wallet to start mining."
-        detail="Mining needs real ownership, reserve, cooldown, and wallet-signature state. The page should stop here until those reads are live."
+        title={pick('先连接 owner 钱包，再开始挖矿。', 'Connect the owner wallet to start mining.')}
+        detail={pick('挖矿依赖真实所有权、储备、冷却和钱包签名状态。在这些读数就绪前，页面应停在这里。', 'Mining needs real ownership, reserve, cooldown, and wallet-signature state. The page should stop here until those reads are live.')}
       >
       <OwnedCompanionRail
-        title="Task roster"
-        subtitle="Switch the active lobster before committing to the next work loop."
+        title={pick('挖矿编组', 'Task roster')}
+        subtitle={pick('开始下一轮工作前，先切换当前龙虾。', 'Switch the active lobster before committing to the next work loop.')}
       />
 
       <section className="cw-panel cw-panel--warm">
         <div className="cw-section-head">
           <div>
-            <span className="cw-label">Loop state</span>
-            <h3>{topTask.title} is currently the best fit.</h3>
+            <span className="cw-label">{pick('循环状态', 'Loop state')}</span>
+            <h3>{pick(`${topTask.title} 是当前最契合的路线。`, `${topTask.title} is currently the best fit.`)}</h3>
             <p className="cw-muted">
-              Reserve {companion.routerClaworldText} / safety floor {formatCLW(reserveFloor)} / upkeep {companion.dailyCostText}.
+              {pick(`储备 ${companion.routerClaworldText} / 安全底线 ${formatCLW(reserveFloor)} / 维护 ${companion.dailyCostText}。`, `Reserve ${companion.routerClaworldText} / safety floor ${formatCLW(reserveFloor)} / upkeep ${companion.dailyCostText}.`)}
             </p>
           </div>
           <span className={`cw-chip ${effectiveCooldownReady ? 'cw-chip--growth' : 'cw-chip--alert'}`}>
             <TimerReset size={14} />
-            {effectiveCooldownReady ? 'Ready now' : formatRemaining(cooldownRemaining)}
+            {effectiveCooldownReady ? pick('现在可挖', 'Ready now') : formatRemaining(cooldownRemaining)}
           </span>
         </div>
 
         <div className="cw-flow-track">
           {[
-            { key: 'preview', label: 'Preview' },
-            { key: 'confirm', label: 'Confirm' },
-            { key: 'executing', label: 'Execute' },
-            { key: 'result', label: 'Result' },
+            { key: 'preview', label: pick('预览', 'Preview') },
+            { key: 'confirm', label: pick('确认', 'Confirm') },
+            { key: 'executing', label: pick('执行', 'Execute') },
+            { key: 'result', label: pick('结果', 'Result') },
           ].map((step) => {
             const active =
               flowStage === step.key ||
@@ -551,12 +563,12 @@ export default function PlayPage() {
               </div>
               <div className="cw-card-copy">
                 <p className="cw-label">{task.title}</p>
-                <h3>~{formatCLW(task.requestedClw)} Clawworld</h3>
+                <h3>~{formatCLW(task.requestedClw)} Claworld</h3>
                 <p className="cw-muted">{task.detail}</p>
               </div>
               <div className="cw-score">
                 <strong>{task.score}%</strong>
-                <span>match</span>
+                <span>{pick('匹配', 'match')}</span>
               </div>
             </button>
           );
@@ -566,86 +578,86 @@ export default function PlayPage() {
       <section className="cw-panel cw-panel--cool">
         <div className="cw-section-head">
           <div>
-            <span className="cw-label">Preview</span>
-            <h3>{selectedTask?.title ?? 'Select a task'} execution readout</h3>
+            <span className="cw-label">{pick('预览', 'Preview')}</span>
+            <h3>{selectedTask?.title ?? pick('先选一条任务', 'Select a task')} {pick('执行读数', 'execution readout')}</h3>
             <p className="cw-muted">
-              Preview reads the actual TaskSkill quote before the wallet signs the task.
+              {pick('在钱包签任务前，先读取真实 TaskSkill 报价。', 'Preview reads the actual TaskSkill quote before the wallet signs the task.')}
             </p>
           </div>
           <span className={`cw-chip ${preview?.cooldownReady ? 'cw-chip--growth' : 'cw-chip--alert'}`}>
             <Sparkles size={14} />
-            {preview ? `${Math.round(preview.matchScore / 100)}% match` : 'No preview yet'}
+            {preview ? `${Math.round(preview.matchScore / 100)}% ${pick('匹配', 'match')}` : pick('还没有预览', 'No preview yet')}
           </span>
         </div>
 
         <div className="cw-state-grid">
           <div className="cw-state-card">
-            <span className="cw-label">Requested reward</span>
+            <span className="cw-label">{pick('请求奖励', 'Requested reward')}</span>
             <strong>{selectedTask ? formatCLW(selectedTask.requestedClw) : '--'}</strong>
           </div>
           <div className="cw-state-card">
-            <span className="cw-label">Projected reward</span>
+            <span className="cw-label">{pick('预计奖励', 'Projected reward')}</span>
             <strong>{preview ? formatCLW(preview.actualClw) : '--'}</strong>
           </div>
           <div className="cw-state-card">
-            <span className="cw-label">XP reward</span>
+            <span className="cw-label">{pick('XP 奖励', 'XP reward')}</span>
             <strong>{selectedTask?.xpReward ?? '--'}</strong>
           </div>
         </div>
 
         <div className="cw-detail-list">
           <div className="cw-detail-row">
-            <span>Cooldown</span>
-            <strong>{effectiveCooldownReady ? 'Ready' : formatRemaining(cooldownRemaining)}</strong>
+              <span>{pick('冷却', 'Cooldown')}</span>
+              <strong>{effectiveCooldownReady ? pick('就绪', 'Ready') : formatRemaining(cooldownRemaining)}</strong>
+            </div>
+            <div className="cw-detail-row">
+              <span>{pick('连胜倍率', 'Streak multiplier')}</span>
+              <strong>{preview ? formatBasisPoints(preview.streakMul) : '--'}</strong>
+            </div>
+            <div className="cw-detail-row">
+              <span>{pick('世界倍率', 'World multiplier')}</span>
+              <strong>{preview ? formatBasisPoints(preview.worldMul) : '--'}</strong>
+            </div>
+            <div className="cw-detail-row">
+              <span>{pick('Gas 估算', 'Gas estimate')}</span>
+              <strong>{gasCostWei !== null ? `${formatBNB(gasCostWei, 6)} BNB` : '--'}</strong>
+            </div>
           </div>
-          <div className="cw-detail-row">
-            <span>Streak multiplier</span>
-            <strong>{preview ? formatBasisPoints(preview.streakMul) : '--'}</strong>
-          </div>
-          <div className="cw-detail-row">
-            <span>World multiplier</span>
-            <strong>{preview ? formatBasisPoints(preview.worldMul) : '--'}</strong>
-          </div>
-          <div className="cw-detail-row">
-            <span>Gas estimate</span>
-            <strong>{gasCostWei !== null ? `${formatBNB(gasCostWei, 6)} BNB` : '--'}</strong>
-          </div>
-        </div>
 
         <div className="cw-list">
           {!companion.active ? (
             <div className="cw-list-item cw-list-item--cool">
               <TimerReset size={16} />
-              <span>This lobster needs upkeep before a new task can execute.</span>
+              <span>{pick('这只龙虾要先补维护，才能继续执行新任务。', 'This lobster needs upkeep before a new task can execute.')}</span>
             </div>
           ) : null}
           {!effectiveCooldownReady ? (
             <div className="cw-list-item cw-list-item--cool">
               <TimerReset size={16} />
-              <span>Task cooldown is still active for another {formatRemaining(cooldownRemaining)}.</span>
+              <span>{pick(`任务冷却还剩 ${formatRemaining(cooldownRemaining)}。`, `Task cooldown is still active for another ${formatRemaining(cooldownRemaining)}.`)}</span>
             </div>
           ) : null}
           {preview?.personalityDrift ? (
             <div className="cw-list-item cw-list-item--warm">
               <Sparkles size={16} />
-              <span>This task qualifies for personality drift if the run lands cleanly.</span>
+              <span>{pick('如果这次跑得干净，这条任务会触发 personality drift。', 'This task qualifies for personality drift if the run lands cleanly.')}</span>
             </div>
           ) : (
             <div className="cw-list-item cw-list-item--cool">
               <Shield size={16} />
-              <span>This route is a low-drift line focused on steady progression.</span>
+              <span>{pick('这条路线 drift 很低，更偏稳健成长。', 'This route is a low-drift line focused on steady progression.')}</span>
             </div>
           )}
           {gasEstimateError ? (
             <div className="cw-list-item cw-list-item--cool">
               <Shield size={16} />
-              <span>Gas estimate failed: {gasEstimateError}</span>
+              <span>{pick(`Gas 估算失败：${gasEstimateError}`, `Gas estimate failed: ${gasEstimateError}`)}</span>
             </div>
           ) : null}
           {previewQuery.error ? (
             <div className="cw-list-item cw-list-item--cool">
               <Shield size={16} />
-              <span>Preview failed: {getErrorMessage(previewQuery.error)}</span>
+              <span>{pick(`预览失败：${getErrorMessage(previewQuery.error, pick)}`, `Preview failed: ${getErrorMessage(previewQuery.error, pick)}`)}</span>
             </div>
           ) : null}
         </div>
@@ -658,7 +670,7 @@ export default function PlayPage() {
             onClick={handleOpenConfirm}
           >
             <CheckCircle2 size={16} />
-            Review before execute
+            {pick('先看确认面板', 'Review before execute')}
           </button>
         </div>
       </section>
@@ -667,48 +679,48 @@ export default function PlayPage() {
         <section className="cw-sheet">
           <div className="cw-sheet-head">
             <div>
-              <span className="cw-label">Confirm task</span>
+              <span className="cw-label">{pick('确认任务', 'Confirm task')}</span>
               <h3>{selectedTask.title}</h3>
               <p className="cw-muted">
-                Owner path execution. The wallet signs `ownerCompleteTypedTask(...)` directly.
+                {pick('这条链路走 owner path，钱包会直接签 `ownerCompleteTypedTask(...)`。', 'Owner path execution. The wallet signs `ownerCompleteTypedTask(...)` directly.')}
               </p>
             </div>
             <span className={`cw-chip ${canExecute ? 'cw-chip--warm' : 'cw-chip--alert'}`}>
-              {canExecute ? 'Ready' : 'Blocked'}
+              {canExecute ? pick('就绪', 'Ready') : pick('阻塞', 'Blocked')}
             </span>
           </div>
 
           <div className="cw-state-grid">
             <div className="cw-state-card">
-              <span className="cw-label">Projected reward</span>
+              <span className="cw-label">{pick('预计奖励', 'Projected reward')}</span>
               <strong>{formatCLW(preview.actualClw)}</strong>
             </div>
             <div className="cw-state-card">
-              <span className="cw-label">XP gain</span>
+              <span className="cw-label">{pick('XP 增长', 'XP gain')}</span>
               <strong>{selectedTask.xpReward}</strong>
             </div>
             <div className="cw-state-card">
-              <span className="cw-label">Reserve after task</span>
+              <span className="cw-label">{pick('执行后储备', 'Reserve after task')}</span>
               <strong>{formatCLW(companion.routerClaworld + preview.actualClw)}</strong>
             </div>
           </div>
 
           <div className="cw-detail-list">
             <div className="cw-detail-row">
-              <span>Personality match</span>
+              <span>{pick('性格匹配', 'Personality match')}</span>
               <strong>{Math.round(preview.matchScore / 100)}%</strong>
             </div>
             <div className="cw-detail-row">
-              <span>Wallet</span>
-              <strong>{address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Not connected'}</strong>
+              <span>{pick('钱包', 'Wallet')}</span>
+              <strong>{address ? `${address.slice(0, 6)}...${address.slice(-4)}` : pick('未连接', 'Not connected')}</strong>
             </div>
             <div className="cw-detail-row">
-              <span>Estimated gas</span>
+              <span>{pick('预估 gas', 'Estimated gas')}</span>
               <strong>{gasCostWei !== null ? formatBNB(gasCostWei, 6) : '--'} BNB</strong>
             </div>
             <div className="cw-detail-row">
-              <span>Drift path</span>
-              <strong>{preview.personalityDrift ? 'Possible' : 'Not triggered'}</strong>
+              <span>{pick('Drift 路径', 'Drift path')}</span>
+              <strong>{preview.personalityDrift ? pick('可能触发', 'Possible') : pick('不会触发', 'Not triggered')}</strong>
             </div>
           </div>
 
@@ -716,19 +728,23 @@ export default function PlayPage() {
             <button
               type="button"
               className="cw-button cw-button--primary"
-              disabled={!canExecute || isPending || receiptQuery.isLoading}
-              onClick={handleExecute}
+              disabled={!canExecute || awaitingWallet || isPending || receiptQuery.isLoading}
+              onClick={() => void handleExecute()}
             >
               <Sparkles size={16} />
-              {isPending ? 'Sign task' : receiptQuery.isLoading ? 'Confirming' : 'Execute task'}
+              {awaitingWallet || isPending
+                ? pick('等待钱包签名', 'Waiting for signature')
+                : receiptQuery.isLoading
+                  ? pick('链上确认中', 'Confirming')
+                  : pick('执行任务', 'Execute task')}
             </button>
             <button
               type="button"
               className="cw-button cw-button--ghost"
-              disabled={isPending || receiptQuery.isLoading}
+              disabled={awaitingWallet || isPending || receiptQuery.isLoading}
               onClick={() => setConfirmOpen(false)}
             >
-              Cancel
+              {pick('返回任务列表', 'Back to tasks')}
             </button>
           </div>
         </section>
@@ -738,7 +754,7 @@ export default function PlayPage() {
         <section className={`cw-panel ${taskPulse.tone}`}>
           <div className="cw-section-head">
             <div>
-              <span className="cw-label">Task pulse</span>
+              <span className="cw-label">{pick('任务脉冲', 'Task pulse')}</span>
               <h3>{taskPulse.title}</h3>
               <p className="cw-muted">{taskPulse.detail}</p>
             </div>
@@ -753,7 +769,7 @@ export default function PlayPage() {
                 className="cw-button cw-button--secondary"
               >
                 <ArrowUpRight size={16} />
-                View transaction
+                {pick('查看交易', 'View transaction')}
               </a>
             </div>
           ) : null}
@@ -761,28 +777,29 @@ export default function PlayPage() {
       ) : null}
 
       {result ? (
-        <section className="cw-result-panel">
+        <section className="cw-result-panel cw-result-panel--success">
           <div className="cw-result-head">
             <div className="cw-result-icon">
               <CheckCircle2 size={22} />
             </div>
             <div>
-              <span className="cw-label">Task complete</span>
-              <h3>{result.taskTitle} settled on-chain</h3>
+              <span className="cw-label">{pick('任务完成', 'Task complete')}</span>
+              <h3>{pick(`${result.taskTitle} 已经链上结算。`, `${result.taskTitle} settled on-chain`)}</h3>
+              <div className="cw-result-celebration">+{formatCLW(result.actualClw)}</div>
             </div>
           </div>
 
           <div className="cw-result-grid">
-            <div className="cw-result-stat">
-              <span className="cw-label">Actual reward</span>
+            <div className="cw-result-stat cw-result-stat--hero">
+              <span className="cw-label">{pick('实际奖励', 'Actual reward')}</span>
               <strong>+{formatCLW(result.actualClw)}</strong>
             </div>
             <div className="cw-result-stat">
-              <span className="cw-label">XP gain</span>
+              <span className="cw-label">{pick('XP 增长', 'XP gain')}</span>
               <strong>+{result.xpReward}</strong>
             </div>
             <div className="cw-result-stat">
-              <span className="cw-label">Match score</span>
+              <span className="cw-label">{pick('匹配分', 'Match score')}</span>
               <strong>{Math.round(result.matchScore / 100)}%</strong>
             </div>
           </div>
@@ -791,17 +808,17 @@ export default function PlayPage() {
             <div className="cw-list-item cw-list-item--warm">
               <Sparkles size={16} />
               <span>
-                Requested {formatCLW(result.requestedClw)} / settled {formatCLW(result.actualClw)} into router reserve.
+                {pick(`请求 ${formatCLW(result.requestedClw)} / 实际结算 ${formatCLW(result.actualClw)}，已经回到 router 储备。`, `Requested ${formatCLW(result.requestedClw)} / settled ${formatCLW(result.actualClw)} into router reserve.`)}
               </span>
             </div>
             <div className={`cw-list-item ${result.driftState === 'applied' ? 'cw-list-item--warm' : 'cw-list-item--cool'}`}>
               <Shield size={16} />
               <span>
                 {result.driftState === 'applied'
-                  ? 'Personality drift was applied on this run.'
+                  ? pick('personality drift 已在这次任务里生效。', 'Personality drift was applied on this run.')
                   : result.driftState === 'skipped'
-                    ? `Personality drift was skipped: ${result.driftReason ?? 'bounded by current cap.'}`
-                    : 'This run did not trigger personality drift.'}
+                    ? pick(`personality drift 被跳过：${result.driftReason ?? '受当前上限约束。'}`, `Personality drift was skipped: ${result.driftReason ?? 'bounded by current cap.'}`)
+                    : pick('这次没有触发 personality drift。', 'This run did not trigger personality drift.')}
               </span>
             </div>
           </div>
@@ -814,14 +831,14 @@ export default function PlayPage() {
               className="cw-button cw-button--secondary"
             >
               <ArrowUpRight size={16} />
-              View transaction
+              {pick('查看交易', 'View transaction')}
             </a>
             <button
               type="button"
               className="cw-button cw-button--ghost"
               onClick={() => setResult(null)}
             >
-              Continue
+              {pick('继续下一轮', 'Continue')}
             </button>
           </div>
         </section>
@@ -833,7 +850,7 @@ export default function PlayPage() {
           {gasCostWei !== null ? ` / approx ${formatBNB(gasCostWei, 6)} BNB at current gas price.` : '.'}
         </p>
       ) : null}
-      {error ? <p className="cw-muted">Task failed to submit: {getErrorMessage(error)}</p> : null}
+      {error ? <p className="cw-muted">{pick(`任务提交失败：${getErrorMessage(error, pick)}`, `Task failed to submit: ${getErrorMessage(error, pick)}`)}</p> : null}
       </WalletGate>
     </>
   );
