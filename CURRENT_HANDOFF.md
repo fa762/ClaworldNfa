@@ -1,6 +1,6 @@
 # Current Handoff
 
-Last updated: 2026-04-12 Asia/Singapore
+Last updated: 2026-04-12 (session 2) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
@@ -286,6 +286,90 @@ New priority locked after product discussion:
 - visual overhaul is now a first-class requirement
 - UX, recognizability, emotional response, and action clarity take priority over feature breadth
 - future frontend iterations should be judged by user feel first, not by how many panels were moved over
+
+Frontend i18n checkpoint on 2026-04-12 (session 2):
+
+- `frontend/src/lib/i18n.tsx` has been substantially expanded
+- zh/en coverage now includes:
+  - all new shell/bottom-nav routes (Play, Arena, Auto, Settings, Companion)
+  - companion stage labels and selector controls
+  - PWA install/offline banner copy
+  - status chips and state labels used across the shell
+  - reserve, runway, upkeep, wallet, PK, loop, and readiness labels
+- auto-detect browser language on first load, localStorage persistence on change
+- in-app language toggle is now wired (shell.switchToEnglish / shell.switchToChinese keys)
+- committed as: feat: expand i18n for rebuilt shell routes
+
+## Product architecture decisions locked in session 2
+
+### BYOK (Bring Your Own Key) architecture decision
+
+Decided and documented. Two AI lines:
+
+1. User BYOK — for in-browser companion experience:
+   - user provides their own API key (DeepSeek / OpenAI / Anthropic / custom)
+   - key is AES-encrypted in localStorage, derived from wallet signature
+   - Vercel adds one new `/api/ai/chat` route as a CORS proxy (10 lines, no key storage)
+   - enables: conversation with lobster, task/PK/BR suggestions, SLEEP memory consolidation
+   - user pays their own AI cost
+
+2. Project runner key — for autonomous on-chain execution:
+   - stored in Vultr `.env.autonomy-runner` (not in repo)
+   - runner acts independently even when user is offline
+   - produces on-chain reasoning CID + action receipt
+   - user has zero cost here
+
+No conflict between the two. BYOK is Phase E (not in MVP scope). Runner is already live.
+
+### Existing Vercel API Routes — what to keep
+
+Routes to keep as-is:
+- `/api/pk/auto-reveal` — holds relayer private key, cannot go client-side
+- `/api/autonomy/directive` — KV bridge for Vultr runner directive sync
+
+Route to evolve:
+- `/api/agents/[id]` — can be deprecated in favor of direct viem reads, but keep for now
+
+Route to add (Phase E only):
+- `/api/ai/chat` — thin BYOK CORS proxy
+
+Route to retire:
+- `/api/game-assets/[asset]` — replace with static files in `public/sprites/`
+
+### Full product plan reference
+
+The full visual design system, gameplay interaction specs, and phased roadmap have been written to:
+
+- `FRONTEND_REBUILD_PLAN.md` — complete product vision document (new file in root)
+- `FRONTEND_REFACTOR_PLAN.md` — ongoing implementation progress log
+
+## What is next (frontend)
+
+MVP completion gaps remaining:
+
+1. Companion visual identity — CSS-only mood states are functional but the lobster needs
+   a stronger visual silhouette. No pixel art exists yet. This is the single biggest
+   gap between current state and product feel.
+
+2. Home/Companion emotional distinction — Home should feel operational, Companion personal.
+   Currently both feel like the same information density.
+
+3. Real-device PWA validation — install prompt, standalone launch, and offline fallback
+   have not been tested on a real mobile device.
+
+4. Phase E (BYOK + diary) — not started. Excluded from MVP. Start only after Phase A-D
+   are validated on real devices.
+
+5. Push notifications — excluded from MVP. Requires a service like Firebase or web-push.
+   Highest-impact future feature for retention (longing alerts, BR notifications).
+
+## Deployment status
+
+- current branch: `release-1.1.6`
+- private repo `origin`: up to date
+- public repo `public/main` (ClaworldNfa): up to date (README synced)
+- Vercel: deploying from main — validate rebuilt shell on production before next large pass
+- next step: merge or PR `release-1.1.6` → main, let Vercel deploy, validate on mobile
 
 ## Current objective
 
