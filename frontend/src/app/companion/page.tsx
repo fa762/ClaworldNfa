@@ -19,8 +19,10 @@ import { useBattleRoyaleClaimWindow } from '@/components/lobster/useBattleRoyale
 import { useBattleRoyaleOverview } from '@/components/lobster/useBattleRoyaleOverview';
 import { useBattleRoyaleParticipantState } from '@/components/lobster/useBattleRoyaleParticipantState';
 import { formatCLW } from '@/lib/format';
+import { useI18n } from '@/lib/i18n';
 
 export default function CompanionPage() {
+  const { pick, t } = useI18n();
   const companion = useActiveCompanion();
   const battleRoyale = useBattleRoyaleOverview();
   const battleRoyaleParticipant = useBattleRoyaleParticipantState(
@@ -69,12 +71,12 @@ export default function CompanionPage() {
 
   const actionRows = [
     {
-      label: 'Task loop',
-      detail: companion.active ? 'Ready now' : 'Needs upkeep',
+      label: t('companion.taskMining'),
+      detail: companion.active ? pick('现在可挖', 'Ready now') : pick('需要先补维护', 'Needs upkeep'),
       icon: Sparkles,
       href: '/play',
-      score: companion.active ? 'Best' : 'Wait',
-      scoreLabel: companion.active ? 'fit' : 'upkeep',
+      score: companion.active ? pick('最佳', 'Best') : pick('等待', 'Wait'),
+      scoreLabel: companion.active ? pick('契合', 'fit') : pick('维护', 'upkeep'),
       tone: companion.active ? 'cw-card--ready' : 'cw-card--warning',
     },
     {
@@ -226,7 +228,7 @@ export default function CompanionPage() {
 
       <section className="cw-section">
         <div className="cw-section-head">
-          <h2 className="cw-section-title">Action row</h2>
+          <h2 className="cw-section-title">{t('companion.coreLoops')}</h2>
           <span className="cw-chip cw-chip--growth">
             <Coins size={14} />
             {companion.ownedCount} owned

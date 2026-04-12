@@ -64,8 +64,18 @@ The first screen should start from the player's assets and available actions, no
 
 - home: what can I do now
 - lobster detail: how is this one progressing
+- play: task mining, not a generic action bucket
 - battle royale: enter / reveal / claim
 - autonomy: bounded control, not protocol essay
+
+## Naming rule
+
+As of 2026-04-12:
+
+- `/play` is the mining surface
+- use `挖矿 / Mining / Task Mining` for the task path
+- do not describe the task path as generic `行动 / action`
+- keep PK, Battle Royale, and Autonomy as separate named loops
 
 ## Primary app structure
 
@@ -101,8 +111,8 @@ Core modules:
 - identity block with level, origin, warmth, and stance
 - trait meters
 - wallet and in-game balances
-- action row:
-  - task
+- core loop row:
+  - task mining
   - PK
   - battle royale
   - autonomy
@@ -853,6 +863,84 @@ Current release decision on 2026-04-12:
 - ship the rebuilt frontend to `origin/main`
 - let Vercel real deployment become the next validation surface
 - validate there before starting another large UI pass
+
+## Review-aligned implementation order - 2026-04-12
+
+The next implementation sequence is now explicitly aligned to the reviewed UX backlog.
+
+### P0 next
+
+1. Wallet gates
+- add a shared `WalletGate` component
+- apply it to:
+  - `/play`
+  - `/arena`
+  - `/auto`
+
+2. Deposit/upkeep back into the new shell
+- add a compact upkeep/deposit surface to Companion or Settings
+- this is the highest-value maintenance action missing from the rebuilt navigation
+
+### P1 next
+
+3. Finish page-body i18n
+- shell-level language switching is not enough
+- next pass must cover:
+  - Home
+  - Play
+  - Arena
+  - Auto
+  - Companion
+  - Settings
+  - OwnedCompanionRail
+  - key action panels
+
+4. Collapse multi-NFA roster height
+- reduce the current top-of-page rail budget
+- likely direction:
+  - compact row
+  - or shell-expander pattern
+
+5. Add loading and signature states
+- skeletons for companion/live reads
+- explicit wallet-signature waiting state before chain confirmation
+
+6. Upgrade completion feedback
+- task completion
+- claim success
+- reward prominence
+- short celebratory motion
+
+7. Add accessibility basics
+- global `:focus-visible`
+- clearer hit targets
+- less ambiguous interactive affordance
+
+### P2 after that
+
+8. Stronger companion art/state layer
+- actual NFA image
+- mood transitions
+- stronger living-state feedback
+
+9. Shell polish and consistency
+- banner auto-dismiss on small screens
+- brand overflow protection
+- modal/sheet overflow strategy
+- button/verb consistency
+- card tone consistency
+
+10. Better empty/loading/retry cases
+- no-NFA empty state
+- roster loading skeletons
+- Arena retry affordance
+- directive character counter
+- explicit autonomy gate list
+
+### Backup rule
+
+- preserve the old frontend as a fallback path during the rewrite
+- do not delete the old product surface until the new one has passed real-environment validation
 
 9. Make the active lobster selector feel intentional
 

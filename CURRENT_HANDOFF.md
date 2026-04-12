@@ -1,6 +1,6 @@
 # Current Handoff
 
-Last updated: 2026-04-12 (session 2) Asia/Singapore
+Last updated: 2026-04-12 (session 3) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
@@ -54,6 +54,14 @@ Frontend checkpoint on 2026-04-12:
   - settings
   - companion
 - frontend production build passed after the shell rewrite
+
+Frontend naming checkpoint on 2026-04-12:
+
+- the `/play` route should now be described as `挖矿 / Mining`, not as a generic action surface
+- the shell tab label is now `挖矿 / Mining`
+- the shell route label is now `任务挖矿 / Task Mining`
+- Companion no longer uses the misleading `Action row` wording for the multi-loop section
+- use `挖矿 / Mining` only for the task path; keep PK / Battle Royale / Autonomy named separately
 
 Frontend visual checkpoint on 2026-04-12:
 
@@ -317,111 +325,213 @@ Frontend i18n + mobile-fix checkpoint on 2026-04-12 (session 3):
 ## Mobile frontend review — open issues as of 2026-04-12 session 3
 
 This section captures all issues discovered during the mobile review pass.
+Reviewed every page component, layout component, game component, and the global stylesheet.
 Priority: P0 = blocks core use, P1 = significant gap, P2 = polish.
+Status: FIXED means committed to origin/main. OPEN means still needs work.
 
-### P0 — Critical
+### P0 — Blocks core UX
 
-**[P0] CompanionStage occupies too much vertical space**
+**[P0] CompanionStage occupies too much vertical space — FIXED (86b0af5)**
 
-The stage is the persistent header above every page's scrollable content.
-Current measured heights on home:
+Art 154→120px, 102→80px. Readouts changed from stacked column to 3-col horizontal grid. Meta margin reduced.
 
-- topbar: ~70px
-- stage (home, art 154px + readouts 3×44px stacked + meta): ~370px
-- tabs: ~84px
-- total chrome: ~524px
-- scrollable area on iPhone SE (667px): 143px — nearly nothing
+**[P0] iOS top safe area not handled — FIXED (86b0af5)**
 
-On inner pages (compact art 102px):
+`env(safe-area-inset-top)` added to `.cw-topbar`.
 
-- stage (compact, art + readouts): ~280px
-- total chrome: ~434px
-- scrollable area on iPhone SE: 233px — still very tight
+**[P0] Bottom tabs follow page scroll — FIXED (86b0af5)**
 
-Root causes:
+`html/body { overflow: hidden }`, sticky removed from tabs.
 
-1. `.cw-stage-art` is 154px (home) / 102px (compact) — these are large for a persistent header
-2. `.cw-stage-readouts` stacks 3 readout cards vertically at `min-height: 44px` each = 148px — they could be 3-col horizontal (one row ~36px)
-3. `.cw-stage-meta` chips have `margin-top: 14px` adding extra height
-4. No option to collapse the stage on inner pages
+**[P0] Companion card layout squished to right on small screens — FIXED (86b0af5)**
 
-Fix required: reduce art to 120px/80px, make readouts a horizontal 3-col row, reduce readout padding.
+`.cw-stage-visual` changed from rigid 2-col grid to column flex.
 
-**[P0] iOS top safe area not handled**
+**[P0-OPEN] No wallet gate on action pages**
 
-`env(safe-area-inset-top)` is not applied to `.cw-topbar` padding.
-On iPhones with notch or Dynamic Island, the topbar sits partially under the status bar.
+Play, Arena, Auto all show blank/zero panels when wallet not connected. No in-page "connect wallet" CTA appears. Users who land on these pages see dead data with no explanation.
 
-Fix: add `padding-top: calc(14px + env(safe-area-inset-top))` to `.cw-topbar`.
+Fix: add a shared `<WalletGate>` component that wraps action pages and renders a connect prompt when `!isConnected`.
 
-### P1 — Significant
+**[P0-OPEN] Deposit/upkeep UI missing from new navigation**
 
-**[P1] Page body copy is hardcoded English — i18n toggle has no effect on page content**
+The single most critical maintenance action (depositing Claworld for upkeep) only exists in the old NFA detail page, which is outside the new 5-tab navigation. Users whose lobster runs out of upkeep have no way to fix it.
 
-The zh/en toggle works for shell chrome (topbar, tabs, stage labels) but all page content remains English:
+Fix: add a compact deposit/upkeep module to Companion page or as a new section in Settings.
 
-- Play: "Task mining", "Adventure", "Puzzle", "Crafting", task detail descriptions
-- Arena: "Arena hub", "PK Arena", "Battle Royale", all card copy
-- Companion: "Presence", "Trait shape", "Action row", all static labels
-- Auto: all autonomy copy
-- OwnedCompanionRail: title/subtitle props passed as hardcoded English strings at every call site
+### P1 — Significant UX gaps
 
-Fix: either mark pages as non-translatable in scope (acceptable for now) or add page-level translation keys in a follow-up pass.
+**[P1] i18n coverage — shell done, page body content still hardcoded English**
 
-**[P1] No wallet gate / empty state when wallet not connected**
+The language toggle works for shell chrome (topbar, stage, tabs, mood labels) but all page content is hardcoded English. Full inventory:
 
-Most pages require wallet connection to be useful but display blank/zero data without any CTA.
-Users landing on Play, Arena, or Auto with no wallet see empty panels with no prompt.
+- `page.tsx` (Home): `receiptStatusText()`, `matchStatusText()`, card titles/subtitles/details, presence card labels, trait labels, "Recent motion" items
+- `play/page.tsx`: error messages (6 hardcoded), task template titles ("Adventure", "Puzzle", "Crafting"), all detail/description strings, flow step labels, section headers, button labels ("Review before execute", "Execute task", "Continue")
+- `arena/page.tsx`: `getMatchStatusText()`, card titles, section headers, field-read labels, meter labels
+- `auto/page.tsx`: `receiptStatusText()`, `receiptSummary()`, all panel headers, permission readiness labels, ledger labels
+- `companion/page.tsx`: presence card labels ("Mood", "Runway", "Momentum"), trait labels ("Courage", "Wisdom", etc.), action row labels, readout panel text
+- `settings/page.tsx`: BYOK card copy, Notifications card copy
+- `OwnedCompanionRail.tsx`: default title/subtitle props hardcoded English at every call site
+- `PKArenaPanel.tsx`: all match labels, status strings, button text
+- `BattleRoyaleActionPanel.tsx`: `matchStatusText()`, all headline and detail logic
+- `BattleRoyaleClaimPanel.tsx`: all labels and status strings
+- `AutonomyDirectivePanel.tsx`: heading, form labels, select options
+- `AutonomyClaimRequestPanel.tsx`: all labels, blocker messages, prompt text
+- `PwaStatusBanner.tsx`: banner titles use `t()` keys but not all detail text
+- `useActiveCompanion.tsx`: `describeStance()` generates hardcoded English prose; `getSource()` returns hardcoded English labels
 
-Fix: add a shared `<WalletGate>` component that renders a connect CTA when `!isConnected`. Mount it at the top of action pages.
+Fix: add page-level translation keys in a dedicated i18n pass.
 
-**[P1] Deposit/upkeep UI not in new navigation**
+**[P1] OwnedCompanionRail consumes ~120px on every page for multi-NFA wallets**
 
-The single most critical maintenance action — depositing Claworld for upkeep — exists only in the old NFA detail page, which is not part of the new navigation flow.
-Users who run out of upkeep have no path to fix it from the new shell.
+When `ownedCount > 1`, the rail renders a full section (title + subtitle + horizontal roster) at the top of every page. Combined with stage, scroll area shrinks further.
 
-Fix: add a compact deposit/upkeep section to the Companion page or Settings.
+Fix: collapse the rail to a single compact row or move it behind the shell switcher as an expandable drawer.
 
-**[P1] OwnedCompanionRail adds ~120px to every page for multi-NFA wallets**
+**[P1] No loading / skeleton state anywhere**
 
-When `ownedCount > 1`, OwnedCompanionRail renders a full section with title, subtitle, and a horizontal roster. This appears at the top of every page (Home, Play, Arena, Auto, Companion).
-Combined with the already large stage, this reduces scroll area further.
+When wallet connects and hooks begin reading, all values show `0` / `--` / blank with no loading indicator. Creates a jarring flash-of-empty before data populates. Affects: CompanionStage, all pages, all action panels, roster cards.
 
-Fix: make the rail collapsible or move it behind the shell header switcher so it only expands on demand.
+Fix: add `isLoading` to active companion context; show skeleton shimmer in stage readouts, page cards, and action panels while loading.
 
-### P2 — Polish
+**[P1] Transaction signing gives no wallet-state feedback**
 
-**[P2] No loading / skeleton state**
+When user clicks "Execute task" or "Claim", the wallet app opens in the background. The UI shows "Sign" or "Confirming" chip, but:
+- No indication that MetaMask/TrustWallet is waiting for user signature
+- No timer or progress indicator during confirmation
+- User cannot distinguish "wallet not opened yet" from "waiting for chain confirmation"
 
-When wallet connects and hooks begin reading, all fields show `0` / `--` with no loading indicator.
-This creates a jarring flash before data populates.
+Fix: add a dedicated "Waiting for wallet signature..." state between button press and `isPending` resolution, with a hint to check the wallet app.
 
-Fix: add a `loading` prop to the active companion context; show skeleton shimmer in readouts and cards while loading.
+**[P1] Task/claim completion doesn't feel rewarding**
+
+Result panels are purely informational. After completing a task:
+- `play/page.tsx`: result panel shows numbers (reward, XP, match score) in muted grey. "Continue" button dismisses it. No animation, no celebration, no emotional payoff.
+- `BattleRoyaleClaimPanel.tsx`: success message says "Owner claim confirmed. The settled-match summary will catch up..." — confusing and clinical.
+
+Fix: add a brief success animation (scale-up, glow pulse, or confetti particle). Make the reward number prominent and colored. Replace "Continue" with something warmer. Make claim success celebrate the win.
+
+**[P1] No focus/active styles for keyboard and screen reader users**
+
+Global CSS has no `:focus-visible` rules. Interactive elements (buttons, links, cards) have no visible focus ring. Affects all pages.
+
+Fix: add a global `:focus-visible` outline style to globals.css.
+
+### P2 — Polish and interaction quality
 
 **[P2] CompanionStage art is placeholder only**
 
-The 154px/102px circle renders a gradient glow but no actual lobster NFT image.
-Metadata URL reading and image display are not wired into `CompanionStage`.
+The 120px/80px circle (post-fix) renders a gradient glow but no actual lobster NFT image. Metadata URL reading is not wired.
 
-Fix: wire `useNFAMetadata(tokenId)` into the active companion context and pass `imageUrl` to the stage art element.
+Fix: wire `useNFAMetadata(tokenId)` into active companion context and pass `imageUrl` to stage art.
 
-**[P2] PWA offline banner consumes extra vertical space**
+**[P2] Companion mood badge is static**
 
-When `PwaStatusBanner` renders (offline or install prompt), it adds ~60-80px to the non-scrollable chrome, further compressing the scroll area that is already tight on SE-size phones.
+The mood badge on CompanionStage doesn't animate or transition when mood changes. Feels dead. A subtle pulse or fade-transition would make the companion feel alive.
 
-Fix: make the banner dismissible with a single tap; persist dismissed state in sessionStorage. Already partially done with dismiss button, but ensure it auto-dismisses after 8 seconds on small screens.
+**[P2] PWA offline banner compresses scroll area further**
 
-**[P2] `cw-topbar` label "Lobster Companion" too long for 320px screens**
+PwaStatusBanner adds ~60-80px when visible. On SE-size phones scroll area can drop near zero.
 
-At 1.125rem and 16 chars, the brand name "Lobster Companion" plus the top-actions row may overflow on 320px devices (older iPhones). No overflow protection exists.
+Fix: auto-dismiss after 8 seconds on small screens; persist dismissed state in sessionStorage.
 
-Fix: shorten to "Claw" or truncate with CSS overflow on the brand element on small screens.
+**[P2] Brand label "Lobster Companion" too long for 320px screens**
 
-**[P2] `cw-shell { overflow: hidden }` will clip any overflow children**
+At 1.125rem the label may overflow. No CSS overflow protection exists.
 
-Future modals, bottom sheets, or dropdowns that need to overflow the shell will be clipped.
+Fix: add `overflow: hidden; text-overflow: ellipsis; white-space: nowrap` to `.cw-brand`, or shorten label.
 
-Fix: use `overflow: clip` instead of `overflow: hidden` when modals need z-index escape, or move modal roots to a portal outside `.cw-shell`.
+**[P2] `cw-shell { overflow: hidden }` will clip future modals/sheets**
+
+Fix: use portal roots outside `.cw-shell` for modals, or switch to `overflow: clip`.
+
+**[P2] Settings page shows roadmap items as if they're controls**
+
+BYOK and Notifications cards look like interactive settings but are actually future-work placeholders. Users may tap expecting controls and find nothing.
+
+Fix: either hide placeholder cards or add a "Coming soon" badge and dim tone.
+
+**[P2] Confirm sheet in Play has no back affordance**
+
+The play confirm→execute→result flow feels like a one-way funnel. No breadcrumb or "go back to task list" affordance. Users might feel trapped.
+
+Fix: add a visible "Back to tasks" or "Cancel" link that is always reachable, including during sign/confirm states.
+
+**[P2] Arena cards are static but look tappable**
+
+Arena page `cw-card-stack` renders `<article>` elements with hover effects but no `onClick` or link — users see the pointer cursor (from global button rule) on card hover but nothing happens.
+
+Fix: either make cards navigate to relevant detail sections, or remove hover effect and add `cursor: default`.
+
+**[P2] Signal chips can render unstyled**
+
+`CompanionStage.tsx` calls `toneClass(tone)` where `tone` can be `undefined`. Returns empty string, creating a chip with no color treatment — appears as grey ghost chip without semantic meaning.
+
+Fix: default to `'cool'` when tone is undefined.
+
+**[P2] Switcher arrows (ChevronLeft/ChevronRight) are 26×26px — below WCAG 44×44px minimum**
+
+On real phones these are hard to tap accurately.
+
+Fix: increase `.cw-switcher-btn` to at least 36×36px or add larger touch padding.
+
+**[P2] Language toggle button (EN/中) is small and unclear**
+
+The 2-char text button in the header has no icon, no border context, and could be mistaken for a label. Users who don't expect a language toggle may never find it.
+
+Fix: add a Globe icon from lucide next to the text, or use a slightly larger pill shape with border.
+
+**[P2] Roster fallback shows "Loading..." as interactive buttons**
+
+`OwnedCompanionRail.tsx` renders fallback cards with "Loading..." text, but they are `<button>` elements. Users might tap a loading card thinking it works.
+
+Fix: disable the button or replace with a non-interactive skeleton card during loading.
+
+**[P2] AutonomyDirectivePanel textarea has no visible character counter**
+
+The directive prompt is sliced to 220 chars in code but the user never sees how many characters remain. They discover the limit only when typing stops having effect.
+
+Fix: show a "42/220" character counter below the textarea.
+
+**[P2] Autonomy permission readiness meter shows percentage but not which permission is missing**
+
+The meter shows 25%/50%/75%/100% filled but doesn't indicate which specific gate (operator / adapter / protocol / lease) is blocking progress.
+
+Fix: list the individual permission gates with checkmark/cross icons instead of a single aggregate bar.
+
+**[P2] Home page internal documentation is visible to users**
+
+Several `cw-muted` / `cw-presence-note` paragraphs contain developer-facing copy:
+- "Reserve, upkeep runway, and recent action history now all push the companion mood..."
+- "This page is now anchored to wallet ownership and on-chain lobster state..."
+- "The next step is replacing the remaining event placeholders with live modules."
+
+These should be removed or replaced with user-facing copy.
+
+**[P2] Consistency — button labels vary across pages**
+
+- Play: "Review before execute"
+- Arena: no primary CTA on summary cards
+- Companion: action rows use `<Link>` with `<ArrowRight>` (navigation, not action)
+- Auto: "Save directive" / "Submit autonomy request"
+
+User mental model: is this "review → execute", "navigate → act", or "submit"? Should normalize to a consistent action verb pattern.
+
+**[P2] Consistency — card tone assignment varies for similar states**
+
+Same "ready" state uses `cw-card--ready` on some pages and `cw-card--watch` on others. Same "needs attention" state uses `cw-card--warning` in some places and `cw-card--safe` in others. Makes color coding unreliable as a UX signal.
+
+**[P2] No empty state for "no NFA owned"**
+
+Home falls back to a demo companion state when wallet has no NFA, but doesn't tell the user "you don't own a lobster yet — mint one here" with a link to `/mint`.
+
+Fix: add a clear "No NFA found" empty state on Home with a CTA to the mint page.
+
+**[P2] Arena "Waiting for match data" has no retry/refresh affordance**
+
+When Battle Royale data fails to load, user sees "Waiting for match data" but has no way to retry. Only option is to reload the entire page.
+
+Fix: add a refresh button or auto-retry with a visible countdown.
 
 ## Product architecture decisions locked in session 2
 
@@ -969,6 +1079,86 @@ Current operator decision on 2026-04-12:
 - push the rebuilt frontend directly to `origin/main`
 - use Vercel real deployment as the next validation surface
 - after deployment, test in the real environment first, then iterate on defects from that surface
+
+## Frontend review status - 2026-04-12
+
+This section is the current reviewed status for the rebuilt frontend.
+Priority meanings:
+
+- `P0`: blocks core use
+- `P1`: significant UX gap
+- `P2`: polish / interaction quality
+
+### Fixed on `origin/main`
+
+- `[P0]` CompanionStage vertical budget reduced
+  - reviewed as fixed in commit `86b0af5`
+  - stage art reduced
+  - readouts collapsed horizontally
+  - meta spacing reduced
+- `[P0]` iOS top safe area handled
+  - reviewed as fixed in commit `86b0af5`
+  - `env(safe-area-inset-top)` added to the top chrome
+- `[P0]` bottom tabs no longer move with page scroll
+  - reviewed as fixed in commit `86b0af5`
+  - body scroll lock and tab positioning corrected
+- `[P0]` compact companion layout no longer crushes content to the right
+  - reviewed as fixed in commit `86b0af5`
+  - stage visual layout changed to stack cleanly on small screens
+
+### Open P0
+
+- `[P0-OPEN]` No wallet gate on action pages
+  - Play / Arena / Auto still render empty-zero states when wallet is disconnected
+  - next fix: introduce a shared `WalletGate` wrapper with a connect CTA
+- `[P0-OPEN]` Deposit/upkeep is still outside the new primary loop
+  - the critical maintain/deposit action is still trapped in the old NFA path
+  - next fix: add a compact deposit/upkeep module to Companion or Settings
+
+### Open P1
+
+- `[P1]` i18n coverage is incomplete
+  - shell chrome is partially wired
+  - page body copy and key action panels are still mostly hardcoded English
+- `[P1]` OwnedCompanionRail is too tall for multi-NFA wallets
+  - the extra section consumes too much vertical budget on every page
+- `[P1]` No loading/skeleton state
+  - current live hooks flash `0`, `--`, or blank before data resolves
+- `[P1]` No clear wallet-signature waiting state
+  - current transaction UX does not distinguish:
+    - waiting for wallet approval
+    - waiting for chain confirmation
+- `[P1]` Task / claim completion still lacks emotional payoff
+  - results are informative but not rewarding enough
+- `[P1]` No global keyboard/screen-reader focus styling
+  - `:focus-visible` still needs a real visual rule in the rebuilt shell
+
+### Open P2
+
+- `[P2]` CompanionStage still uses placeholder art
+- `[P2]` Mood badge still feels static
+- `[P2]` PWA offline banner still compresses the viewport too much on small phones
+- `[P2]` Brand label can still overflow on 320px screens
+- `[P2]` `cw-shell { overflow: hidden }` will clip future modal/sheet work
+- `[P2]` Settings still shows roadmap cards that look interactive
+- `[P2]` Play confirm sheet still needs a clearer back affordance
+- `[P2]` Arena summary cards still read as tappable without a consistent click target
+- `[P2]` Companion stage signal chips can still render with no semantic tone
+- `[P2]` Shell switcher arrows are below ideal mobile tap size
+- `[P2]` Language toggle discoverability is weak
+- `[P2]` Roster loading fallback still looks interactive
+- `[P2]` Directive textarea still needs a visible character counter
+- `[P2]` Autonomy readiness meter still hides which gate is actually missing
+- `[P2]` Some Home page paragraphs still read like internal product notes
+- `[P2]` Action verbs and card-tone semantics are not consistent across pages
+- `[P2]` No explicit empty state for wallets with no NFA
+- `[P2]` Arena "waiting for match data" state still needs retry / refresh affordance
+
+### Backup rule
+
+- the old frontend must remain preserved as backup while the new shell is iterated
+- old routes/components are not to be deleted during this rewrite pass
+- new shell work should replace the primary entry experience without destroying the fallback path
 
 ## Worktree warning
 
