@@ -29,6 +29,38 @@ const translations: Record<string, Record<Lang, string>> = {
   'nav.menu': { zh: '菜单', en: 'MENU' },
   'nav.close': { zh: '关闭', en: 'CLOSE' },
   'nav.navigate': { zh: '> 导航：', en: '> NAVIGATE:' },
+  'shell.play': { zh: '行动', en: 'Play' },
+  'shell.arena': { zh: '竞技', en: 'Arena' },
+  'shell.auto': { zh: '代理', en: 'Auto' },
+  'shell.settings': { zh: '设置', en: 'Settings' },
+  'shell.primaryNav': { zh: '主导航', en: 'Primary navigation' },
+  'shell.companion': { zh: '龙虾伙伴', en: 'Lobster Companion' },
+  'shell.openCompanion': { zh: '打开伙伴', en: 'Open Companion' },
+  'shell.taskQueue': { zh: '任务队列', en: 'Task Queue' },
+  'shell.arenaHub': { zh: '竞技中心', en: 'Arena Hub' },
+  'shell.autonomy': { zh: 'AI 代理', en: 'Autonomy' },
+  'shell.selector': { zh: '当前龙虾选择器', en: 'Active lobster selector' },
+  'shell.previous': { zh: '上一只龙虾', en: 'Previous lobster' },
+  'shell.next': { zh: '下一只龙虾', en: 'Next lobster' },
+  'shell.switchToEnglish': { zh: '切换到英文', en: 'Switch to English' },
+  'shell.switchToChinese': { zh: '切换到中文', en: 'Switch to Chinese' },
+  'shell.reserve': { zh: '储备', en: 'Reserve' },
+  'shell.runway': { zh: '续航', en: 'Runway' },
+  'shell.tasks': { zh: '任务', en: 'Tasks' },
+  'shell.upkeep': { zh: '维护', en: 'Upkeep' },
+  'shell.source': { zh: '来源', en: 'Source' },
+  'shell.owned': { zh: '持有', en: 'Owned' },
+  'shell.status': { zh: '状态', en: 'Status' },
+  'shell.pk': { zh: 'PK', en: 'PK' },
+  'shell.wins': { zh: '胜场', en: 'Wins' },
+  'shell.loop': { zh: '循环', en: 'Loop' },
+  'shell.wallet': { zh: '钱包', en: 'Wallet' },
+  'shell.lowGasPath': { zh: '低 gas 路径', en: 'Low gas path' },
+  'shell.brWarming': { zh: '大逃杀预热中', en: 'BR warming' },
+  'shell.revealTracked': { zh: 'Reveal 已追踪', en: 'Reveal tracked' },
+  'shell.directiveSynced': { zh: '指令已同步', en: 'Directive synced' },
+  'shell.policyLocked': { zh: '策略已锁定', en: 'Policy locked' },
+  'shell.alertsConfigurable': { zh: '提醒可配置', en: 'Alerts configurable' },
 
   // ─── Hero ───
   'hero.title': { zh: '终端访问', en: 'TERMINAL ACCESS' },
@@ -302,6 +334,19 @@ const translations: Record<string, Record<Lang, string>> = {
 
   // ─── Lore Page ───
   'lore.title': { zh: 'AI代理', en: 'AI AGENT' },
+
+  // ─── Shell / PWA ───
+  'pwa.label': { zh: 'PWA 外壳', en: 'PWA shell' },
+  'pwa.offlineTitle': { zh: '离线外壳已启用', en: 'Offline shell active' },
+  'pwa.offlineDetail': { zh: '缓存页面会在网络恢复前继续可用。', en: 'Cached screens stay available until the network returns.' },
+  'pwa.installTitle': { zh: '安装 Clawworld', en: 'Install Clawworld' },
+  'pwa.installDetail': { zh: '打开更快、保留底部导航外壳，并在没有浏览器栏时返回。', en: 'Open faster, keep the bottom-nav shell, and return without browser chrome.' },
+  'pwa.iosTitle': { zh: '添加到主屏幕', en: 'Add to Home Screen' },
+  'pwa.iosDetail': { zh: '在 Safari 中点分享，再选“添加到主屏幕”，即可用独立应用方式打开 Clawworld。', en: 'Use Safari Share > Add to Home Screen to keep Clawworld as a standalone app.' },
+  'pwa.install': { zh: '安装', en: 'Install' },
+  'pwa.safariOnly': { zh: '仅 Safari', en: 'Safari only' },
+  'pwa.waiting': { zh: '等待网络', en: 'Waiting' },
+  'pwa.dismiss': { zh: '关闭 PWA 横幅', en: 'Dismiss PWA banner' },
 };
 
 type TranslationKey = string;
