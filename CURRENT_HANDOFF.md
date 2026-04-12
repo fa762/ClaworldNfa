@@ -300,6 +300,129 @@ Frontend i18n checkpoint on 2026-04-12 (session 2):
 - in-app language toggle is now wired (shell.switchToEnglish / shell.switchToChinese keys)
 - committed as: feat: expand i18n for rebuilt shell routes
 
+Frontend i18n + mobile-fix checkpoint on 2026-04-12 (session 3):
+
+- AppShell now calls `useI18n()`, passes `t` into `getShellCopy()` and `getCompanionMood()`
+- 16 new `mood.*` translation keys added (dormant / searching / hungry / firedUp / bounded / etc.)
+- EN/中 toggle button added to shell header with aria-label
+- BottomTabs tabs array moved inside component so labels react to language changes
+- Bottom tabs now permanently visible: `.cw-shell` changed to `height: 100dvh; overflow: hidden`, `.cw-screen` to `height: 100%` — this constrains the screen to viewport height so `.cw-main` scrolls internally and tabs do not get pushed off screen
+- Global `button { cursor: pointer }` added
+- Topbar gap/padding tightened to reduce overflow on 375px phones
+- `cw-switcher-label` min-width reduced 120→80px
+- `ConnectButton` ported from old `term-btn` classes to `cw-button` classes
+- Settings page now has a live wallet connect/disconnect panel instead of 3 static info cards
+- All 4 commits cherry-picked onto `origin/main` and pushed (fast-forward from `04ef1ea`)
+
+## Mobile frontend review — open issues as of 2026-04-12 session 3
+
+This section captures all issues discovered during the mobile review pass.
+Priority: P0 = blocks core use, P1 = significant gap, P2 = polish.
+
+### P0 — Critical
+
+**[P0] CompanionStage occupies too much vertical space**
+
+The stage is the persistent header above every page's scrollable content.
+Current measured heights on home:
+
+- topbar: ~70px
+- stage (home, art 154px + readouts 3×44px stacked + meta): ~370px
+- tabs: ~84px
+- total chrome: ~524px
+- scrollable area on iPhone SE (667px): 143px — nearly nothing
+
+On inner pages (compact art 102px):
+
+- stage (compact, art + readouts): ~280px
+- total chrome: ~434px
+- scrollable area on iPhone SE: 233px — still very tight
+
+Root causes:
+
+1. `.cw-stage-art` is 154px (home) / 102px (compact) — these are large for a persistent header
+2. `.cw-stage-readouts` stacks 3 readout cards vertically at `min-height: 44px` each = 148px — they could be 3-col horizontal (one row ~36px)
+3. `.cw-stage-meta` chips have `margin-top: 14px` adding extra height
+4. No option to collapse the stage on inner pages
+
+Fix required: reduce art to 120px/80px, make readouts a horizontal 3-col row, reduce readout padding.
+
+**[P0] iOS top safe area not handled**
+
+`env(safe-area-inset-top)` is not applied to `.cw-topbar` padding.
+On iPhones with notch or Dynamic Island, the topbar sits partially under the status bar.
+
+Fix: add `padding-top: calc(14px + env(safe-area-inset-top))` to `.cw-topbar`.
+
+### P1 — Significant
+
+**[P1] Page body copy is hardcoded English — i18n toggle has no effect on page content**
+
+The zh/en toggle works for shell chrome (topbar, tabs, stage labels) but all page content remains English:
+
+- Play: "Task mining", "Adventure", "Puzzle", "Crafting", task detail descriptions
+- Arena: "Arena hub", "PK Arena", "Battle Royale", all card copy
+- Companion: "Presence", "Trait shape", "Action row", all static labels
+- Auto: all autonomy copy
+- OwnedCompanionRail: title/subtitle props passed as hardcoded English strings at every call site
+
+Fix: either mark pages as non-translatable in scope (acceptable for now) or add page-level translation keys in a follow-up pass.
+
+**[P1] No wallet gate / empty state when wallet not connected**
+
+Most pages require wallet connection to be useful but display blank/zero data without any CTA.
+Users landing on Play, Arena, or Auto with no wallet see empty panels with no prompt.
+
+Fix: add a shared `<WalletGate>` component that renders a connect CTA when `!isConnected`. Mount it at the top of action pages.
+
+**[P1] Deposit/upkeep UI not in new navigation**
+
+The single most critical maintenance action — depositing Claworld for upkeep — exists only in the old NFA detail page, which is not part of the new navigation flow.
+Users who run out of upkeep have no path to fix it from the new shell.
+
+Fix: add a compact deposit/upkeep section to the Companion page or Settings.
+
+**[P1] OwnedCompanionRail adds ~120px to every page for multi-NFA wallets**
+
+When `ownedCount > 1`, OwnedCompanionRail renders a full section with title, subtitle, and a horizontal roster. This appears at the top of every page (Home, Play, Arena, Auto, Companion).
+Combined with the already large stage, this reduces scroll area further.
+
+Fix: make the rail collapsible or move it behind the shell header switcher so it only expands on demand.
+
+### P2 — Polish
+
+**[P2] No loading / skeleton state**
+
+When wallet connects and hooks begin reading, all fields show `0` / `--` with no loading indicator.
+This creates a jarring flash before data populates.
+
+Fix: add a `loading` prop to the active companion context; show skeleton shimmer in readouts and cards while loading.
+
+**[P2] CompanionStage art is placeholder only**
+
+The 154px/102px circle renders a gradient glow but no actual lobster NFT image.
+Metadata URL reading and image display are not wired into `CompanionStage`.
+
+Fix: wire `useNFAMetadata(tokenId)` into the active companion context and pass `imageUrl` to the stage art element.
+
+**[P2] PWA offline banner consumes extra vertical space**
+
+When `PwaStatusBanner` renders (offline or install prompt), it adds ~60-80px to the non-scrollable chrome, further compressing the scroll area that is already tight on SE-size phones.
+
+Fix: make the banner dismissible with a single tap; persist dismissed state in sessionStorage. Already partially done with dismiss button, but ensure it auto-dismisses after 8 seconds on small screens.
+
+**[P2] `cw-topbar` label "Lobster Companion" too long for 320px screens**
+
+At 1.125rem and 16 chars, the brand name "Lobster Companion" plus the top-actions row may overflow on 320px devices (older iPhones). No overflow protection exists.
+
+Fix: shorten to "Claw" or truncate with CSS overflow on the brand element on small screens.
+
+**[P2] `cw-shell { overflow: hidden }` will clip any overflow children**
+
+Future modals, bottom sheets, or dropdowns that need to overflow the shell will be clipped.
+
+Fix: use `overflow: clip` instead of `overflow: hidden` when modals need z-index escape, or move modal roots to a portal outside `.cw-shell`.
+
 ## Product architecture decisions locked in session 2
 
 ### BYOK (Bring Your Own Key) architecture decision
@@ -365,11 +488,15 @@ MVP completion gaps remaining:
 
 ## Deployment status
 
-- current branch: `release-1.1.6`
-- private repo `origin`: up to date
+- current branch: `release-1.1.6` (working branch)
+- `origin/main`: up to date — all session 3 commits cherry-picked and pushed as of 2026-04-12
+  - `1cf4bf5 feat: expand i18n for rebuilt shell routes`
+  - `df437f0 docs: sync handoff and add frontend rebuild plan`
+  - `7436fd3 feat: wire i18n zh/en switching across AppShell and BottomTabs`
+  - `7319142 fix: mobile layout and wallet connect for new shell`
 - public repo `public/main` (ClaworldNfa): up to date (README synced)
-- Vercel: deploying from main — validate rebuilt shell on production before next large pass
-- next step: merge or PR `release-1.1.6` → main, let Vercel deploy, validate on mobile
+- Vercel: deploying from `origin/main` — validate on real device after next deploy
+- next step: validate on real mobile device, then tackle P0 stage-height fix
 
 ## Current objective
 

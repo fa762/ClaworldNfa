@@ -30,13 +30,15 @@
   }
 
   html {
-    min-height: 100%;
+    height: 100dvh;
+    overflow: hidden;
     background: var(--color-bunker-bg-deep);
   }
 
   body {
-    min-height: 100dvh;
+    height: 100%;
     margin: 0;
+    overflow: hidden;
     background:
       radial-gradient(circle at top, rgba(255, 180, 92, 0.1), transparent 24%),
       radial-gradient(circle at 80% 20%, rgba(111, 163, 184, 0.09), transparent 26%),
@@ -44,7 +46,6 @@
     color: var(--color-bunker-text);
     font-family: var(--font-body);
     text-shadow: none;
-    overflow: auto;
   }
 
   a {
@@ -158,7 +159,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  padding: 14px 16px 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 10px;
   min-width: 0;
 }
 
@@ -314,15 +315,15 @@
 .cw-stage-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .cw-stage-visual {
-  display: grid;
-  grid-template-columns: auto minmax(108px, 132px);
-  gap: 12px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
   position: relative;
   z-index: 1;
 }
@@ -367,15 +368,15 @@
 .cw-stage-art {
   position: relative;
   z-index: 1;
-  width: 154px;
-  height: 154px;
+  width: 120px;
+  height: 120px;
   display: grid;
   place-items: center;
 }
 
 .cw-stage-art--compact {
-  width: 102px;
-  height: 102px;
+  width: 80px;
+  height: 80px;
 }
 
 .cw-stage-signal {
@@ -455,15 +456,15 @@
 }
 
 .cw-stage-readouts {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .cw-stage-readout {
-  min-height: 44px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  min-height: 34px;
+  padding: 5px 8px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(10, 13, 18, 0.48);
   backdrop-filter: blur(10px);
@@ -529,16 +530,22 @@
 .cw-stage-readout span {
   display: block;
   color: var(--color-bunker-text-soft);
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cw-stage-readout strong {
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
   font-family: var(--font-heading);
-  font-size: 0.92rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cw-stage--home .cw-stage-image,
@@ -1206,8 +1213,6 @@
 }
 
 .cw-tabs {
-  position: sticky;
-  bottom: 0;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;

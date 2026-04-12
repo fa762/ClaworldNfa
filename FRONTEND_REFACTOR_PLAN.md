@@ -867,6 +867,149 @@ Current release decision on 2026-04-12:
 - less static page mood after an action is available
 - more character-driven companion state changes instead of one fixed silhouette
 
+## 2026-04-12 i18n and mobile-fix checkpoint (session 3)
+
+All commits cherry-picked onto `origin/main`.
+
+What changed:
+
+- shell AppShell now calls `useI18n()` and passes `t` to all copy helpers
+- 16 new `mood.*` translation keys added
+- EN/中 toggle button added to shell header
+- BottomTabs labels are now fully reactive to language changes
+- bottom tabs now permanently fixed: shell constrained to `height: 100dvh`, screen to `height: 100%`, `.cw-main` scrolls internally
+- global `button { cursor: pointer }` added
+- topbar padding tightened for small phones
+- switcher label width reduced 120→80px
+- ConnectButton ported to `cw-button` classes
+- Settings now has a live wallet connect/disconnect panel
+
+What is still missing:
+
+- page body content (task names, descriptions, arena copy, auto copy) remains hardcoded English
+- bottom tabs may still scroll on real devices due to `body { overflow: auto }` body scroll fallback
+- iOS top safe area not handled
+- stage height still large
+- companion card layout still squished on small viewports
+
+---
+
+## Known issues — mobile review 2026-04-12 session 3
+
+This section is the canonical issue tracker for frontend mobile problems.
+Priority: P0 = blocks core use, P1 = significant gap, P2 = polish.
+
+### P0 — Blocks core UX
+
+**[P0] CompanionStage occupies too much vertical space**
+
+The persistent stage is the largest non-scrollable item above every page.
+
+Measured pixel budget on home (iPhone SE 375×667):
+- topbar: ~70px
+- stage home (art 154px + readouts 3×44px stacked + meta): ~370px
+- tabs: ~84px
+- chrome total: ~524px
+- scrollable area remaining: ~143px — almost nothing
+
+On inner pages (compact):
+- stage compact (art 102px + readouts): ~280px
+- chrome total: ~434px
+- scrollable area on SE: ~233px — still very tight
+
+Root causes and fix targets:
+1. `.cw-stage-art` 154px (home) / 102px (compact) — reduce to 120px / 80px
+2. `.cw-stage-readouts` stacks 3 × 44px cards vertically = 148px — change to 3-col horizontal row, ~36px tall
+3. `.cw-stage-meta` chips add 50px with margin — reduce margin or collapse on compact mode
+4. No collapse option on inner pages — consider hiding readouts entirely on compact stages
+
+**[P0] iOS top safe area not handled**
+
+`env(safe-area-inset-top)` is not applied to `.cw-topbar`.
+On iPhones with notch or Dynamic Island, the topbar is partially obscured by the status bar.
+Viewport meta has `viewportFit: "cover"` which extends under the notch, making this worse.
+
+Fix target: `.cw-topbar { padding-top: calc(14px + env(safe-area-inset-top)) }`
+
+**[P0] Bottom tabs still follow page scroll**
+
+Root cause: `body { overflow: auto }` is not prevented. If anything causes the body to expand beyond `100dvh`, the entire shell scrolls and tabs leave the screen. The `position: sticky; bottom: 0` on `.cw-tabs` only works within a scroll container — but `.cw-screen { overflow: hidden }` disables sticky. Tabs are just a flex item at the bottom; sticky does nothing useful here.
+
+Fix target:
+- remove `position: sticky; bottom: 0` from `.cw-tabs` (redundant in constrained flex column)
+- add `overflow: hidden` to `html` and `body` to prevent any fallback body scroll
+
+**[P0] Companion card layout not responsive — content squished to right**
+
+The stage uses `grid-template-columns: 1fr auto` (copy left, art right). Media query at 560px switches to single column. But:
+- `.cw-stage-visual` inside the `auto` column uses `grid-template-columns: auto minmax(108px, 132px)` — this can cause the art container to take too much width on small devices
+- If the 560px breakpoint does not fire (e.g. browser zoom or viewport calculation issue), the stage art pushes all copy text to the left in a narrow column
+
+Fix target: change `.cw-stage-visual` to `grid-template-columns: auto` or clamp the art width. Add a fallback `max-width: 100%` on `.cw-stage-art`.
+
+### P1 — Significant
+
+**[P1] Page body content is hardcoded English — i18n toggle has no effect on pages**
+
+Language toggle works for shell chrome only. All page content is hardcoded English:
+- Play: task titles ("Adventure", "Puzzle", "Crafting"), all detail strings
+- Arena: card copy, status labels
+- Companion: all static labels
+- Auto: all directive/autonomy copy
+- OwnedCompanionRail: `title` and `subtitle` props passed as literal English strings at every call site
+
+Fix target: either mark page content as intentionally English for now and document it, or add page-level zh translation keys in next language pass.
+
+**[P1] No wallet gate / connect CTA on action pages**
+
+Play, Arena, Auto show blank/zero data when wallet is not connected. No in-page prompt appears.
+
+Fix target: add a shared `<WalletGate>` wrapper that renders a "connect wallet" CTA panel when `!isConnected`.
+
+**[P1] Deposit/upkeep UI not accessible from new navigation**
+
+Depositing Claworld for upkeep is the most critical maintenance action. It exists only in the old NFA detail page which is outside the new navigation flow. Users with low upkeep runway cannot fix it from the new shell.
+
+Fix target: add a compact deposit/upkeep module to the Companion page or Settings.
+
+**[P1] OwnedCompanionRail adds ~120px to every page for multi-NFA wallets**
+
+When `ownedCount > 1`, the rail renders a full section (title + subtitle + roster) at the top of every page. Combined with the already large stage, scroll area shrinks further.
+
+Fix target: collapse the rail to a single compact row, or move it behind the shell header switcher as an expandable drawer.
+
+### P2 — Polish
+
+**[P2] No skeleton/loading states**
+
+When wallet connects and hooks read, all values show `0` / `--` with no loading indicator.
+
+Fix target: add `isLoading` state to active companion context; show skeleton shimmer in readouts and cards.
+
+**[P2] CompanionStage art is placeholder only**
+
+The 154/102px circle shows a gradient glow but no actual NFT image. Metadata URL reading is not wired.
+
+Fix target: wire `useNFAMetadata(tokenId)` into active companion context, pass `imageUrl` to stage art.
+
+**[P2] PWA offline banner compresses scroll area further**
+
+`PwaStatusBanner` adds ~60-80px to chrome when visible. Combined with stage, scroll area on SE becomes near-zero.
+
+Fix target: auto-dismiss after 8 seconds; add sessionStorage persistence for dismissed state.
+
+**[P2] Brand label too long for 320px screens**
+
+"Lobster Companion" at 1.125rem may overflow on 320px devices. No truncation or overflow protection.
+
+Fix target: add `overflow: hidden; text-overflow: ellipsis` to `.cw-brand` or shorten the label.
+
+**[P2] `cw-shell { overflow: hidden }` will clip future modal/sheet overlays**
+
+Fix target: switch to `overflow: clip` or use a portal root outside `.cw-shell` for modals.
+
+---
+
 ## Handoff rule
 
 For this rewrite, every meaningful decision or completed step should be written to:
