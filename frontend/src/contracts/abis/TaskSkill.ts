@@ -160,6 +160,31 @@ export const TaskSkillABI = [
       },
       {
         "indexed": false,
+        "internalType": "uint8",
+        "name": "taskType",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "reason",
+        "type": "string"
+      }
+    ],
+    "name": "TaskPersonalityDriftSkipped",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "nfaId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
         "internalType": "uint32",
         "name": "totalTasks",
         "type": "uint32"
@@ -410,6 +435,65 @@ export const TaskSkillABI = [
     "name": "ownerCompleteTypedTask",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "nfaId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "taskType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint32",
+        "name": "xpReward",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "clwReward",
+        "type": "uint256"
+      }
+    ],
+    "name": "previewTypedTaskOutcome",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "matchScore",
+        "type": "uint16"
+      },
+      {
+        "internalType": "uint256",
+        "name": "actualClw",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "streakMul",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "worldMul",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "cooldownReady",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "personalityDrift",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {

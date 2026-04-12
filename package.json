@@ -17,6 +17,8 @@
     "runner:autonomy": "node -r ts-node/register/transpile-only openclaw/start-autonomy-runner.ts",
     "runner:autonomy:once": "node -r ts-node/register/transpile-only openclaw/start-autonomy-runner.ts --once",
     "runner:autonomy:check": "node -r ts-node/register/transpile-only openclaw/start-autonomy-runner.ts --check-env",
+    "directive:check": "node -r ts-node/register/transpile-only scripts/check-directive-runtime.ts",
+    "battle-royale:autonomy:check": "node -r ts-node/register/transpile-only scripts/check-battle-royale-autonomy-readiness.ts",
     "migrate:autonomy:battle-royale:mainnet": "npx hardhat run scripts/migrate-battle-royale-autonomy-mainnet.ts --network bscMainnet",
     "smoke:battle-royale:autonomy:mainnet": "npx hardhat run scripts/smoke-battle-royale-autonomy-mainnet.ts --network bscMainnet",
     "watch:battle-royale": "node -e \"process.env.HARDHAT_NETWORK='bscMainnet'; process.env.BATTLE_ROYALE_WATCH_MODE='serve'; require('ts-node/register/transpile-only'); require('./scripts/watch-battle-royale-reveal.ts');\"",

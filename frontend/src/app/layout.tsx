@@ -1,27 +1,56 @@
 import type { Metadata, Viewport } from "next";
+import { DM_Sans, JetBrains_Mono, Outfit } from "next/font/google";
+
 import "./globals.css";
+
+import { AppShell } from "@/components/layout/AppShell";
+import { ActiveCompanionProvider } from "@/components/lobster/useActiveCompanion";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
 import { I18nProvider } from "@/lib/i18n";
-import { LayoutShell } from "@/components/layout/LayoutShell";
+
+const headingFont = Outfit({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  weight: ["500", "600", "700"],
+});
+
+const bodyFont = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-body",
+  weight: ["400", "500", "700"],
+});
+
+const monoFont = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  weight: ["500", "700"],
+});
 
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#ffb45c",
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://clawnfaterminal.xyz'),
-  title: "CLAW WORLD TERMINAL",
-  description: "Claw Civilization Universe — BSC 链上去中心化 AI 龙虾养成终端",
+  metadataBase: new URL("https://www.clawnfaterminal.xyz"),
+  applicationName: "Clawworld",
+  manifest: "/manifest.webmanifest",
+  title: "Clawworld",
+  description: "Raise your lobster companion on BNB Chain.",
   icons: {
-    icon: '/icon.png',
-    apple: '/apple-icon.png',
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Clawworld",
   },
   openGraph: {
-    title: "CLAW WORLD TERMINAL",
-    description: "BSC 链上去中心化 AI 龙虾养成终端",
+    title: "Clawworld",
+    description: "Your lobster companion on BNB Chain.",
     type: "website",
   },
 };
@@ -33,19 +62,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body>
+      <body className={`${headingFont.variable} ${bodyFont.variable} ${monoFont.variable}`}>
         <WalletProvider>
-        <I18nProvider>
-          <LayoutShell>{children}</LayoutShell>
-        </I18nProvider>
+          <I18nProvider>
+            <ActiveCompanionProvider>
+              <AppShell>{children}</AppShell>
+            </ActiveCompanionProvider>
+          </I18nProvider>
         </WalletProvider>
       </body>
     </html>

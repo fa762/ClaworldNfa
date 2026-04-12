@@ -1,6 +1,14 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 
 export type Lang = 'zh' | 'en';
 
@@ -302,24 +310,57 @@ interface I18nContextType {
   lang: Lang;
   setLang: (lang: Lang) => void;
   t: (key: TranslationKey) => string;
+  pick: <T>(zh: T, en: T) => T;
 }
 
 const I18nContext = createContext<I18nContextType>({
   lang: 'zh',
   setLang: () => {},
   t: (key) => translations[key]?.zh ?? key,
+  pick: (zh) => zh,
 });
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>('zh');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const stored = window.localStorage.getItem('clawworld-lang');
+    if (stored === 'zh' || stored === 'en') {
+      setLang(stored);
+      return;
+    }
+
+    const browserLang = window.navigator.language.toLowerCase();
+    setLang(browserLang.startsWith('zh') ? 'zh' : 'en');
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('clawworld-lang', lang);
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  }, [lang]);
 
   const t = useCallback(
     (key: TranslationKey) => translations[key]?.[lang] ?? key,
     [lang]
   );
 
+  const pick = useCallback(<T,>(zh: T, en: T) => (lang === 'zh' ? zh : en), [lang]);
+
+  const value = useMemo(
+    () => ({
+      lang,
+      setLang,
+      t,
+      pick,
+    }),
+    [lang, t, pick],
+  );
+
   return (
-    <I18nContext.Provider value={{ lang, setLang, t }}>
+    <I18nContext.Provider value={value}>
       {children}
     </I18nContext.Provider>
   );
