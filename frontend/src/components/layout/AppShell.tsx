@@ -8,6 +8,7 @@ import { BottomTabs } from './BottomTabs';
 import { PwaStatusBanner } from './PwaStatusBanner';
 import { CompanionStage, type CompanionStageTone, type CompanionStageVariant } from '@/components/lobster/CompanionStage';
 import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
+import { useI18n } from '@/lib/i18n';
 
 type ShellCopy = {
   variant: CompanionStageVariant;
@@ -24,14 +25,14 @@ type ShellCopy = {
   cta: { href: string; label: string };
 };
 
-function getCompanionMood(companion: ReturnType<typeof useActiveCompanion>) {
-  if (!companion.connected) return { label: 'Dormant', tone: 'cool' as const };
-  if (!companion.hasToken) return { label: 'Searching', tone: 'alert' as const };
-  if (!companion.active) return { label: 'Hungry', tone: 'alert' as const };
-  if (companion.upkeepDays !== null && companion.upkeepDays <= 1) return { label: 'Restless', tone: 'alert' as const };
-  if (companion.pkWinRate >= 60) return { label: 'Fired up', tone: 'warm' as const };
-  if (companion.taskTotal >= 10) return { label: 'Settled', tone: 'growth' as const };
-  return { label: 'Attentive', tone: 'growth' as const };
+function getCompanionMood(companion: ReturnType<typeof useActiveCompanion>, t: (k: string) => string) {
+  if (!companion.connected) return { label: t('mood.dormant'), tone: 'cool' as const };
+  if (!companion.hasToken) return { label: t('mood.searching'), tone: 'alert' as const };
+  if (!companion.active) return { label: t('mood.hungry'), tone: 'alert' as const };
+  if (companion.upkeepDays !== null && companion.upkeepDays <= 1) return { label: t('mood.restless'), tone: 'alert' as const };
+  if (companion.pkWinRate >= 60) return { label: t('mood.firedUp'), tone: 'warm' as const };
+  if (companion.taskTotal >= 10) return { label: t('mood.settled'), tone: 'growth' as const };
+  return { label: t('mood.attentive'), tone: 'growth' as const };
 }
 
 function runwayLabel(companion: ReturnType<typeof useActiveCompanion>) {
@@ -39,8 +40,8 @@ function runwayLabel(companion: ReturnType<typeof useActiveCompanion>) {
   return `${companion.upkeepDays}d`;
 }
 
-function getShellCopy(pathname: string, companion: ReturnType<typeof useActiveCompanion>): ShellCopy {
-  const mood = getCompanionMood(companion);
+function getShellCopy(pathname: string, companion: ReturnType<typeof useActiveCompanion>, t: (k: string) => string): ShellCopy {
+  const mood = getCompanionMood(companion, t);
 
   if (pathname === '/') {
     return {
@@ -53,17 +54,17 @@ function getShellCopy(pathname: string, companion: ReturnType<typeof useActiveCo
       statusTone: companion.statusTone,
       signals: [
         { label: companion.sourceLabel, tone: companion.sourceTone },
-        { label: `Wallet ${companion.walletClaworldText}`, tone: 'growth' },
-        { label: `Reserve ${companion.routerClaworldText}`, tone: 'warm' },
+        { label: `${t('shell.wallet')} ${companion.walletClaworldText}`, tone: 'growth' },
+        { label: `${t('shell.reserve')} ${companion.routerClaworldText}`, tone: 'warm' },
       ],
       moodLabel: mood.label,
       moodTone: mood.tone,
       readouts: [
-        { label: 'Reserve', value: companion.routerClaworldText, tone: 'warm' },
-        { label: 'Runway', value: runwayLabel(companion), tone: companion.statusTone },
-        { label: 'Tasks', value: `${companion.taskTotal}`, tone: 'growth' },
+        { label: t('shell.reserve'), value: companion.routerClaworldText, tone: 'warm' },
+        { label: t('shell.runway'), value: runwayLabel(companion), tone: companion.statusTone },
+        { label: t('shell.tasks'), value: `${companion.taskTotal}`, tone: 'growth' },
       ],
-      cta: { href: '/companion', label: 'Open Companion' },
+      cta: { href: '/companion', label: t('shell.openCompanion') },
     };
   }
 
@@ -71,24 +72,24 @@ function getShellCopy(pathname: string, companion: ReturnType<typeof useActiveCo
     return {
       variant: 'play',
       compact: true,
-      eyebrow: 'Task Loop',
-      title: `${companion.name} Ready To Work`,
-      subtitle: 'Pick the next action with the best return and the least hesitation.',
-      statusLabel: companion.active ? 'Cooldown open' : companion.statusLabel,
+      eyebrow: t('shell.taskQueue'),
+      title: `${companion.name} // ${t('shell.play')}`,
+      subtitle: '',
+      statusLabel: companion.active ? t('status.alive') : companion.statusLabel,
       statusTone: companion.active ? 'growth' : companion.statusTone,
       signals: [
-        { label: `${companion.taskTotal} tasks logged`, tone: 'growth' },
-        { label: `Reserve ${companion.routerClaworldText}`, tone: 'warm' },
-        { label: 'Low gas path', tone: 'cool' },
+        { label: `${companion.taskTotal} ${t('shell.tasks')}`, tone: 'growth' },
+        { label: `${t('shell.reserve')} ${companion.routerClaworldText}`, tone: 'warm' },
+        { label: t('shell.lowGasPath'), tone: 'cool' },
       ],
-      moodLabel: companion.active ? 'Working' : mood.label,
+      moodLabel: companion.active ? t('mood.working') : mood.label,
       moodTone: companion.active ? 'growth' : mood.tone,
       readouts: [
-        { label: 'Reserve', value: companion.routerClaworldText, tone: 'warm' },
-        { label: 'Runway', value: runwayLabel(companion), tone: companion.statusTone },
-        { label: 'Loop', value: `${companion.taskTotal} tasks`, tone: 'growth' },
+        { label: t('shell.reserve'), value: companion.routerClaworldText, tone: 'warm' },
+        { label: t('shell.runway'), value: runwayLabel(companion), tone: companion.statusTone },
+        { label: t('shell.loop'), value: `${companion.taskTotal}`, tone: 'growth' },
       ],
-      cta: { href: '/play', label: 'Task Queue' },
+      cta: { href: '/play', label: t('shell.taskQueue') },
     };
   }
 
@@ -96,35 +97,33 @@ function getShellCopy(pathname: string, companion: ReturnType<typeof useActiveCo
     const arenaStatusLabel =
       companion.pkWins + companion.pkLosses > 0
         ? `${companion.pkWins}W / ${companion.pkLosses}L`
-        : 'Field live';
+        : t('mood.fieldLive');
     const arenaStatusTone =
       companion.pkWins + companion.pkLosses > 0
-        ? companion.pkWinRate >= 50
-          ? ('warm' as const)
-          : ('alert' as const)
+        ? companion.pkWinRate >= 50 ? ('warm' as const) : ('alert' as const)
         : ('alert' as const);
 
     return {
       variant: 'arena',
       compact: true,
-      eyebrow: 'Arena Readiness',
-      title: `${companion.name} In The Arena`,
-      subtitle: 'PK and Battle Royale stay close, with risk and timing visible before entry.',
+      eyebrow: t('shell.arenaHub'),
+      title: `${companion.name} // ${t('shell.arena')}`,
+      subtitle: '',
       statusLabel: arenaStatusLabel,
       statusTone: arenaStatusTone,
       signals: [
-        { label: `${companion.pkWinRate}% PK win rate`, tone: companion.pkWinRate >= 50 ? 'growth' : 'alert' },
-        { label: 'BR warming', tone: 'alert' },
-        { label: 'Reveal tracked', tone: 'cool' },
+        { label: `${companion.pkWinRate}% ${t('shell.pk')}`, tone: companion.pkWinRate >= 50 ? 'growth' : 'alert' },
+        { label: t('shell.brWarming'), tone: 'alert' },
+        { label: t('shell.revealTracked'), tone: 'cool' },
       ],
-      moodLabel: companion.pkWinRate >= 50 ? 'Aggressive' : mood.label,
+      moodLabel: companion.pkWinRate >= 50 ? t('mood.aggressive') : mood.label,
       moodTone: companion.pkWinRate >= 50 ? 'warm' : mood.tone,
       readouts: [
-        { label: 'PK', value: `${companion.pkWinRate}%`, tone: companion.pkWinRate >= 50 ? 'growth' : 'alert' },
-        { label: 'Wins', value: `${companion.pkWins}`, tone: 'warm' },
-        { label: 'Reserve', value: companion.routerClaworldText, tone: 'cool' },
+        { label: t('shell.pk'), value: `${companion.pkWinRate}%`, tone: companion.pkWinRate >= 50 ? 'growth' : 'alert' },
+        { label: t('shell.wins'), value: `${companion.pkWins}`, tone: 'warm' },
+        { label: t('shell.reserve'), value: companion.routerClaworldText, tone: 'cool' },
       ],
-      cta: { href: '/arena', label: 'Arena Hub' },
+      cta: { href: '/arena', label: t('shell.arenaHub') },
     };
   }
 
@@ -132,24 +131,24 @@ function getShellCopy(pathname: string, companion: ReturnType<typeof useActiveCo
     return {
       variant: 'auto',
       compact: true,
-      eyebrow: 'Autonomy Boundaries',
-      title: `${companion.name} On Boundaries`,
-      subtitle: 'Policies, budgets, directives, and recent actions live on one controlled surface.',
+      eyebrow: t('shell.autonomy'),
+      title: `${companion.name} // ${t('shell.auto')}`,
+      subtitle: '',
       statusLabel: 'Dry-run',
       statusTone: 'cool',
       signals: [
-        { label: `${companion.dailyCostText} daily upkeep`, tone: 'growth' },
-        { label: 'Directive synced', tone: 'cool' },
-        { label: 'Policy locked', tone: 'warm' },
+        { label: `${companion.dailyCostText} ${t('shell.upkeep')}`, tone: 'growth' },
+        { label: t('shell.directiveSynced'), tone: 'cool' },
+        { label: t('shell.policyLocked'), tone: 'warm' },
       ],
-      moodLabel: 'Bounded',
+      moodLabel: t('mood.bounded'),
       moodTone: 'cool',
       readouts: [
-        { label: 'Upkeep', value: companion.dailyCostText, tone: 'growth' },
-        { label: 'Runway', value: runwayLabel(companion), tone: companion.statusTone },
-        { label: 'Source', value: companion.sourceLabel, tone: companion.sourceTone },
+        { label: t('shell.upkeep'), value: companion.dailyCostText, tone: 'growth' },
+        { label: t('shell.runway'), value: runwayLabel(companion), tone: companion.statusTone },
+        { label: t('shell.source'), value: companion.sourceLabel, tone: companion.sourceTone },
       ],
-      cta: { href: '/auto', label: 'Autonomy' },
+      cta: { href: '/auto', label: t('shell.autonomy') },
     };
   }
 
@@ -157,24 +156,23 @@ function getShellCopy(pathname: string, companion: ReturnType<typeof useActiveCo
     return {
       variant: 'settings',
       compact: true,
-      eyebrow: 'Companion Settings',
-      title: 'Quiet Controls',
-      subtitle: 'Wallet, AI, notifications, and advanced modes belong behind a calm surface.',
-      statusLabel: 'Stable',
+      eyebrow: t('shell.settings'),
+      title: t('mood.quietControls'),
+      subtitle: '',
+      statusLabel: t('mood.stable'),
       statusTone: 'cool',
       signals: [
-        { label: 'Wallet linked', tone: 'cool' },
-        { label: companion.connected ? 'Wallet linked' : 'Wallet not linked', tone: companion.connected ? 'growth' : 'alert' },
-        { label: 'Alerts configurable' },
+        { label: companion.connected ? t('mood.walletLinked') : t('mood.walletOffline'), tone: companion.connected ? 'growth' : 'alert' },
+        { label: t('shell.alertsConfigurable') },
       ],
-      moodLabel: companion.connected ? 'Stable' : 'Offline',
+      moodLabel: companion.connected ? t('mood.stable') : t('mood.offline'),
       moodTone: companion.connected ? 'cool' : 'alert',
       readouts: [
-        { label: 'Owned', value: `${companion.ownedCount}`, tone: 'cool' },
-        { label: 'Reserve', value: companion.routerClaworldText, tone: 'warm' },
-        { label: 'Status', value: companion.statusLabel, tone: companion.statusTone },
+        { label: t('shell.owned'), value: `${companion.ownedCount}`, tone: 'cool' },
+        { label: t('shell.reserve'), value: companion.routerClaworldText, tone: 'warm' },
+        { label: t('shell.status'), value: companion.statusLabel, tone: companion.statusTone },
       ],
-      cta: { href: '/settings', label: 'Settings' },
+      cta: { href: '/settings', label: t('shell.settings') },
     };
   }
 
@@ -183,29 +181,30 @@ function getShellCopy(pathname: string, companion: ReturnType<typeof useActiveCo
     compact: true,
     eyebrow: companion.shelterName,
     title: `${companion.name} // Lv.${companion.level}`,
-    subtitle: 'Identity, growth, and action should all read from one living center.',
+    subtitle: '',
     statusLabel: companion.statusLabel,
     statusTone: companion.statusTone,
     signals: [
-      { label: `${companion.ownedCount} owned`, tone: 'cool' },
-      { label: `${companion.taskTotal} tasks`, tone: 'growth' },
-      { label: `Reserve ${companion.routerClaworldText}`, tone: 'warm' },
+      { label: `${companion.ownedCount} ${t('shell.owned')}`, tone: 'cool' },
+      { label: `${companion.taskTotal} ${t('shell.tasks')}`, tone: 'growth' },
+      { label: `${t('shell.reserve')} ${companion.routerClaworldText}`, tone: 'warm' },
     ],
     moodLabel: mood.label,
     moodTone: mood.tone,
     readouts: [
-      { label: 'Reserve', value: companion.routerClaworldText, tone: 'warm' },
-      { label: 'Tasks', value: `${companion.taskTotal}`, tone: 'growth' },
-      { label: 'PK', value: `${companion.pkWins}-${companion.pkLosses}`, tone: companion.pkWinRate >= 50 ? 'growth' : 'cool' },
+      { label: t('shell.reserve'), value: companion.routerClaworldText, tone: 'warm' },
+      { label: t('shell.tasks'), value: `${companion.taskTotal}`, tone: 'growth' },
+      { label: t('shell.pk'), value: `${companion.pkWins}-${companion.pkLosses}`, tone: companion.pkWinRate >= 50 ? 'growth' : 'cool' },
     ],
-    cta: { href: '/', label: 'Home' },
+    cta: { href: '/', label: t('nav.home') },
   };
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const companion = useActiveCompanion();
-  const shellCopy = getShellCopy(pathname, companion);
+  const { t, lang, setLang } = useI18n();
+  const shellCopy = getShellCopy(pathname, companion, t);
 
   return (
     <div className="cw-shell">
@@ -217,8 +216,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="cw-top-actions">
             {companion.ownedCount > 1 ? (
-              <div className="cw-switcher" aria-label="Active lobster selector">
-                <button type="button" className="cw-switcher-btn" onClick={companion.selectPrevious} aria-label="Previous lobster">
+              <div className="cw-switcher" aria-label={t('shell.selector')}>
+                <button type="button" className="cw-switcher-btn" onClick={companion.selectPrevious} aria-label={t('shell.previous')}>
                   <ChevronLeft size={14} />
                 </button>
                 <div className="cw-switcher-label">
@@ -227,11 +226,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     #{companion.tokenNumber} / {companion.selectedIndex + 1} of {companion.ownedCount}
                   </span>
                 </div>
-                <button type="button" className="cw-switcher-btn" onClick={companion.selectNext} aria-label="Next lobster">
+                <button type="button" className="cw-switcher-btn" onClick={companion.selectNext} aria-label={t('shell.next')}>
                   <ChevronRight size={14} />
                 </button>
               </div>
             ) : null}
+            <button
+              type="button"
+              className="cw-toplink"
+              onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+              aria-label={lang === 'zh' ? t('shell.switchToEnglish') : t('shell.switchToChinese')}
+            >
+              {lang === 'zh' ? 'EN' : '中'}
+            </button>
             <Link href={shellCopy.cta.href} className="cw-toplink">
               {shellCopy.cta.label}
             </Link>

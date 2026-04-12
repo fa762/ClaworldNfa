@@ -335,6 +335,24 @@ const translations: Record<string, Record<Lang, string>> = {
   // ─── Lore Page ───
   'lore.title': { zh: 'AI代理', en: 'AI AGENT' },
 
+  // ─── Mood Labels ───
+  'mood.dormant': { zh: '休眠', en: 'Dormant' },
+  'mood.searching': { zh: '寻觅中', en: 'Searching' },
+  'mood.hungry': { zh: '饥饿', en: 'Hungry' },
+  'mood.restless': { zh: '躁动', en: 'Restless' },
+  'mood.firedUp': { zh: '战意高涨', en: 'Fired Up' },
+  'mood.settled': { zh: '沉稳', en: 'Settled' },
+  'mood.attentive': { zh: '专注', en: 'Attentive' },
+  'mood.working': { zh: '执行中', en: 'Working' },
+  'mood.fieldLive': { zh: '现场直播', en: 'Field Live' },
+  'mood.aggressive': { zh: '进攻状态', en: 'Aggressive' },
+  'mood.bounded': { zh: '有边界', en: 'Bounded' },
+  'mood.quietControls': { zh: '静默控制', en: 'Quiet Controls' },
+  'mood.stable': { zh: '稳定', en: 'Stable' },
+  'mood.walletLinked': { zh: '钱包已连接', en: 'Wallet linked' },
+  'mood.walletOffline': { zh: '钱包离线', en: 'Wallet offline' },
+  'mood.offline': { zh: '离线', en: 'Offline' },
+
   // ─── Shell / PWA ───
   'pwa.label': { zh: 'PWA 外壳', en: 'PWA shell' },
   'pwa.offlineTitle': { zh: '离线外壳已启用', en: 'Offline shell active' },
