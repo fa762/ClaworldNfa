@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
-import { truncateAddress } from '@/lib/format';
+
 import { getBscScanAddressUrl } from '@/contracts/addresses';
+import { truncateAddress } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 
 export function ConnectButton() {
@@ -16,22 +17,31 @@ export function ConnectButton() {
   useEffect(() => setMounted(true), []);
 
   if (!mounted) {
-    return <span className="term-dim text-xs">[{t('wallet.connect')}]</span>;
+    return (
+      <button type="button" className="cw-button" disabled>
+        {t('wallet.connect')}
+      </button>
+    );
   }
 
   if (isConnected && address) {
     return (
-      <div className="flex items-center gap-2 text-xs">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <a
           href={getBscScanAddressUrl(address)}
           target="_blank"
           rel="noopener noreferrer"
-          className="term-link"
+          className="cw-button cw-button--secondary"
+          style={{ fontSize: '0.78rem' }}
         >
-          <span className="term-dim">●</span> {truncateAddress(address)}
+          ● {truncateAddress(address)}
         </a>
-        <button onClick={() => disconnect()} className="term-dim hover:term-danger transition-colors">
-          [{t('wallet.disconnect')}]
+        <button
+          type="button"
+          className="cw-button cw-button--ghost"
+          onClick={() => disconnect()}
+        >
+          {t('wallet.disconnect')}
         </button>
       </div>
     );
@@ -39,16 +49,16 @@ export function ConnectButton() {
 
   return (
     <button
+      type="button"
+      className="cw-button cw-button--primary"
       onClick={() => {
-        // Prefer injected (MetaMask etc.) if available, fallback to WalletConnect
         const inj = connectors.find((c) => c.type === 'injected');
         const wc = connectors.find((c) => c.name === 'WalletConnect');
-        const connector = (inj && (window as any).ethereum) ? inj : wc || connectors[0];
+        const connector = inj && (window as unknown as { ethereum?: unknown }).ethereum ? inj : wc ?? connectors[0];
         if (connector) connect({ connector });
       }}
-      className="term-btn term-btn-primary text-xs"
     >
-      [{t('wallet.connect')}]
+      {t('wallet.connect')}
     </button>
   );
 }
