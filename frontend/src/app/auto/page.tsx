@@ -9,6 +9,7 @@ import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
 import { useBattleRoyaleClaimWindow } from '@/components/lobster/useBattleRoyaleClaimWindow';
 import { useBattleRoyaleOverview } from '@/components/lobster/useBattleRoyaleOverview';
 import { useBattleRoyaleParticipantState } from '@/components/lobster/useBattleRoyaleParticipantState';
+import { WalletGate } from '@/components/wallet/WalletGate';
 import {
   AUTONOMY_ACTION_KIND,
   AUTONOMY_PROTOCOL_ID,
@@ -127,6 +128,10 @@ export default function AutoPage() {
         </div>
       </section>
 
+      <WalletGate
+        title="Connect the owner wallet before editing autonomy."
+        detail="Directive signing, claim requests, and permission reads all depend on the current wallet and owned NFA. Auto should gate here instead of showing blank setup state."
+      >
       <OwnedCompanionRail
         title="Managed roster"
         subtitle="Switch the active lobster before checking policy, ledger, and autonomy claim path."
@@ -327,6 +332,7 @@ export default function AutoPage() {
           </span>
         </div>
       </section>
+      </WalletGate>
     </>
   );
 }

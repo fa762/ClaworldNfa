@@ -25,6 +25,7 @@ import {
 
 import { OwnedCompanionRail } from '@/components/lobster/OwnedCompanionRail';
 import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
+import { WalletGate } from '@/components/wallet/WalletGate';
 import { TaskSkillABI } from '@/contracts/abis/TaskSkill';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { formatBasisPoints, formatBNB, formatCLW } from '@/lib/format';
@@ -477,9 +478,9 @@ export default function PlayPage() {
         <div className="cw-band--split">
           <div>
             <p className="cw-eyebrow">Task mining</p>
-            <h2 className="cw-section-title">{companion.name} now runs a full task loop.</h2>
+            <h2 className="cw-section-title">{companion.name} is ready to mine.</h2>
             <p className="cw-muted">
-              The play surface now goes from live task fit to preview, confirm, on-chain execution, and result state.
+              Pick a mining line, review the live quote, sign once, and read the result back on the same surface.
             </p>
           </div>
           <div className="cw-score">
@@ -489,6 +490,10 @@ export default function PlayPage() {
         </div>
       </section>
 
+      <WalletGate
+        title="Connect the owner wallet to start mining."
+        detail="Mining needs real ownership, reserve, cooldown, and wallet-signature state. The page should stop here until those reads are live."
+      >
       <OwnedCompanionRail
         title="Task roster"
         subtitle="Switch the active lobster before committing to the next work loop."
@@ -829,6 +834,7 @@ export default function PlayPage() {
         </p>
       ) : null}
       {error ? <p className="cw-muted">Task failed to submit: {getErrorMessage(error)}</p> : null}
+      </WalletGate>
     </>
   );
 }

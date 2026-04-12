@@ -8,11 +8,13 @@ import { useOwnedCompanionRoster } from '@/components/lobster/useOwnedCompanionR
 type OwnedCompanionRailProps = {
   title?: string;
   subtitle?: string;
+  compact?: boolean;
 };
 
 export function OwnedCompanionRail({
   title = 'Owned companions',
   subtitle = 'Switch the active lobster without leaving the current flow.',
+  compact = true,
 }: OwnedCompanionRailProps) {
   const companion = useActiveCompanion();
   const roster = useOwnedCompanionRoster(companion.ownedTokens);
@@ -20,11 +22,11 @@ export function OwnedCompanionRail({
   if (companion.ownedCount <= 1) return null;
 
   return (
-    <section className="cw-section">
-      <div className="cw-section-head">
+    <section className={`cw-section ${compact ? 'cw-section--compact' : ''}`}>
+      <div className={`cw-section-head ${compact ? 'cw-section-head--compact' : ''}`}>
         <div>
           <h2 className="cw-section-title">{title}</h2>
-          <p className="cw-muted">{subtitle}</p>
+          {!compact ? <p className="cw-muted">{subtitle}</p> : null}
         </div>
         <span className="cw-chip cw-chip--cool">
           <Boxes size={14} />
@@ -41,8 +43,30 @@ export function OwnedCompanionRail({
           level: 0,
           active: false,
           reserveText: '--',
+          loading: true,
         })) ).map((item) => {
           const selected = item.tokenId === companion.tokenId;
+          const loading = 'loading' in item && Boolean(item.loading);
+
+          if (loading) {
+            return (
+              <div key={item.tokenId.toString()} className="cw-roster-card cw-roster-card--loading" aria-hidden="true">
+                <div className="cw-roster-head">
+                  <strong>#{item.tokenNumber}</strong>
+                  <span className="cw-chip cw-chip--cool">Loading</span>
+                </div>
+                <div className="cw-roster-copy">
+                  <h3>{item.name}</h3>
+                  <p className="cw-muted">{item.shelterName}</p>
+                </div>
+                <div className="cw-roster-meta">
+                  <span className="cw-label">Reserve</span>
+                  <strong>{item.reserveText}</strong>
+                </div>
+              </div>
+            );
+          }
+
           return (
             <button
               key={item.tokenId.toString()}
@@ -73,7 +97,7 @@ export function OwnedCompanionRail({
         })}
       </div>
 
-      {roster.isLoading ? <p className="cw-muted">Refreshing owned companion roster...</p> : null}
+      {roster.isLoading && !compact ? <p className="cw-muted">Refreshing owned companion roster...</p> : null}
     </section>
   );
 }

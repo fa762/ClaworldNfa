@@ -10,6 +10,7 @@ import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
 import { useBattleRoyaleClaimWindow } from '@/components/lobster/useBattleRoyaleClaimWindow';
 import { useBattleRoyaleOverview } from '@/components/lobster/useBattleRoyaleOverview';
 import { useBattleRoyaleParticipantState } from '@/components/lobster/useBattleRoyaleParticipantState';
+import { WalletGate } from '@/components/wallet/WalletGate';
 import { formatCLW } from '@/lib/format';
 
 function getMatchStatusText(status: number) {
@@ -103,6 +104,10 @@ export default function ArenaPage() {
         </div>
       </section>
 
+      <WalletGate
+        title="Connect the owner wallet before opening arena flows."
+        detail="PK and Battle Royale need real ownership, reserve, and participant-path checks. Arena should not keep rendering dead placeholders when the wallet is offline."
+      >
       <OwnedCompanionRail
         title="Arena roster"
         subtitle="Switch the active lobster here before committing to PK or Battle Royale decisions."
@@ -225,6 +230,7 @@ export default function ArenaPage() {
           </span>
         </div>
       </section>
+      </WalletGate>
     </>
   );
 }

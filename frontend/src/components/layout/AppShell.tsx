@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Globe2 } from 'lucide-react';
 
 import { BottomTabs } from './BottomTabs';
 import { PwaStatusBanner } from './PwaStatusBanner';
@@ -233,10 +233,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ) : null}
             <button
               type="button"
-              className="cw-toplink"
+              className="cw-toplink cw-toplink--lang"
               onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
               aria-label={lang === 'zh' ? t('shell.switchToEnglish') : t('shell.switchToChinese')}
             >
+              <Globe2 size={14} />
               {lang === 'zh' ? 'EN' : '中'}
             </button>
             <Link href={shellCopy.cta.href} className="cw-toplink">
@@ -257,6 +258,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           moodLabel={shellCopy.moodLabel}
           moodTone={shellCopy.moodTone}
           readouts={shellCopy.readouts}
+          imageSrc={companion.imageSrc}
+          imageAlt={companion.imageAlt}
         />
 
         <PwaStatusBanner />

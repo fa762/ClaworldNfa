@@ -13,6 +13,7 @@ import {
 
 import { BattleRoyaleActionPanel } from '@/components/game/BattleRoyaleActionPanel';
 import { BattleRoyaleClaimPanel } from '@/components/game/BattleRoyaleClaimPanel';
+import { CompanionUpkeepPanel } from '@/components/lobster/CompanionUpkeepPanel';
 import { OwnedCompanionRail } from '@/components/lobster/OwnedCompanionRail';
 import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
 import { useBattleRoyaleClaimWindow } from '@/components/lobster/useBattleRoyaleClaimWindow';
@@ -180,7 +181,7 @@ export default function CompanionPage() {
         <div className="cw-section-head">
           <div>
             <span className="cw-label">Presence</span>
-            <h3>{companion.name} now reads like a living asset, not a flat stat sheet.</h3>
+            <h3>{pick(`${companion.name} 现在像一只真正活着的龙虾。`, `${companion.name} should read like a living companion.`)}</h3>
           </div>
           <span className="cw-chip cw-chip--warm">
             <Flame size={14} />
@@ -196,7 +197,10 @@ export default function CompanionPage() {
           ))}
         </div>
         <p className="cw-muted cw-presence-note">
-          Reserve, upkeep runway, and recent action history now all push the companion mood and action bias toward something the user can read in seconds.
+          {pick(
+            '储备、续航和最近的行为会一起决定它当前的状态，你应该一眼就能看懂。',
+            'Reserve, upkeep runway, and recent behavior should make the current state readable at a glance.',
+          )}
         </p>
       </section>
 
@@ -225,6 +229,14 @@ export default function CompanionPage() {
           ))}
         </div>
       </section>
+
+      <CompanionUpkeepPanel
+        tokenId={companion.tokenId}
+        ownerAddress={companion.ownerAddress}
+        reserve={companion.routerClaworld}
+        dailyCost={companion.dailyCost}
+        upkeepDays={companion.upkeepDays}
+      />
 
       <section className="cw-section">
         <div className="cw-section-head">
@@ -275,7 +287,10 @@ export default function CompanionPage() {
         <p className="cw-label">Readout</p>
         <h3>{companion.taskTotal} total tasks, {companion.pkWins} wins, {companion.pkLosses} losses.</h3>
         <p className="cw-muted">
-          This page is now anchored to wallet ownership and on-chain lobster state. The next step is replacing the remaining event placeholders with live modules.
+          {pick(
+            '这里会继续汇总这只龙虾的成长、维护和竞技读数，不用再回旧页面找关键入口。',
+            'This page now keeps growth, upkeep, and arena readouts together so the critical controls stay in one place.',
+          )}
         </p>
       </section>
     </>

@@ -1,6 +1,6 @@
 # Current Handoff
 
-Last updated: 2026-04-12 (session 3) Asia/Singapore
+Last updated: 2026-04-12 (session 4) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
@@ -62,6 +62,29 @@ Frontend naming checkpoint on 2026-04-12:
 - the shell route label is now `任务挖矿 / Task Mining`
 - Companion no longer uses the misleading `Action row` wording for the multi-loop section
 - use `挖矿 / Mining` only for the task path; keep PK / Battle Royale / Autonomy named separately
+
+Frontend shell-closure checkpoint on 2026-04-12:
+
+- action pages now have a shared wallet gate
+  - `/play`
+  - `/arena`
+  - `/auto`
+- disconnected users no longer fall into blank zero-state action panels
+- wallets with no NFA now get an explicit mint-first path instead of dead surfaces
+- Companion now includes a real upkeep / reserve panel inside the rebuilt shell
+  - direct CLW deposit
+  - quick buy+deposit
+  - on-shell `processUpkeep`
+- the top companion stage now reads metadata-backed art instead of a fixed placeholder only
+- stage art is now GIF-ready because the shell stage uses a regular image tag instead of a static-only image path
+- mobile shell chrome was tightened again:
+  - bottom tabs reduced in height
+  - shell switcher tap targets enlarged
+  - stage no longer biases visual content to the right on narrow screens
+  - owned-companion rail is now compact by default
+- Home now has a true no-NFA empty state instead of silently staying in demo posture
+- Autonomy directive editing now shows a visible character counter
+- frontend production build passed again after this shell-closure pass
 
 Frontend visual checkpoint on 2026-04-12:
 
@@ -1106,14 +1129,32 @@ Priority meanings:
   - reviewed as fixed in commit `86b0af5`
   - stage visual layout changed to stack cleanly on small screens
 
+### Fixed after session 4
+
+- `[P0]` Wallet gates now block dead action pages
+  - shared `WalletGate` added to:
+    - `/play`
+    - `/arena`
+    - `/auto`
+- `[P0]` Deposit/upkeep is now back inside the rebuilt navigation
+  - new compact upkeep/reserve panel landed on Companion
+- `[P1]` OwnedCompanionRail is now compact by default
+  - subtitle is suppressed in compact mode
+  - roster cards are tighter
+- `[P2]` CompanionStage no longer depends on fixed placeholder art only
+  - active companion metadata now feeds stage image resolution
+  - stage is GIF-ready
+- `[P2]` Switcher arrows are now larger tap targets
+- `[P2]` Language toggle discoverability improved
+  - globe icon added
+  - language pill styling tightened
+- `[P2]` Roster loading fallback no longer renders as interactive buttons
+- `[P2]` Directive textarea now exposes a visible character counter
+- `[P2]` Home now has an explicit no-NFA empty state
+
 ### Open P0
 
-- `[P0-OPEN]` No wallet gate on action pages
-  - Play / Arena / Auto still render empty-zero states when wallet is disconnected
-  - next fix: introduce a shared `WalletGate` wrapper with a connect CTA
-- `[P0-OPEN]` Deposit/upkeep is still outside the new primary loop
-  - the critical maintain/deposit action is still trapped in the old NFA path
-  - next fix: add a compact deposit/upkeep module to Companion or Settings
+- none on the rebuilt shell path as of session 4
 
 ### Open P1
 

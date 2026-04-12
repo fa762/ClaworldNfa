@@ -77,6 +77,19 @@ As of 2026-04-12:
 - do not describe the task path as generic `行动 / action`
 - keep PK, Battle Royale, and Autonomy as separate named loops
 
+## Progress checkpoint - 2026-04-12 session 4
+
+The rebuilt shell has now crossed the minimum product-closure threshold for the main action surfaces:
+
+- `WalletGate` now blocks dead action pages and routes disconnected users into connect-first UX
+- Companion now includes an in-shell upkeep/reserve module
+- the top stage now reads active companion art from metadata and supports GIF-style assets
+- the bottom nav, shell switcher, and roster height were tightened for real phone use
+- Home now exposes a real no-NFA empty state
+- directive editing now exposes visible remaining-character feedback
+
+This means the rebuild is no longer only a visual shell. The new navigation now contains the minimum owner-path maintenance controls needed to keep a lobster alive and usable without falling back to the old NFA detail screen.
+
 ## Primary app structure
 
 ### 1. Home
@@ -868,18 +881,18 @@ Current release decision on 2026-04-12:
 
 The next implementation sequence is now explicitly aligned to the reviewed UX backlog.
 
-### P0 next
+### P0 status
 
 1. Wallet gates
-- add a shared `WalletGate` component
-- apply it to:
+- complete
+- shared `WalletGate` is now mounted on:
   - `/play`
   - `/arena`
   - `/auto`
 
 2. Deposit/upkeep back into the new shell
-- add a compact upkeep/deposit surface to Companion or Settings
-- this is the highest-value maintenance action missing from the rebuilt navigation
+- complete
+- Companion now carries a compact upkeep/reserve panel
 
 ### P1 next
 
@@ -895,23 +908,17 @@ The next implementation sequence is now explicitly aligned to the reviewed UX ba
   - OwnedCompanionRail
   - key action panels
 
-4. Collapse multi-NFA roster height
-- reduce the current top-of-page rail budget
-- likely direction:
-  - compact row
-  - or shell-expander pattern
-
-5. Add loading and signature states
+4. Add loading and signature states
 - skeletons for companion/live reads
 - explicit wallet-signature waiting state before chain confirmation
 
-6. Upgrade completion feedback
+5. Upgrade completion feedback
 - task completion
 - claim success
 - reward prominence
 - short celebratory motion
 
-7. Add accessibility basics
+6. Add accessibility basics
 - global `:focus-visible`
 - clearer hit targets
 - less ambiguous interactive affordance

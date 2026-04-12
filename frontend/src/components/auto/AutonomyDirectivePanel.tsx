@@ -127,6 +127,7 @@ export function AutonomyDirectivePanel({
   }, [actionKind, tokenId]);
 
   const preview = useMemo(() => buildDirectivePreview(style, text), [style, text]);
+  const remainingChars = 220 - text.length;
 
   async function handleSave() {
     if (!isOwner || !address || saving || isSigning) return;
@@ -225,6 +226,7 @@ export function AutonomyDirectivePanel({
             placeholder="Example: If a settled reward is claimable, prefer claiming it before entering a new match."
           />
           <p className="cw-muted">This text is signed and stored, then injected into the planner prompt.</p>
+          <p className="cw-muted">{text.length}/220 · {remainingChars} chars left</p>
         </label>
       </div>
 

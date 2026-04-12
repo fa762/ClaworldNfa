@@ -70,7 +70,7 @@ export default function HomePage() {
       value: companion.active ? `${companion.name} can work now` : 'Needs upkeep first',
       detail: companion.active
         ? `Reserve ${companion.routerClaworldText}. ${companion.taskTotal} tasks already logged.`
-        : 'Top up upkeep runway before starting another task loop.',
+        : 'Top up upkeep runway before starting another mining run.',
       icon: Sparkles,
       href: '/play',
       score: companion.active ? 'Now' : 'Wait',
@@ -240,6 +240,30 @@ export default function HomePage() {
         subtitle="Keep the same page open while switching which lobster drives the live reads."
       />
 
+      {companion.connected && !companion.hasToken ? (
+        <section className="cw-panel cw-panel--cool">
+          <div className="cw-section-head">
+            <div>
+              <span className="cw-label">No companion yet</span>
+              <h3>This wallet is live, but it does not own a lobster yet.</h3>
+              <p className="cw-muted">
+                Mint one first so Home can switch from demo posture into real reserve, upkeep, mining, and arena state.
+              </p>
+            </div>
+            <span className="cw-chip cw-chip--alert">
+              <Shield size={14} />
+              Mint first
+            </span>
+          </div>
+          <div className="cw-button-row">
+            <Link href="/mint" className="cw-button cw-button--primary">
+              <ArrowRight size={16} />
+              Go to mint
+            </Link>
+          </div>
+        </section>
+      ) : null}
+
       <section className="cw-section">
         <div className="cw-section-head">
           <h2 className="cw-section-title">Next moves</h2>
@@ -314,7 +338,7 @@ export default function HomePage() {
             ))}
           </div>
           <p className="cw-muted cw-presence-note">
-            The active lobster now keeps one readable posture: mood, upkeep runway, and immediate focus stay visible before the user opens a deeper screen.
+            Mood, upkeep runway, and immediate focus stay visible here so you can decide what to do next without digging through extra screens.
           </p>
           <div className="cw-meter-list">
             {traits.map((trait) => (

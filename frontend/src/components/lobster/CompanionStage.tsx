@@ -1,5 +1,3 @@
-import Image from 'next/image';
-
 export type CompanionStageTone = 'warm' | 'cool' | 'growth' | 'alert';
 export type CompanionStageVariant = 'home' | 'play' | 'arena' | 'auto' | 'settings' | 'companion';
 
@@ -15,6 +13,8 @@ type CompanionStageProps = {
   moodLabel: string;
   moodTone: CompanionStageTone;
   readouts: Array<{ label: string; value: string; tone?: CompanionStageTone }>;
+  imageSrc?: string;
+  imageAlt?: string;
 };
 
 function toneClass(tone?: CompanionStageTone) {
@@ -22,7 +22,7 @@ function toneClass(tone?: CompanionStageTone) {
   if (tone === 'growth') return 'cw-chip--growth';
   if (tone === 'alert') return 'cw-chip--alert';
   if (tone === 'warm') return 'cw-chip--warm';
-  return '';
+  return 'cw-chip--cool';
 }
 
 export function CompanionStage({
@@ -37,7 +37,11 @@ export function CompanionStage({
   moodLabel,
   moodTone,
   readouts,
+  imageSrc = '/icon.png',
+  imageAlt = 'Clawworld lobster companion',
 }: CompanionStageProps) {
+  const normalizedImage = imageSrc || '/icon.png';
+
   return (
     <section
       className={`cw-stage cw-stage--${variant} cw-stage--mood-${moodTone} cw-stage--status-${statusTone} ${compact ? 'cw-stage--compact' : ''}`}
@@ -65,20 +69,17 @@ export function CompanionStage({
           <div className="cw-stage-glow" />
           <div className="cw-stage-signal cw-stage-signal--top" />
           <div className="cw-stage-signal cw-stage-signal--bottom" />
-          <Image
-            src="/icon.png"
-            alt="Clawworld lobster companion"
-            width={compact ? 108 : 168}
-            height={compact ? 108 : 168}
+          <img
+            src={normalizedImage}
+            alt={imageAlt}
             className="cw-stage-image"
-            priority
           />
-          <div className={`cw-stage-badge ${toneClass(moodTone)}`.trim()}>{moodLabel}</div>
+          <div className={`cw-stage-badge ${toneClass(moodTone)}`}>{moodLabel}</div>
         </div>
 
         <div className="cw-stage-readouts">
           {readouts.map((readout) => (
-            <div key={readout.label} className={`cw-stage-readout ${toneClass(readout.tone)}`.trim()}>
+            <div key={readout.label} className={`cw-stage-readout ${toneClass(readout.tone)}`}>
               <span>{readout.label}</span>
               <strong>{readout.value}</strong>
             </div>

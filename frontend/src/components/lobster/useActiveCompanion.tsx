@@ -13,7 +13,7 @@ import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { type Address } from 'viem';
 
 import { ERC20ABI } from '@/contracts/abis/ERC20';
-import { useAgentState, useTokensOfOwner } from '@/contracts/hooks/useClawNFA';
+import { useAgentMetadata, useAgentState, useTokensOfOwner } from '@/contracts/hooks/useClawNFA';
 import {
   useClwBalance,
   useDailyCost,
@@ -23,6 +23,8 @@ import {
 import { usePkStats, useTaskStats } from '@/contracts/hooks/useNFAStats';
 import { addresses } from '@/contracts/addresses';
 import { formatBNB, formatCLW } from '@/lib/format';
+import { resolveIpfsUrl } from '@/lib/ipfs';
+import { useI18n } from '@/lib/i18n';
 import { getLobsterName } from '@/lib/mockData';
 import { getShelterName } from '@/lib/shelter';
 
@@ -38,6 +40,7 @@ type TraitShape = {
 
 export type ActiveCompanionValue = {
   live: boolean;
+  isLoading: boolean;
   connected: boolean;
   hasToken: boolean;
   ownerAddress?: Address;
@@ -69,6 +72,8 @@ export type ActiveCompanionValue = {
   walletNativeText: string;
   routerClaworldText: string;
   dailyCostText: string;
+  imageSrc: string;
+  imageAlt: string;
   selectCompanion: (tokenId: bigint) => void;
   selectNext: () => void;
   selectPrevious: () => void;
@@ -80,6 +85,7 @@ const DEMO_TOKEN_ID = 42n;
 
 const defaultValue: ActiveCompanionValue = {
   live: false,
+  isLoading: false,
   connected: false,
   hasToken: false,
   ownerAddress: undefined,
@@ -117,6 +123,8 @@ const defaultValue: ActiveCompanionValue = {
   walletNativeText: formatBNB(0n),
   routerClaworldText: formatCLW(0n),
   dailyCostText: formatCLW(0n),
+  imageSrc: '/icon.png',
+  imageAlt: 'Clawworld lobster companion',
   selectCompanion: () => {},
   selectNext: () => {},
   selectPrevious: () => {},
@@ -133,44 +141,75 @@ function normalizeBigintList(values: readonly bigint[] | undefined) {
   return [...(values ?? [])].map((value) => BigInt(value)).sort((a, b) => Number(a - b));
 }
 
-function describeStance(traits: TraitShape, pkWinRate: number, taskTotal: number, active: boolean) {
-  if (!active) return 'The shell is live, but this lobster needs upkeep before the next action loop.';
+function describeStance(
+  traits: TraitShape,
+  pkWinRate: number,
+  taskTotal: number,
+  active: boolean,
+  pick: <T,>(zh: T, en: T) => T,
+) {
+  if (!active) {
+    return pick(
+      '壳已经连上了，但这只龙虾要先补维护，才能继续挖矿和参赛。',
+      'The shell is live, but this lobster needs upkeep before the next mining or arena loop.',
+    );
+  }
 
   const dominant = [
-    { key: 'courage', label: 'Courage', value: traits.courage },
-    { key: 'wisdom', label: 'Wisdom', value: traits.wisdom },
-    { key: 'social', label: 'Social', value: traits.social },
-    { key: 'create', label: 'Create', value: traits.create },
-    { key: 'grit', label: 'Grit', value: traits.grit },
+    { key: 'courage', label: pick('勇气', 'Courage'), value: traits.courage },
+    { key: 'wisdom', label: pick('智慧', 'Wisdom'), value: traits.wisdom },
+    { key: 'social', label: pick('社交', 'Social'), value: traits.social },
+    { key: 'create', label: pick('创造', 'Create'), value: traits.create },
+    { key: 'grit', label: pick('韧性', 'Grit'), value: traits.grit },
   ].sort((left, right) => right.value - left.value)[0];
 
   if (pkWinRate >= 60) {
-    return `${dominant.label}-led posture with a ${pkWinRate}% PK win rate and room to press the arena.`;
+    return pick(
+      `${dominant.label}主导，最近 PK 胜率 ${pkWinRate}% ，现在更适合压竞技节奏。`,
+      `${dominant.label}-led posture with a ${pkWinRate}% PK win rate and room to press the arena.`,
+    );
   }
 
   if (taskTotal >= 10) {
-    return `${dominant.label}-led posture with ${taskTotal} completed tasks already shaping this companion.`;
+    return pick(
+      `${dominant.label}主导，已经跑过 ${taskTotal} 次挖矿，这只龙虾的成长方向已经开始稳定下来。`,
+      `${dominant.label}-led posture with ${taskTotal} completed mining runs already shaping this companion.`,
+    );
   }
 
-  return `${dominant.label}-led posture with enough reserve to keep growth and action on one surface.`;
+  return pick(
+    `${dominant.label}主导，当前储备还能同时支撑成长、挖矿和竞技入口。`,
+    `${dominant.label}-led posture with enough reserve to keep growth, mining, and arena state on one surface.`,
+  );
 }
 
-function getStatus(active: boolean, upkeepDays: number | null, connected: boolean, hasToken: boolean) {
-  if (!connected) return { label: 'Connect wallet', tone: 'cool' as const };
-  if (!hasToken) return { label: 'No NFA found', tone: 'alert' as const };
-  if (!active) return { label: 'Needs upkeep', tone: 'alert' as const };
-  if (upkeepDays !== null && upkeepDays <= 1) return { label: 'Reserve low', tone: 'alert' as const };
-  if (upkeepDays !== null && upkeepDays <= 3) return { label: 'Reserve watch', tone: 'warm' as const };
-  return { label: 'Stable', tone: 'growth' as const };
+function getStatus(
+  active: boolean,
+  upkeepDays: number | null,
+  connected: boolean,
+  hasToken: boolean,
+  pick: <T,>(zh: T, en: T) => T,
+) {
+  if (!connected) return { label: pick('连接钱包', 'Connect wallet'), tone: 'cool' as const };
+  if (!hasToken) return { label: pick('未发现 NFA', 'No NFA found'), tone: 'alert' as const };
+  if (!active) return { label: pick('需要维护', 'Needs upkeep'), tone: 'alert' as const };
+  if (upkeepDays !== null && upkeepDays <= 1) return { label: pick('储备告急', 'Reserve low'), tone: 'alert' as const };
+  if (upkeepDays !== null && upkeepDays <= 3) return { label: pick('储备预警', 'Reserve watch'), tone: 'warm' as const };
+  return { label: pick('稳定', 'Stable'), tone: 'growth' as const };
 }
 
-function getSource(connected: boolean, hasToken: boolean) {
-  if (!connected) return { label: 'Demo mode', tone: 'cool' as const };
-  if (!hasToken) return { label: 'Wallet linked', tone: 'cool' as const };
-  return { label: 'Live on-chain', tone: 'growth' as const };
+function getSource(
+  connected: boolean,
+  hasToken: boolean,
+  pick: <T,>(zh: T, en: T) => T,
+) {
+  if (!connected) return { label: pick('演示模式', 'Demo mode'), tone: 'cool' as const };
+  if (!hasToken) return { label: pick('钱包已连接', 'Wallet linked'), tone: 'cool' as const };
+  return { label: pick('链上实时', 'Live on-chain'), tone: 'growth' as const };
 }
 
 function useProvideActiveCompanion(): ActiveCompanionValue {
+  const { pick } = useI18n();
   const { address, isConnected } = useAccount();
   const ownerAddress = address as Address | undefined;
   const connected = Boolean(isConnected && ownerAddress);
@@ -212,6 +251,7 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
   const activeTokenId = selectedTokenId ?? ownedTokens[0];
 
   const agentStateQuery = useAgentState(activeTokenId);
+  const agentMetadataQuery = useAgentMetadata(activeTokenId);
   const lobsterStateQuery = useLobsterState(activeTokenId);
   const routerClwQuery = useClwBalance(activeTokenId);
   const dailyCostQuery = useDailyCost(activeTokenId);
@@ -263,11 +303,25 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
 
   return useMemo(() => {
     const hasToken = activeTokenId !== undefined;
+    const isLoading =
+      connected &&
+      (ownedTokensQuery.isLoading ||
+        (hasToken &&
+          (agentStateQuery.isLoading ||
+            agentMetadataQuery.isLoading ||
+            lobsterStateQuery.isLoading ||
+            routerClwQuery.isLoading ||
+            dailyCostQuery.isLoading ||
+            activeQuery.isLoading ||
+            taskStatsQuery.isLoading ||
+            pkStatsQuery.isLoading)));
+
     if (!hasToken) {
-      const source = getSource(connected, false);
-      const status = getStatus(false, null, connected, false);
+      const source = getSource(connected, false, pick);
+      const status = getStatus(false, null, connected, false, pick);
       return {
         ...defaultValue,
+        isLoading,
         connected,
         ownerAddress,
         tokenId: 0n,
@@ -275,15 +329,20 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
         ownedCount: ownedTokens.length,
         ownedTokens,
         selectedIndex: 0,
-        name: connected ? 'No Companion' : defaultValue.name,
-        shelterName: connected ? 'Wallet linked' : defaultValue.shelterName,
+        name: connected ? pick('暂无伙伴', 'No Companion') : defaultValue.name,
+        shelterName: connected ? pick('钱包已连接', 'Wallet linked') : defaultValue.shelterName,
         stance: connected
-          ? 'This wallet is connected, but there is no owned NFA to anchor the companion shell yet.'
+          ? pick(
+              '这个钱包已经连上，但还没有持有 NFA，所以新壳还没有真正的龙虾可以挂载。',
+              'This wallet is connected, but there is no owned NFA to anchor the companion shell yet.',
+            )
           : defaultValue.stance,
         statusLabel: status.label,
         statusTone: status.tone,
         sourceLabel: source.label,
         sourceTone: source.tone,
+        imageSrc: defaultValue.imageSrc,
+        imageAlt: defaultValue.imageAlt,
         selectCompanion,
         selectNext,
         selectPrevious,
@@ -293,6 +352,9 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
     const lobster = lobsterStateQuery.data as any;
     const agentState = agentStateQuery.data as any;
     const tokenNumber = Number(activeTokenId);
+    const metadata = Array.isArray(agentMetadataQuery.data) ? agentMetadataQuery.data[0] : agentMetadataQuery.data;
+    const rawVaultUri = String((metadata as any)?.vaultURI ?? (metadata as any)?.[4] ?? '');
+    const imageSrc = resolveIpfsUrl(rawVaultUri);
     const traits: TraitShape = {
       courage: Number(lobster?.courage ?? lobster?.[2] ?? 0),
       wisdom: Number(lobster?.wisdom ?? lobster?.[3] ?? 0),
@@ -315,11 +377,12 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
     const pkLosses = Number(pkStats?.losses ?? pkStats?.[1] ?? 0);
     const pkTotal = pkWins + pkLosses;
     const pkWinRate = pkTotal > 0 ? Math.round((pkWins / pkTotal) * 100) : 0;
-    const status = getStatus(active, upkeepDays, connected, true);
-    const source = getSource(connected, true);
+    const status = getStatus(active, upkeepDays, connected, true, pick);
+    const source = getSource(connected, true, pick);
 
     return {
       live: connected,
+      isLoading,
       connected,
       hasToken: true,
       ownerAddress,
@@ -332,7 +395,7 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
       shelterName: getShelterName(shelter),
       level,
       active,
-      stance: describeStance(traits, pkWinRate, taskTotal, active),
+      stance: describeStance(traits, pkWinRate, taskTotal, active, pick),
       statusLabel: status.label,
       statusTone: status.tone,
       sourceLabel: source.label,
@@ -351,6 +414,8 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
       walletNativeText: formatBNB(walletNative),
       routerClaworldText: formatCLW(routerClaworld),
       dailyCostText: formatCLW(dailyCost),
+      imageSrc,
+      imageAlt: `${getLobsterName(tokenNumber)} #${tokenNumber}`,
       selectCompanion,
       selectNext,
       selectPrevious,
@@ -358,19 +423,29 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
   }, [
     activeQuery.data,
     activeTokenId,
+    agentMetadataQuery.data,
+    agentMetadataQuery.isLoading,
     agentStateQuery.data,
+    agentStateQuery.isLoading,
     connected,
     dailyCostQuery.data,
+    dailyCostQuery.isLoading,
+    ownedTokensQuery.isLoading,
     ownedTokens,
     ownerAddress,
+    pick,
     routerClwQuery.data,
+    routerClwQuery.isLoading,
     selectedIndex,
     selectCompanion,
     selectNext,
     selectPrevious,
     lobsterStateQuery.data,
+    lobsterStateQuery.isLoading,
     pkStatsQuery.data,
+    pkStatsQuery.isLoading,
     taskStatsQuery.data,
+    taskStatsQuery.isLoading,
     walletClwQuery.data,
     walletNativeQuery.data?.value,
   ]);

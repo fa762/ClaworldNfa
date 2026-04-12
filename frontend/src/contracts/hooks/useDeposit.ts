@@ -120,3 +120,21 @@ export function useBuyAndDeposit() {
 
   return { buyAndDeposit, isPending, isConfirming, isSuccess, hash, graduated, routeReady, error };
 }
+
+export function useProcessUpkeep() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+
+  function processUpkeep(tokenId: bigint) {
+    writeContract({
+      address: addresses.clawRouter,
+      abi: ClawRouterABI,
+      functionName: 'processUpkeep',
+      args: [tokenId],
+      gas: 160000n,
+    });
+  }
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  return { processUpkeep, isPending, isConfirming, isSuccess, hash, error };
+}
