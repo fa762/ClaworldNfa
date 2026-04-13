@@ -3,6 +3,7 @@ export type CompanionStageVariant = 'home' | 'play' | 'arena' | 'auto' | 'settin
 
 type CompanionStageProps = {
   compact?: boolean;
+  loading?: boolean;
   variant: CompanionStageVariant;
   eyebrow: string;
   title: string;
@@ -27,6 +28,7 @@ function toneClass(tone?: CompanionStageTone) {
 
 export function CompanionStage({
   compact = false,
+  loading = false,
   variant,
   eyebrow,
   title,
@@ -47,19 +49,38 @@ export function CompanionStage({
       className={`cw-stage cw-stage--${variant} cw-stage--mood-${moodTone} cw-stage--status-${statusTone} ${compact ? 'cw-stage--compact' : ''}`}
     >
       <div className="cw-stage-copy">
-        <p className="cw-overline">{eyebrow}</p>
-        <div className="cw-stage-head">
-          <h2 className="cw-stage-title">{title}</h2>
-          <span className={`cw-chip ${toneClass(statusTone)}`}>{statusLabel}</span>
-        </div>
-        <p className="cw-stage-subtitle">{subtitle}</p>
-        <div className="cw-stage-meta">
-          {signals.map((signal) => (
-            <span key={signal.label} className={`cw-chip ${toneClass(signal.tone)}`.trim()}>
-              {signal.label}
-            </span>
-          ))}
-        </div>
+        {loading ? (
+          <div className="cw-loading-card cw-stage-loading">
+            <div className="cw-skeleton-line cw-skeleton-line--short" />
+            <div className="cw-stage-loading-head">
+              <div className="cw-skeleton-line cw-skeleton-line--mid" />
+              <div className="cw-stage-loading-chip" />
+            </div>
+            <div className="cw-skeleton-line" />
+            <div className="cw-skeleton-line cw-skeleton-line--mid" />
+            <div className="cw-stage-loading-signals">
+              <div className="cw-stage-loading-chip" />
+              <div className="cw-stage-loading-chip" />
+              <div className="cw-stage-loading-chip" />
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="cw-overline">{eyebrow}</p>
+            <div className="cw-stage-head">
+              <h2 className="cw-stage-title">{title}</h2>
+              <span className={`cw-chip ${toneClass(statusTone)}`}>{statusLabel}</span>
+            </div>
+            <p className="cw-stage-subtitle">{subtitle}</p>
+            <div className="cw-stage-meta">
+              {signals.map((signal) => (
+                <span key={signal.label} className={`cw-chip ${toneClass(signal.tone)}`.trim()}>
+                  {signal.label}
+                </span>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="cw-stage-visual">
@@ -74,16 +95,23 @@ export function CompanionStage({
             alt={imageAlt}
             className="cw-stage-image"
           />
-          <div className={`cw-stage-badge ${toneClass(moodTone)}`}>{moodLabel}</div>
+          <div className={`cw-stage-badge ${toneClass(moodTone)}`}>{loading ? '...' : moodLabel}</div>
         </div>
 
         <div className="cw-stage-readouts">
-          {readouts.map((readout) => (
-            <div key={readout.label} className={`cw-stage-readout ${toneClass(readout.tone)}`}>
-              <span>{readout.label}</span>
-              <strong>{readout.value}</strong>
-            </div>
-          ))}
+          {loading
+            ? readouts.map((readout, index) => (
+                <div key={`${readout.label}-${index}`} className="cw-stage-readout cw-stage-readout--loading">
+                  <div className="cw-skeleton-line cw-skeleton-line--short" />
+                  <div className="cw-skeleton-line cw-skeleton-line--mid" />
+                </div>
+              ))
+            : readouts.map((readout) => (
+                <div key={readout.label} className={`cw-stage-readout ${toneClass(readout.tone)}`}>
+                  <span>{readout.label}</span>
+                  <strong>{readout.value}</strong>
+                </div>
+              ))}
         </div>
       </div>
     </section>

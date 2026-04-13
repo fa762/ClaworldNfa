@@ -1,6 +1,6 @@
 # Current Handoff
 
-Last updated: 2026-04-13 (session 6) Asia/Singapore
+Last updated: 2026-04-13 (session 13) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
@@ -85,6 +85,115 @@ Frontend shell-closure checkpoint on 2026-04-12:
 - Home now has a true no-NFA empty state instead of silently staying in demo posture
 - Autonomy directive editing now shows a visible character counter
 - frontend production build passed again after this shell-closure pass
+
+Frontend function-first checkpoint on 2026-04-13:
+
+- Arena now has an in-page Battle Royale refresh path instead of forcing a full page reload when reads fail
+- `useBattleRoyaleOverview` now exposes:
+  - `refresh`
+  - `isRefreshing`
+  - `hasError`
+  - `errorText`
+- Auto now lists the exact autonomy permission gates instead of hiding readiness behind a single aggregate meter:
+  - protocol approval
+  - adapter approval
+  - operator approval
+  - delegation lease
+- the Battle Royale autonomy claim-request panel now names missing permission gates directly before signing
+- `PKArenaPanel` has been cleaned from the biggest remaining user-facing technical wording leaks:
+  - raw action enums no longer surface directly in confirm/result cards
+  - recent tape lines no longer mix English nouns like `stake / winner / reward / cancelled`
+  - `commit / reveal / salt / relay / timeout` copy has been rewritten into user-facing Chinese-first wording on the key PK surfaces
+  - confirm/result CTAs now read as steps in the flow rather than raw protocol verbs
+- frontend production build passed again after the Arena/Auto/PK wording cleanup
+
+Frontend loading-state checkpoint on 2026-04-13:
+
+- the active-companion loading state is now surfaced through the rebuilt shell instead of showing zero-like placeholder values first
+- `CompanionStage` now supports a real loading skeleton:
+  - stage copy
+  - status chip
+  - signal chips
+  - readout blocks
+- the shell switcher now reflects loading state and blocks roster cycling while the active companion snapshot is still syncing
+- Home now uses skeleton sections for:
+  - summary band
+  - next-move cards
+  - companion state panel
+  - Battle Royale action surface
+  - recent motion list
+- Companion now uses skeleton sections for:
+  - headline band
+  - identity panel
+  - presence panel
+  - trait panel
+  - upkeep panel
+  - core-loop cards
+- frontend production build passed again after the shell/home/companion loading pass
+
+Frontend action-page loading checkpoint on 2026-04-13:
+
+- Play no longer drops straight to `-- / no preview yet` while task preview reads are still in flight
+  - the preview panel now renders as a skeleton while TaskSkill preview + cooldown reads are loading
+- Arena now separates PK and Battle Royale loading surfaces
+  - the PK surface stays available
+  - Battle Royale summary, refresh helper, action surface, and field-read modules now skeleton while BR reads are still loading
+- Auto now exposes route-level skeletons while autonomy setup / proof / BR-claim state is still syncing
+  - top summary cards
+  - permission gates
+  - pulse/ledger blocks
+  no longer flash partial empty values first
+- frontend production build passed again after the Play/Arena/Auto loading pass
+
+Frontend signing-feedback checkpoint on 2026-04-13:
+
+- Play confirm sheet now gives an explicit wallet-step hint while waiting for signature
+  - tells the user to go to the wallet and keep the page open
+  - distinguishes that from the later on-chain receipt wait
+- PK confirm sheet now gives the same explicit wallet-step vs receipt-step guidance
+- Battle Royale autonomy claim request now gives the same explicit guidance:
+  - confirm in wallet first
+  - then wait for the request-id receipt decode on-chain
+- several remaining user-facing wording leaks were cleaned in the same pass:
+  - `owner` -> `持有人`
+  - prompt preview chip no longer shows raw English only
+  - Play bottom gas summary is now Chinese-first
+- frontend production build passed again after the signing-feedback pass
+
+Frontend read-recovery checkpoint on 2026-04-13:
+
+- `useAutonomyActionSetup()` now exposes:
+  - `error`
+  - `isRefreshing`
+  - `refresh()`
+- `useAutonomyProofs()` now exposes:
+  - `error`
+  - `isRefreshing`
+  - `refresh()`
+- Auto no longer lets failed autonomy reads silently degrade into fake empty state
+  - autonomy setup / proof / Battle Royale overview / settled-claim scan errors are now surfaced in-page
+  - the page now provides a direct `重新读取` recovery action instead of forcing a full reload
+- the settled-claim scan hook now also supports manual refresh, so Auto recovery can re-run the claim-window read instead of only re-reading the summary hooks
+- Play preview now exposes an explicit retry path when preview/cooldown/gas-estimate reads fail
+  - preview failure
+  - cooldown-read failure
+  - gas-estimate failure
+  now keep the page on the same surface and offer `重新读取预览`
+- frontend production build passed again after the read-recovery pass:
+  - `npm --prefix frontend run build`
+
+Frontend PK recovery checkpoint on 2026-04-13:
+
+- `PKArenaPanel` no longer hides read/action failures as tiny footer text only
+- Arena now gives PK its own in-page recovery panel when:
+  - recent match reads fail
+  - local PK action submission fails
+- the recovery panel now includes:
+  - visible error list
+  - direct `重新读取对局` action
+- raw fallback action labels are also no longer allowed to fall back to internal enum strings
+- frontend production build passed again after the PK recovery pass:
+  - `npm --prefix frontend run build`
 
 Frontend visual checkpoint on 2026-04-12:
 
@@ -310,6 +419,23 @@ Frontend PWA bottom-tab checkpoint on 2026-04-13:
 - the main content area bottom padding is now derived from the same tab-shell height variable, so page content and bottom nav no longer drift apart between browser mode and standalone PWA mode
 - on narrow/mobile viewports the bottom safe-area allowance is now capped tighter, which should stop the standalone PWA build from showing an oversized bottom slab while still keeping the nav clear of the system gesture area
 - this pass is a mobile-stability fix, not an art pass
+
+Frontend function-first checkpoint on 2026-04-13:
+
+- Arena now exposes an in-page Battle Royale refresh surface instead of leaving the user at a dead "waiting for match data" state
+- `useBattleRoyaleOverview()` now exposes:
+  - refresh
+  - refetching state
+  - read-error visibility
+- Auto no longer hides autonomy readiness behind a single percentage bar
+- the Battle Royale autonomy path now lists the four concrete gates directly:
+  - protocol approval
+  - adapter approval
+  - operator approval
+  - delegation lease
+- the autonomy claim-request panel now surfaces missing permissions by name instead of only saying `x/4 ready`
+- frontend production build passed again after this function-first pass:
+  - `npm --prefix frontend run build`
 
 Frontend PK/autonomy-feedback checkpoint on 2026-04-12:
 
@@ -1144,6 +1270,7 @@ Do not overwrite it blindly.
    - key action panels
 8. Clean the AI proxy frontend page and ensure holder `Claworld` balance reads correctly.
 9. Continue wiring CML memory into planner/runtime without forcing per-action root writes.
+10. Use the new read-recovery surfaces during real-wallet validation instead of refreshing the whole app when a page read fails.
 
 ## Release note
 

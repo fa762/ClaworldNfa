@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { type Address } from 'viem';
 import { usePublicClient } from 'wagmi';
 
@@ -72,6 +72,11 @@ export function useBattleRoyaleClaimWindow(
   const publicClient = usePublicClient();
   const autonomyParticipant = useMemo(() => deriveAutonomyParticipant(tokenId), [tokenId]);
   const [state, setState] = useState<ClaimWindowState>(defaultState);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+
+  const refresh = useCallback(async () => {
+    setRefreshNonce((current) => current + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -251,7 +256,10 @@ export function useBattleRoyaleClaimWindow(
     return () => {
       cancelled = true;
     };
-  }, [autonomyParticipant, lookback, ownerAddress, publicClient, tokenId]);
+  }, [autonomyParticipant, lookback, ownerAddress, publicClient, refreshNonce, tokenId]);
 
-  return state;
+  return {
+    ...state,
+    refresh,
+  };
 }

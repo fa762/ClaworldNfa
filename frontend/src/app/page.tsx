@@ -66,6 +66,8 @@ export default function HomePage() {
       }
     | null;
 
+  const isCompanionLoading = companion.isLoading && companion.connected && companion.hasToken;
+
   const todayCards = [
     {
       title: pick('任务挖矿', 'Task Mining'),
@@ -231,44 +233,18 @@ export default function HomePage() {
 
   return (
     <>
-      <section className="cw-band">
-        <div className="cw-band--split">
-          <div>
-            <p className="cw-eyebrow">{pick('今日', 'Today')}</p>
-            <h2 className="cw-section-title">{pick(`${companion.name} 是当前主角。`, `${companion.name} is the center of the loop.`)}</h2>
-            <p className="cw-muted">{companion.stance}</p>
-          </div>
-          <div className="cw-score">
-            <strong>{companion.routerClaworldText}</strong>
-            <span>{pick('储备', 'reserve')}</span>
-          </div>
-        </div>
-        <div className="cw-metrics">
-          <div className="cw-metric">
-            <span className="cw-label">{pick('钱包 Claworld', 'Wallet Claworld')}</span>
-            <strong>{companion.walletClaworldText}</strong>
-          </div>
-          <div className="cw-metric">
-            <span className="cw-label">{pick('持有 NFA', 'Owned NFAs')}</span>
-            <strong>{companion.ownedCount}</strong>
-          </div>
-          <div className="cw-metric">
-            <span className="cw-label">{pick('日维护', 'Daily upkeep')}</span>
-            <strong>{companion.dailyCostText}</strong>
-          </div>
-        </div>
-      </section>
-
-      <OwnedCompanionRail
-        title={pick('已拥有编组', 'Owned roster')}
-        subtitle={pick('不用离开当前页面，直接切换驱动实时读数的龙虾。', 'Keep the same page open while switching which lobster drives the live reads.')}
-      />
-
-      {companion.isLoading && companion.connected && companion.hasToken ? (
-        <section className="cw-panel cw-panel--cool">
+      {isCompanionLoading ? (
+        <section className="cw-band">
           <div className="cw-loading-card">
             <div className="cw-skeleton-line cw-skeleton-line--short" />
-            <div className="cw-skeleton-line" />
+            <div className="cw-band--split">
+              <div className="cw-loading-card">
+                <div className="cw-skeleton-line cw-skeleton-line--mid" />
+                <div className="cw-skeleton-line" />
+                <div className="cw-skeleton-line cw-skeleton-line--mid" />
+              </div>
+              <div className="cw-skeleton-block" />
+            </div>
             <div className="cw-skeleton-grid">
               <div className="cw-skeleton-block" />
               <div className="cw-skeleton-block" />
@@ -276,7 +252,40 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-      ) : null}
+      ) : (
+        <section className="cw-band">
+          <div className="cw-band--split">
+            <div>
+              <p className="cw-eyebrow">{pick('今日', 'Today')}</p>
+              <h2 className="cw-section-title">{pick(`${companion.name} 是当前主角。`, `${companion.name} is the center of the loop.`)}</h2>
+              <p className="cw-muted">{companion.stance}</p>
+            </div>
+            <div className="cw-score">
+              <strong>{companion.routerClaworldText}</strong>
+              <span>{pick('储备', 'reserve')}</span>
+            </div>
+          </div>
+          <div className="cw-metrics">
+            <div className="cw-metric">
+              <span className="cw-label">{pick('钱包 Claworld', 'Wallet Claworld')}</span>
+              <strong>{companion.walletClaworldText}</strong>
+            </div>
+            <div className="cw-metric">
+              <span className="cw-label">{pick('持有 NFA', 'Owned NFAs')}</span>
+              <strong>{companion.ownedCount}</strong>
+            </div>
+            <div className="cw-metric">
+              <span className="cw-label">{pick('日维护', 'Daily upkeep')}</span>
+              <strong>{companion.dailyCostText}</strong>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <OwnedCompanionRail
+        title={pick('已拥有编组', 'Owned roster')}
+        subtitle={pick('不用离开当前页面，直接切换驱动实时读数的龙虾。', 'Keep the same page open while switching which lobster drives the live reads.')}
+      />
 
       {companion.connected && !companion.hasToken ? (
         <section className="cw-panel cw-panel--cool">
@@ -309,25 +318,33 @@ export default function HomePage() {
             {pick('伙伴页', 'Companion view')} <ArrowRight size={14} />
           </Link>
         </div>
-        <div className="cw-card-stack">
-          {todayCards.map(({ title, value, detail, icon: Icon, href, score, scoreLabel, tone }) => (
-            <Link key={title} href={href} className={`cw-card ${tone}`}>
-              <div className="cw-card-icon">
-                <Icon size={18} />
-              </div>
-              <div className="cw-card-copy">
-                <p className="cw-label">{title}</p>
-                <h3>{value}</h3>
-                <p className="cw-muted">{detail}</p>
-              </div>
-              <div className="cw-score">
-                <strong>{score}</strong>
-                <span>{scoreLabel}</span>
-              </div>
-              <ArrowRight size={16} className="cw-card-arrow" />
-            </Link>
-          ))}
-        </div>
+        {isCompanionLoading ? (
+          <div className="cw-card-stack">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={`home-next-loading-${index}`} className="cw-skeleton-block cw-skeleton-block--card" />
+            ))}
+          </div>
+        ) : (
+          <div className="cw-card-stack">
+            {todayCards.map(({ title, value, detail, icon: Icon, href, score, scoreLabel, tone }) => (
+              <Link key={title} href={href} className={`cw-card ${tone}`}>
+                <div className="cw-card-icon">
+                  <Icon size={18} />
+                </div>
+                <div className="cw-card-copy">
+                  <p className="cw-label">{title}</p>
+                  <h3>{value}</h3>
+                  <p className="cw-muted">{detail}</p>
+                </div>
+                <div className="cw-score">
+                  <strong>{score}</strong>
+                  <span>{scoreLabel}</span>
+                </div>
+                <ArrowRight size={16} className="cw-card-arrow" />
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="cw-section">
@@ -347,62 +364,97 @@ export default function HomePage() {
           </span>
         </div>
         <div className="cw-panel cw-panel--presence">
-          <div className="cw-section-head">
-            <div>
-              <span className="cw-label">
-                #{companion.tokenNumber} // Lv.{companion.level}
-              </span>
-              <h3>{companion.shelterName}</h3>
+          {isCompanionLoading ? (
+            <div className="cw-loading-card">
+              <div className="cw-skeleton-line cw-skeleton-line--short" />
+              <div className="cw-skeleton-line cw-skeleton-line--mid" />
+              <div className="cw-skeleton-grid">
+                <div className="cw-skeleton-block" />
+                <div className="cw-skeleton-block" />
+                <div className="cw-skeleton-block" />
+              </div>
+              <div className="cw-skeleton-line" />
+              <div className="cw-skeleton-line cw-skeleton-line--mid" />
+              <div className="cw-skeleton-grid">
+                <div className="cw-skeleton-block" />
+                <div className="cw-skeleton-block" />
+                <div className="cw-skeleton-block" />
+              </div>
             </div>
-            <span
-              className={`cw-chip ${
-                companion.statusTone === 'alert'
-                  ? 'cw-chip--alert'
-                  : companion.statusTone === 'growth'
-                    ? 'cw-chip--growth'
-                    : 'cw-chip--warm'
-              }`}
-            >
-              <Flame size={14} />
-              {companion.statusLabel}
-            </span>
-          </div>
-          <div className="cw-presence-grid">
-            {presenceCards.map((card) => (
-              <div key={card.label} className="cw-presence-card">
-                <span>{card.label}</span>
-                <strong>{card.value}</strong>
-              </div>
-            ))}
-          </div>
-          <p className="cw-muted cw-presence-note">
-            {pick('状态、维护续航和眼前重点都放在这里，不用翻很多层页面再决定下一步。', 'Mood, upkeep runway, and immediate focus stay visible here so you can decide what to do next without digging through extra screens.')}
-          </p>
-          <div className="cw-meter-list">
-            {traits.map((trait) => (
-              <div key={trait.label} className="cw-meter-row">
+          ) : (
+            <>
+              <div className="cw-section-head">
                 <div>
-                  <span className="cw-label">{trait.label}</span>
-                  <div className="cw-meter">
-                    <span className={trait.tone} style={{ width: trait.width }} />
-                  </div>
+                  <span className="cw-label">
+                    #{companion.tokenNumber} // Lv.{companion.level}
+                  </span>
+                  <h3>{companion.shelterName}</h3>
                 </div>
-                <strong>{trait.value}</strong>
+                <span
+                  className={`cw-chip ${
+                    companion.statusTone === 'alert'
+                      ? 'cw-chip--alert'
+                      : companion.statusTone === 'growth'
+                        ? 'cw-chip--growth'
+                        : 'cw-chip--warm'
+                  }`}
+                >
+                  <Flame size={14} />
+                  {companion.statusLabel}
+                </span>
               </div>
-            ))}
-          </div>
+              <div className="cw-presence-grid">
+                {presenceCards.map((card) => (
+                  <div key={card.label} className="cw-presence-card">
+                    <span>{card.label}</span>
+                    <strong>{card.value}</strong>
+                  </div>
+                ))}
+              </div>
+              <p className="cw-muted cw-presence-note">
+                {pick('状态、维护续航和眼前重点都放在这里，不用翻很多层页面再决定下一步。', 'Mood, upkeep runway, and immediate focus stay visible here so you can decide what to do next without digging through extra screens.')}
+              </p>
+              <div className="cw-meter-list">
+                {traits.map((trait) => (
+                  <div key={trait.label} className="cw-meter-row">
+                    <div>
+                      <span className="cw-label">{trait.label}</span>
+                      <div className="cw-meter">
+                        <span className={trait.tone} style={{ width: trait.width }} />
+                      </div>
+                    </div>
+                    <strong>{trait.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </section>
 
-      <BattleRoyaleActionPanel
-        matchId={battleRoyale.matchId}
-        status={battleRoyale.status}
-        totalPlayers={battleRoyale.totalPlayers}
-        triggerCount={battleRoyale.triggerCount}
-        pot={battleRoyale.pot}
-        participant={battleRoyaleParticipant}
-        compact
-      />
+      {battleRoyale.isLoading && isCompanionLoading ? (
+        <section className="cw-panel cw-panel--cool">
+          <div className="cw-loading-card">
+            <div className="cw-skeleton-line cw-skeleton-line--short" />
+            <div className="cw-skeleton-line" />
+            <div className="cw-skeleton-grid">
+              <div className="cw-skeleton-block" />
+              <div className="cw-skeleton-block" />
+              <div className="cw-skeleton-block" />
+            </div>
+          </div>
+        </section>
+      ) : (
+        <BattleRoyaleActionPanel
+          matchId={battleRoyale.matchId}
+          status={battleRoyale.status}
+          totalPlayers={battleRoyale.totalPlayers}
+          triggerCount={battleRoyale.triggerCount}
+          pot={battleRoyale.pot}
+          participant={battleRoyaleParticipant}
+          compact
+        />
+      )}
 
       <section className="cw-section">
         <div className="cw-section-head">
@@ -412,14 +464,23 @@ export default function HomePage() {
             {pick('实时摘要', 'Live summary')}
           </span>
         </div>
-        <div className="cw-list">
-          {recentMotion.map((item) => (
-            <div key={item.text} className={`cw-list-item ${item.tone}`}>
-              <HeartPulse size={16} />
-              <span>{item.text}</span>
-            </div>
-          ))}
-        </div>
+        {isCompanionLoading ? (
+          <div className="cw-loading-card">
+            <div className="cw-skeleton-line" />
+            <div className="cw-skeleton-line cw-skeleton-line--mid" />
+            <div className="cw-skeleton-line" />
+            <div className="cw-skeleton-line cw-skeleton-line--mid" />
+          </div>
+        ) : (
+          <div className="cw-list">
+            {recentMotion.map((item) => (
+              <div key={item.text} className={`cw-list-item ${item.tone}`}>
+                <HeartPulse size={16} />
+                <span>{item.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </>
   );

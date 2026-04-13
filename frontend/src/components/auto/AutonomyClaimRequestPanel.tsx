@@ -2,11 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, Bot, Shield, Swords } from 'lucide-react';
-import {
-  decodeEventLog,
-  encodeAbiParameters,
-  type Address,
-} from 'viem';
+import { decodeEventLog, encodeAbiParameters, type Address } from 'viem';
 import {
   useAccount,
   usePublicClient,
@@ -40,6 +36,7 @@ export function AutonomyClaimRequestPanel({
   hasConflict,
   policyEnabled,
   permissionCount,
+  missingPermissions,
   emergencyPaused,
 }: {
   tokenId: bigint;
@@ -50,6 +47,7 @@ export function AutonomyClaimRequestPanel({
   hasConflict: boolean;
   policyEnabled: boolean;
   permissionCount: number;
+  missingPermissions: string[];
   emergencyPaused: boolean;
 }) {
   const { pick } = useI18n();
@@ -68,10 +66,7 @@ export function AutonomyClaimRequestPanel({
   const payload = useMemo(() => {
     if (matchId === undefined) return undefined;
     const innerData = encodeAbiParameters([{ type: 'uint256' }], [matchId]);
-    return encodeAbiParameters(
-      [{ type: 'uint8' }, { type: 'bytes' }],
-      [MODE_CLAIM_EXISTING, innerData],
-    );
+    return encodeAbiParameters([{ type: 'uint8' }, { type: 'bytes' }], [MODE_CLAIM_EXISTING, innerData]);
   }, [matchId]);
 
   const prompt = useMemo(
@@ -81,15 +76,58 @@ export function AutonomyClaimRequestPanel({
 
   const blockers = useMemo(() => {
     const next: string[] = [];
-    if (!isOwner) next.push(pick('必须保持 owner 钱包连接，才能发起自治 claim request。', 'Owner wallet must stay connected to submit the request.'));
-    if (emergencyPaused) next.push(pick('自治风控当前处于 emergency paused。', 'Autonomy risk controls are emergency-paused.'));
-    if (!policyEnabled) next.push(pick('Battle Royale 的自治 policy 还没启用。', 'Battle Royale policy is not enabled yet.'));
-    if (permissionCount < 4) next.push(pick(`自治边界只准备好了 ${permissionCount}/4。`, `Only ${permissionCount}/4 required autonomy approvals are ready.`));
-    if (hasConflict) next.push(pick('owner 和 autonomy participant 路径冲突，不能盲发 claim。', 'Owner and autonomy participant paths conflict. Do not queue a blind claim.'));
-    if (preferredPath === 'owner' && claimable > 0n) next.push(pick('这笔奖励走 owner-wallet 路径，应直接 owner claim。', 'This reward is on the owner-wallet path, so use direct claim instead.'));
-    if (matchId === undefined || claimable <= 0n) next.push(pick('当前没有可走自治路径的 settled 奖励。', 'No settled autonomy-side reward is ready to claim.'));
+    if (!isOwner) {
+      next.push(
+        pick(
+          '必须保持 owner 钱包连接，才能提交自治 claim request。',
+          'Owner wallet must stay connected to submit the request.',
+        ),
+      );
+    }
+    if (emergencyPaused) {
+      next.push(
+        pick('自治风控当前处于 emergency paused。', 'Autonomy risk controls are emergency-paused.'),
+      );
+    }
+    if (!policyEnabled) {
+      next.push(
+        pick('Battle Royale 的自治 policy 还没启用。', 'Battle Royale policy is not enabled yet.'),
+      );
+    }
+    if (missingPermissions.length > 0) {
+      next.push(
+        pick(
+          `还缺 ${missingPermissions.join(' / ')}，先把这些权限补齐再提交 claim request。`,
+          `Missing ${missingPermissions.join(' / ')}. Complete those boundaries before submitting the claim request.`,
+        ),
+      );
+    }
+    if (hasConflict) {
+      next.push(
+        pick(
+          'owner 和 autonomy participant 路径冲突，不能盲提 claim。',
+          'Owner and autonomy participant paths conflict. Do not queue a blind claim.',
+        ),
+      );
+    }
+    if (preferredPath === 'owner' && claimable > 0n) {
+      next.push(
+        pick(
+          '这笔奖励走 owner-wallet 路径，应该直接 owner claim。',
+          'This reward is on the owner-wallet path, so use direct claim instead.',
+        ),
+      );
+    }
+    if (matchId === undefined || claimable <= 0n) {
+      next.push(
+        pick(
+          '当前没有可走自治路径的 settled 奖励。',
+          'No settled autonomy-side reward is ready to claim.',
+        ),
+      );
+    }
     return next;
-  }, [claimable, emergencyPaused, hasConflict, isOwner, matchId, permissionCount, policyEnabled, preferredPath, pick]);
+  }, [claimable, emergencyPaused, hasConflict, isOwner, matchId, missingPermissions, policyEnabled, preferredPath, pick]);
 
   const canSubmit =
     blockers.length === 0 &&
@@ -112,15 +150,21 @@ export function AutonomyClaimRequestPanel({
           chip: pick('等待签名', 'Waiting for signature'),
           chipTone: 'cw-chip--warm',
           title: pick('请到钱包里确认 request', 'Confirm the request in the wallet'),
-          detail: pick('action hub request 已准备好，现在只差 owner 钱包签名。', 'The bounded request is ready. Confirm it in the owner wallet to continue.'),
+          detail: pick(
+            'action hub request 已准备好，现在只差 owner 钱包签名。',
+            'The bounded request is ready. Confirm it in the owner wallet to continue.',
+          ),
         }
       : receiptQuery.isLoading
         ? {
             tone: 'cw-panel--warm',
             chip: pick('确认中', 'Confirming'),
             chipTone: 'cw-chip--warm',
-            title: pick('自治请求已上链确认中', 'Autonomy request is confirming'),
-            detail: pick('交易已经发出，等回执回来后会解出 request id。', 'The request transaction is on-chain. Wait for the receipt so the emitted request id can be decoded.'),
+            title: pick('自治请求链上确认中', 'Autonomy request is confirming'),
+            detail: pick(
+              '交易已经发出，等回执回来后会解出 request id。',
+              'The request transaction is on-chain. Wait for the receipt so the emitted request id can be decoded.',
+            ),
           }
         : requestId !== null
           ? {
@@ -128,7 +172,10 @@ export function AutonomyClaimRequestPanel({
               chip: pick('已入队', 'Queued'),
               chipTone: 'cw-chip--growth',
               title: pick(`请求 #${requestId.toString()} 已入队`, `Request #${requestId.toString()} queued`),
-              detail: pick('这条 Battle Royale claim request 已进入 action hub。', 'The action hub now holds this Battle Royale claim request on the bounded autonomy path.'),
+              detail: pick(
+                '这条 Battle Royale claim request 已进入 action hub。',
+                'The action hub now holds this Battle Royale claim request on the bounded autonomy path.',
+              ),
             }
           : hash
             ? {
@@ -136,7 +183,10 @@ export function AutonomyClaimRequestPanel({
                 chip: pick('已提交', 'Submitted'),
                 chipTone: 'cw-chip--cool',
                 title: pick('请求交易已提交', 'Request transaction submitted'),
-                detail: pick('交易已经可在链上查看，等回执把 request id 解出来。', 'The transaction is visible on-chain. If the request id is still blank, keep this page open until the receipt decode completes.'),
+                detail: pick(
+                  '交易已经可在链上查看，如果 request id 还没解出来，就保持这个页面打开。',
+                  'The transaction is visible on-chain. If the request id is still blank, keep this page open until the receipt decode completes.',
+                ),
               }
             : null;
 
@@ -233,7 +283,7 @@ export function AutonomyClaimRequestPanel({
         ],
       });
     } catch {
-      // wagmi error handles message
+      // wagmi error renders via error state
     } finally {
       setAwaitingWallet(false);
     }
@@ -250,7 +300,10 @@ export function AutonomyClaimRequestPanel({
               : pick('当前没有可走自治 claim request 的 settled 奖励', 'No settled reward is ready for an autonomy claim request')}
           </h3>
           <p className="cw-muted">
-            {pick('只有当奖励确实在 autonomy participant 路径上时，才把 claim request 交给 action hub。', 'Submit a bounded claim request to the action hub only when the reward is claimable on the autonomy participant path.')}
+            {pick(
+              '只有当奖励确实在 autonomy participant 路径上时，才把 claim request 交给 action hub。',
+              'Submit a bounded claim request to the action hub only when the reward is claimable on the autonomy participant path.',
+            )}
           </p>
         </div>
         <span className={`cw-chip ${canSubmit ? 'cw-chip--warm' : 'cw-chip--cool'}`}>
@@ -262,14 +315,20 @@ export function AutonomyClaimRequestPanel({
       <div className="cw-state-grid">
         <div className="cw-state-card">
           <span className="cw-label">{pick('claim 路径', 'Claim path')}</span>
-          <strong>{preferredPath === 'autonomy' ? pick('自治 participant', 'Autonomy participant') : preferredPath === 'owner' ? pick('owner 钱包', 'Owner wallet') : pick('未找到', 'Not found')}</strong>
+          <strong>
+            {preferredPath === 'autonomy'
+              ? pick('自治 participant', 'Autonomy participant')
+              : preferredPath === 'owner'
+                ? pick('owner 钱包', 'Owner wallet')
+                : pick('未找到', 'Not found')}
+          </strong>
         </div>
         <div className="cw-state-card">
           <span className="cw-label">{pick('边界就绪', 'Operator boundaries')}</span>
-          <strong>{permissionCount}/4 ready</strong>
+          <strong>{pick(`${permissionCount}/4 就绪`, `${permissionCount}/4 ready`)}</strong>
         </div>
         <div className="cw-state-card">
-          <span className="cw-label">{pick('预估 gas', 'Estimated gas')}</span>
+          <span className="cw-label">{pick('预计 gas', 'Estimated gas')}</span>
           <strong>{gasCostWei !== null ? formatBNB(gasCostWei, 6) : '--'} BNB</strong>
         </div>
       </div>
@@ -280,7 +339,7 @@ export function AutonomyClaimRequestPanel({
           <strong>{address ? truncateAddress(address) : pick('未连接', 'Not connected')}</strong>
         </div>
         <div className="cw-detail-row">
-          <span>{pick('owner', 'Owner')}</span>
+          <span>{pick('持有人', 'Owner')}</span>
           <strong>{ownerAddress ? truncateAddress(ownerAddress) : pick('未知', 'Unknown')}</strong>
         </div>
         <div className="cw-detail-row">
@@ -301,10 +360,12 @@ export function AutonomyClaimRequestPanel({
           </div>
           <span className="cw-chip cw-chip--cool">
             <Swords size={14} />
-            2 choices
+            {pick('2 档决策', '2 choices')}
           </span>
         </div>
-        <p className="cw-muted">{prompt || pick('找到 settled 可领对局后，这里会出现 prompt。', 'Prompt will appear once a settled claimable match is found.')}</p>
+        <p className="cw-muted">
+          {prompt || pick('找到 settled 可领奖局后，这里会出现 prompt。', 'Prompt will appear once a settled claimable match is found.')}
+        </p>
       </div>
 
       {requestPulse ? (
@@ -361,6 +422,32 @@ export function AutonomyClaimRequestPanel({
         </button>
       </div>
 
+      {awaitingWallet ? (
+        <div className="cw-list">
+          <div className="cw-list-item cw-list-item--warm">
+            <Shield size={16} />
+            <span>
+              {pick(
+                '现在去钱包里确认这笔自治 request。确认完成前，保持这个页面打开。',
+                'Open the wallet and confirm this autonomy request. Keep this page open until the signature is complete.',
+              )}
+            </span>
+          </div>
+        </div>
+      ) : receiptQuery.isLoading ? (
+        <div className="cw-list">
+          <div className="cw-list-item cw-list-item--cool">
+            <Shield size={16} />
+            <span>
+              {pick(
+                '交易已经发到链上，正在等 request id 回执。确认完成后，这里会自动解出请求编号。',
+                'The transaction is live on-chain and waiting for the request-id receipt. This panel will decode the request number automatically after confirmation.',
+              )}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
       {hash ? (
         <a href={getBscScanTxUrl(hash)} target="_blank" rel="noopener noreferrer" className="cw-inline-link">
           {pick('查看请求交易', 'View request transaction')} <ArrowUpRight size={14} />
@@ -368,7 +455,9 @@ export function AutonomyClaimRequestPanel({
       ) : null}
 
       {requestId !== null ? (
-        <p className="cw-result-celebration">{pick(`请求 #${requestId.toString()} 已成功入队。`, `Request #${requestId.toString()} queued.`)}</p>
+        <p className="cw-result-celebration">
+          {pick(`请求 #${requestId.toString()} 已成功入队。`, `Request #${requestId.toString()} queued.`)}
+        </p>
       ) : null}
     </section>
   );

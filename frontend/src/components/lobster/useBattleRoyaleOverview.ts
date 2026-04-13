@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useReadContract } from 'wagmi';
 
 import { BattleRoyaleABI } from '@/contracts/abis/BattleRoyale';
@@ -49,6 +49,23 @@ export function useBattleRoyaleOverview() {
     query: { enabled: targetMatchId !== undefined },
   });
 
+  const refresh = useCallback(async () => {
+    await Promise.all([
+      latestOpenMatchQuery.refetch(),
+      matchCountQuery.refetch(),
+      targetMatchId !== undefined ? matchInfoQuery.refetch() : Promise.resolve(),
+      targetMatchId !== undefined ? matchConfigQuery.refetch() : Promise.resolve(),
+      targetMatchId !== undefined ? matchSnapshotQuery.refetch() : Promise.resolve(),
+    ]);
+  }, [
+    latestOpenMatchQuery,
+    matchCountQuery,
+    targetMatchId,
+    matchInfoQuery,
+    matchConfigQuery,
+    matchSnapshotQuery,
+  ]);
+
   return useMemo(() => {
     const matchInfo = matchInfoQuery.data as readonly [number, number, bigint, number, bigint, bigint] | undefined;
     const matchConfig = matchConfigQuery.data as readonly [bigint, number, bigint, number] | undefined;
@@ -67,6 +84,12 @@ export function useBattleRoyaleOverview() {
       (best, total, index) => (Number(total) > best.total ? { room: index + 1, total: Number(total) } : best),
       { room: 0, total: 0 }
     );
+    const firstError =
+      latestOpenMatchQuery.error ??
+      matchCountQuery.error ??
+      matchInfoQuery.error ??
+      matchConfigQuery.error ??
+      matchSnapshotQuery.error;
 
     return {
       ready: targetMatchId !== undefined,
@@ -79,6 +102,14 @@ export function useBattleRoyaleOverview() {
         matchInfoQuery.isLoading ||
         matchConfigQuery.isLoading ||
         matchSnapshotQuery.isLoading,
+      isRefreshing:
+        latestOpenMatchQuery.isRefetching ||
+        matchCountQuery.isRefetching ||
+        matchInfoQuery.isRefetching ||
+        matchConfigQuery.isRefetching ||
+        matchSnapshotQuery.isRefetching,
+      hasError: Boolean(firstError),
+      errorText: firstError instanceof Error ? firstError.message : null,
       status,
       totalPlayers,
       revealBlock,
@@ -89,18 +120,30 @@ export function useBattleRoyaleOverview() {
       revealDelay,
       leadingRoom,
       hasOpenMatch: latestOpenMatch > 0n,
+      refresh,
     };
   }, [
+    latestOpenMatchQuery.error,
     latestOpenMatch,
     latestOpenMatchQuery.isLoading,
+    latestOpenMatchQuery.isRefetching,
+    matchConfigQuery.error,
     matchConfigQuery.data,
     matchConfigQuery.isLoading,
+    matchConfigQuery.isRefetching,
+    matchCountQuery.error,
     matchCount,
     matchCountQuery.isLoading,
+    matchCountQuery.isRefetching,
+    matchInfoQuery.error,
     matchInfoQuery.data,
     matchInfoQuery.isLoading,
+    matchInfoQuery.isRefetching,
+    matchSnapshotQuery.error,
     matchSnapshotQuery.data,
     matchSnapshotQuery.isLoading,
+    matchSnapshotQuery.isRefetching,
+    refresh,
     targetMatchId,
   ]);
 }

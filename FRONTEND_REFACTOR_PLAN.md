@@ -119,6 +119,129 @@ Execution rule remains unchanged for the next passes:
 - functional correctness and mobile/PWA stability first
 - visual/art upgrades only after the live owner-path flows are stable
 
+## Progress checkpoint - 2026-04-13 session 7
+
+This pass continued the function-first cleanup on the rebuilt shell:
+
+- Arena now has an in-page Battle Royale refresh path instead of forcing a full reload when match reads fail
+- Battle Royale overview state now exposes refresh / refetching / read-error signals to the page layer
+- Auto now lists the exact autonomy permission gates instead of hiding readiness behind a single aggregate meter
+- the Battle Royale autonomy claim-request surface now names the missing boundaries directly before the user signs anything
+
+This keeps the current priority intact:
+
+- resolve functional ambiguity first
+- only push visual/art upgrades after the main owner-path and autonomy-path control surfaces are unambiguous
+
+## Progress checkpoint - 2026-04-13 session 8
+
+This pass stayed on the same function-first track and reduced user-facing protocol leakage:
+
+- `PKArenaPanel` no longer surfaces raw action enums like `create / join / reveal / settle / cancel` in the main confirm/result cards
+- the recent PK tape now uses player-facing summaries instead of mixed technical fragments like `stake / winner / reward / cancelled`
+- confirm and result copy now describes:
+  - locking a move
+  - submitting reveal
+  - settling
+  - clearing stale matches
+  instead of leaning on raw protocol terminology
+- owner-path blocker messages now read in wallet/asset language instead of `owner`/`stake` shorthand
+
+Execution priority remains unchanged:
+
+- keep removing functional ambiguity and terminology leakage first
+- do not spend time on larger art direction or animation passes until the live transaction surfaces read clearly in production
+
+## Progress checkpoint - 2026-04-13 session 9
+
+This pass addressed the "flash of empty" problem on the rebuilt shell:
+
+- active-companion loading now renders as skeleton state instead of temporarily showing fake `0 / -- / empty` values
+- the top companion stage now has a dedicated loading skeleton for:
+  - title block
+  - status chip
+  - signal chips
+  - readout cards
+- the shell-level multi-NFA switcher now reflects loading and stops cycling while the live snapshot is still syncing
+- Home and Companion now render route-level loading skeletons on their main summary surfaces instead of exposing dead intermediate values
+
+Priority remains the same:
+
+- keep fixing functional clarity and state communication first
+- only move deeper into art/animation once live loading, signing, result, and maintenance states are all legible
+
+## Progress checkpoint - 2026-04-13 session 10
+
+This pass extended the same state-communication rule into the action pages:
+
+- `Play` now shows a preview skeleton while TaskSkill preview and cooldown reads are resolving
+- `Arena` now treats Battle Royale as its own loading surface instead of collapsing into a fake "waiting" state while reads are still pending
+- `Auto` now shows route-level skeletons while autonomy setup, proof, and claim-path reads are still syncing
+
+The practical rule is now clearer across the rewrite:
+
+- do not show dead `-- / 0 / waiting` placeholders when the data is simply not loaded yet
+- prefer explicit loading skeletons until the first trustworthy state is ready
+
+## Progress checkpoint - 2026-04-13 session 11
+
+This pass tightened transaction-state communication instead of adding more screens:
+
+- `Play`, `PKArenaPanel`, and autonomy claim request now explicitly separate:
+  - wallet signature step
+  - on-chain confirmation step
+- each surface now tells the user what to do next:
+  - go to the wallet
+  - keep the page open
+  - wait for receipt / request-id decode
+
+This is still the same execution rule:
+
+- make the live transaction surfaces readable and testable first
+- treat visual polish as secondary until a user can reliably tell whether they need to sign, wait, or retry
+
+## Progress checkpoint - 2026-04-13 session 12
+
+This pass stayed on functional recovery instead of visual expansion:
+
+- `useAutonomyActionSetup()` and `useAutonomyProofs()` now expose explicit read recovery primitives:
+  - `error`
+  - `isRefreshing`
+  - `refresh()`
+- `/auto` now surfaces failed autonomy reads in-page instead of quietly collapsing into partial empty state
+  - setup read failures
+  - proof/ledger read failures
+  - Battle Royale overview read failures
+  - settled-claim scan failures
+- `/auto` now gives the user a direct `重新读取` action instead of implying that a full page refresh is the only recovery path
+- the settled-claim scan hook now supports manual refresh so Auto recovery re-runs claim-window reads too
+- `/play` now exposes an explicit `重新读取预览` path when any of the pre-execution reads fail:
+  - task preview
+  - cooldown timestamp
+  - gas estimate
+
+Why this matters:
+
+- production UX cannot treat RPC/read failures as if they were legitimate empty states
+- before real-wallet validation, the user needs a page-level recovery path that keeps context and selected companion intact
+- this continues the same rule as the signing-feedback pass: tell the user whether to sign, wait, or retry
+
+## Progress checkpoint - 2026-04-13 session 13
+
+This pass extended the same recovery rule into PK:
+
+- `PKArenaPanel` no longer leaves read/action failures as low-visibility footer text
+- Arena now exposes a dedicated PK recovery surface when:
+  - recent match reads fail
+  - PK action submission fails
+- the user now gets an in-page `重新读取对局` action instead of having to reload the entire app
+- fallback PK action labels also no longer leak raw internal enum strings on unknown branches
+
+Why this matters:
+
+- PK is one of the longest owner-path loops in the rebuilt shell, so it cannot hide failures at the edge of the page
+- recovery must stay local to the Arena flow; otherwise users lose match context, selected strategy, and the current lobster frame
+
 ## Primary app structure
 
 ### 1. Home
@@ -351,6 +474,7 @@ Current Phase D notes:
 - wallet rejection messaging
 - stale refetch / receipt timing issues
 - remaining English leaks in PK subflows
+- page-level retry/read-recovery gaps that still appear under real RPC conditions
 
 3. PWA real-device validation
 

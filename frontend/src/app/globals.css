@@ -578,6 +578,39 @@
   text-overflow: ellipsis;
 }
 
+.cw-stage-loading {
+  gap: 8px;
+}
+
+.cw-stage-loading-head,
+.cw-stage-loading-signals {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cw-stage-loading-head {
+  justify-content: space-between;
+}
+
+.cw-stage-loading-chip {
+  width: 84px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 220% 100%;
+  animation: cw-shimmer 1.2s linear infinite;
+}
+
+.cw-stage-readout--loading {
+  gap: 8px;
+}
+
 .cw-stage--home .cw-stage-image,
 .cw-stage--companion .cw-stage-image {
   transform: translateY(-2px) scale(1.03);
@@ -911,6 +944,10 @@
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(255, 255, 255, 0.03);
+}
+
+.cw-skeleton-block--card {
+  min-height: 96px;
 }
 
 .cw-button {
@@ -1253,8 +1290,16 @@
   color: var(--color-bunker-primary);
 }
 
+.cw-list-item--growth svg {
+  color: var(--color-bunker-growth);
+}
+
 .cw-list-item--cool svg {
   color: var(--color-bunker-cool);
+}
+
+.cw-list-item--alert svg {
+  color: var(--color-bunker-alert);
 }
 
 .cw-roster {

@@ -203,7 +203,7 @@ function getShellCopy(pathname: string, companion: ReturnType<typeof useActiveCo
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const companion = useActiveCompanion();
-  const { t, lang, setLang } = useI18n();
+  const { t, pick, lang, setLang } = useI18n();
   const shellCopy = getShellCopy(pathname, companion, t);
 
   return (
@@ -217,16 +217,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="cw-top-actions">
             {companion.ownedCount > 1 ? (
               <div className="cw-switcher" aria-label={t('shell.selector')}>
-                <button type="button" className="cw-switcher-btn" onClick={companion.selectPrevious} aria-label={t('shell.previous')}>
+                <button type="button" className="cw-switcher-btn" onClick={companion.selectPrevious} aria-label={t('shell.previous')} disabled={companion.isLoading}>
                   <ChevronLeft size={14} />
                 </button>
                 <div className="cw-switcher-label">
-                  <strong>{companion.name}</strong>
-                  <span>
-                    #{companion.tokenNumber} / {companion.selectedIndex + 1} of {companion.ownedCount}
-                  </span>
+                  {companion.isLoading ? (
+                    <>
+                      <strong>{t('loading')}</strong>
+                      <span>{pick('同步链上状态', 'Syncing on-chain state')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <strong>{companion.name}</strong>
+                      <span>
+                        #{companion.tokenNumber} / {companion.selectedIndex + 1} of {companion.ownedCount}
+                      </span>
+                    </>
+                  )}
                 </div>
-                <button type="button" className="cw-switcher-btn" onClick={companion.selectNext} aria-label={t('shell.next')}>
+                <button type="button" className="cw-switcher-btn" onClick={companion.selectNext} aria-label={t('shell.next')} disabled={companion.isLoading}>
                   <ChevronRight size={14} />
                 </button>
               </div>
@@ -260,6 +269,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           readouts={shellCopy.readouts}
           imageSrc={companion.imageSrc}
           imageAlt={companion.imageAlt}
+          loading={companion.isLoading}
         />
 
         <PwaStatusBanner />

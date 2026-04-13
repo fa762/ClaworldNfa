@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { type Address, parseEther, zeroAddress } from 'viem';
 import { useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 
@@ -139,6 +139,28 @@ export function useAutonomyActionSetup({
     query: { enabled },
   });
 
+  const refresh = useCallback(async () => {
+    await Promise.all([
+      policy.refetch(),
+      riskState.refetch(),
+      protocolApproved.refetch(),
+      adapterApproved.refetch(),
+      operatorApproved.refetch(),
+      operatorRoleMask.refetch(),
+      delegationLease.refetch(),
+      activeLease.refetch(),
+    ]);
+  }, [
+    activeLease,
+    adapterApproved,
+    delegationLease,
+    operatorApproved,
+    operatorRoleMask,
+    policy,
+    protocolApproved,
+    riskState,
+  ]);
+
   const parsed = useMemo(() => {
     const policyValue = policy.data as
       | readonly [boolean, number, number, number, bigint, bigint]
@@ -208,6 +230,25 @@ export function useAutonomyActionSetup({
       operatorRoleMask.isLoading ||
       delegationLease.isLoading ||
       activeLease.isLoading,
+    isRefreshing:
+      policy.isRefetching ||
+      riskState.isRefetching ||
+      protocolApproved.isRefetching ||
+      adapterApproved.isRefetching ||
+      operatorApproved.isRefetching ||
+      operatorRoleMask.isRefetching ||
+      delegationLease.isRefetching ||
+      activeLease.isRefetching,
+    error:
+      policy.error ??
+      riskState.error ??
+      protocolApproved.error ??
+      adapterApproved.error ??
+      operatorApproved.error ??
+      operatorRoleMask.error ??
+      delegationLease.error ??
+      activeLease.error,
+    refresh,
     ...parsed,
   };
 }
@@ -252,9 +293,16 @@ export function useAutonomyProofs(tokenId: bigint | undefined, protocolId: `0x${
     };
   }, [ledger.data]);
 
+  const refresh = useCallback(async () => {
+    await Promise.all([receipts.refetch(), ledger.refetch()]);
+  }, [ledger, receipts]);
+
   return {
     ready: enabled,
     isLoading: receipts.isLoading || ledger.isLoading,
+    isRefreshing: receipts.isRefetching || ledger.isRefetching,
+    error: receipts.error ?? ledger.error,
+    refresh,
     receipts: parsedReceipts,
     ledger: parsedLedger,
   };

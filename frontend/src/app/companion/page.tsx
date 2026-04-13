@@ -35,6 +35,7 @@ export default function CompanionPage() {
     companion.hasToken ? companion.tokenId : undefined,
     companion.ownerAddress,
   );
+  const isCompanionLoading = companion.isLoading && companion.connected && companion.hasToken;
 
   const presenceCards = [
     {
@@ -128,21 +129,37 @@ export default function CompanionPage() {
 
   return (
     <>
-      <section className="cw-band">
-        <div className="cw-band--split">
-          <div>
-            <p className="cw-eyebrow">{pick('伙伴', 'Companion')}</p>
-            <h2 className="cw-section-title">
-              {companion.name} // #{companion.tokenNumber}
-            </h2>
-            <p className="cw-muted">{companion.stance}</p>
+      {isCompanionLoading ? (
+        <section className="cw-band">
+          <div className="cw-loading-card">
+            <div className="cw-skeleton-line cw-skeleton-line--short" />
+            <div className="cw-band--split">
+              <div className="cw-loading-card">
+                <div className="cw-skeleton-line cw-skeleton-line--mid" />
+                <div className="cw-skeleton-line" />
+                <div className="cw-skeleton-line cw-skeleton-line--mid" />
+              </div>
+              <div className="cw-skeleton-block" />
+            </div>
           </div>
-          <div className="cw-score">
-            <strong>Lv.{companion.level}</strong>
-            <span>{companion.shelterName}</span>
+        </section>
+      ) : (
+        <section className="cw-band">
+          <div className="cw-band--split">
+            <div>
+              <p className="cw-eyebrow">{pick('伙伴', 'Companion')}</p>
+              <h2 className="cw-section-title">
+                {companion.name} // #{companion.tokenNumber}
+              </h2>
+              <p className="cw-muted">{companion.stance}</p>
+            </div>
+            <div className="cw-score">
+              <strong>Lv.{companion.level}</strong>
+              <span>{companion.shelterName}</span>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <OwnedCompanionRail
         title={pick('伙伴编组', 'Companion roster')}
@@ -150,90 +167,145 @@ export default function CompanionPage() {
       />
 
       <section className="cw-panel cw-panel--warm">
-        <div className="cw-section-head">
-          <div>
-            <p className="cw-label">{pick('身份', 'Identity')}</p>
-            <h3>{companion.shelterName}</h3>
-            <p className="cw-muted">{companion.sourceLabel}</p>
+        {isCompanionLoading ? (
+          <div className="cw-loading-card">
+            <div className="cw-skeleton-line cw-skeleton-line--short" />
+            <div className="cw-skeleton-line cw-skeleton-line--mid" />
+            <div className="cw-skeleton-grid">
+              <div className="cw-skeleton-block" />
+              <div className="cw-skeleton-block" />
+              <div className="cw-skeleton-block" />
+            </div>
           </div>
-          <span className={`cw-chip ${companion.statusTone === 'alert' ? 'cw-chip--alert' : companion.statusTone === 'growth' ? 'cw-chip--growth' : 'cw-chip--warm'}`}>
-            <Flame size={14} />
-            {companion.statusLabel}
-          </span>
-        </div>
-        <div className="cw-metrics">
-          <div className="cw-metric">
-            <span className="cw-label">{pick('钱包 Claworld', 'Wallet Claworld')}</span>
-            <strong>{companion.walletClaworldText}</strong>
-          </div>
-          <div className="cw-metric">
-            <span className="cw-label">{pick('储备', 'Reserve')}</span>
-            <strong>{companion.routerClaworldText}</strong>
-          </div>
-          <div className="cw-metric">
-            <span className="cw-label">{pick('日维护', 'Daily upkeep')}</span>
-            <strong>{companion.dailyCostText}</strong>
-          </div>
-        </div>
+        ) : (
+          <>
+            <div className="cw-section-head">
+              <div>
+                <p className="cw-label">{pick('身份', 'Identity')}</p>
+                <h3>{companion.shelterName}</h3>
+                <p className="cw-muted">{companion.sourceLabel}</p>
+              </div>
+              <span className={`cw-chip ${companion.statusTone === 'alert' ? 'cw-chip--alert' : companion.statusTone === 'growth' ? 'cw-chip--growth' : 'cw-chip--warm'}`}>
+                <Flame size={14} />
+                {companion.statusLabel}
+              </span>
+            </div>
+            <div className="cw-metrics">
+              <div className="cw-metric">
+                <span className="cw-label">{pick('钱包 Claworld', 'Wallet Claworld')}</span>
+                <strong>{companion.walletClaworldText}</strong>
+              </div>
+              <div className="cw-metric">
+                <span className="cw-label">{pick('储备', 'Reserve')}</span>
+                <strong>{companion.routerClaworldText}</strong>
+              </div>
+              <div className="cw-metric">
+                <span className="cw-label">{pick('日维护', 'Daily upkeep')}</span>
+                <strong>{companion.dailyCostText}</strong>
+              </div>
+            </div>
+          </>
+        )}
       </section>
 
       <section className="cw-panel cw-panel--presence">
-        <div className="cw-section-head">
-          <div>
-            <span className="cw-label">{pick('存在感', 'Presence')}</span>
-            <h3>{pick(`${companion.name} 应该看起来像一只活着的伙伴。`, `${companion.name} should read like a living companion.`)}</h3>
-          </div>
-          <span className="cw-chip cw-chip--warm">
-            <Flame size={14} />
-            {companion.statusLabel}
-          </span>
-        </div>
-        <div className="cw-presence-grid">
-          {presenceCards.map((card) => (
-            <div key={card.label} className="cw-presence-card">
-              <span>{card.label}</span>
-              <strong>{card.value}</strong>
+        {isCompanionLoading ? (
+          <div className="cw-loading-card">
+            <div className="cw-skeleton-line cw-skeleton-line--short" />
+            <div className="cw-skeleton-line" />
+            <div className="cw-skeleton-grid">
+              <div className="cw-skeleton-block" />
+              <div className="cw-skeleton-block" />
+              <div className="cw-skeleton-block" />
             </div>
-          ))}
-        </div>
-        <p className="cw-muted cw-presence-note">
-          {pick('储备、续航和最近的行为会一起推着它的状态变化，而且用户应该一眼看懂。', 'Reserve, upkeep runway, and recent behavior should make the current state readable at a glance.')}
-        </p>
+            <div className="cw-skeleton-line" />
+          </div>
+        ) : (
+          <>
+            <div className="cw-section-head">
+              <div>
+                <span className="cw-label">{pick('存在感', 'Presence')}</span>
+                <h3>{pick(`${companion.name} 应该看起来像一只活着的伙伴。`, `${companion.name} should read like a living companion.`)}</h3>
+              </div>
+              <span className="cw-chip cw-chip--warm">
+                <Flame size={14} />
+                {companion.statusLabel}
+              </span>
+            </div>
+            <div className="cw-presence-grid">
+              {presenceCards.map((card) => (
+                <div key={card.label} className="cw-presence-card">
+                  <span>{card.label}</span>
+                  <strong>{card.value}</strong>
+                </div>
+              ))}
+            </div>
+            <p className="cw-muted cw-presence-note">
+              {pick('储备、续航和最近的行为会一起推着它的状态变化，而且用户应该一眼看懂。', 'Reserve, upkeep runway, and recent behavior should make the current state readable at a glance.')}
+            </p>
+          </>
+        )}
       </section>
 
       <section className="cw-panel cw-panel--cool">
-        <div className="cw-section-head">
-          <div>
-            <span className="cw-label">{pick('性格轮廓', 'Trait shape')}</span>
-            <h3>{pick('当前页面已经由真实 trait 数值驱动。', 'Live trait values now drive the page.')}</h3>
+        {isCompanionLoading ? (
+          <div className="cw-loading-card">
+            <div className="cw-skeleton-line cw-skeleton-line--short" />
+            <div className="cw-skeleton-line cw-skeleton-line--mid" />
+            <div className="cw-skeleton-line" />
+            <div className="cw-skeleton-line" />
+            <div className="cw-skeleton-line" />
           </div>
-          <span className={`cw-chip ${companion.sourceTone === 'growth' ? 'cw-chip--growth' : companion.sourceTone === 'alert' ? 'cw-chip--alert' : 'cw-chip--cool'}`}>
-            <Shield size={14} />
-            {companion.sourceLabel}
-          </span>
-        </div>
-        <div className="cw-meter-list">
-          {traits.map((trait) => (
-            <div key={trait.label} className="cw-meter-row">
+        ) : (
+          <>
+            <div className="cw-section-head">
               <div>
-                <span className="cw-label">{trait.label}</span>
-                <div className="cw-meter">
-                  <span className={trait.tone} style={{ width: trait.width }} />
-                </div>
+                <span className="cw-label">{pick('性格轮廓', 'Trait shape')}</span>
+                <h3>{pick('当前页面已经由真实 trait 数值驱动。', 'Live trait values now drive the page.')}</h3>
               </div>
-              <strong>{trait.value}</strong>
+              <span className={`cw-chip ${companion.sourceTone === 'growth' ? 'cw-chip--growth' : companion.sourceTone === 'alert' ? 'cw-chip--alert' : 'cw-chip--cool'}`}>
+                <Shield size={14} />
+                {companion.sourceLabel}
+              </span>
             </div>
-          ))}
-        </div>
+            <div className="cw-meter-list">
+              {traits.map((trait) => (
+                <div key={trait.label} className="cw-meter-row">
+                  <div>
+                    <span className="cw-label">{trait.label}</span>
+                    <div className="cw-meter">
+                      <span className={trait.tone} style={{ width: trait.width }} />
+                    </div>
+                  </div>
+                  <strong>{trait.value}</strong>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
-      <CompanionUpkeepPanel
-        tokenId={companion.tokenId}
-        ownerAddress={companion.ownerAddress}
-        reserve={companion.routerClaworld}
-        dailyCost={companion.dailyCost}
-        upkeepDays={companion.upkeepDays}
-      />
+      {isCompanionLoading ? (
+        <section className="cw-panel cw-panel--warm">
+          <div className="cw-loading-card">
+            <div className="cw-skeleton-line cw-skeleton-line--short" />
+            <div className="cw-skeleton-line" />
+            <div className="cw-skeleton-grid">
+              <div className="cw-skeleton-block" />
+              <div className="cw-skeleton-block" />
+              <div className="cw-skeleton-block" />
+            </div>
+          </div>
+        </section>
+      ) : (
+        <CompanionUpkeepPanel
+          tokenId={companion.tokenId}
+          ownerAddress={companion.ownerAddress}
+          reserve={companion.routerClaworld}
+          dailyCost={companion.dailyCost}
+          upkeepDays={companion.upkeepDays}
+        />
+      )}
 
       <section className="cw-section">
         <div className="cw-section-head">
@@ -243,24 +315,32 @@ export default function CompanionPage() {
             {pick(`${companion.ownedCount} 只`, `${companion.ownedCount} owned`)}
           </span>
         </div>
-        <div className="cw-card-stack">
-          {actionRows.map(({ label, detail, icon: Icon, href, score, scoreLabel, tone }) => (
-            <Link key={label} href={href} className={`cw-card ${tone}`}>
-              <div className="cw-card-icon">
-                <Icon size={18} />
-              </div>
-              <div className="cw-card-copy">
-                <p className="cw-label">{label}</p>
-                <h3>{detail}</h3>
-              </div>
-              <div className="cw-score">
-                <strong>{score}</strong>
-                <span>{scoreLabel}</span>
-              </div>
-              <ArrowRight size={16} className="cw-card-arrow" />
-            </Link>
-          ))}
-        </div>
+        {isCompanionLoading ? (
+          <div className="cw-card-stack">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={`companion-loop-loading-${index}`} className="cw-skeleton-block cw-skeleton-block--card" />
+            ))}
+          </div>
+        ) : (
+          <div className="cw-card-stack">
+            {actionRows.map(({ label, detail, icon: Icon, href, score, scoreLabel, tone }) => (
+              <Link key={label} href={href} className={`cw-card ${tone}`}>
+                <div className="cw-card-icon">
+                  <Icon size={18} />
+                </div>
+                <div className="cw-card-copy">
+                  <p className="cw-label">{label}</p>
+                  <h3>{detail}</h3>
+                </div>
+                <div className="cw-score">
+                  <strong>{score}</strong>
+                  <span>{scoreLabel}</span>
+                </div>
+                <ArrowRight size={16} className="cw-card-arrow" />
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       <BattleRoyaleActionPanel
