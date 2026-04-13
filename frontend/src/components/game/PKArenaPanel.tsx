@@ -136,25 +136,25 @@ const STRATEGIES: Array<{
 }> = [
   {
     value: 0,
-    label: '进攻',
-    detail: '判断够清楚时，上行最高，但波动也最大。',
+    label: '强攻',
+    detail: '吃上限',
     tone: 'cw-card--warning',
   },
   {
     value: 1,
-    label: '平衡',
-    detail: '默认路线，盲点更少，揭示阶段也更稳。',
+    label: '均衡',
+    detail: '最稳',
     tone: 'cw-card--watch',
   },
   {
     value: 2,
     label: '防守',
-    detail: '当保住储备比追更高收益更重要时，优先这条。',
+    detail: '保储备',
     tone: 'cw-card--safe',
   },
 ] as const;
 
-const PK_PHASE_NAMES = ['开放中', '已加入', '已提交', '已揭示', '已结算', '已取消'] as const;
+const PK_PHASE_NAMES = ['开放', '待亮招', '待揭示', '可结算', '已结算', '已取消'] as const;
 const ZERO_HASH = `0x${'0'.repeat(64)}` as `0x${string}`;
 
 function getPkErrorMessage(error: unknown) {
@@ -266,7 +266,6 @@ export function PKArenaPanel({
   const [confirmIntent, setConfirmIntent] = useState<ConfirmIntent | null>(null);
   const [submittedIntent, setSubmittedIntent] = useState<SubmittedIntent | null>(null);
   const [result, setResult] = useState<PKResult | null>(null);
-  const [gasUnits, setGasUnits] = useState<bigint | null>(null);
   const [gasCostWei, setGasCostWei] = useState<bigint | null>(null);
   const [gasEstimateError, setGasEstimateError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -290,15 +289,15 @@ export function PKArenaPanel({
   const actionLabel = (action: ConfirmIntent['action'] | PKResult['action']) => {
     switch (action) {
       case 'create':
-        return pick('开新局', 'Open match');
+        return pick('开擂', 'Open match');
       case 'join':
-        return pick('加入对局', 'Join match');
+        return pick('应战', 'Join match');
       case 'reveal':
-        return pick('提交揭示', 'Submit reveal');
+        return pick('亮招', 'Reveal');
       case 'settle':
-        return pick('完成结算', 'Settle');
+        return pick('结算', 'Settle');
       case 'cancel':
-        return pick('清理超时局', 'Cancel stale match');
+        return pick('清局', 'Cancel stale match');
       default:
         return pick('PK 步骤', 'PK step');
     }
@@ -580,7 +579,6 @@ export function PKArenaPanel({
 
     async function estimateGas() {
       if (!publicClient || !address || !confirmIntent || tokenId === undefined) {
-        setGasUnits(null);
         setGasCostWei(null);
         setGasEstimateError(null);
         return;
@@ -607,13 +605,11 @@ export function PKArenaPanel({
         ]);
 
         if (!cancelled) {
-          setGasUnits(estimated);
           setGasCostWei(estimated * gasPrice);
           setGasEstimateError(null);
         }
       } catch (estimateFailure) {
         if (!cancelled) {
-          setGasUnits(null);
           setGasCostWei(null);
           setGasEstimateError(getPkErrorMessage(estimateFailure));
         }
@@ -810,12 +806,6 @@ export function PKArenaPanel({
     ? '当前没有进行中的 PK 占住这只龙虾。'
     : `对局 #${activeMatch.matchId} ${phaseName(activeMatch.phase)}`;
 
-  const activeMatchDetail = !activeMatch
-    ? '你可以直接在下面加入现有对局，或者自己先开一场新局。'
-    : mySide === 'A'
-      ? `你作为创建方，对阵 NFA #${activeMatch.nfaB || 0}。`
-      : `你作为加入方，对阵 NFA #${activeMatch.nfaA}。`;
-
   async function submitIntent(intent: ConfirmIntent) {
     setActionError(null);
     setResult(null);
@@ -876,11 +866,8 @@ export function PKArenaPanel({
       <section className="cw-panel cw-panel--warm">
         <div className="cw-section-head">
           <div>
-            <span className="cw-label">{pick('PK 竞技', 'PK arena')}</span>
-            <h3>{pick('这里已经能完整走完 PK 对局。', 'This panel now covers the full PK flow.')}</h3>
-            <p className="cw-muted">
-              {pick('你可以直接浏览开放对局、锁定出招、在需要时提交揭示，再完成结算或清理超时局。', 'Browse open matches, lock your move, submit reveal when ready, then settle or cancel stale matches without leaving Arena.')}
-            </p>
+            <span className="cw-label">{pick('竞技擂台', 'PK arena')}</span>
+            <h3>{activeMatch ? activeMatchHeadline : pick('开擂或应战', 'Open or join')}</h3>
           </div>
           <span className={`cw-chip ${activeMatch ? 'cw-chip--warm' : joinableMatches.length > 0 ? 'cw-chip--growth' : 'cw-chip--cool'}`}>
             <Swords size={14} />
@@ -914,14 +901,8 @@ export function PKArenaPanel({
         <section className="cw-panel cw-panel--cool">
           <div className="cw-section-head">
             <div>
-              <span className="cw-label">{pick('PK 恢复', 'PK recovery')}</span>
-              <h3>{pick('这条竞技链路有一段没有顺利读完。', 'Part of the PK surface did not recover cleanly.')}</h3>
-              <p className="cw-muted">
-                {pick(
-                  '先在页内重读，不要把一次 RPC/本地错误误判成真实空状态。',
-                  'Retry from inside Arena before treating an RPC or local read failure as a true empty state.',
-                )}
-              </p>
+              <span className="cw-label">{pick('读取异常', 'Recovery')}</span>
+              <h3>{pick('这页需要重读一次', 'Retry this panel')}</h3>
             </div>
             <button
               type="button"
@@ -949,7 +930,6 @@ export function PKArenaPanel({
           <div>
             <span className="cw-label">{pick('当前对局', 'Live match')}</span>
             <h3>{activeMatchHeadline}</h3>
-            <p className="cw-muted">{activeMatchDetail}</p>
           </div>
           <span className={`cw-chip ${activeMatch ? 'cw-chip--warm' : 'cw-chip--cool'}`}>
             <Shield size={14} />
@@ -1013,13 +993,13 @@ export function PKArenaPanel({
           {activeMatch && revealReady ? (
             <div className="cw-list-item cw-list-item--warm">
               <Sparkles size={16} />
-              <span>{pick('当前浏览器里保存的出招和揭示凭据仍然匹配这只龙虾，所以现在可以提交揭示。', 'Reveal is ready from this browser because the saved move and reveal bundle still match this lobster.')}</span>
+              <span>{pick('本机已保存亮招凭据，现在可以亮招。', 'Reveal bundle is ready on this device.')}</span>
             </div>
           ) : null}
           {activeMatch && activeMatch.phase === 2 && !revealReady ? (
             <div className="cw-list-item cw-list-item--cool">
               <TimerReset size={16} />
-              <span>{pick('这里暂时还不能提交揭示。要么已经揭示过了，要么本地保存的揭示凭据已经丢失。', 'Reveal is not available here yet. Either the reveal already landed or the local reveal bundle is missing.')}</span>
+              <span>{pick('现在还不能亮招，可能已亮过，或者本机凭据丢了。', 'Reveal is not ready on this device.')}</span>
             </div>
           ) : null}
           {activeMatch && settleReady ? (
@@ -1027,15 +1007,15 @@ export function PKArenaPanel({
               <CheckCircle2 size={16} />
               <span>
                 {activeMatch.phase === 3
-                  ? pick('双方都已完成揭示，现在可以结算。', 'Both sides have revealed. This match can settle now.')
-                  : pick('揭示阶段已经超时，现在可以按超时路径结算。', 'Reveal timeout has passed. This match can be settled on the timeout path.')}
+                  ? pick('双方都已亮招，现在可以结算。', 'Both sides revealed. Ready to settle.')
+                  : pick('已超时，现在可以按超时路径结算。', 'Timeout reached. Ready to settle.')}
               </span>
             </div>
           ) : null}
           {!activeMatch ? (
             <div className="cw-list-item cw-list-item--cool">
               <Shield size={16} />
-              <span>{pick('当前没有进行中的对局占住这只龙虾，你可以在下面开局或加入。', 'No live match is holding this lobster. You can open or join a match below.')}</span>
+              <span>{pick('当前空闲，可以开擂或应战。', 'No live match. Open or join.')}</span>
             </div>
           ) : null}
         </div>
@@ -1055,7 +1035,7 @@ export function PKArenaPanel({
               }
             >
               <Sparkles size={16} />
-              {pick('确认提交揭示', 'Review reveal')}
+              {pick('亮招', 'Reveal')}
             </button>
           ) : null}
           {settleReady ? (
@@ -1071,7 +1051,7 @@ export function PKArenaPanel({
               }
             >
               <CheckCircle2 size={16} />
-              {pick('确认结算', 'Review settle')}
+              {pick('结算', 'Settle')}
             </button>
           ) : null}
           {cancelReady ? (
@@ -1087,7 +1067,7 @@ export function PKArenaPanel({
               }
             >
               <TimerReset size={16} />
-              {pick('确认取消', 'Review cancel')}
+              {pick('清局', 'Cancel')}
             </button>
           ) : null}
         </div>
@@ -1097,10 +1077,7 @@ export function PKArenaPanel({
         <div className="cw-section-head">
           <div>
             <span className="cw-label">{pick('开放对局', 'Open field')}</span>
-            <h3>{pick('加入一场现有 PK', 'Join an existing PK match')}</h3>
-            <p className="cw-muted">
-              {pick('只能由持有人钱包加入。出招会先被锁住，等到揭示阶段才会公开，本地也会留一份揭示凭据。', 'Join only from the owner wallet. The move stays hidden until reveal, and the local reveal bundle is saved here for later settlement.')}
-            </p>
+            <h3>{pick('应战一场', 'Join a match')}</h3>
           </div>
           <span className={`cw-chip ${joinableMatches.length > 0 ? 'cw-chip--growth' : 'cw-chip--cool'}`}>
             <Swords size={14} />
@@ -1198,7 +1175,7 @@ export function PKArenaPanel({
             }
           >
             <CheckCircle2 size={16} />
-            {pick('确认加入', 'Review join')}
+            {pick('应战', 'Join')}
           </button>
         </div>
       </section>
@@ -1207,10 +1184,7 @@ export function PKArenaPanel({
         <div className="cw-section-head">
           <div>
             <span className="cw-label">{pick('新开一局', 'Open new match')}</span>
-            <h3>{pick('用隐藏出招的方式创建一场新的 PK', 'Create a fresh PK match with commit protection')}</h3>
-            <p className="cw-muted">
-              {pick('如果场上没有合适的开放局，就自己开一场。应用会把本地揭示凭据保存在浏览器里，代揭示服务可用时也会顺带同步。', 'Use this when the field does not already offer a good open match. The app saves the local reveal bundle in this browser and forwards it to auto-reveal when available.')}
-            </p>
+            <h3>{pick('自己开擂', 'Open your own match')}</h3>
           </div>
           <span className="cw-chip cw-chip--warm">
             <Sparkles size={14} />
@@ -1228,7 +1202,6 @@ export function PKArenaPanel({
               onChange={(event) => setCreateStakeInput(event.target.value)}
               placeholder="24"
             />
-            <p className="cw-muted">{pick('根据当前等级和竞技姿态给出的建议值。', 'Recommended from current level and arena posture.')}</p>
           </label>
           {STRATEGIES.map((option) => (
             <button
@@ -1286,7 +1259,7 @@ export function PKArenaPanel({
             }
           >
             <CheckCircle2 size={16} />
-            {pick('确认开局', 'Review create')}
+            {pick('开擂', 'Create')}
           </button>
         </div>
       </section>
@@ -1295,7 +1268,7 @@ export function PKArenaPanel({
         <div className="cw-section-head">
           <div>
             <span className="cw-label">{pick('最近记录', 'Recent tape')}</span>
-            <h3>{pick('这只龙虾附近最近的 PK 对局', 'Recent PK matches around this lobster')}</h3>
+            <h3>{pick('最近对局', 'Recent matches')}</h3>
           </div>
           <button type="button" className="cw-button cw-button--ghost" onClick={() => void refreshMatches()} disabled={isLoading}>
             <TimerReset size={16} />
@@ -1352,18 +1325,9 @@ export function PKArenaPanel({
                     : confirmIntent.action === 'reveal'
                       ? pick(`为对局 #${confirmIntent.matchId} 提交揭示`, `Submit reveal for #${confirmIntent.matchId}`)
                       : confirmIntent.action === 'settle'
-                        ? pick(`结算对局 #${confirmIntent.matchId}`, `Settle match #${confirmIntent.matchId}`)
-                        : pick(`清理对局 #${confirmIntent.matchId}`, `Cancel match #${confirmIntent.matchId}`)}
+                      ? pick(`结算对局 #${confirmIntent.matchId}`, `Settle match #${confirmIntent.matchId}`)
+                      : pick(`清理对局 #${confirmIntent.matchId}`, `Cancel match #${confirmIntent.matchId}`)}
               </h3>
-              <p className="cw-muted">
-                {confirmIntent.action === 'create' || confirmIntent.action === 'join'
-                  ? pick('这一步会先在本地锁住出招，真正的明牌只会在揭示阶段出现。', 'This step first locks the move locally. The clear move only appears during reveal.')
-                  : confirmIntent.action === 'reveal'
-                    ? pick('这里会直接使用当前浏览器里保存的本地揭示凭据。', 'This uses the locally saved reveal bundle from the earlier commit.')
-                    : confirmIntent.action === 'settle'
-                      ? pick('结算会把当前 PK 状态真正闭环，并把结果推到最近记录里。', 'Settlement finalizes the current PK state and pushes the outcome into recent tape.')
-                      : pick('这一步只适合清理超时卡住的对局，不是给活跃局使用的。', 'Cancellation is only safe on timeout paths. Use it to clean up stalled matches, not active ones.')}
-              </p>
             </div>
             <span className={`cw-chip ${confirmBlockedReason ? 'cw-chip--alert' : 'cw-chip--warm'}`}>
               {confirmBlockedReason ? pick('阻塞', 'Blocked') : pick('就绪', 'Ready')}
@@ -1548,14 +1512,14 @@ export function PKArenaPanel({
             {result.action === 'cancel' ? (
               <div className="cw-list-item cw-list-item--cool">
                 <TimerReset size={16} />
-                <span>{pick('超时清理已确认，这场卡住的对局已经从当前循环里移除。', 'Timeout cancellation confirmed. The stale match is now removed from the live loop.')}</span>
+                <span>{pick('超时残局已清掉。', 'Stale match cleared.')}</span>
               </div>
             ) : null}
             {result.action === 'reveal' ? (
               <div className="cw-list-item cw-list-item--warm">
                 <CheckCircle2 size={16} />
                 <span>
-                  {pick(`揭示已确认。刷新后当前阶段会显示为 ${result.phase !== undefined ? phaseName(result.phase) : '已更新'}。`, `Reveal confirmed. Match phase now reads ${result.phase !== undefined ? phaseName(result.phase) : 'updated'} after refresh.`)}
+                  {pick(`亮招已确认，当前阶段：${result.phase !== undefined ? phaseName(result.phase) : '已更新'}。`, `Reveal confirmed: ${result.phase !== undefined ? phaseName(result.phase) : 'updated'}.`)}
                 </span>
               </div>
             ) : null}
@@ -1584,11 +1548,6 @@ export function PKArenaPanel({
         </section>
       ) : null}
 
-      {gasUnits !== null ? (
-        <p className="cw-muted">
-          {pick(`预估链上成本：${gasUnits.toString()} gas${gasCostWei !== null ? ` / 约 ${formatBNB(gasCostWei, 6)} BNB。` : '。'}`, `Estimated network cost: ${gasUnits.toString()} gas${gasCostWei !== null ? ` / approx ${formatBNB(gasCostWei, 6)} BNB at current gas price.` : '.'}`)}
-        </p>
-      ) : null}
     </>
   );
 }

@@ -107,7 +107,7 @@ function getShellCopy(
 
   return {
     variant: 'home',
-    compact: false,
+    compact: true,
     eyebrow: `#${companion.tokenNumber} / ${companion.shelterName}`,
     title: `${companion.name} / Lv.${companion.level}`,
     statusLabel: companion.statusLabel,

@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, Coins, Flame, Shield, Wallet } from 'lucide-react';
-import { formatEther, parseEther } from 'viem';
+import { parseEther } from 'viem';
+import { usePublicClient } from 'wagmi';
 
 import {
   useBuyAndDeposit,
@@ -11,7 +12,8 @@ import {
   useDepositCLW,
   useProcessUpkeep,
 } from '@/contracts/hooks/useDeposit';
-import { getBscScanTxUrl } from '@/contracts/addresses';
+import { ERC20ABI } from '@/contracts/abis/ERC20';
+import { addresses, chainId as appChainId, getBscScanTxUrl } from '@/contracts/addresses';
 import { formatCLW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 
@@ -30,6 +32,10 @@ function parseInputAmount(value: string) {
   }
 }
 
+function maxBigInt(left: bigint, right: bigint) {
+  return left >= right ? left : right;
+}
+
 export function CompanionUpkeepPanel({
   tokenId,
   ownerAddress,
@@ -46,25 +52,70 @@ export function CompanionUpkeepPanel({
   const { pick } = useI18n();
   const [mode, setMode] = useState<DepositMode>('clw');
   const [amount, setAmount] = useState('');
+  const [walletBalanceOverride, setWalletBalanceOverride] = useState<bigint | null>(null);
+  const [walletBalanceOverrideError, setWalletBalanceOverrideError] = useState(false);
 
   const clwBalanceQuery = useCLWBalance(ownerAddress);
+  const publicClient = usePublicClient({ chainId: appChainId });
   const allowanceQuery = useCLWAllowance(ownerAddress);
   const deposit = useDepositCLW();
   const quick = useBuyAndDeposit();
   const upkeep = useProcessUpkeep();
 
   const inputAmount = useMemo(() => parseInputAmount(amount), [amount]);
-  const clwBalance = BigInt(clwBalanceQuery.data?.toString() ?? '0');
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWalletBalance() {
+      if (!publicClient || !ownerAddress) {
+        setWalletBalanceOverride(null);
+        setWalletBalanceOverrideError(false);
+        return;
+      }
+
+      try {
+        const balance = await publicClient.readContract({
+          address: addresses.clwToken,
+          abi: ERC20ABI,
+          functionName: 'balanceOf',
+          args: [ownerAddress],
+        });
+
+        if (!cancelled) {
+          setWalletBalanceOverride(BigInt(balance.toString()));
+          setWalletBalanceOverrideError(false);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setWalletBalanceOverride(null);
+          setWalletBalanceOverrideError(true);
+        }
+      }
+    }
+
+    void loadWalletBalance();
+    return () => {
+      cancelled = true;
+    };
+  }, [ownerAddress, publicClient]);
+
+  const clwBalance = maxBigInt(
+    BigInt((clwBalanceQuery.data as bigint | undefined) ?? 0n),
+    walletBalanceOverride ?? 0n,
+  );
   const allowance = BigInt(allowanceQuery.data?.toString() ?? '0');
   const needsApproval = mode === 'clw' && inputAmount !== null && allowance < inputAmount;
-  const hasBalanceRead = !clwBalanceQuery.isLoading && !clwBalanceQuery.error;
+  const balanceReadFailed = Boolean(clwBalanceQuery.error) && walletBalanceOverrideError;
+  const hasBalanceRead =
+    walletBalanceOverride !== null ||
+    (!clwBalanceQuery.isLoading && !balanceReadFailed);
   const hasEnoughClw =
     inputAmount === null || (hasBalanceRead && clwBalance >= inputAmount);
   const txHash = upkeep.hash || deposit.hash || quick.hash;
 
-  const clwBalanceText = clwBalanceQuery.isLoading
+  const clwBalanceText = clwBalanceQuery.isLoading && walletBalanceOverride === null
     ? pick('读取中', 'Loading')
-    : clwBalanceQuery.error
+    : balanceReadFailed
       ? pick('读取失败', 'Read failed')
       : formatCLW(clwBalance);
 
@@ -206,58 +257,48 @@ export function CompanionUpkeepPanel({
         </button>
       </div>
 
-      <div className="cw-list">
-        {mode === 'clw' && clwBalanceQuery.isLoading ? (
-          <div className="cw-list-item cw-list-item--cool">
-            <Wallet size={16} />
-            <span>{pick('正在读取钱包里的 Clawworld。', 'Reading wallet Clawworld.')}</span>
-          </div>
-        ) : null}
-        {mode === 'clw' && clwBalanceQuery.error ? (
-          <div className="cw-list-item cw-list-item--alert">
-            <Wallet size={16} />
-            <span>{pick('钱包 Clawworld 读取失败，先不要提交。', 'Wallet Clawworld read failed. Do not submit yet.')}</span>
-          </div>
-        ) : null}
-        {!hasEnoughClw && mode === 'clw' && hasBalanceRead ? (
-          <div className="cw-list-item cw-list-item--cool">
-            <Wallet size={16} />
-            <span>
-              {pick(
-                `钱包里只有 ${formatCLW(clwBalance)} Claworld，不足 ${amount || '0'}。`,
-                `Wallet balance ${formatCLW(clwBalance)} Claworld is below ${amount || '0'}.`,
-              )}
-            </span>
-          </div>
-        ) : null}
-        <div className={`cw-list-item ${needsApproval ? 'cw-list-item--warm' : 'cw-list-item--cool'}`}>
-          <Shield size={16} />
-          <span>
-            {needsApproval
-              ? pick('当前会先走授权，再充入储备。', 'Approval will be sent before deposit.')
-              : pick('当前可以直接充入储备。', 'Deposit can go directly to reserve.')}
-          </span>
+      {((mode === 'clw' && (clwBalanceQuery.isLoading || balanceReadFailed || !hasEnoughClw)) ||
+        txHash ||
+        quick.error ||
+        deposit.error ||
+        upkeep.error) ? (
+        <div className="cw-list">
+          {clwBalanceQuery.isLoading && walletBalanceOverride === null ? (
+            <div className="cw-list-item cw-list-item--cool">
+              <Wallet size={16} />
+              <span>{pick('正在读取钱包里的 Clawworld。', 'Reading wallet Claworld.')}</span>
+            </div>
+          ) : null}
+          {balanceReadFailed ? (
+            <div className="cw-list-item cw-list-item--alert">
+              <Wallet size={16} />
+              <span>{pick('钱包 Clawworld 读取失败，先别提交。', 'Wallet Claworld read failed. Hold before submitting.')}</span>
+            </div>
+          ) : null}
+          {!hasEnoughClw && hasBalanceRead ? (
+            <div className="cw-list-item cw-list-item--cool">
+              <Wallet size={16} />
+              <span>
+                {pick(
+                  `钱包里只有 ${formatCLW(clwBalance)} Claworld，不足 ${amount || '0'}。`,
+                  `Wallet balance ${formatCLW(clwBalance)} Claworld is below ${amount || '0'}.`,
+                )}
+              </span>
+            </div>
+          ) : null}
+          {txHash ? (
+            <div className="cw-list-item cw-list-item--warm">
+              <ArrowUpRight size={16} />
+              <a href={getBscScanTxUrl(txHash)} target="_blank" rel="noreferrer" className="cw-inline-link">
+                {pick('查看交易', 'View transaction')}
+              </a>
+            </div>
+          ) : null}
+          {quick.error ? <p className="cw-muted">{quick.error.message}</p> : null}
+          {deposit.error ? <p className="cw-muted">{deposit.error.message}</p> : null}
+          {upkeep.error ? <p className="cw-muted">{upkeep.error.message}</p> : null}
         </div>
-        {txHash ? (
-          <div className="cw-list-item cw-list-item--warm">
-            <ArrowUpRight size={16} />
-            <a href={getBscScanTxUrl(txHash)} target="_blank" rel="noreferrer" className="cw-inline-link">
-              {pick('查看交易', 'View transaction')}
-            </a>
-          </div>
-        ) : null}
-        {quick.error ? <p className="cw-muted">{quick.error.message}</p> : null}
-        {deposit.error ? <p className="cw-muted">{deposit.error.message}</p> : null}
-        {upkeep.error ? <p className="cw-muted">{upkeep.error.message}</p> : null}
-        {hasBalanceRead ? (
-          <p className="cw-muted">
-            {pick(
-              `钱包 Clawworld: ${Number(formatEther(clwBalance)).toFixed(2)} / 当前模式：${mode === 'clw' ? '充值 Clawworld' : 'BNB 快充'}`,
-              `Wallet Claworld: ${Number(formatEther(clwBalance)).toFixed(2)} / mode: ${mode === 'clw' ? 'Deposit Clawworld' : 'Quick buy+deposit'}`,
-            )}
-          </p>
-        ) : null}
-      </div>
+      ) : null}
     </section>
   );
 }

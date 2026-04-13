@@ -24,6 +24,7 @@ import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
 import { WalletGate } from '@/components/wallet/WalletGate';
 import { TaskSkillABI } from '@/contracts/abis/TaskSkill';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
+import { useRewardMultiplier } from '@/contracts/hooks/useWorldState';
 import { formatBasisPoints, formatBNB, formatCLW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 
@@ -67,8 +68,42 @@ const taskSkillContract = {
   abi: TaskSkillABI,
 } as const;
 
+const taskPreviewStateAbi = [
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'lastTaskType',
+    outputs: [{ internalType: 'uint8', name: '', type: 'uint8' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'sameTypeStreak',
+    outputs: [{ internalType: 'uint8', name: '', type: 'uint8' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function getTaskMatchValue(
+  taskType: number,
+  traits: {
+    courage: number;
+    wisdom: number;
+    social: number;
+    create: number;
+    grit: number;
+  },
+) {
+  if (taskType === 0) return traits.courage;
+  if (taskType === 1) return traits.wisdom;
+  if (taskType === 2) return traits.social;
+  if (taskType === 3) return traits.create;
+  return traits.grit;
 }
 
 function getErrorMessage(error: unknown, pick: <T,>(zh: T, en: T) => T) {
@@ -114,7 +149,7 @@ function buildTaskTemplates(
   return [
     {
       key: 'adventure',
-      title: pick('冒险挖矿', 'Adventure'),
+      title: pick('废墟探索', 'Ruins sweep'),
       taskType: 0,
       xpReward: clamp(16 + level * 2, 12, 32),
       requestedClw: parseEther(
@@ -131,7 +166,7 @@ function buildTaskTemplates(
     },
     {
       key: 'puzzle',
-      title: pick('解谜挖矿', 'Puzzle'),
+      title: pick('密码破译', 'Cipher break'),
       taskType: 1,
       xpReward: clamp(14 + level * 2, 12, 30),
       requestedClw: parseEther(
@@ -142,13 +177,13 @@ function buildTaskTemplates(
         8,
         99,
       ),
-      detail: pick('稳一点', 'Steady'),
+      detail: pick('偏稳定', 'Steady'),
       icon: Shield,
       tone: 'cw-card--watch',
     },
     {
       key: 'crafting',
-      title: pick('制作挖矿', 'Crafting'),
+      title: pick('终端改装', 'Terminal mod'),
       taskType: 3,
       xpReward: clamp(12 + level * 2, 10, 28),
       requestedClw: parseEther(
@@ -159,7 +194,7 @@ function buildTaskTemplates(
         8,
         99,
       ),
-      detail: upkeepDays !== null && upkeepDays <= 2 ? pick('保守', 'Lower risk') : pick('平衡', 'Balanced'),
+      detail: upkeepDays !== null && upkeepDays <= 2 ? pick('保储备', 'Low risk') : pick('平衡', 'Balanced'),
       icon: Hammer,
       tone: upkeepDays !== null && upkeepDays <= 2 ? 'cw-card--warning' : 'cw-card--safe',
     },
@@ -234,6 +269,7 @@ export default function PlayPage() {
   }, []);
 
   const selectedTask = rankedTaskTemplates.find((task) => task.key === selectedTaskKey) ?? topTask;
+  const rewardMultiplierQuery = useRewardMultiplier();
 
   const previewQuery = useReadContract({
     ...taskSkillContract,
@@ -252,7 +288,23 @@ export default function PlayPage() {
     query: { enabled: companion.hasToken && sheetOpen },
   });
 
-  const preview = useMemo(() => {
+  const lastTaskTypeQuery = useReadContract({
+    address: addresses.taskSkill,
+    abi: taskPreviewStateAbi,
+    functionName: 'lastTaskType',
+    args: companion.hasToken ? [companion.tokenId] : undefined,
+    query: { enabled: companion.hasToken && sheetOpen },
+  });
+
+  const sameTypeStreakQuery = useReadContract({
+    address: addresses.taskSkill,
+    abi: taskPreviewStateAbi,
+    functionName: 'sameTypeStreak',
+    args: companion.hasToken ? [companion.tokenId] : undefined,
+    query: { enabled: companion.hasToken && sheetOpen },
+  });
+
+  const chainPreview = useMemo(() => {
     const data = previewQuery.data as
       | readonly [number, bigint, bigint, bigint, boolean, boolean]
       | undefined;
@@ -270,12 +322,66 @@ export default function PlayPage() {
   const lastTaskTime = Number(lastTaskTimeQuery.data?.toString() ?? '0');
   const cooldownEndsAt = lastTaskTime > 0 ? lastTaskTime + 4 * 60 * 60 : 0;
   const cooldownRemaining = Math.max(0, cooldownEndsAt - now);
+  const lastTaskType = Number((lastTaskTypeQuery.data as number | bigint | undefined) ?? 255);
+  const sameTypeStreak = Number((sameTypeStreakQuery.data as number | bigint | undefined) ?? 0);
+  const rewardMultiplier = BigInt((rewardMultiplierQuery.data as bigint | undefined) ?? 10000n);
+  const localPreview = useMemo(() => {
+    if (!selectedTask) return null;
+
+    const matchValue = getTaskMatchValue(selectedTask.taskType, companion.traits);
+    const matchScore = clamp(matchValue * 200, 0, 20000);
+    const nextStreak =
+      sameTypeStreak > 0 && lastTaskType === selectedTask.taskType
+        ? sameTypeStreak + 1
+        : 1;
+
+    let streakMul = 10000n;
+    if (nextStreak === 2) streakMul = 8000n;
+    else if (nextStreak === 3) streakMul = 6000n;
+    else if (nextStreak >= 4) streakMul = 5000n;
+
+    const actualClw =
+      (selectedTask.requestedClw * BigInt(matchScore) * rewardMultiplier * streakMul) /
+      10000n /
+      10000n /
+      10000n;
+
+    return {
+      matchScore,
+      actualClw,
+      streakMul,
+      worldMul: rewardMultiplier,
+      cooldownReady: cooldownRemaining === 0,
+      personalityDrift: matchScore >= 10000,
+    } satisfies TaskPreview;
+  }, [selectedTask, companion.traits, sameTypeStreak, lastTaskType, rewardMultiplier, cooldownRemaining]);
+
+  const preview = chainPreview ?? localPreview;
   const effectiveCooldownReady = preview?.cooldownReady ?? cooldownRemaining === 0;
-  const previewLoading = previewQuery.isLoading || lastTaskTimeQuery.isLoading;
-  const previewReadError = previewQuery.error ?? lastTaskTimeQuery.error;
+  const previewLoading =
+    !preview &&
+    (previewQuery.isLoading ||
+      lastTaskTimeQuery.isLoading ||
+      lastTaskTypeQuery.isLoading ||
+      sameTypeStreakQuery.isLoading ||
+      rewardMultiplierQuery.isLoading);
+  const previewReadError =
+    previewQuery.error ??
+    lastTaskTimeQuery.error ??
+    lastTaskTypeQuery.error ??
+    sameTypeStreakQuery.error ??
+    rewardMultiplierQuery.error;
+  const previewFallbackNote =
+    !chainPreview && localPreview && previewQuery.error
+      ? pick('链上预览不可用，已切换本地估算。', 'On-chain preview is unavailable. Using a local estimate.')
+      : null;
   const previewNeedsRetry = Boolean(previewReadError || gasEstimateError);
   const previewRefreshing =
-    refreshingPreview || previewQuery.isRefetching || lastTaskTimeQuery.isRefetching;
+    refreshingPreview ||
+    previewQuery.isRefetching ||
+    lastTaskTimeQuery.isRefetching ||
+    lastTaskTypeQuery.isRefetching ||
+    sameTypeStreakQuery.isRefetching;
   const previewUnavailable = !previewLoading && !preview && Boolean(previewReadError);
 
   useEffect(() => {
@@ -426,7 +532,13 @@ export default function PlayPage() {
   async function handleRefreshPreview() {
     setRefreshingPreview(true);
     try {
-      await Promise.all([previewQuery.refetch(), lastTaskTimeQuery.refetch()]);
+      await Promise.all([
+        previewQuery.refetch(),
+        lastTaskTimeQuery.refetch(),
+        lastTaskTypeQuery.refetch(),
+        sameTypeStreakQuery.refetch(),
+        rewardMultiplierQuery.refetch(),
+      ]);
     } finally {
       setRefreshingPreview(false);
     }
@@ -459,22 +571,9 @@ export default function PlayPage() {
 
   return (
     <>
-      <section className="cw-band">
-        <div className="cw-band--split">
-          <div>
-            <p className="cw-eyebrow">{pick('任务挖矿', 'Task mining')}</p>
-            <h2 className="cw-section-title">{companion.name}</h2>
-          </div>
-          <div className="cw-score">
-            <strong>{topTask.score}%</strong>
-            <span>{pick('匹配', 'fit')}</span>
-          </div>
-        </div>
-      </section>
-
       <WalletGate
         title={pick('先连接持有人钱包', 'Connect owner wallet first')}
-        detail={pick('没有钱包或没有 NFA 时，这里不继续显示任务操作。', 'Task actions stay gated until wallet and ownership are ready.')}
+        detail={pick('连接后才能开始挖矿。', 'Connect before mining.')}
       >
         <section className="cw-card-stack">
           {rankedTaskTemplates.map((task) => {
@@ -638,13 +737,19 @@ export default function PlayPage() {
                           <span>{pick('本次可能触发性格漂移。', 'This run may trigger personality drift.')}</span>
                         </div>
                       ) : null}
+                      {previewFallbackNote ? (
+                        <div className="cw-list-item cw-list-item--cool">
+                          <Shield size={16} />
+                          <span>{previewFallbackNote}</span>
+                        </div>
+                      ) : null}
                       {gasEstimateError ? (
                         <div className="cw-list-item cw-list-item--cool">
                           <Shield size={16} />
                           <span>{pick(`Gas 估算失败：${gasEstimateError}`, `Gas estimate failed: ${gasEstimateError}`)}</span>
                         </div>
                       ) : null}
-                      {previewQuery.error ? (
+                      {previewQuery.error && !previewFallbackNote ? (
                         <div className="cw-list-item cw-list-item--cool">
                           <Shield size={16} />
                           <span>{pick(`预览失败：${getErrorMessage(previewQuery.error, pick)}`, `Preview failed: ${getErrorMessage(previewQuery.error, pick)}`)}</span>
@@ -687,7 +792,7 @@ export default function PlayPage() {
                           <button
                             type="button"
                             className="cw-button cw-button--primary"
-                            disabled={!selectedTask || !preview || previewNeedsRetry}
+                            disabled={!selectedTask || !preview}
                             onClick={() => setSheetMode('confirm')}
                           >
                             <CheckCircle2 size={16} />

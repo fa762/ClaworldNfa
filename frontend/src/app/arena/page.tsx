@@ -40,22 +40,9 @@ export default function ArenaPage() {
 
   return (
     <>
-      <section className="cw-band">
-        <div className="cw-band--split">
-          <div>
-            <p className="cw-eyebrow">{pick('竞技', 'Arena')}</p>
-            <h2 className="cw-section-title">{pick('先选模式', 'Choose a mode')}</h2>
-          </div>
-          <div className="cw-score">
-            <strong>{mode === 'pk' ? 'PK' : 'BR'}</strong>
-            <span>{pick('模式', 'Mode')}</span>
-          </div>
-        </div>
-      </section>
-
       <WalletGate
         title={pick('先连接持有人钱包', 'Connect owner wallet first')}
-        detail={pick('竞技操作需要真实所有权和签名。', 'Arena actions need real ownership and wallet signing.')}
+        detail={pick('连接后才能进竞技场。', 'Connect before entering the arena.')}
       >
         <section className="cw-segmented">
           <button
@@ -70,7 +57,7 @@ export default function ArenaPage() {
             className={`cw-segmented-btn ${mode === 'br' ? 'cw-segmented-btn--active' : ''}`}
             onClick={() => setMode('br')}
           >
-            Battle Royale
+            {pick('大逃杀', 'Battle Royale')}
           </button>
         </section>
 
@@ -108,7 +95,7 @@ export default function ArenaPage() {
             <section className="cw-panel cw-panel--warm">
               <div className="cw-section-head">
                 <div>
-                  <span className="cw-label">Battle Royale</span>
+                  <span className="cw-label">{pick('大逃杀', 'Battle Royale')}</span>
                   <h3>
                     {battleRoyale.ready
                       ? pick(

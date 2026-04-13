@@ -193,6 +193,65 @@ This pass handled the latest real-device defects before any further art work.
 3. continue turning Arena / Auto inner flows into shorter decision surfaces
 4. keep art/motion blocked until these live interaction defects are cleared
 
+## Progress checkpoint - 2026-04-13 session 18
+
+This pass continued the reset plan in the correct order: fix live blockers before touching art.
+
+### Completed in this pass
+
+1. Harden wallet `Claworld` balance reads
+- the shell active-companion layer now uses:
+  - contract read query
+  - direct-chain fallback read
+- the displayed wallet amount now prefers the successful non-zero read instead of trusting a single stale source
+
+2. Add a local mining preview fallback
+- on-chain `previewTypedTaskOutcome(...)` was confirmed unreliable on the deployed contract path
+- `/play` now keeps the UX alive by switching to a local estimate when needed
+- this keeps the Mining loop usable:
+  - choose task
+  - preview
+  - confirm
+  - execute
+
+3. Compress shell + panel geometry further
+- Home stage now uses the compact shell strip too
+- topbar, stage, card, panel, detail-row, and modal dimensions were reduced
+- `/play` and `/arena` no longer spend a whole intro band above the actual actions
+
+4. Strip more filler copy from default surfaces
+- upkeep panel removed explanatory/debug lines from the main happy path
+- PK panel removed several long paragraphs from:
+  - top intro
+  - recovery block
+  - live match summary
+  - join/create sections
+  - confirm flow
+
+5. Move PK wording toward game actions
+- strategy labels are now shorter and more legible:
+  - 强攻
+  - 均衡
+  - 防守
+- main action verbs are now:
+  - 开擂
+  - 应战
+  - 亮招
+  - 结算
+  - 清局
+
+### Verification
+
+- `npm --prefix frontend run build`
+- passed
+
+### Updated next priority after session 18
+
+1. verify live wallet `Claworld` balance on the deployed shell using the real owner wallet
+2. verify Mining fallback preview on the deployed shell
+3. continue reducing text density on Arena / Auto default surfaces
+4. only after the live interaction path is stable: resume art/motion and companion personality work
+
 ## Long task plan
 
 ### Phase 1 — Stop false zero states

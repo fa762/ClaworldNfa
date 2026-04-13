@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useAccount, useBalance, useReadContract } from 'wagmi';
+import { useAccount, useBalance, usePublicClient, useReadContract } from 'wagmi';
 import { type Address, zeroAddress } from 'viem';
 
 import { useAgentMetadata, useAgentState, useTokensOfOwner } from '@/contracts/hooks/useClawNFA';
@@ -21,7 +21,7 @@ import {
 } from '@/contracts/hooks/useClawRouter';
 import { usePkStats, useTaskStats } from '@/contracts/hooks/useNFAStats';
 import { ERC20ABI } from '@/contracts/abis/ERC20';
-import { addresses } from '@/contracts/addresses';
+import { addresses, chainId as appChainId } from '@/contracts/addresses';
 import { formatBNB, formatCLW } from '@/lib/format';
 import { resolveIpfsUrl } from '@/lib/ipfs';
 import { useI18n } from '@/lib/i18n';
@@ -208,12 +208,19 @@ function getSource(
   return { label: pick('链上实时', 'Live on-chain'), tone: 'growth' as const };
 }
 
+function maxBigInt(left: bigint, right: bigint) {
+  return left >= right ? left : right;
+}
+
 function useProvideActiveCompanion(): ActiveCompanionValue {
   const { pick } = useI18n();
   const { address, isConnected } = useAccount();
+  const publicClient = usePublicClient({ chainId: appChainId });
   const ownerAddress = address as Address | undefined;
   const connected = Boolean(isConnected && ownerAddress);
   const storageKey = ownerAddress ? `${STORAGE_PREFIX}${ownerAddress.toLowerCase()}` : null;
+  const [walletClaworldFallback, setWalletClaworldFallback] = useState<bigint | null>(null);
+  const [walletClaworldFallbackError, setWalletClaworldFallbackError] = useState(false);
 
   const ownedTokensQuery = useTokensOfOwner(ownerAddress);
   const ownedTokens = useMemo(
@@ -269,12 +276,47 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
     abi: ERC20ABI,
     functionName: 'balanceOf',
     args: ownerAddress ? [ownerAddress] : undefined,
+    chainId: appChainId,
     query: {
       enabled:
         connected &&
         Boolean(ownerAddress && addresses.clwToken && addresses.clwToken !== zeroAddress),
+      refetchInterval: 5000,
+      staleTime: 0,
     },
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    setWalletClaworldFallback(null);
+    setWalletClaworldFallbackError(false);
+
+    if (!connected || !ownerAddress || !publicClient || !addresses.clwToken || addresses.clwToken === zeroAddress) {
+      return;
+    }
+
+    publicClient
+      .readContract({
+        address: addresses.clwToken,
+        abi: ERC20ABI,
+        functionName: 'balanceOf',
+        args: [ownerAddress],
+      })
+      .then((value) => {
+        if (!cancelled) {
+          setWalletClaworldFallback(BigInt(value as bigint));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setWalletClaworldFallbackError(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [connected, ownerAddress, publicClient]);
 
   const selectCompanion = useCallback(
     (tokenId: bigint) => {
@@ -307,11 +349,12 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
 
   return useMemo(() => {
     const hasToken = activeTokenId !== undefined;
+    const walletClaworldPending = connected && walletClwQuery.isLoading && walletClaworldFallback === null;
     const isLoading =
       connected &&
       (ownedTokensQuery.isLoading ||
         walletNativeQuery.isLoading ||
-        walletClwQuery.isLoading ||
+        walletClaworldPending ||
         (hasToken &&
           (agentStateQuery.isLoading ||
             agentMetadataQuery.isLoading ||
@@ -372,7 +415,9 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
     const level = Number(lobster?.level ?? lobster?.[13] ?? 0);
     const routerClaworld = BigInt(routerClwQuery.data?.toString() ?? '0');
     const dailyCost = BigInt(dailyCostQuery.data?.toString() ?? '0');
-    const walletClaworld = BigInt(walletClwQuery.data?.toString() ?? '0');
+    const walletClaworldFromQuery = BigInt((walletClwQuery.data as bigint | undefined) ?? 0n);
+    const walletClaworld = maxBigInt(walletClaworldFromQuery, walletClaworldFallback ?? 0n);
+    const walletClaworldReadFailed = Boolean(walletClwQuery.error) && walletClaworldFallbackError;
     const walletNative = walletNativeQuery.data?.value ?? 0n;
     const active = Boolean(activeQuery.data ?? agentState?.active ?? agentState?.[1] ?? false);
     const upkeepDays = dailyCost > 0n ? Number(routerClaworld / dailyCost) : null;
@@ -416,9 +461,9 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
       pkWins,
       pkLosses,
       pkWinRate,
-      walletClaworldText: walletClwQuery.isLoading
+      walletClaworldText: walletClaworldPending
         ? pick('读取中', 'Loading')
-        : walletClwQuery.error
+        : walletClaworldReadFailed
           ? pick('读取失败', 'Read failed')
           : formatCLW(walletClaworld),
       walletNativeText: walletNativeQuery.isLoading
@@ -472,6 +517,8 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
     walletClwQuery.data,
     walletClwQuery.error,
     walletClwQuery.isLoading,
+    walletClaworldFallback,
+    walletClaworldFallbackError,
     walletNativeQuery.error,
     walletNativeQuery.isLoading,
     walletNativeQuery.data?.value,

@@ -1,6 +1,6 @@
 # Current Handoff
 
-Last updated: 2026-04-13 (session 17) Asia/Singapore
+Last updated: 2026-04-13 (session 18) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
@@ -215,6 +215,65 @@ Immediate execution order after this reset:
 8. finish Chinese-first cleanup
 9. replace placeholder Settings with real controls
 10. only then deepen art/motion
+
+## Frontend live-fix checkpoint - 2026-04-13 session 18
+
+This pass was driven by the latest real-device screenshots and hard production blockers.
+
+What is now done:
+
+1. Wallet `Claworld` balance now uses a second direct-chain fallback in the shell data layer
+- `useActiveCompanion()` now keeps:
+  - wagmi `balanceOf(...)`
+  - direct `publicClient.readContract(balanceOf)`
+- UI now uses the larger successful value instead of trusting one potentially stale `0`
+- this change is intended to fix the live case where the owner wallet really holds millions of `Claworld` but the rebuilt shell still showed `0`
+
+2. Upkeep panel now uses the same hardened wallet read path
+- the rebuilt maintenance panel no longer trusts one read source
+- it now distinguishes:
+  - loading
+  - read failed
+  - actual balance
+- filler debug copy and approval narration were removed from the default path
+
+3. Mining preview now has a local fallback path
+- live testing confirmed that deployed `previewTypedTaskOutcome(...)` can revert even when the real task path is otherwise usable
+- the rebuilt `/play` flow now:
+  - still tries the on-chain preview first
+  - falls back to a local estimate using on-chain state and current lobster traits
+  - keeps preview / confirm / execute in the same modal
+- the modal now shows a short note when it had to switch to local estimate instead of dumping a raw revert blob
+
+4. Shell and action surfaces were compressed again
+- Home now uses the compact stage variant too
+- topbar, stage, cards, panels, detail rows, and modal heights were all reduced
+- `/play` and `/arena` lost their extra top intro bands
+- the maintenance panel is now denser and does not spend as much vertical space on explanatory copy
+
+5. PK copy moved closer to game language
+- strategy labels are now shorter:
+  - 强攻
+  - 均衡
+  - 防守
+- action labels are shorter:
+  - 开擂
+  - 应战
+  - 亮招
+  - 结算
+  - 清局
+- several long explanatory paragraphs were removed from the main PK path
+
+Verification:
+
+- `npm --prefix frontend run build` passed after this pass
+
+Next live checks after deploy:
+
+1. confirm wallet `Claworld` now reads correctly for the real owner wallet
+2. confirm `/play` preview no longer dead-ends when on-chain preview reverts
+3. confirm the compact stage + upkeep panel now fit comfortably on real phone screens
+4. confirm PK copy reads like short game actions instead of operator/dev text
 
 ## Current product direction
 
