@@ -1,8 +1,8 @@
 import { MintPanel } from '@/components/mint/MintPanel';
 
 export const metadata = {
-  title: '创世铸造 — CLAW WORLD TERMINAL',
-  description: '铸造你的创世龙虾 NFA',
+  title: 'Genesis 铸造 | 龙虾世界',
+  description: '铸造你的 Genesis 龙虾',
 };
 
 export default function MintPage() {

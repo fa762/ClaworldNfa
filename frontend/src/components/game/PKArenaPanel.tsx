@@ -155,7 +155,6 @@ const STRATEGIES: Array<{
 ] as const;
 
 const PK_PHASE_NAMES = ['开放', '待亮招', '待揭示', '可结算', '已结算', '已取消'] as const;
-const ZERO_HASH = `0x${'0'.repeat(64)}` as `0x${string}`;
 
 function getPkErrorMessage(error: unknown) {
   if (!(error instanceof Error)) return 'PK 交易失败。';
@@ -166,6 +165,16 @@ function getPkErrorMessage(error: unknown) {
   if (error.message.includes('Match not open')) return '这场 PK 已经不在开放阶段。';
   if (error.message.includes('Match not found')) return '没有读到这场 PK 对局。';
   return error.message;
+}
+
+function normalizePkUserMessage(error: unknown) {
+  const raw = getPkErrorMessage(error);
+  if (raw.includes('OKX Wallet Reject') || raw.includes('User rejected')) return '钱包取消了这次 PK 签名。';
+  if (raw.includes('Empty commit')) return 'PK 承诺哈希没有生成成功，请重试一次。';
+  if (raw.includes('Not open') || raw.includes('Match not open')) return '这场 PK 已经不能加入了。';
+  if (raw.includes('Insufficient CLW')) return '当前储备不足以参加这场 PK。';
+  if (raw.includes('execution reverted: 0x')) return '当前这条 PK 链路没有通过主网预检，请换一场或稍后再试。';
+  return raw;
 }
 
 function formatRemaining(seconds: number) {
@@ -585,16 +594,25 @@ export function PKArenaPanel({
       }
 
       try {
-        const args =
+        const estimateArgs =
           confirmIntent.action === 'create'
-            ? pkCreateArgs(tokenNumber, confirmIntent.stake, ZERO_HASH)
+            ? (() => {
+                const { commitHash } = generateCommit(confirmIntent.strategy, address as Address);
+                return pkCreateArgs(tokenNumber, confirmIntent.stake, commitHash);
+              })()
             : confirmIntent.action === 'join'
-              ? pkJoinArgs(confirmIntent.matchId, tokenNumber, ZERO_HASH)
+              ? (() => {
+                  const { commitHash } = generateCommit(confirmIntent.strategy, address as Address);
+                  return pkJoinArgs(confirmIntent.matchId, tokenNumber, commitHash);
+                })()
               : confirmIntent.action === 'reveal'
                 ? pkRevealArgs(confirmIntent.matchId, confirmIntent.strategy, confirmIntent.salt)
                 : confirmIntent.action === 'settle'
                   ? pkSettleArgs(confirmIntent.matchId)
                   : pkCancelArgs(confirmIntent.matchId, confirmIntent.phase);
+
+        const args =
+          estimateArgs;
 
         const [estimated, gasPrice] = await Promise.all([
           publicClient.estimateContractGas({
@@ -611,7 +629,7 @@ export function PKArenaPanel({
       } catch (estimateFailure) {
         if (!cancelled) {
           setGasCostWei(null);
-          setGasEstimateError(getPkErrorMessage(estimateFailure));
+          setGasEstimateError(normalizePkUserMessage(estimateFailure));
         }
       }
     }
@@ -661,7 +679,7 @@ export function PKArenaPanel({
             relayTxHash = relay.txHash;
           } catch (relayError) {
             relayState = 'unavailable';
-            relayMessage = getPkErrorMessage(relayError);
+            relayMessage = normalizePkUserMessage(relayError);
           }
         }
 
@@ -782,7 +800,7 @@ export function PKArenaPanel({
 
   useEffect(() => {
     if (!error) return;
-    setActionError(getPkErrorMessage(error));
+    setActionError(normalizePkUserMessage(error));
     if (!hash) {
       setSubmittedIntent(null);
     }
@@ -844,7 +862,7 @@ export function PKArenaPanel({
       await writeContractAsync(pkCancelArgs(intent.matchId, intent.phase));
     } catch (submitError) {
       setSubmittedIntent(null);
-      setActionError(getPkErrorMessage(submitError));
+      setActionError(normalizePkUserMessage(submitError));
     } finally {
       setAwaitingWallet(false);
     }

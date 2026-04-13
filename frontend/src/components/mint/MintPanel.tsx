@@ -1,36 +1,37 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useAccount } from 'wagmi';
-import { simulateContract } from '@wagmi/core';
-import { parseEther, zeroHash, isAddress, type Address } from 'viem';
 import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowUpRight, CheckCircle2, Compass, Gift, Shield, Sparkles, TimerReset } from 'lucide-react';
+import { simulateContract } from '@wagmi/core';
+import { isAddress, parseEther, type Address, zeroHash } from 'viem';
+import { useAccount } from 'wagmi';
+
 import { config } from '@/components/wallet/WalletProvider';
 import { getBscScanTxUrl } from '@/contracts/addresses';
-import { getRarityName, getRarityClass, getRarityStars } from '@/lib/rarity';
-import { nativeSymbol } from '@/lib/format';
-import { useI18n } from '@/lib/i18n';
+import { useTotalSupply } from '@/contracts/hooks/useClawNFA';
 import {
-  useMintingActive,
-  useMintedCount,
-  useRarityMinted,
+  clearSalt,
+  computeCommitHash,
+  generateSalt,
+  loadSalt,
+  RARITY_AIRDROPS,
+  RARITY_CAPS,
+  RARITY_PRICES,
+  saveSalt,
   useCommitment,
   useCommitMint,
-  useRevealMint,
-  useRefund,
-  useVaultOwner,
+  useMintedCount,
+  useMintingActive,
   useOwnerMint,
+  useRarityMinted,
+  useRefund,
+  useRevealMint,
+  useVaultOwner,
   vaultContract,
-  RARITY_PRICES,
-  RARITY_CAPS,
-  RARITY_AIRDROPS,
-  generateSalt,
-  computeCommitHash,
-  saveSalt,
-  loadSalt,
-  clearSalt,
 } from '@/contracts/hooks/useGenesisVault';
-import { useTotalSupply } from '@/contracts/hooks/useClawNFA';
+import { useI18n } from '@/lib/i18n';
+import { getRarityName, getRarityStars } from '@/lib/rarity';
 
 const TOTAL_GENESIS = 888;
 const REVEAL_DELAY = 60;
@@ -38,37 +39,58 @@ const REVEAL_WINDOW = 86400;
 
 type Phase = 'select' | 'waiting' | 'ready' | 'expired' | 'success';
 
+function formatCountdown(totalSeconds: number, pick: <T,>(zh: T, en: T) => T) {
+  const safe = Math.max(0, totalSeconds);
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const seconds = safe % 60;
+  if (hours > 0) return pick(`${hours}小时 ${minutes}分`, `${hours}h ${minutes}m`);
+  if (minutes > 0) return pick(`${minutes}分 ${seconds}秒`, `${minutes}m ${seconds}s`);
+  return pick(`${seconds}秒`, `${seconds}s`);
+}
+
+function rarityTone(rarity: number) {
+  if (rarity >= 4) return 'cw-card--warning';
+  if (rarity === 3) return 'cw-card--watch';
+  if (rarity === 2) return 'cw-card--ready';
+  return 'cw-card--safe';
+}
+
 export function MintPanel() {
   const { address, isConnected } = useAccount();
-  const { lang, t } = useI18n();
+  const { lang, pick } = useI18n();
   const isCN = lang === 'zh';
+
   const [selectedRarity, setSelectedRarity] = useState(0);
   const [countdown, setCountdown] = useState(0);
+  const [debugError, setDebugError] = useState<string | null>(null);
   const [revealedNfaId, setRevealedNfaId] = useState<string | null>(null);
-  const [revealedRarity, setRevealedRarity] = useState<number | null>(null);
-  const [revealedShelter, setRevealedShelter] = useState<number | null>(null);
+  const [ownerRarity, setOwnerRarity] = useState(0);
+  const [ownerRecipient, setOwnerRecipient] = useState('');
+  const [ownerSimError, setOwnerSimError] = useState<string | null>(null);
 
   const { data: mintingActive } = useMintingActive();
   const { data: mintedCount } = useMintedCount();
   const { data: totalSupply } = useTotalSupply();
   const { data: rarityMinted } = useRarityMinted();
   const { data: commitment } = useCommitment(address);
+  const { data: vaultOwner } = useVaultOwner();
 
   const commitMint = useCommitMint();
   const revealMint = useRevealMint();
   const refundHook = useRefund();
-  const { data: vaultOwner } = useVaultOwner();
   const ownerMintHook = useOwnerMint();
-
-  const isOwner = isConnected && address && vaultOwner && address.toLowerCase() === (vaultOwner as string).toLowerCase();
-  const [ownerRarity, setOwnerRarity] = useState(0);
-  const [ownerRecipient, setOwnerRecipient] = useState('');
-  const [ownerSimError, setOwnerSimError] = useState<string | null>(null);
 
   const commitHash = commitment?.[0] as `0x${string}` | undefined;
   const commitTimestamp = commitment?.[2] ? Number(commitment[2]) : 0;
   const commitRevealed = commitment?.[3] as boolean | undefined;
-  const hasActiveCommit = commitHash && commitHash !== zeroHash && !commitRevealed;
+  const hasActiveCommit = Boolean(commitHash && commitHash !== zeroHash && !commitRevealed);
+  const isOwner =
+    Boolean(isConnected && address && vaultOwner) &&
+    address!.toLowerCase() === (vaultOwner as string).toLowerCase();
+
+  const totalMinted =
+    totalSupply !== undefined ? Number(totalSupply) : mintedCount !== undefined ? Number(mintedCount) : 0;
 
   const phase = useMemo<Phase>(() => {
     if (revealedNfaId) return 'success';
@@ -78,52 +100,65 @@ export function MintPanel() {
     if (elapsed < REVEAL_DELAY) return 'waiting';
     if (elapsed < REVEAL_WINDOW) return 'ready';
     return 'expired';
-  }, [hasActiveCommit, commitTimestamp, revealedNfaId, countdown]);
+  }, [commitTimestamp, hasActiveCommit, revealedNfaId]);
 
   useEffect(() => {
-    if (!hasActiveCommit) return;
-    const tick = () => {
+    if (!hasActiveCommit) {
+      setCountdown(0);
+      return;
+    }
+
+    const update = () => {
       const now = Math.floor(Date.now() / 1000);
       const elapsed = now - commitTimestamp;
-      if (elapsed < REVEAL_DELAY) setCountdown(REVEAL_DELAY - elapsed);
-      else if (elapsed < REVEAL_WINDOW) setCountdown(REVEAL_WINDOW - elapsed);
-      else setCountdown(0);
+      if (elapsed < REVEAL_DELAY) {
+        setCountdown(REVEAL_DELAY - elapsed);
+        return;
+      }
+      if (elapsed < REVEAL_WINDOW) {
+        setCountdown(REVEAL_WINDOW - elapsed);
+        return;
+      }
+      setCountdown(0);
     };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [hasActiveCommit, commitTimestamp]);
+
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, [commitTimestamp, hasActiveCommit]);
+
+  const savedSalt = address ? loadSalt(address) : null;
+  const selectedPrice = RARITY_PRICES[selectedRarity];
+  const selectedAirdrop = RARITY_AIRDROPS[selectedRarity];
 
   function handleCommit() {
     if (!address) return;
     const salt = generateSalt();
     saveSalt(address, salt, selectedRarity);
     const hash = computeCommitHash(selectedRarity, salt, address);
-    const price = parseEther(RARITY_PRICES[selectedRarity]);
-    commitMint.commitMint(hash, price);
+    commitMint.commitMint(hash, parseEther(selectedPrice));
   }
-
-  const [debugError, setDebugError] = useState<string | null>(null);
 
   async function handleReveal() {
     if (!address) return;
     const saved = loadSalt(address);
     if (!saved) {
-      setDebugError(`${t('mint.noSalt')}。这笔铸造如果已经提交成功，只能用原来那台设备里的承诺数据继续公开；如果找不回原数据，需要等 24 小时后退款。`);
+      setDebugError(pick('本地没找到铸造凭据，当前设备无法继续揭示。', 'No local reveal bundle was found on this device.'));
       return;
     }
-    setDebugError(null);
+
     if (!commitHash || commitHash === zeroHash) {
-      setDebugError('链上没有找到当前钱包的有效铸造承诺，请先重新提交。');
+      setDebugError(pick('链上没有当前钱包的铸造承诺。', 'No active mint commitment was found on-chain.'));
       return;
     }
 
     const localHash = computeCommitHash(saved.rarity, saved.salt, address);
     if (localHash.toLowerCase() !== commitHash.toLowerCase()) {
-      setDebugError('当前设备保存的铸造数据和链上承诺不一致。这笔 0.02 BNB 已经锁在链上，只有原来提交时那份数据才能公开；如果找不回，只能在 24 小时后退款。');
+      setDebugError(pick('本地凭据和链上承诺不一致，只能用原设备继续揭示。', 'The local reveal bundle does not match the on-chain commitment.'));
       return;
     }
 
+    setDebugError(null);
     try {
       await simulateContract(config, {
         ...vaultContract,
@@ -131,11 +166,11 @@ export function MintPanel() {
         args: [saved.rarity, saved.salt],
         account: address,
       });
-    } catch (err: any) {
-      const msg = err?.shortMessage || err?.message || String(err);
-      setDebugError(msg);
+    } catch (error: any) {
+      setDebugError(error?.shortMessage || error?.message || String(error));
       return;
     }
+
     revealMint.revealMint(saved.rarity, saved.salt);
   }
 
@@ -147,357 +182,361 @@ export function MintPanel() {
     if (revealMint.isSuccess && address) {
       clearSalt(address);
       setRevealedNfaId('new');
-      const saved = loadSalt(address);
-      if (saved) setRevealedRarity(saved.rarity);
     }
-  }, [revealMint.isSuccess, address]);
+  }, [address, revealMint.isSuccess]);
 
   useEffect(() => {
     if (refundHook.isSuccess && address) {
       clearSalt(address);
     }
-  }, [refundHook.isSuccess, address]);
+  }, [address, refundHook.isSuccess]);
 
   function handleReset() {
     setRevealedNfaId(null);
-    setRevealedRarity(null);
-    setRevealedShelter(null);
+    setDebugError(null);
     commitMint.reset();
     revealMint.reset();
     refundHook.reset();
   }
 
-  const savedSalt = address ? loadSalt(address) : null;
-  // Use NFA totalSupply (includes ownerMint), fallback to vault mintedCount
-  const totalMinted = totalSupply !== undefined ? Number(totalSupply) : (mintedCount !== undefined ? Number(mintedCount) : 0);
+  async function handleOwnerMint() {
+    if (!address) return;
+    setOwnerSimError(null);
+    ownerMintHook.reset();
 
-  function formatTime(s: number): string {
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    const rawRecipient = ownerRecipient.trim();
+    if (rawRecipient && !isAddress(rawRecipient)) {
+      setOwnerSimError(pick('接收地址不合法。', 'Recipient address is invalid.'));
+      return;
+    }
+
+    const recipient = (rawRecipient || address) as Address;
+    try {
+      await simulateContract(config, {
+        ...vaultContract,
+        functionName: 'ownerMint',
+        args: [ownerRarity, recipient],
+        account: address,
+      });
+    } catch (error: any) {
+      setOwnerSimError(error?.shortMessage || error?.message || String(error));
+      return;
+    }
+
+    ownerMintHook.ownerMint(ownerRarity, recipient);
   }
 
-  /* ─── Progress bar helper ─── */
-  function ProgressBar({ value, max, width = 20 }: { value: number; max: number; width?: number }) {
-    const filled = Math.round((value / max) * width);
-    return (
-      <span className="text-xs">
-        <span className="text-crt-green">{'█'.repeat(filled)}</span>
-        <span className="term-darkest">{'░'.repeat(width - filled)}</span>
-      </span>
-    );
-  }
+  const mintBlockedReason = !isConnected
+    ? pick('先连接钱包。', 'Connect wallet first.')
+    : mintingActive === false
+      ? pick('铸造还没开放。', 'Mint is not active yet.')
+      : hasActiveCommit
+        ? pick('当前钱包已经有一笔进行中的铸造。', 'This wallet already has an active mint.')
+        : null;
 
   return (
-    <div className="pipboy-split">
-      {/* ═══ LEFT: Stats & Info (hidden on mobile, compact sidebar on desktop) ═══ */}
-      <div className="pipboy-split-sidebar hidden sm:block" style={{ width: 220 }}>
-        {/* Progress */}
-        <div className="px-3 py-2">
-          <div className="term-bright text-xs glow mb-2">{t('mint.progress')}</div>
-          <div className="flex items-center gap-2 text-xs mb-1">
-            <span className="term-dim">{t('mint.total')}</span>
-            <span className="term-bright">{totalMinted}</span>
-            <span className="term-dim">/ {TOTAL_GENESIS}</span>
+    <div className="cw-page">
+      <section className="cw-panel cw-panel--warm">
+        <div className="cw-section-head">
+          <div>
+            <span className="cw-label">{pick('Genesis 铸造', 'Genesis Mint')}</span>
+            <h3>{pick('铸造你的龙虾', 'Mint your lobster')}</h3>
           </div>
-          <ProgressBar value={totalMinted} max={TOTAL_GENESIS} />
-
-          <div className="term-line my-2" />
-
-          {[0, 1, 2, 3, 4].map((r) => {
-            const minted = rarityMinted ? Number(rarityMinted[r]) : 0;
-            const cap = RARITY_CAPS[r];
-            const soldOut = minted >= cap;
-            return (
-              <div key={r} className="flex items-center gap-1 text-xs leading-5">
-                <span className={`w-10 text-right ${getRarityClass(r)}`}>
-                  {getRarityName(r, isCN)}
-                </span>
-                <span className="term-dim flex-1">{minted}/{cap}</span>
-                <span className="term-dim">{RARITY_PRICES[r]}</span>
-                {soldOut && <span className="term-danger">!</span>}
-              </div>
-            );
-          })}
+          <span className="cw-chip cw-chip--warm">
+            <Compass size={14} />
+            {totalMinted}/{TOTAL_GENESIS}
+          </span>
         </div>
 
-        <div className="term-line" />
-
-        {/* Instructions */}
-        <div className="px-3 py-2 space-y-1 text-xs term-dim">
-          <div className="term-bright text-xs glow mb-1">{t('mint.instructions')}</div>
-          <div>{t('mint.inst1')}</div>
-          <div>{t('mint.inst2')}</div>
-          <div>{t('mint.inst3')}</div>
-          <div>{t('mint.inst4')}</div>
-          <div className="term-warn">{t('mint.inst5')}</div>
+        <div className="cw-state-grid">
+          <div className="cw-state-card">
+            <span className="cw-label">{pick('已铸造', 'Minted')}</span>
+            <strong>{totalMinted}</strong>
+          </div>
+          <div className="cw-state-card">
+            <span className="cw-label">{pick('当前选择', 'Selected')}</span>
+            <strong>{getRarityName(selectedRarity, isCN)}</strong>
+          </div>
+          <div className="cw-state-card">
+            <span className="cw-label">{pick('空投', 'Airdrop')}</span>
+            <strong>{selectedAirdrop} Clawworld</strong>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* ═══ RIGHT: Mint Action ═══ */}
-      <div className="pipboy-split-content flex flex-col">
-        {/* Mobile compact header */}
-        <div className="sm:hidden mb-2 text-xs flex items-center justify-between">
-          <span className="term-bright glow">{t('mint.genesis')}</span>
-          <span className="term-dim">{totalMinted}/{TOTAL_GENESIS}</span>
-        </div>
-        <div className="hidden sm:block term-bright text-sm glow mb-3">{t('mint.genesis')}</div>
+      {phase === 'select' ? (
+        <>
+          <section className="cw-card-stack">
+            {[0, 1, 2, 3, 4].map((rarity) => {
+              const minted = rarityMinted ? Number(rarityMinted[rarity]) : 0;
+              const cap = RARITY_CAPS[rarity];
+              const soldOut = minted >= cap;
+              const selected = selectedRarity === rarity;
 
-        {!isConnected ? (
-          <div className="term-dim text-sm py-8 text-center">
-            {t('mint.connectWallet')}
-          </div>
-        ) : mintingActive === false ? (
-          <div className="term-warn text-sm py-8 text-center">
-            {t('mint.notStarted')}
-          </div>
-        ) : (
-          <div className="space-y-3 flex-1">
-            {/* Phase: SELECT */}
-            {phase === 'select' && (
-              <>
-                <div className="text-xs term-dim">{t('mint.selectRarity')}</div>
-                <div className="space-y-1">
-                  {[0, 1, 2, 3, 4].map((r) => {
-                    const minted = rarityMinted ? Number(rarityMinted[r]) : 0;
-                    const soldOut = minted >= RARITY_CAPS[r];
-                    const isSelected = selectedRarity === r;
-                    return (
-                      <button
-                        key={r}
-                        onClick={() => !soldOut && setSelectedRarity(r)}
-                        disabled={soldOut}
-                        className={`block w-full text-left text-xs py-1 px-2 transition-colors ${
-                          soldOut
-                            ? 'term-darkest cursor-not-allowed line-through'
-                            : isSelected
-                            ? `${getRarityClass(r)} glow`
-                            : 'term-dim hover:text-crt-green'
-                        }`}
-                        style={isSelected ? { background: 'rgba(51,255,102,0.08)' } : undefined}
-                      >
-                        {isSelected ? '> ' : '  '}
-                        {getRarityName(r, isCN)}
-                        {' '}{RARITY_PRICES[r]} {nativeSymbol}
-                        {' '}· {t('mint.airdrop')} {RARITY_AIRDROPS[r]} Claworld
-                        {getRarityStars(r) ? ` ${getRarityStars(r)}` : ''}
-                        {soldOut ? ` ${t('mint.soldOut')}` : ''}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="term-line my-2" />
-
-                <div className="text-xs space-y-1">
-                  <div className="term-dim">
-                    {t('mint.selected')} <span className={getRarityClass(selectedRarity)}>{getRarityName(selectedRarity, isCN)}</span>
-                  </div>
-                  <div className="term-dim">
-                    {t('mint.cost')} <span className="term-bright">{RARITY_PRICES[selectedRarity]} {nativeSymbol}</span>
-                    {' '}· {t('mint.airdrop')}: <span className="term-bright">{RARITY_AIRDROPS[selectedRarity]} Claworld</span>
-                  </div>
-                </div>
-
+              return (
                 <button
-                  onClick={handleCommit}
-                  disabled={commitMint.isPending || commitMint.isConfirming}
-                  className="term-btn term-btn-primary text-sm w-full"
+                  key={rarity}
+                  type="button"
+                  className={`cw-card cw-card--button ${rarityTone(rarity)} ${selected ? 'cw-card--selected' : ''}`}
+                  onClick={() => !soldOut && setSelectedRarity(rarity)}
+                  disabled={soldOut}
                 >
-                  [{commitMint.isPending ? t('mint.signing') : commitMint.isConfirming ? t('mint.confirming') : `${t('mint.confirmMint')} — ${RARITY_PRICES[selectedRarity]} ${nativeSymbol}`}]
+                  <div className="cw-card-icon">
+                    <Sparkles size={18} />
+                  </div>
+                  <div className="cw-card-copy">
+                    <p className="cw-label">{getRarityName(rarity, isCN)}</p>
+                    <h3>{RARITY_PRICES[rarity]} BNB</h3>
+                  </div>
+                  <div className="cw-score">
+                    <strong>{RARITY_AIRDROPS[rarity]} Clawworld</strong>
+                    <span>{soldOut ? pick('已售罄', 'Sold out') : `${minted}/${cap}`}</span>
+                  </div>
                 </button>
+              );
+            })}
+          </section>
 
-                {commitMint.hash && (
-                  <a href={getBscScanTxUrl(commitMint.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
-                    [{t('mint.viewTx')}]
-                  </a>
-                )}
-                {commitMint.error && (
-                  <div className="term-danger text-xs">
-                    [!] {(commitMint.error as any)?.shortMessage || commitMint.error.message}
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Phase: WAITING */}
-            {phase === 'waiting' && (
-              <div className="text-center space-y-3 py-6">
-                <div className="term-warn text-sm">{t('mint.waiting')}</div>
-                <div className="term-bright text-2xl glow-strong">{formatTime(countdown)}</div>
-                <div className="term-dim text-xs">{t('mint.committed')}</div>
+          <section className="cw-panel cw-panel--cool">
+            <div className="cw-section-head">
+              <div>
+                <span className="cw-label">{pick('本次铸造', 'This mint')}</span>
+                <h3>{getRarityName(selectedRarity, isCN)} {getRarityStars(selectedRarity)}</h3>
               </div>
-            )}
+              <span className={`cw-chip ${rarityTone(selectedRarity) === 'cw-card--warning' ? 'cw-chip--alert' : 'cw-chip--cool'}`}>
+                <Gift size={14} />
+                {selectedAirdrop}
+              </span>
+            </div>
 
-            {/* Phase: READY */}
-            {phase === 'ready' && (
-              <div className="space-y-3">
-                <div className="text-sm term-bright glow">{t('mint.revealOpen')}</div>
-                <div className="term-dim text-xs">
-                  {t('mint.revealTime')} <span className="term-warn">{formatTime(countdown)}</span>
-                </div>
-                {!savedSalt && (
-                  <div className="term-danger text-xs">
-                    {t('mint.noSalt')}
-                  </div>
-                )}
-                <button
-                  onClick={handleReveal}
-                  disabled={revealMint.isPending || revealMint.isConfirming || !savedSalt}
-                  className="term-btn term-btn-primary text-sm w-full"
-                >
-                  [{revealMint.isPending ? t('mint.signing') : revealMint.isConfirming ? t('mint.confirming') : t('mint.revealBtn')}]
-                </button>
-                {revealMint.hash && (
-                  <a href={getBscScanTxUrl(revealMint.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
-                    [{t('mint.viewTx')}]
-                  </a>
-                )}
-                {revealMint.error && (
-                  <div className="term-danger text-xs">
-                    [!] {(revealMint.error as any)?.shortMessage || revealMint.error.message}
-                  </div>
-                )}
-                {debugError && (
-                  <div className="term-danger text-xs">[DEBUG] {debugError}</div>
-                )}
+            <div className="cw-state-grid">
+              <div className="cw-state-card">
+                <span className="cw-label">{pick('价格', 'Price')}</span>
+                <strong>{selectedPrice} BNB</strong>
               </div>
-            )}
-
-            {/* Phase: EXPIRED */}
-            {phase === 'expired' && (
-              <div className="space-y-3">
-                <div className="term-danger text-sm">{t('mint.expired')}</div>
-                <div className="term-dim text-xs">
-                  {t('mint.expiredDesc')} {nativeSymbol}。
-                </div>
-                <button
-                  onClick={handleRefund}
-                  disabled={refundHook.isPending || refundHook.isConfirming}
-                  className="term-btn term-btn-primary text-sm w-full"
-                >
-                  [{refundHook.isPending ? t('mint.signing') : refundHook.isConfirming ? t('mint.confirming') : t('mint.refund')}]
-                </button>
-                {refundHook.hash && (
-                  <a href={getBscScanTxUrl(refundHook.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
-                    [{t('mint.viewTx')}]
-                  </a>
-                )}
-                {refundHook.error && (
-                  <div className="term-danger text-xs">
-                    [!] {(refundHook.error as any)?.shortMessage || refundHook.error.message}
-                  </div>
-                )}
+              <div className="cw-state-card">
+                <span className="cw-label">{pick('空投', 'Airdrop')}</span>
+                <strong>{selectedAirdrop} Clawworld</strong>
               </div>
-            )}
+              <div className="cw-state-card">
+                <span className="cw-label">{pick('状态', 'Status')}</span>
+                <strong>{mintBlockedReason ? pick('被阻塞', 'Blocked') : pick('可铸造', 'Ready')}</strong>
+              </div>
+            </div>
 
-            {/* Phase: SUCCESS */}
-            {phase === 'success' && (
-              <div className="text-center space-y-3 py-6">
-                <div className="term-bright text-lg glow-strong">{t('mint.success')}</div>
-                <div className="term-dim text-sm">{t('mint.successDesc')}</div>
-                {revealMint.hash && (
-                  <a href={getBscScanTxUrl(revealMint.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
-                    [{t('mint.viewMintTx')}]
-                  </a>
-                )}
-                <div className="flex justify-center gap-3 pt-2">
-                  <Link href="/nfa" className="term-btn term-btn-primary text-sm">
-                    [{t('mint.viewCollection')}]
-                  </Link>
-                  <button onClick={handleReset} className="term-btn text-sm">
-                    [{t('mint.mintAnother')}]
-                  </button>
+            {mintBlockedReason ? (
+              <div className="cw-list">
+                <div className="cw-list-item cw-list-item--cool">
+                  <Shield size={16} />
+                  <span>{mintBlockedReason}</span>
                 </div>
               </div>
-            )}
+            ) : null}
+
+            <div className="cw-button-row">
+              <button
+                type="button"
+                className="cw-button cw-button--primary"
+                onClick={handleCommit}
+                disabled={Boolean(mintBlockedReason) || commitMint.isPending || commitMint.isConfirming}
+              >
+                <Sparkles size={16} />
+                {commitMint.isPending
+                  ? pick('等待签名', 'Waiting')
+                  : commitMint.isConfirming
+                    ? pick('链上确认中', 'Confirming')
+                    : pick(`支付 ${selectedPrice} BNB`, `Pay ${selectedPrice} BNB`)}
+              </button>
+            </div>
+          </section>
+        </>
+      ) : null}
+
+      {phase === 'waiting' ? (
+        <section className="cw-result-panel cw-result-panel--success">
+          <div className="cw-result-head">
+            <div className="cw-result-icon">
+              <TimerReset size={22} />
+            </div>
+            <div>
+              <span className="cw-label">{pick('等待揭示', 'Waiting')}</span>
+              <h3>{pick('倒计时结束后再揭示', 'Wait before reveal')}</h3>
+              <div className="cw-result-celebration">{formatCountdown(countdown, pick)}</div>
+            </div>
           </div>
-        )}
+        </section>
+      ) : null}
 
-        {/* Owner free mint */}
-        {isOwner && (
-          <>
-            <div className="term-line my-3" />
-            <div className="space-y-2">
-              <div className="term-warn text-xs glow">{t('mint.adminFree')}</div>
-              <div className="flex gap-2 items-center flex-wrap">
-                {[0, 1, 2, 3, 4].map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setOwnerRarity(r)}
-                    className={`text-xs ${ownerRarity === r ? `${getRarityClass(r)} glow` : 'term-dim hover:text-crt-green'}`}
-                  >
-                    [{ownerRarity === r ? '>' : ' '}{getRarityName(r, isCN)}]
-                  </button>
-                ))}
+      {phase === 'ready' ? (
+        <section className="cw-panel cw-panel--warm">
+          <div className="cw-section-head">
+            <div>
+              <span className="cw-label">{pick('揭示窗口', 'Reveal')}</span>
+              <h3>{pick('现在可以揭示', 'Reveal is open')}</h3>
+            </div>
+            <span className="cw-chip cw-chip--warm">
+              <TimerReset size={14} />
+              {formatCountdown(countdown, pick)}
+            </span>
+          </div>
+
+          {debugError ? (
+            <div className="cw-list">
+              <div className="cw-list-item cw-list-item--alert">
+                <Shield size={16} />
+                <span>{debugError}</span>
               </div>
+            </div>
+          ) : null}
+
+          <div className="cw-button-row">
+            <button
+              type="button"
+              className="cw-button cw-button--primary"
+              onClick={handleReveal}
+              disabled={revealMint.isPending || revealMint.isConfirming || !savedSalt}
+            >
+              <Sparkles size={16} />
+              {revealMint.isPending
+                ? pick('等待签名', 'Waiting')
+                : revealMint.isConfirming
+                  ? pick('链上确认中', 'Confirming')
+                  : pick('立即揭示', 'Reveal now')}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {phase === 'expired' ? (
+        <section className="cw-panel cw-panel--cool">
+          <div className="cw-section-head">
+            <div>
+              <span className="cw-label">{pick('窗口已过', 'Expired')}</span>
+              <h3>{pick('当前只能退款', 'Refund only')}</h3>
+            </div>
+            <span className="cw-chip cw-chip--alert">
+              <Shield size={14} />
+              {pick('已超时', 'Expired')}
+            </span>
+          </div>
+
+          <div className="cw-button-row">
+            <button
+              type="button"
+              className="cw-button cw-button--primary"
+              onClick={handleRefund}
+              disabled={refundHook.isPending || refundHook.isConfirming}
+            >
+              <TimerReset size={16} />
+              {refundHook.isPending
+                ? pick('等待签名', 'Waiting')
+                : refundHook.isConfirming
+                  ? pick('链上确认中', 'Confirming')
+                  : pick('发起退款', 'Refund')}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {phase === 'success' ? (
+        <section className="cw-result-panel cw-result-panel--success">
+          <div className="cw-result-head">
+            <div className="cw-result-icon">
+              <CheckCircle2 size={22} />
+            </div>
+            <div>
+              <span className="cw-label">{pick('铸造完成', 'Minted')}</span>
+              <h3>{pick('新的龙虾已经加入你的编组', 'New lobster minted')}</h3>
+              <div className="cw-result-celebration">+{selectedAirdrop} Clawworld</div>
+            </div>
+          </div>
+
+          <div className="cw-button-row">
+            <Link href="/" className="cw-button cw-button--secondary">
+              <Compass size={16} />
+              {pick('返回首页', 'Back home')}
+            </Link>
+            <button type="button" className="cw-button cw-button--ghost" onClick={handleReset}>
+              {pick('继续铸造', 'Mint again')}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {(commitMint.hash || revealMint.hash || refundHook.hash) ? (
+        <a
+          href={getBscScanTxUrl((revealMint.hash || refundHook.hash || commitMint.hash)!)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="cw-inline-link"
+        >
+          {pick('查看交易', 'View transaction')} <ArrowUpRight size={14} />
+        </a>
+      ) : null}
+
+      {commitMint.error ? <p className="cw-muted">{commitMint.error.message}</p> : null}
+      {revealMint.error ? <p className="cw-muted">{revealMint.error.message}</p> : null}
+      {refundHook.error ? <p className="cw-muted">{refundHook.error.message}</p> : null}
+
+      {isOwner ? (
+        <details className="cw-advanced">
+          <summary className="cw-advanced-summary">{pick('高级', 'Advanced')}</summary>
+          <div className="cw-panel cw-panel--cool">
+            <div className="cw-section-head">
+              <div>
+                <span className="cw-label">{pick('管理员铸造', 'Owner mint')}</span>
+                <h3>{pick('免费发放', 'Free mint')}</h3>
+              </div>
+            </div>
+
+            <div className="cw-card-stack">
+              {[0, 1, 2, 3, 4].map((rarity) => (
+                <button
+                  key={rarity}
+                  type="button"
+                  className={`cw-card cw-card--button ${rarityTone(rarity)} ${ownerRarity === rarity ? 'cw-card--selected' : ''}`}
+                  onClick={() => setOwnerRarity(rarity)}
+                >
+                  <div className="cw-card-copy">
+                    <p className="cw-label">{pick('稀有度', 'Rarity')}</p>
+                    <h3>{getRarityName(rarity, isCN)}</h3>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <label className="cw-field">
+              <span className="cw-label">{pick('接收地址', 'Recipient')}</span>
               <input
                 type="text"
-                placeholder={t('mint.recipientPlaceholder')}
                 value={ownerRecipient}
-                onChange={(e) => setOwnerRecipient(e.target.value)}
-                className="w-full bg-transparent border border-crt-green/30 text-crt-green text-xs px-2 py-1 placeholder:text-crt-green/20 focus:outline-none focus:border-crt-green/60"
+                onChange={(event) => setOwnerRecipient(event.target.value)}
+                className="cw-input"
+                placeholder={pick('留空则发给当前钱包', 'Leave blank to mint to current wallet')}
               />
+            </label>
+
+            <div className="cw-button-row">
               <button
-                onClick={async () => {
-                  setOwnerSimError(null);
-                  ownerMintHook.reset();
-                  const rawRecipient = ownerRecipient.trim();
-                  if (rawRecipient && !isAddress(rawRecipient)) {
-                    setOwnerSimError(t('mint.invalidAddr'));
-                    return;
-                  }
-                  const recipient = (rawRecipient || address) as Address;
-                  try {
-                    await simulateContract(config, {
-                      ...vaultContract,
-                      functionName: 'ownerMint',
-                      args: [ownerRarity, recipient],
-                      account: address,
-                    });
-                  } catch (err: any) {
-                    console.error('[ownerMint simulate]', err);
-                    console.error('[ownerMint] account:', address, 'recipient:', recipient, 'rarity:', ownerRarity);
-                    const raw = err?.shortMessage || err?.message || String(err);
-                    setOwnerSimError(raw);
-                    return;
-                  }
-                  ownerMintHook.ownerMint(ownerRarity, recipient);
-                }}
+                type="button"
+                className="cw-button cw-button--primary"
+                onClick={() => void handleOwnerMint()}
                 disabled={ownerMintHook.isPending || ownerMintHook.isConfirming}
-                className="term-btn term-btn-primary text-xs w-full"
               >
-                [{ownerMintHook.isPending ? t('mint.signing') : ownerMintHook.isConfirming ? t('mint.confirming') : `${t('mint.freeMint')} ${getRarityName(ownerRarity, isCN)}`}]
+                <Sparkles size={16} />
+                {ownerMintHook.isPending
+                  ? pick('等待签名', 'Waiting')
+                  : ownerMintHook.isConfirming
+                    ? pick('链上确认中', 'Confirming')
+                    : pick('发放', 'Mint')}
               </button>
-              {ownerMintHook.hash && (
-                <a href={getBscScanTxUrl(ownerMintHook.hash)} target="_blank" rel="noopener noreferrer" className="term-link text-xs">
-                  [{t('mint.viewTx')}]
-                </a>
-              )}
-              {ownerMintHook.isSuccess && (
-                <>
-                  <div className="term-bright text-xs glow">{t('mint.success')}</div>
-                  <button onClick={() => ownerMintHook.reset()} className="term-btn text-xs">
-                    [{t('mint.continueBtn')}]
-                  </button>
-                </>
-              )}
-              {ownerMintHook.error && (
-                <div className="term-danger text-xs">
-                  [!] {(ownerMintHook.error as any)?.shortMessage || ownerMintHook.error.message}
-                </div>
-              )}
-              {ownerSimError && (
-                <div className="term-danger text-xs">
-                  [{t('mint.simFail')}] {ownerSimError}
-                </div>
-              )}
             </div>
-          </>
-        )}
-      </div>
+
+            {ownerSimError ? <p className="cw-muted">{ownerSimError}</p> : null}
+            {ownerMintHook.error ? <p className="cw-muted">{ownerMintHook.error.message}</p> : null}
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }

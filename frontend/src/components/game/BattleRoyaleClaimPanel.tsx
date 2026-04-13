@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { ArrowUpRight, Shield, TimerReset, Trophy } from 'lucide-react';
-import { useState } from 'react';
-import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useMemo, useState } from 'react';
+import { useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 
 import { BattleRoyaleABI } from '@/contracts/abis/BattleRoyale';
+import { ERC20ABI } from '@/contracts/abis/ERC20';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { formatCLW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -17,6 +18,27 @@ type ClaimPanelProps = {
   hasConflict: boolean;
 };
 
+function getClaimSubmitError(
+  error: unknown,
+  pick: <T,>(zh: T, en: T) => T,
+  contractBalance?: bigint,
+  claimable?: bigint,
+) {
+  if (!(error instanceof Error)) return pick('领取提交失败。', 'Claim submit failed.');
+  if (error.message.includes('User rejected') || error.message.includes('OKX Wallet Reject')) {
+    return pick('钱包取消了这次领取签名。', 'Wallet signature was cancelled.');
+  }
+  if (error.message.includes('transfer amount exceeds balance')) {
+    return pick(
+      `奖池合约余额不够。合约仅有 ${formatCLW(contractBalance ?? 0n)}，当前待领 ${formatCLW(claimable ?? 0n)}。`,
+      `Prize contract balance is too low. Contract ${formatCLW(contractBalance ?? 0n)}, claim ${formatCLW(claimable ?? 0n)}.`,
+    );
+  }
+  if (error.message.includes('Match not settled')) return pick('这局还没结算完。', 'This match is not settled yet.');
+  if (error.message.includes('Already claimed')) return pick('这笔奖励已经领过了。', 'This reward was already claimed.');
+  return error.message;
+}
+
 export function BattleRoyaleClaimPanel({
   matchId,
   claimable,
@@ -27,11 +49,41 @@ export function BattleRoyaleClaimPanel({
   const [awaitingWallet, setAwaitingWallet] = useState(false);
   const { data: hash, error, writeContractAsync } = useWriteContract();
   const receiptQuery = useWaitForTransactionReceipt({ hash });
+  const contractBalanceQuery = useReadContract({
+    address: addresses.clwToken,
+    abi: ERC20ABI,
+    functionName: 'balanceOf',
+    args: [addresses.battleRoyale],
+    query: {
+      enabled: Boolean(addresses.clwToken && addresses.battleRoyale),
+      refetchInterval: 5000,
+    },
+  });
+
+  const contractBalance = BigInt(contractBalanceQuery.data?.toString() ?? '0');
+  const contractFundingReady = claimable === 0n || contractBalance >= claimable;
 
   const canOwnerClaim =
-    matchId !== undefined && claimable > 0n && claimPath === 'owner' && !hasConflict;
+    matchId !== undefined &&
+    claimable > 0n &&
+    claimPath === 'owner' &&
+    !hasConflict &&
+    contractFundingReady;
   const needsAutonomyRequest =
     matchId !== undefined && claimable > 0n && claimPath === 'autonomy' && !hasConflict;
+
+  const blocker = useMemo(() => {
+    if (hasConflict) return pick('领取路径冲突，先不要直接领取。', 'Claim path conflict.');
+    if (claimPath === 'owner' && claimable > 0n && !contractFundingReady) {
+      return pick(
+        `当前是手动领取路径，但大逃杀合约余额不足。合约仅有 ${formatCLW(contractBalance)}，待领 ${formatCLW(claimable)}。`,
+        `Owner claim path is selected, but the Battle Royale contract only has ${formatCLW(contractBalance)} for a ${formatCLW(claimable)} claim.`,
+      );
+    }
+    if (needsAutonomyRequest) return pick('这笔奖励要去代理页发领取请求。', 'This reward must be claimed from Auto.');
+    if (claimable === 0n) return pick('当前没有可领取奖励。', 'No settled reward is ready.');
+    return null;
+  }, [claimPath, claimable, contractBalance, contractFundingReady, hasConflict, needsAutonomyRequest, pick]);
 
   async function handleClaim() {
     if (!canOwnerClaim || matchId === undefined) return;
@@ -44,62 +96,70 @@ export function BattleRoyaleClaimPanel({
         args: [matchId],
       });
     } catch {
-      // wagmi error renders below
+      // error rendered below
     } finally {
       setAwaitingWallet(false);
     }
   }
 
-  const headline = hasConflict
-    ? pick('结算奖励路径冲突，需要人工确认', 'Settled reward needs manual path review')
-    : canOwnerClaim
-      ? pick(`领取第 #${matchId?.toString()} 场的 ${formatCLW(claimable)}`, `Claim ${formatCLW(claimable)} from match #${matchId?.toString()}`)
-      : needsAutonomyRequest
-        ? pick(`把 ${formatCLW(claimable)} 交给自治路径领取`, `Queue autonomy claim for ${formatCLW(claimable)}`)
-        : pick('当前没有可领取的结算奖励', 'No settled Battle Royale reward is ready');
-
-  const detail = hasConflict
-    ? pick('owner 和 autonomy 两条 claim 路径同时出现有效状态，先不要继续发 claim。', 'Both owner and autonomy participant paths show settled state. Block claim CTAs until the path is clear.')
-    : canOwnerClaim
-      ? pick('这笔奖励走 owner-wallet 路径，当前钱包可直接领取。', 'This reward sits on the owner-wallet path, so the connected wallet can claim it directly from Arena.')
-      : needsAutonomyRequest
-        ? pick('这笔奖励走 autonomy participant 路径，应该去自治页发 request。', 'This reward sits on the autonomy participant path. Send it to the operator/request surface instead of signing a direct owner claim.')
-        : pick('现在还只有实时对局状态，等 recent-match 扫描到 settled 奖励后会显示在这里。', 'Arena is still showing live match state only. A settled reward will surface here once the recent-match scan finds one.');
-
   return (
-    <section className={`cw-panel ${canOwnerClaim ? 'cw-panel--warm' : needsAutonomyRequest ? 'cw-panel--cool' : 'cw-panel--presence'}`}>
+    <section className={`cw-panel ${canOwnerClaim ? 'cw-panel--warm' : 'cw-panel--cool'}`}>
       <div className="cw-section-head">
         <div>
-          <span className="cw-label">{pick('结算领取', 'Settled claim')}</span>
-          <h3>{headline}</h3>
-          <p className="cw-muted">{detail}</p>
+          <span className="cw-label">{pick('奖励领取', 'Claim')}</span>
+          <h3>
+            {claimable > 0n
+              ? pick(`可领 ${formatCLW(claimable)}`, `Claim ${formatCLW(claimable)}`)
+              : pick('暂无奖励', 'No reward')}
+          </h3>
         </div>
-        <span className={`cw-chip ${canOwnerClaim ? 'cw-chip--warm' : needsAutonomyRequest ? 'cw-chip--cool' : 'cw-chip--alert'}`}>
+        <span className={`cw-chip ${canOwnerClaim ? 'cw-chip--warm' : claimable > 0n ? 'cw-chip--alert' : 'cw-chip--cool'}`}>
           <Trophy size={14} />
           {matchId !== undefined ? `#${matchId.toString()}` : 'idle'}
         </span>
       </div>
 
-      <div className="cw-presence-grid">
-        <div className="cw-presence-card">
-          <span>{pick('奖励', 'Reward')}</span>
+      <div className="cw-state-grid">
+        <div className="cw-state-card">
+          <span className="cw-label">{pick('奖励', 'Reward')}</span>
           <strong>{claimable > 0n ? formatCLW(claimable) : '--'}</strong>
         </div>
-        <div className="cw-presence-card">
-          <span>{pick('路径', 'Claim path')}</span>
-          <strong>{claimPath === 'owner' ? pick('Owner 钱包', 'Owner wallet') : claimPath === 'autonomy' ? pick('自治 participant', 'Autonomy') : pick('未找到', 'Not found')}</strong>
+        <div className="cw-state-card">
+          <span className="cw-label">{pick('路径', 'Path')}</span>
+          <strong>
+            {claimPath === 'owner'
+              ? pick('手动领取', 'Owner claim')
+              : claimPath === 'autonomy'
+                ? pick('代理领取', 'Autonomy claim')
+                : '--'}
+          </strong>
         </div>
-        <div className="cw-presence-card">
-          <span>{pick('状态', 'Status')}</span>
-          <strong>{hasConflict ? pick('冲突', 'Conflict') : claimable > 0n ? pick('可领取', 'Ready') : pick('等待中', 'Waiting')}</strong>
+        <div className="cw-state-card">
+          <span className="cw-label">{pick('状态', 'Status')}</span>
+          <strong>
+            {canOwnerClaim
+              ? pick('可领取', 'Ready')
+              : claimable > 0n
+                ? pick('被阻塞', 'Blocked')
+                : pick('等待中', 'Waiting')}
+          </strong>
         </div>
       </div>
+
+      {blocker ? (
+        <div className="cw-list">
+          <div className={`cw-list-item ${hasConflict || !contractFundingReady ? 'cw-list-item--alert' : 'cw-list-item--cool'}`}>
+            <Shield size={16} />
+            <span>{blocker}</span>
+          </div>
+        </div>
+      ) : null}
 
       {awaitingWallet ? (
         <div className="cw-list">
           <div className="cw-list-item cw-list-item--warm">
             <Shield size={16} />
-            <span>{pick('正在等待钱包签名，请到钱包里确认领取交易。', 'Waiting for wallet signature. Open the wallet and confirm the claim transaction.')}</span>
+            <span>{pick('请到钱包里确认领取。', 'Confirm the claim in wallet.')}</span>
           </div>
         </div>
       ) : null}
@@ -114,7 +174,7 @@ export function BattleRoyaleClaimPanel({
           >
             <Trophy size={16} />
             {awaitingWallet
-              ? pick('等待签名', 'Waiting for signature')
+              ? pick('等待签名', 'Waiting')
               : receiptQuery.isLoading
                 ? pick('链上确认中', 'Confirming')
                 : pick(`领取 ${formatCLW(claimable)}`, `Claim ${formatCLW(claimable)}`)}
@@ -122,23 +182,28 @@ export function BattleRoyaleClaimPanel({
         ) : needsAutonomyRequest ? (
           <Link href="/auto" className="cw-button cw-button--secondary">
             <TimerReset size={16} />
-            {pick('打开自治请求', 'Open autonomy request')}
+            {pick('去代理页领取', 'Go to Auto')}
           </Link>
         ) : (
-          <Link href="/auto" className="cw-button cw-button--ghost">
+          <button type="button" className="cw-button cw-button--ghost" disabled>
             <Shield size={16} />
-            {pick('查看自治页', 'Review autonomy')}
-          </Link>
+            {pick('暂不可领', 'Blocked')}
+          </button>
         )}
       </div>
 
       {hash ? (
         <a href={getBscScanTxUrl(hash)} target="_blank" rel="noopener noreferrer" className="cw-inline-link">
-          {pick('查看领取交易', 'View claim transaction')} <ArrowUpRight size={14} />
+          {pick('查看交易', 'View transaction')} <ArrowUpRight size={14} />
         </a>
       ) : null}
-      {receiptQuery.isSuccess ? <p className="cw-result-celebration">{pick('奖励已成功领取。', 'Reward claim confirmed.')}</p> : null}
-      {error ? <p className="cw-muted">{pick(`领取提交失败：${error.message}`, `Claim failed to submit: ${error.message}`)}</p> : null}
+
+      {receiptQuery.isSuccess ? (
+        <p className="cw-result-celebration">{pick('奖励领取成功。', 'Reward claimed.')}</p>
+      ) : null}
+      {error ? (
+        <p className="cw-muted">{getClaimSubmitError(error, pick, contractBalance, claimable)}</p>
+      ) : null}
     </section>
   );
 }

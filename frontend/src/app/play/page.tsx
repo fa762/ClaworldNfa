@@ -108,7 +108,7 @@ function getTaskMatchValue(
 
 function getErrorMessage(error: unknown, pick: <T,>(zh: T, en: T) => T) {
   if (!(error instanceof Error)) return pick('任务提交失败', 'Task transaction failed.');
-  if (error.message.includes('previewTypedTaskOutcome') || error.message.includes(' reverted')) {
+  if (error.message.includes('previewTypedTaskOutcome')) {
     return pick('链上预览失败，请重试或换一个任务。', 'Preview reverted. Retry or choose another task.');
   }
   if (error.message.includes('Cooldown active')) return pick('任务还在冷却', 'Task cooldown is still active.');
@@ -118,6 +118,14 @@ function getErrorMessage(error: unknown, pick: <T,>(zh: T, en: T) => T) {
   if (error.message.includes('Monthly cap exceeded')) return pick('本月性格漂移已到上限', 'Monthly personality drift cap reached.');
   if (error.message.includes('User rejected')) return pick('钱包拒绝签名', 'Wallet signature was rejected.');
   return error.message;
+}
+
+function normalizeTaskErrorMessage(error: unknown, pick: <T,>(zh: T, en: T) => T) {
+  const raw = getErrorMessage(error, pick);
+  if (raw.includes('previewTypedTaskOutcome')) return pick('链上预览不可用，已改用本地估算。', 'On-chain preview is unavailable. Using local estimate.');
+  if (raw.includes('OKX Wallet Reject') || raw.includes('User rejected')) return pick('钱包取消了这次签名。', 'Wallet signature was cancelled.');
+  if (raw.includes('execution reverted: 0x')) return pick('当前主网手动挖矿链路不可用，需要先修 TaskSkill 主网实现。', 'Manual mining is unavailable on mainnet.');
+  return raw;
 }
 
 function formatRemaining(seconds: number, pick: <T,>(zh: T, en: T) => T) {
@@ -206,6 +214,7 @@ export default function PlayPage() {
   const companion = useActiveCompanion();
   const { address } = useAccount();
   const publicClient = usePublicClient();
+  const chainPreviewEnabled = false;
   const { data: hash, error, isPending, writeContractAsync } = useWriteContract();
   const receiptQuery = useWaitForTransactionReceipt({ hash });
 
@@ -278,7 +287,7 @@ export default function PlayPage() {
       companion.hasToken && selectedTask
         ? [companion.tokenId, selectedTask.taskType, selectedTask.xpReward, selectedTask.requestedClw]
         : undefined,
-    query: { enabled: companion.hasToken && sheetOpen && Boolean(selectedTask) },
+    query: { enabled: chainPreviewEnabled && companion.hasToken && sheetOpen && Boolean(selectedTask) },
   });
 
   const lastTaskTimeQuery = useReadContract({
@@ -366,19 +375,18 @@ export default function PlayPage() {
       sameTypeStreakQuery.isLoading ||
       rewardMultiplierQuery.isLoading);
   const previewReadError =
-    previewQuery.error ??
     lastTaskTimeQuery.error ??
     lastTaskTypeQuery.error ??
     sameTypeStreakQuery.error ??
     rewardMultiplierQuery.error;
   const previewFallbackNote =
-    !chainPreview && localPreview && previewQuery.error
+    !chainPreviewEnabled && localPreview
       ? pick('链上预览不可用，已切换本地估算。', 'On-chain preview is unavailable. Using a local estimate.')
       : null;
-  const previewNeedsRetry = Boolean(previewReadError || gasEstimateError);
+  const previewNeedsRetry = !preview && Boolean(previewReadError);
   const previewRefreshing =
     refreshingPreview ||
-    previewQuery.isRefetching ||
+    (chainPreviewEnabled && previewQuery.isRefetching) ||
     lastTaskTimeQuery.isRefetching ||
     lastTaskTypeQuery.isRefetching ||
     sameTypeStreakQuery.isRefetching;
@@ -429,7 +437,7 @@ export default function PlayPage() {
         if (!cancelled) {
           setGasUnits(null);
           setGasCostWei(null);
-          setGasEstimateError(getErrorMessage(estimateFailure, pick));
+          setGasEstimateError(normalizeTaskErrorMessage(estimateFailure, pick));
         }
       }
     }
@@ -494,7 +502,8 @@ export default function PlayPage() {
     Boolean(selectedTask) &&
     Boolean(preview) &&
     effectiveCooldownReady &&
-    Boolean(address);
+    Boolean(address) &&
+    !gasEstimateError;
 
   const taskPulse = error
     ? {
@@ -502,7 +511,7 @@ export default function PlayPage() {
         chip: pick('失败', 'Failed'),
         chipTone: 'cw-chip--alert',
         title: pick('任务提交失败', 'Task request failed'),
-        detail: getErrorMessage(error, pick),
+        detail: normalizeTaskErrorMessage(error, pick),
       }
     : awaitingWallet || isPending
       ? {
@@ -655,7 +664,7 @@ export default function PlayPage() {
                     <div className="cw-list">
                       <div className="cw-list-item cw-list-item--alert">
                         <Shield size={16} />
-                        <span>{pick(`预览失败：${getErrorMessage(previewReadError, pick)}`, `Preview failed: ${getErrorMessage(previewReadError, pick)}`)}</span>
+                        <span>{pick(`预览失败：${normalizeTaskErrorMessage(previewReadError, pick)}`, `Preview failed: ${normalizeTaskErrorMessage(previewReadError, pick)}`)}</span>
                       </div>
                     </div>
 
@@ -749,16 +758,16 @@ export default function PlayPage() {
                           <span>{pick(`Gas 估算失败：${gasEstimateError}`, `Gas estimate failed: ${gasEstimateError}`)}</span>
                         </div>
                       ) : null}
-                      {previewQuery.error && !previewFallbackNote ? (
+                      {chainPreviewEnabled && previewQuery.error && !previewFallbackNote ? (
                         <div className="cw-list-item cw-list-item--cool">
                           <Shield size={16} />
-                          <span>{pick(`预览失败：${getErrorMessage(previewQuery.error, pick)}`, `Preview failed: ${getErrorMessage(previewQuery.error, pick)}`)}</span>
+                          <span>{pick(`预览失败：${normalizeTaskErrorMessage(previewQuery.error, pick)}`, `Preview failed: ${normalizeTaskErrorMessage(previewQuery.error, pick)}`)}</span>
                         </div>
                       ) : null}
                       {lastTaskTimeQuery.error ? (
                         <div className="cw-list-item cw-list-item--cool">
                           <Shield size={16} />
-                          <span>{pick(`冷却读取失败：${getErrorMessage(lastTaskTimeQuery.error, pick)}`, `Cooldown read failed: ${getErrorMessage(lastTaskTimeQuery.error, pick)}`)}</span>
+                          <span>{pick(`冷却读取失败：${normalizeTaskErrorMessage(lastTaskTimeQuery.error, pick)}`, `Cooldown read failed: ${normalizeTaskErrorMessage(lastTaskTimeQuery.error, pick)}`)}</span>
                         </div>
                       ) : null}
                       {(awaitingWallet || isPending) && sheetMode === 'confirm' ? (
@@ -792,7 +801,7 @@ export default function PlayPage() {
                           <button
                             type="button"
                             className="cw-button cw-button--primary"
-                            disabled={!selectedTask || !preview}
+                            disabled={!selectedTask || !preview || Boolean(gasEstimateError)}
                             onClick={() => setSheetMode('confirm')}
                           >
                             <CheckCircle2 size={16} />

@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { ExternalLink, Shield, Swords, TimerReset } from 'lucide-react';
-import { useState } from 'react';
-import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useMemo, useState } from 'react';
+import { useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 
+import { useBattleRoyaleParticipantState } from '@/components/lobster/useBattleRoyaleParticipantState';
 import { BattleRoyaleABI } from '@/contracts/abis/BattleRoyale';
+import { ERC20ABI } from '@/contracts/abis/ERC20';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { formatCLW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { useBattleRoyaleParticipantState } from '@/components/lobster/useBattleRoyaleParticipantState';
 
 type BattleRoyaleActionPanelProps = {
   matchId: bigint | undefined;
@@ -23,9 +24,20 @@ type BattleRoyaleActionPanelProps = {
 
 function matchStatusText(status: number, pick: <T,>(zh: T, en: T) => T) {
   if (status === 0) return pick('开放中', 'Open');
-  if (status === 1) return pick('待 reveal', 'Pending reveal');
+  if (status === 1) return pick('待揭示', 'Pending reveal');
   if (status === 2) return pick('已结算', 'Settled');
   return pick('未知', 'Unknown');
+}
+
+function getClaimSubmitError(error: unknown, pick: <T,>(zh: T, en: T) => T) {
+  if (!(error instanceof Error)) return pick('领取提交失败。', 'Claim submit failed.');
+  if (error.message.includes('User rejected') || error.message.includes('OKX Wallet Reject')) {
+    return pick('钱包取消了这次领取签名。', 'Wallet signature was cancelled.');
+  }
+  if (error.message.includes('transfer amount exceeds balance')) {
+    return pick('奖池合约余额不足，手动领取会失败。', 'Prize contract balance is too low for a direct claim.');
+  }
+  return error.message;
 }
 
 export function BattleRoyaleActionPanel({
@@ -38,20 +50,56 @@ export function BattleRoyaleActionPanel({
   compact = false,
 }: BattleRoyaleActionPanelProps) {
   const { pick } = useI18n();
+  const [awaitingWallet, setAwaitingWallet] = useState(false);
+  const { data: hash, error, writeContractAsync } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const contractBalanceQuery = useReadContract({
+    address: addresses.clwToken,
+    abi: ERC20ABI,
+    functionName: 'balanceOf',
+    args: [addresses.battleRoyale],
+    query: {
+      enabled: Boolean(addresses.clwToken && addresses.battleRoyale),
+      refetchInterval: 5000,
+    },
+  });
+
+  const contractBalance = BigInt(contractBalanceQuery.data?.toString() ?? '0');
+  const contractFundingReady = participant.claimable === 0n || contractBalance >= participant.claimable;
   const canOwnerClaim =
     matchId !== undefined &&
     participant.claimable > 0n &&
     participant.preferredPath?.key === 'owner' &&
-    !participant.hasConflict;
-
+    !participant.hasConflict &&
+    contractFundingReady;
   const needsAutonomyClaim =
     participant.claimable > 0n &&
     participant.preferredPath?.key === 'autonomy' &&
     !participant.hasConflict;
 
-  const [awaitingWallet, setAwaitingWallet] = useState(false);
-  const { data: hash, error, writeContractAsync } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const blocker = useMemo(() => {
+    if (participant.hasConflict) return pick('参赛路径冲突，先别直接领取。', 'Participant path conflict.');
+    if (participant.preferredPath?.key === 'owner' && participant.claimable > 0n && !contractFundingReady) {
+      return pick(
+        `当前是手动领取路径，但大逃杀合约只有 ${formatCLW(contractBalance)}，待领 ${formatCLW(participant.claimable)}。`,
+        `Owner path selected, but the contract holds ${formatCLW(contractBalance)} for a ${formatCLW(participant.claimable)} claim.`,
+      );
+    }
+    if (needsAutonomyClaim) return pick('这笔奖励需要去代理页领取。', 'This reward must be claimed from Auto.');
+    if (participant.entered) return null;
+    if (matchId !== undefined) return pick(`当前第 #${matchId.toString()} 场可查看。`, `Match #${matchId.toString()} is available.`);
+    return pick('暂时没有可读的大逃杀对局。', 'No readable Battle Royale match.');
+  }, [
+    contractBalance,
+    contractFundingReady,
+    matchId,
+    needsAutonomyClaim,
+    participant.claimable,
+    participant.entered,
+    participant.hasConflict,
+    participant.preferredPath?.key,
+    pick,
+  ]);
 
   async function handleOwnerClaim() {
     if (!canOwnerClaim || matchId === undefined) return;
@@ -64,65 +112,81 @@ export function BattleRoyaleActionPanel({
         args: [matchId],
       });
     } catch {
-      // handled by wagmi error state
+      // rendered below
     } finally {
       setAwaitingWallet(false);
     }
   }
 
-  const headline = participant.hasConflict
-    ? pick('参赛路径冲突，需要先人工确认', 'Participant conflict needs review')
-    : canOwnerClaim
-      ? pick(`现在可领 ${formatCLW(participant.claimable)}`, `Claim ${formatCLW(participant.claimable)} now`)
-      : needsAutonomyClaim
-        ? pick(`自治路径可领 ${formatCLW(participant.claimable)}`, `Autonomy claim ready for ${formatCLW(participant.claimable)}`)
-        : participant.entered
-          ? pick(`已在房间 ${participant.preferredPath?.roomId ?? 0}`, `Tracked in room ${participant.preferredPath?.roomId ?? 0}`)
-          : matchId !== undefined
-            ? pick(`第 #${matchId.toString()} 场 ${matchStatusText(status, pick)}`, `Match #${matchId.toString()} ${matchStatusText(status, pick)}`)
-            : pick('暂时没有可读的对局', 'No readable match');
-
-  const detail = participant.hasConflict
-    ? pick('owner 和 autonomy 两条 participant 路径都像是有效状态，先不要展示盲领按钮。', 'Both owner and autonomy participant paths look populated. Do not show a blind claim CTA here.')
-    : canOwnerClaim
-      ? pick('这笔奖励属于 owner-wallet 路径，当前钱包可以直接领取。', 'This reward is on the owner-wallet path, so the connected wallet can claim directly.')
-      : needsAutonomyClaim
-        ? pick('这笔奖励在 autonomy participant 路径上，去自治页面发 request，不要直接 owner claim。', 'This reward sits on the autonomy participant path. Resolve it from the autonomy surface instead of sending a direct owner claim.')
-        : participant.entered
-          ? pick(`当前通过 ${participant.claimPathLabel} 参赛。奖池 ${formatCLW(pot)}，人数 ${totalPlayers}/${triggerCount}。`, `Participation is tracked via ${participant.claimPathLabel}. Pot ${formatCLW(pot)} with ${totalPlayers}/${triggerCount} players.`)
-          : matchId !== undefined
-            ? pick(`奖池 ${formatCLW(pot)}，人数 ${totalPlayers}/${triggerCount}。`, `Pot ${formatCLW(pot)} with ${totalPlayers}/${triggerCount} players.`)
-            : pick('Battle Royale 状态还没读到。', 'Battle Royale state is not readable yet.');
-
   return (
     <section className={`cw-panel ${canOwnerClaim ? 'cw-panel--warm' : 'cw-panel--cool'}`}>
       <div className="cw-section-head">
         <div>
-          <span className="cw-label">{pick('Battle Royale 行动', 'Battle Royale action')}</span>
-          <h3>{headline}</h3>
-          <p className="cw-muted">{detail}</p>
+          <span className="cw-label">{pick('大逃杀', 'Battle Royale')}</span>
+          <h3>
+            {participant.claimable > 0n
+              ? pick(`可领 ${formatCLW(participant.claimable)}`, `Claim ${formatCLW(participant.claimable)}`)
+              : matchId !== undefined
+                ? pick(`第 #${matchId.toString()} 场 ${matchStatusText(status, pick)}`, `Match #${matchId.toString()} ${matchStatusText(status, pick)}`)
+                : pick('暂无对局', 'No match')}
+          </h3>
         </div>
-        <span className={`cw-chip ${canOwnerClaim ? 'cw-chip--warm' : needsAutonomyClaim ? 'cw-chip--cool' : 'cw-chip--growth'}`}>
+        <span className={`cw-chip ${canOwnerClaim ? 'cw-chip--warm' : participant.entered ? 'cw-chip--growth' : 'cw-chip--cool'}`}>
           <Shield size={14} />
           {matchId !== undefined ? `#${matchId.toString()}` : 'idle'}
         </span>
       </div>
 
+      <div className="cw-state-grid">
+        <div className="cw-state-card">
+          <span className="cw-label">{pick('奖池', 'Pot')}</span>
+          <strong>{formatCLW(pot)}</strong>
+        </div>
+        <div className="cw-state-card">
+          <span className="cw-label">{pick('人数', 'Players')}</span>
+          <strong>{triggerCount > 0 ? `${totalPlayers}/${triggerCount}` : '--'}</strong>
+        </div>
+        <div className="cw-state-card">
+          <span className="cw-label">{pick('状态', 'Status')}</span>
+          <strong>
+            {canOwnerClaim
+              ? pick('可领取', 'Ready')
+              : participant.entered
+                ? pick('已参赛', 'Entered')
+                : matchStatusText(status, pick)}
+          </strong>
+        </div>
+      </div>
+
+      {blocker ? (
+        <div className="cw-list">
+          <div className={`cw-list-item ${participant.hasConflict || !contractFundingReady ? 'cw-list-item--alert' : 'cw-list-item--cool'}`}>
+            <Shield size={16} />
+            <span>{blocker}</span>
+          </div>
+        </div>
+      ) : null}
+
       {awaitingWallet ? (
         <div className="cw-list">
           <div className="cw-list-item cw-list-item--warm">
             <Shield size={16} />
-            <span>{pick('正在等待钱包签名，请到钱包里确认领取交易。', 'Waiting for wallet signature. Open the wallet and confirm the claim transaction.')}</span>
+            <span>{pick('请到钱包里确认领取。', 'Confirm the claim in wallet.')}</span>
           </div>
         </div>
       ) : null}
 
       <div className="cw-button-row">
         {canOwnerClaim ? (
-          <button type="button" className="cw-button cw-button--primary" onClick={handleOwnerClaim} disabled={awaitingWallet || isConfirming}>
+          <button
+            type="button"
+            className="cw-button cw-button--primary"
+            onClick={handleOwnerClaim}
+            disabled={awaitingWallet || isConfirming}
+          >
             <Swords size={16} />
             {awaitingWallet
-              ? pick('等待签名', 'Waiting for signature')
+              ? pick('等待签名', 'Waiting')
               : isConfirming
                 ? pick('链上确认中', 'Confirming')
                 : pick(`领取 ${formatCLW(participant.claimable)}`, `Claim ${formatCLW(participant.claimable)}`)}
@@ -130,12 +194,12 @@ export function BattleRoyaleActionPanel({
         ) : needsAutonomyClaim ? (
           <Link href="/auto" className="cw-button cw-button--secondary">
             <TimerReset size={16} />
-            {pick('去自治页处理', 'Resolve via autonomy')}
+            {pick('去代理页处理', 'Go to Auto')}
           </Link>
         ) : (
           <Link href="/arena" className="cw-button cw-button--secondary">
             <Swords size={16} />
-            {participant.entered ? pick('打开竞技状态', 'Open arena state') : pick('查看竞技入口', 'Review arena')}
+            {participant.entered ? pick('查看赛况', 'View arena') : pick('查看对局', 'View arena')}
           </Link>
         )}
 
@@ -151,8 +215,8 @@ export function BattleRoyaleActionPanel({
         </a>
       ) : null}
 
-      {isSuccess ? <p className="cw-result-celebration">{pick('领取已确认，结算摘要马上刷新。', 'Claim confirmed. The settled summary will refresh shortly.')}</p> : null}
-      {error ? <p className="cw-muted">{pick(`领取提交失败：${error.message}`, `Claim failed to submit: ${error.message}`)}</p> : null}
+      {isSuccess ? <p className="cw-result-celebration">{pick('领取已确认。', 'Claim confirmed.')}</p> : null}
+      {error ? <p className="cw-muted">{getClaimSubmitError(error, pick)}</p> : null}
     </section>
   );
 }

@@ -1,9 +1,99 @@
 # Current Handoff
 
-Last updated: 2026-04-13 (session 19) Asia/Singapore
+Last updated: 2026-04-13 (session 20) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
+
+## Frontend closure checkpoint - 2026-04-13 session 20
+
+This pass was driven by real-device screenshots, real-wallet checks, and direct chain simulation.
+
+What is now done:
+
+1. Arena interaction model is no longer a long stacked page
+- `/arena` now starts from two clear entry cards:
+  - `PK`
+  - `大逃杀`
+- tapping either opens a modal/sheet
+- the user no longer needs to scroll through PK, BR, claim, and field state in one long page
+
+2. PK create/join preflight root cause was identified and fixed in the frontend
+- real chain simulation showed `createMatchWithCommit(...)` estimates succeed when the commit hash is real
+- the rebuilt `PKArenaPanel` had been estimating with a zero hash, which caused the `Empty commit` failure path
+- the panel now generates a real commit hash before gas estimation and submit
+- PK error copy was also shortened so wallet reject / stale match / empty commit show as player-facing Chinese instead of raw viem text
+
+3. Battle Royale owner claim is now blocked correctly when the contract itself has no Clawworld
+- real chain simulation confirmed:
+  - owner wallet `0x4929...b3b2` holds about `7.7M` `Clawworld`
+  - `BattleRoyale` contract `0x2B21...758D` holds `0`
+  - `claim(1)` reverts with `ERC20: transfer amount exceeds balance`
+- this is a contract-funding problem, not a wallet-balance problem
+- the rebuilt BR claim/action panels now stop presenting a fake direct-claim CTA when the prize contract balance is insufficient
+
+4. Mining preview no longer dumps raw revert blobs into the modal
+- `previewTypedTaskOutcome(...)` still reverts on the deployed mainnet contract path
+- `/play` now treats chain preview as unavailable and uses a local estimate for the preview sheet
+- raw viem revert output is suppressed in the default path
+- the preview/confirm flow stays in one modal and no longer spills the error into a lower page section
+
+5. Mining execute path is now treated honestly as blocked on current mainnet
+- direct chain simulation confirmed:
+  - `previewTypedTaskOutcome(...)` reverts
+  - `ownerCompleteTypedTask(...)` estimate also reverts with `execution reverted: 0x`
+- this means the current owner mining path is not just a preview UX problem; the mainnet task path itself is not passing preflight
+- the frontend now blocks execution behind the gas-estimate failure instead of pretending the action is healthy
+
+6. Shell and mint entry are simplified further
+- top-left brand is now `龙虾世界`
+- home topbar includes a direct `铸造` shortcut
+- switcher chrome is tighter
+- mint page was rebuilt into the same mobile card/sheet language instead of the old terminal-heavy style
+
+7. Home and stage continue to compress
+- persistent stage remains text-only:
+  - eyebrow
+  - title
+  - status
+  - three readouts
+- the extra middle summary block on Home stays removed
+- selected card/button feedback was strengthened again
+
+8. Auto page continues to move away from operator-dashboard language
+- default path is now:
+  - strategy
+  - one prompt
+  - claim request
+  - latest result
+- permission detail stays behind advanced disclosure
+
+Verification completed in this pass:
+
+- `npm --prefix frontend run build`
+- direct chain simulation confirmed:
+  - `wallet_balance 7709708748816544087644135`
+  - `battle_balance 0`
+  - `battle_claim_estimate -> ERC20: transfer amount exceeds balance`
+  - `pk_create_estimate 220983`
+  - `task_preview -> execution reverted: 0x`
+  - `task_execute_estimate -> execution reverted: 0x`
+
+Current honest product state after session 20:
+
+- PK create/join preflight bug on the rebuilt frontend: fixed
+- Battle Royale owner-claim failure: rooted in the live contract funding path, not solved by frontend alone
+- Mining preview UX: contained
+- Mining owner execute path on current mainnet: still contract-blocked
+- Arena / Auto / Mint default UX: materially simplified
+
+Highest-priority remaining work after this pass:
+
+1. keep stripping mixed Chinese/English copy from nested panels
+2. keep shrinking any non-action chrome that still wastes mobile height
+3. replace remaining raw contract errors with short player-facing blockers
+4. if manual mining must work on mainnet, fix the TaskSkill contract path; frontend alone cannot clear that blocker
+5. if owner BR claim must work against a single treasury model, change settlement funding logic; frontend alone cannot redirect claim liquidity to a different treasury
 
 ## Frontend reset note
 

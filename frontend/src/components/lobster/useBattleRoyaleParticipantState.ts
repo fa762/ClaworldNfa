@@ -147,9 +147,9 @@ export function useBattleRoyaleParticipantState(
       claimable: preferred?.claimable ?? 0n,
       claimPathLabel:
         preferred?.key === 'autonomy'
-          ? 'autonomy participant'
+          ? '代理路径'
           : preferred?.key === 'owner'
-            ? 'owner wallet'
+            ? '持有人钱包'
             : null,
     };
   }, [

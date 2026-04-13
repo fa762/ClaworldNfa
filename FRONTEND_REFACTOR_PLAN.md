@@ -5,6 +5,76 @@ Last updated: 2026-04-13 Asia/Singapore
 This file is the source of truth for the frontend product rewrite.
 If agent or chat context changes, continue from this file together with `CURRENT_HANDOFF.md`.
 
+## Execution checkpoint - 2026-04-13 session 20
+
+This checkpoint resets the frontend plan around what was just proven on-chain, not around what merely renders.
+
+### Newly verified truths
+
+1. Wallet `Clawworld` balances are real and can be very large
+- direct chain read for the current owner wallet returned about `7.7M`
+- token display must never silently collapse this to `0`
+
+2. PK create/join can pass preflight when the commit hash is correct
+- the rebuilt frontend bug was estimation with a zero hash
+- this is now a solved frontend bug
+
+3. Battle Royale owner claim currently depends on `BattleRoyale` contract balance, not the project's shared treasury
+- the live contract balance is `0`
+- owner `claim(...)` reverts with `ERC20: transfer amount exceeds balance`
+- until the contract settlement path changes, the frontend must block direct owner claim when contract funding is insufficient
+
+4. Manual owner mining is currently not healthy on mainnet
+- both preview and execute preflight revert
+- the frontend can only:
+  - stop dumping raw errors
+  - stop pretending the action is available
+  - fall back to local preview for UX continuity
+- restoring real manual mining requires contract-path investigation or upgrade, not more page polish
+
+### Product consequences
+
+The rebuild must now separate three categories of work:
+
+1. solved frontend defects
+- false-zero or misleading balance display
+- overlong stacked arena flow
+- PK create/join zero-commit estimate bug
+- shell and stage vertical waste
+- long raw revert output in mining preview
+
+2. frontend containment for live contract defects
+- BR claim path must visibly block when contract balance is insufficient
+- mining must show a short mainnet blocker instead of a fake-ready confirm path
+
+3. true backend/contract work that the frontend cannot fake away
+- BR settlement liquidity should come from the intended treasury model
+- TaskSkill owner mining path must pass preflight on mainnet if manual mining is a product requirement
+
+### Updated execution order after session 20
+
+1. keep the default paths short and Chinese-first
+2. keep replacing raw errors with player-facing blockers
+3. keep collapsing operator/proof detail behind advanced sections
+4. do not spend more time on art until:
+  - mining path is either truly restored or clearly blocked
+  - BR claim path is either contract-funded or explicitly redirected to the supported path
+
+### Current accepted UI model
+
+- Home: next action + upkeep only
+- Mining: cards -> modal preview -> confirm/result
+- Arena: PK vs 大逃杀 entry cards -> modal flow
+- Auto: strategy + prompt + submit + latest result
+- Mint: same mobile card language as the rebuilt shell
+
+### Current rejected UI model
+
+- long stacked dashboard pages
+- verbose explanatory copy on the default path
+- raw viem/contract errors in main user surfaces
+- fake-ready CTAs for actions that fail live preflight
+
 ## Reset baseline after real testing
 
 The rebuild plan is now reset around production usability, not around route coverage.

@@ -6,7 +6,7 @@ import { ClawNFAABI } from '../abis/ClawNFA';
 import { ClawRouterABI } from '../abis/ClawRouter';
 import { DepositRouterABI } from '../abis/DepositRouter';
 import { ERC20ABI } from '../abis/ERC20';
-import { addresses } from '../addresses';
+import { addresses, chainId as appChainId } from '../addresses';
 
 export function useFundBNB() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
@@ -59,6 +59,7 @@ export function useCLWBalance(owner: Address | undefined) {
     abi: ERC20ABI,
     functionName: 'balanceOf',
     args: owner ? [owner] : undefined,
+    chainId: appChainId,
     query: {
       enabled: !!owner && !!addresses.clwToken && addresses.clwToken !== zeroAddress,
       refetchInterval: 3000,
@@ -72,6 +73,7 @@ export function useCLWAllowance(owner: Address | undefined) {
     abi: ERC20ABI,
     functionName: 'allowance',
     args: owner ? [owner, addresses.clawRouter] : undefined,
+    chainId: appChainId,
     query: {
       enabled: !!owner,
       refetchInterval: 3000,

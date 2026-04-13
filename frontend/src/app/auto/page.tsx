@@ -145,7 +145,7 @@ export default function AutoPage() {
                 <strong>{formatCLW(BigInt(latestReceipt.actualSpend ?? 0n))}</strong>
               </div>
               <div className="cw-state-card">
-                <span className="cw-label">Credit</span>
+                <span className="cw-label">{pick('回款', 'Credit')}</span>
                 <strong>{formatCLW(BigInt(latestReceipt.clwCredit ?? 0n))}</strong>
               </div>
               <div className="cw-state-card">
