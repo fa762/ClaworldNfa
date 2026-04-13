@@ -24,6 +24,7 @@ interface IClawRouter {
     function initializeLobster(uint256 nfaId, LobsterState calldata state) external;
     function addCLW(uint256 nfaId, uint256 amount) external;
     function spendCLW(uint256 nfaId, uint256 amount) external;
+    function payoutCLW(address to, uint256 amount) external;
     function addXP(uint256 nfaId, uint32 amount) external;
     function mutateDNA(uint256 nfaId, uint8 gene, uint8 newValue, bytes32 mutationData) external;
     function lobsters(uint256 nfaId) external view returns (

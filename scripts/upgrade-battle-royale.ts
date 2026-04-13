@@ -46,6 +46,7 @@ async function main() {
   console.log("Proxy address (unchanged):", upgraded.address);
 
   const br = await ethers.getContractAt("BattleRoyale", PROXY);
+  const routerContract = await ethers.getContractAt("ClawRouter", router);
   const currentRouter = await br.router();
   const currentNfa = await br.nfa();
   const currentSpeedBonusBps = await br.speedBonusBps();
@@ -89,6 +90,15 @@ async function main() {
   console.log("Router:", await br.router());
   console.log("NFA:", await br.nfa());
   console.log("Speed bonus bps:", (await br.speedBonusBps()).toString());
+
+  const battleRoyaleAuthorized = await routerContract.authorizedSkills(PROXY);
+  if (!battleRoyaleAuthorized) {
+    const tx = await routerContract.authorizeSkill(PROXY, true);
+    await tx.wait();
+    console.log("authorizeSkill(BattleRoyale) tx:", tx.hash);
+  } else {
+    console.log("BattleRoyale is already authorized as a Router skill");
+  }
 
   console.log("\nV2 features ready:");
   console.log("  [ok] changeRoom(matchId, newRoomId)");

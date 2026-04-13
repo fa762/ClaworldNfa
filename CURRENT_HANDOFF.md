@@ -1,9 +1,61 @@
 # Current Handoff
 
-Last updated: 2026-04-13 (session 20) Asia/Singapore
+Last updated: 2026-04-13 (session 21) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
+
+## Contract closure checkpoint - 2026-04-13 session 21
+
+This pass moved from frontend containment into contract-path repair and environment hardening.
+
+What is now done:
+
+1. `TaskSkill` owner mining path was re-verified against the canonical mainnet proxy
+- direct simulation against the canonical mainnet `TaskSkill` proxy shows:
+  - `ownerCompleteTypedTask(...)` preflight succeeds
+  - `previewTypedTaskOutcome(...)` still reverts
+- this changes the diagnosis:
+  - the execute path itself is not dead on mainnet
+  - the live frontend issue is consistent with stale frontend address wiring or stale deployment environment overrides, not a dead canonical task proxy
+
+2. Mainnet frontend addresses are now canonical-first
+- `frontend/src/contracts/addresses.ts` now prefers the known canonical mainnet addresses
+- stale Vercel env values no longer override core mainnet contracts unless:
+  - `NEXT_PUBLIC_ALLOW_MAINNET_ADDRESS_OVERRIDE=1`
+- this is intended to stop the deployed frontend from silently pointing at outdated TaskSkill / BattleRoyale / Router addresses
+
+3. Single-treasury payout support was added at the contract layer
+- `ClawRouter` now exposes `payoutCLW(address to, uint256 amount)` for authorized skills
+- `BattleRoyale.claim(...)` now:
+  - pays from the BR contract balance first
+  - pulls the shortfall from the shared Router treasury when needed
+- this is the contract-side answer to the live issue where autonomy-backed stakes lived in Router while direct owner claims expected all liquidity inside `BattleRoyale`
+
+4. Local contract tests now cover the new treasury path
+- new test coverage proves a mixed-source round can pay a manual winner from:
+  - BattleRoyale local balance
+  - Router shared treasury shortfall
+- Router tests also now cover the new `payoutCLW(...)` skill path
+
+5. Upgrade helper was hardened
+- `scripts/upgrade-battle-royale.ts` now also checks whether `BattleRoyale` is authorized as a Router skill
+- if not, it authorizes it during the upgrade path
+
+Verification completed in this pass:
+
+- `npx hardhat compile`
+- `npx hardhat test test\\BattleRoyale.test.ts --grep "mixed-source"`
+- `npx hardhat test test\\ClawRouter.test.ts --grep "payoutCLW|shared vault"`
+- `npx hardhat test test\\TaskSkill.test.ts --grep "ownerCompleteTypedTask"`
+
+Current honest state after session 21:
+
+- frontend mainnet address drift: code-level mitigation added
+- task mining preview read path: still unreliable on-chain, keep local preview fallback
+- task mining execute path: canonical mainnet proxy is healthy enough for owner preflight
+- BattleRoyale single-treasury payout model: implemented in code and tested locally
+- BattleRoyale mainnet payout fix still requires deployment/upgrade before live owner claims stop failing
 
 ## Frontend closure checkpoint - 2026-04-13 session 20
 

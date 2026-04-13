@@ -510,7 +510,7 @@ contract BattleRoyale is
             : 0;
 
         amount = stake + prize;
-        clwToken.safeTransfer(msg.sender, amount);
+        _payWalletClaim(msg.sender, amount);
         emit PlayerClaimed(matchId, msg.sender, stake, prize, amount);
     }
 
@@ -606,6 +606,26 @@ contract BattleRoyale is
         });
 
         emit MatchOpened(matchId, roundIdCounter, minStake, triggerCount, treasuryBps, revealDelay);
+    }
+
+    function _payWalletClaim(address recipient, uint256 amount) internal {
+        if (amount == 0) {
+            return;
+        }
+
+        uint256 localBalance = clwToken.balanceOf(address(this));
+        if (localBalance >= amount) {
+            clwToken.safeTransfer(recipient, amount);
+            return;
+        }
+
+        if (localBalance > 0) {
+            clwToken.safeTransfer(recipient, localBalance);
+        }
+
+        uint256 shortfall = amount - localBalance;
+        require(router != address(0), "Router not set");
+        IClawRouter(router).payoutCLW(recipient, shortfall);
     }
 
     function _computeSurvivorWeight(

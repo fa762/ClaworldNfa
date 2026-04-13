@@ -167,6 +167,50 @@ describe("BattleRoyale", function () {
     expect(await battleRoyale.latestOpenMatch()).to.equal(2);
   });
 
+  it("can pay a manual winner from battle balance plus router treasury in a mixed-source round", async function () {
+    await battleRoyale.initializeV2(router.address, nfa.address, 100);
+    await battleRoyale.setTriggerCount(2);
+    await router.authorizeSkill(battleRoyale.address, true);
+    await battleRoyale.setAutonomousResolver(owner.address, true);
+    await fillDefaultMatch([1, 1, 2, 2, 3, 4, 5, 6, 7, 8]);
+    await revealMatch(1);
+
+    const autonomousPlayer = players[0];
+    const manualPlayer = players[1];
+    const autonomousTokenId = await setupLobster(autonomousPlayer, { spd: 70 });
+
+    await clw.connect(autonomousPlayer).approve(router.address, ethers.constants.MaxUint256);
+    await router.connect(autonomousPlayer).depositCLW(autonomousTokenId, ethers.utils.parseEther("1000"));
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const matchId = Number((await battleRoyale.latestOpenMatch()).toString());
+
+      await battleRoyale
+        .connect(owner)
+        .autonomousEnterRoomFor(matchId, autonomousPlayer.address, autonomousTokenId, 1, stake);
+      await battleRoyale.connect(manualPlayer).enterRoom(matchId, 2, stake);
+
+      await revealMatch(matchId);
+
+      const matchInfo = await battleRoyale.getMatchInfo(matchId);
+      if (Number(matchInfo.losingRoom) === 2) {
+        continue;
+      }
+
+      const claimable = await battleRoyale.getClaimable(matchId, manualPlayer.address);
+      expect(claimable).to.be.gt(stake);
+
+      const manualBalanceBefore = await clw.balanceOf(manualPlayer.address);
+      await battleRoyale.connect(manualPlayer).claim(matchId);
+      const manualBalanceAfter = await clw.balanceOf(manualPlayer.address);
+
+      expect(manualBalanceAfter.sub(manualBalanceBefore)).to.equal(claimable);
+      return;
+    }
+
+    expect.fail("manual entrant lost in every attempt");
+  });
+
   it("gives higher-speed survivors a larger prize share", async function () {
     await battleRoyale.initializeV2(router.address, nfa.address, 100);
 

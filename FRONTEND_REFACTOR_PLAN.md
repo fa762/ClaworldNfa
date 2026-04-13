@@ -5,6 +5,56 @@ Last updated: 2026-04-13 Asia/Singapore
 This file is the source of truth for the frontend product rewrite.
 If agent or chat context changes, continue from this file together with `CURRENT_HANDOFF.md`.
 
+## Execution checkpoint - 2026-04-13 session 21
+
+This checkpoint corrects two assumptions from the previous pass.
+
+### 1. Manual mining is not categorically dead on mainnet
+
+Canonical proxy re-check:
+
+- `ownerCompleteTypedTask(...)` preflight succeeds on the canonical mainnet `TaskSkill`
+- `previewTypedTaskOutcome(...)` still reverts
+
+So the correct frontend product stance is now:
+
+- keep local preview fallback
+- keep short error handling for preview reads
+- do not describe the whole mining execute path as dead if the app is wired to the canonical proxy
+
+### 2. Deployed frontend address drift is now treated as a real production risk
+
+The rebuilt frontend now treats canonical mainnet addresses as the default source of truth.
+
+Reason:
+
+- stale hosted env vars can silently point the shell at outdated core contracts
+- this creates fake UX bugs that are actually address-selection bugs
+
+Current rule:
+
+- on mainnet, canonical addresses win by default
+- env overrides only win if `NEXT_PUBLIC_ALLOW_MAINNET_ADDRESS_OVERRIDE=1`
+
+### 3. Single treasury is now a supported contract direction
+
+To align with the product requirement of one shared treasury:
+
+- `ClawRouter` now supports `payoutCLW(...)` for authorized skills
+- `BattleRoyale.claim(...)` can combine:
+  - local BR balance
+  - Router treasury shortfall
+
+That means the frontend can continue to describe Battle Royale as one economy, but only after the upgraded contract is deployed live.
+
+### Updated product priority after session 21
+
+1. deploy the BattleRoyale treasury-path fix if owner wallet claims must work live
+2. validate the hosted frontend is now reading canonical mainnet addresses
+3. keep default screens minimal and Chinese-first
+4. keep preview / claim / arena interactions in modal-first flows
+5. only after the live chain paths are healthy: resume art / motion / companion polish
+
 ## Execution checkpoint - 2026-04-13 session 20
 
 This checkpoint resets the frontend plan around what was just proven on-chain, not around what merely renders.

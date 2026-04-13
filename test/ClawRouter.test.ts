@@ -378,6 +378,22 @@ describe("ClawRouter", function () {
       ).to.be.revertedWith("Not authorized skill");
     });
 
+    it("should allow skill to pay out real CLW from the shared vault", async function () {
+      await clw.mint(router.address, ethers.utils.parseEther("300"));
+
+      const before = await clw.balanceOf(user2.address);
+      await router.connect(skill).payoutCLW(user2.address, ethers.utils.parseEther("75"));
+      const after = await clw.balanceOf(user2.address);
+
+      expect(after.sub(before)).to.equal(ethers.utils.parseEther("75"));
+    });
+
+    it("should reject non-skill calling payoutCLW", async function () {
+      await expect(
+        router.connect(user1).payoutCLW(user2.address, ethers.utils.parseEther("1"))
+      ).to.be.revertedWith("Not authorized skill");
+    });
+
     it("should add XP and level up", async function () {
       // Level 1, need 100 XP to reach level 2
       await router.connect(skill).addXP(tokenId, 200);

@@ -173,6 +173,7 @@ contract ClawRouter is
     event FlapBuyAndDeposit(uint256 indexed nfaId, uint256 bnbSpent, uint256 clwReceived);
     event VaultDeposit(address indexed depositor, uint256 amount);
     event CLWWithdrawn(uint256 indexed nfaId, uint256 gameAmount, uint256 realAmount, uint256 rate);
+    event CLWPaidOut(address indexed recipient, uint256 amount, address indexed skill);
 
     // ============================================
     // MODIFIERS
@@ -414,6 +415,13 @@ contract ClawRouter is
         }
 
         emit CLWSpent(nfaId, amount, msg.sender);
+    }
+
+    function payoutCLW(address to, uint256 amount) external onlySkill {
+        require(to != address(0), "Zero recipient");
+        require(amount > 0, "Zero amount");
+        clwToken.safeTransfer(to, amount);
+        emit CLWPaidOut(to, amount, msg.sender);
     }
 
     function addXP(uint256 nfaId, uint32 amount) external onlySkill lobsterExists(nfaId) {
