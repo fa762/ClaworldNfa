@@ -1,6 +1,6 @@
 # Current Handoff
 
-Last updated: 2026-04-12 (session 4) Asia/Singapore
+Last updated: 2026-04-13 (session 6) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
@@ -303,6 +303,13 @@ Remaining high-value frontend gaps after this checkpoint:
 - the global translation layer (`frontend/src/lib/i18n.tsx`) still contains legacy encoding noise and should be normalized in a dedicated cleanup pass instead of being touched opportunistically
 - PWA install / standalone / offline behavior still needs real-device validation on a deployed HTTPS environment
 - frontend production build passed again after the arena-routing and presence pass
+
+Frontend PWA bottom-tab checkpoint on 2026-04-13:
+
+- the rebuilt shell bottom navigation now uses one shared set of tab-height and safe-area variables instead of mixing a fixed content height with an unbounded `env(safe-area-inset-bottom)` add-on
+- the main content area bottom padding is now derived from the same tab-shell height variable, so page content and bottom nav no longer drift apart between browser mode and standalone PWA mode
+- on narrow/mobile viewports the bottom safe-area allowance is now capped tighter, which should stop the standalone PWA build from showing an oversized bottom slab while still keeping the nav clear of the system gesture area
+- this pass is a mobile-stability fix, not an art pass
 
 Frontend PK/autonomy-feedback checkpoint on 2026-04-12:
 

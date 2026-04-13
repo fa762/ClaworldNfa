@@ -23,6 +23,12 @@
 @layer base {
   :root {
     color-scheme: dark;
+    --cw-safe-bottom: env(safe-area-inset-bottom, 0px);
+    --cw-tab-safe-bottom: min(var(--cw-safe-bottom), 16px);
+    --cw-tab-row-height: 44px;
+    --cw-tab-top-pad: 6px;
+    --cw-tab-bottom-pad: max(6px, var(--cw-tab-safe-bottom));
+    --cw-tab-shell-height: calc(var(--cw-tab-row-height) + var(--cw-tab-top-pad) + var(--cw-tab-bottom-pad));
   }
 
   * {
@@ -650,7 +656,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 16px 16px 84px;
+  padding: 16px 16px calc(18px + var(--cw-tab-shell-height));
 }
 
 .cw-page {
@@ -1321,17 +1327,19 @@
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
-  padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+  min-height: var(--cw-tab-shell-height);
+  padding: var(--cw-tab-top-pad) 10px var(--cw-tab-bottom-pad);
   background:
     linear-gradient(180deg, rgba(10, 13, 18, 0), rgba(10, 13, 18, 0.96) 22%),
     rgba(10, 13, 18, 0.98);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(14px);
+  align-items: stretch;
 }
 
 .cw-tab {
   display: flex;
-  min-height: 48px;
+  min-height: var(--cw-tab-row-height);
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -1430,6 +1438,12 @@
 }
 
 @media (max-width: 560px) {
+  :root {
+    --cw-tab-safe-bottom: min(var(--cw-safe-bottom), 14px);
+    --cw-tab-row-height: 42px;
+    --cw-tab-top-pad: 5px;
+  }
+
   .cw-stage,
   .cw-stage--compact,
   .cw-band--split {

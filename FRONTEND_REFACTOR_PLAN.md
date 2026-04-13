@@ -1,6 +1,6 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-12 Asia/Singapore
+Last updated: 2026-04-13 Asia/Singapore
 
 This file is the source of truth for the frontend product rewrite.
 If agent or chat context changes, continue from this file together with `CURRENT_HANDOFF.md`.
@@ -105,6 +105,19 @@ This pass moved the rewrite from "usable shell" toward "testable product surface
 - settings placeholders are now clearly labeled as future controls instead of looking finished
 
 This pass deliberately did not try to normalize the whole legacy `i18n.tsx` file. That file still needs a dedicated cleanup because it carries historical encoding noise. New user-facing copy was stabilized locally on the live product surfaces first.
+
+## Progress checkpoint - 2026-04-13 session 6
+
+This pass stayed on mobile stability rather than visual expansion:
+
+- bottom-tab layout now derives from shared shell-height and safe-area variables
+- standalone PWA no longer relies on a raw unbounded `env(safe-area-inset-bottom)` bump inside the tab bar
+- main content bottom spacing now tracks the actual tab-shell footprint, so browser mode and standalone mode stay aligned
+
+Execution rule remains unchanged for the next passes:
+
+- functional correctness and mobile/PWA stability first
+- visual/art upgrades only after the live owner-path flows are stable
 
 ## Primary app structure
 
