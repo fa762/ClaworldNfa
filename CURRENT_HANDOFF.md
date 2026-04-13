@@ -1,6 +1,6 @@
 # Current Handoff
 
-Last updated: 2026-04-13 (session 18) Asia/Singapore
+Last updated: 2026-04-13 (session 19) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
@@ -274,6 +274,57 @@ Next live checks after deploy:
 2. confirm `/play` preview no longer dead-ends when on-chain preview reverts
 3. confirm the compact stage + upkeep panel now fit comfortably on real phone screens
 4. confirm PK copy reads like short game actions instead of operator/dev text
+
+## Frontend simplification checkpoint - 2026-04-13 session 19
+
+This pass continued the same UX rule: default surfaces only show action / reward / blocker / result.
+
+What is now done:
+
+1. Topbar is now more product-like and less placeholder
+- top-left brand is now `龙虾世界` in Chinese mode
+- Home topbar now includes a direct `铸造` shortcut
+- the lobster switcher was narrowed again so it takes less horizontal space
+
+2. Auto page was simplified
+- `/auto` no longer starts with a big intro band
+- the default path is now:
+  - current state
+  - strategy + one-line prompt
+  - claim request
+  - latest result
+- permission details stay behind `高级`
+- default operator/dev explanation text was removed
+
+3. Auto panels were rewritten in shorter Chinese
+- directive panel now reads as:
+  - 选策略
+  - 写一句提示
+  - 保存
+- claim-request panel now reads as:
+  - 领什么
+  - 是否能提
+  - 现在的结果
+- several English-heavy labels were replaced or hidden from the default path
+
+4. Live verification repeated for the two real blockers
+- wallet `Claworld` owner balance was rechecked on-chain for:
+  - wallet `0x4929bd86e8be70a167cce03a64aac692e0c2b3b2`
+  - token `0x3b486c191c74c9945fa944a3ddde24acdd63ffff`
+  - result: `7709708748816544087644135` with `18` decimals
+- task preview was rechecked on-chain and `previewTypedTaskOutcome(...)` still reverts
+- this confirms the local preview fallback remains necessary on the deployed mainnet path
+
+Verification:
+
+- `npm --prefix frontend run build` passed after this pass
+
+Next live checks after deploy:
+
+1. confirm Home topbar now shows `龙虾世界` and the `铸造` shortcut
+2. confirm the narrower switcher still remains tappable on real phones
+3. confirm `/auto` now reads as a user page instead of an operator console
+4. confirm live wallet `Claworld` amount is now correct on the rebuilt shell
 
 ## Current product direction
 

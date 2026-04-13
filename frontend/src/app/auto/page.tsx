@@ -60,53 +60,40 @@ export default function AutoPage() {
       }
     | undefined;
 
+  const latestStatus = latestReceipt ? receiptStatusText(Number(latestReceipt.status ?? 0), pick) : pick('空闲', 'Idle');
+  const latestError = latestReceipt?.lastError ? String(latestReceipt.lastError).slice(0, 72) : null;
+
   return (
     <>
-      <section className="cw-band">
-        <div className="cw-band--split">
-          <div>
-            <p className="cw-eyebrow">{pick('代理', 'Auto')}</p>
-            <h2 className="cw-section-title">{pick('选策略，再提交', 'Pick a policy, then submit')}</h2>
-          </div>
-          <div className="cw-score">
-            <strong>{permissionCount}/4</strong>
-            <span>{pick('权限', 'Gates')}</span>
-          </div>
-        </div>
-      </section>
-
       <WalletGate
         title={pick('先连接持有人钱包', 'Connect owner wallet first')}
-        detail={pick('代理设置和自治请求都要走持有人签名。', 'Policy edits and autonomy requests need the owner wallet.')}
+        detail={pick('连接后才能设置代理。', 'Connect before using agent mode.')}
       >
-        <section className="cw-card-stack">
-          <article className={`cw-card ${setup.policy?.enabled ? 'cw-card--safe' : 'cw-card--warning'}`}>
-            <div className="cw-card-icon">
-              <Bot size={18} />
-            </div>
-            <div className="cw-card-copy">
-              <p className="cw-label">{pick('当前策略', 'Policy')}</p>
+        <section className="cw-panel cw-panel--cool">
+          <div className="cw-section-head">
+            <div>
+              <span className="cw-label">{pick('代理状态', 'Agent state')}</span>
               <h3>{setup.policy?.enabled ? pick('已启用', 'Enabled') : pick('未启用', 'Not enabled')}</h3>
             </div>
-            <div className="cw-score">
+            <span className={`cw-chip ${setup.policy?.enabled ? 'cw-chip--growth' : 'cw-chip--cool'}`}>
+              <Bot size={14} />
+              {permissionCount}/4
+            </span>
+          </div>
+          <div className="cw-state-grid">
+            <div className="cw-state-card">
+              <span className="cw-label">{pick('可领', 'Claim')}</span>
+              <strong>{claimWindow.claimable > 0n ? formatCLW(claimWindow.claimable) : '--'}</strong>
+            </div>
+            <div className="cw-state-card">
+              <span className="cw-label">{pick('权限', 'Ready')}</span>
               <strong>{permissionCount}/4</strong>
-              <span>{pick('权限', 'gates')}</span>
             </div>
-          </article>
-
-          <article className={`cw-card ${claimWindow.claimable > 0n ? 'cw-card--ready' : 'cw-card--safe'}`}>
-            <div className="cw-card-icon">
-              <Shield size={18} />
+            <div className="cw-state-card">
+              <span className="cw-label">{pick('结果', 'Result')}</span>
+              <strong>{latestStatus}</strong>
             </div>
-            <div className="cw-card-copy">
-              <p className="cw-label">{pick('自治领取', 'Autonomy claim')}</p>
-              <h3>
-                {claimWindow.claimable > 0n
-                  ? pick(`可处理 ${formatCLW(claimWindow.claimable)}`, `Ready ${formatCLW(claimWindow.claimable)}`)
-                  : pick('当前没有待处理奖励', 'No pending claim')}
-              </h3>
-            </div>
-          </article>
+          </div>
         </section>
 
         {tokenId !== undefined ? (
@@ -148,7 +135,7 @@ export default function AutoPage() {
             </div>
             <span className={`cw-chip ${latestReceipt && Number(latestReceipt.status ?? 0) === 5 ? 'cw-chip--alert' : 'cw-chip--cool'}`}>
               <Bot size={14} />
-              {latestReceipt ? receiptStatusText(Number(latestReceipt.status ?? 0), pick) : pick('空闲', 'Idle')}
+              {latestStatus}
             </span>
           </div>
           {latestReceipt ? (
@@ -162,8 +149,8 @@ export default function AutoPage() {
                 <strong>{formatCLW(BigInt(latestReceipt.clwCredit ?? 0n))}</strong>
               </div>
               <div className="cw-state-card">
-                <span className="cw-label">{pick('错误', 'Error')}</span>
-                <strong>{latestReceipt.lastError ?? '--'}</strong>
+                <span className="cw-label">{pick('异常', 'Error')}</span>
+                <strong>{latestError ?? '--'}</strong>
               </div>
             </div>
           ) : null}
@@ -171,7 +158,7 @@ export default function AutoPage() {
 
         <div className="cw-button-row">
           <button type="button" className="cw-button cw-button--ghost" onClick={() => setShowAdvanced((value) => !value)}>
-            {showAdvanced ? pick('收起高级', 'Hide advanced') : pick('展开高级', 'Show advanced')}
+            {showAdvanced ? pick('收起高级', 'Hide advanced') : pick('高级', 'Advanced')}
           </button>
         </div>
 
@@ -179,7 +166,7 @@ export default function AutoPage() {
           <section className="cw-panel cw-panel--cool">
             <div className="cw-section-head">
               <div>
-                <span className="cw-label">Advanced</span>
+                <span className="cw-label">{pick('高级', 'Advanced')}</span>
                 <h3>{pick('权限明细', 'Permission detail')}</h3>
               </div>
             </div>

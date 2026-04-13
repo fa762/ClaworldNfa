@@ -21,35 +21,35 @@ type DirectiveApiResponse = {
 const STYLE_OPTIONS: Array<{ value: DirectiveStyle; zh: string; en: string; zhHint: string; enHint: string }> = [
   {
     value: 'tight',
-    zh: '紧凑执行',
+    zh: '保守',
     en: 'Tight execution',
-    zhHint: '少一点修辞，多一点纪律和边界感。',
+    zhHint: '先保储备，再动手。',
     enHint: 'Less flourish, more discipline and bounded action.',
   },
   {
     value: 'balanced',
-    zh: '平衡判断',
+    zh: '平衡',
     en: 'Balanced judgment',
-    zhHint: '默认姿态，追求稳定推理和可控上行。',
+    zhHint: '稳着来，先看收益风险。',
     enHint: 'Default posture for stable reasoning and controlled upside.',
   },
   {
     value: 'expressive',
-    zh: '多解释一点',
+    zh: '进取',
     en: 'Explain more',
-    zhHint: '把取舍讲清楚，但动作仍只在 policy 边界内。',
+    zhHint: '机会大时敢上。',
     enHint: 'Show more tradeoff reasoning while still acting only inside policy bounds.',
   },
 ];
 
 function buildDirectiveTemplate(style: DirectiveStyle) {
   if (style === 'tight') {
-    return 'Prioritize survival, reserve discipline, and low-regret execution.';
+    return '优先保储备，避免高波动动作。';
   }
   if (style === 'expressive') {
-    return 'Explain the tradeoff clearly, but still choose only from valid bounded actions.';
+    return '机会明显时可以更主动，但不要越界。';
   }
-  return 'Balance reward, variance, and continuity across the available bounded actions.';
+  return '平衡收益、风险和续航。';
 }
 
 function buildDirectivePreview(style: DirectiveStyle, extra: string) {
@@ -186,20 +186,17 @@ export function AutonomyDirectivePanel({
       <div className="cw-section-head">
         <div>
           <span className="cw-label">{title}</span>
-          <h3>{pick('Directive 与提示词姿态', 'Directive and prompt posture')}</h3>
-          <p className="cw-muted">
-            {pick('给这条自治路径留一个明确的推理姿态。planner 仍然只会在 policy 边界里行动。', 'Save one explicit reasoning posture for this autonomy surface. The planner stays bounded by policy either way.')}
-          </p>
+          <h3>{pick('选策略，写一句提示', 'Pick a style and one prompt')}</h3>
         </div>
         <span className="cw-chip cw-chip--cool">
           <Bot size={14} />
-          {pick('已签名策略', 'Signed policy')}
+          {pick('策略', 'Policy')}
         </span>
       </div>
 
       <div className="cw-field-grid">
         <label className="cw-field">
-          <span className="cw-label">{pick('思考风格', 'Thinking style')}</span>
+          <span className="cw-label">{pick('策略', 'Style')}</span>
           <select
             value={style}
             onChange={(event) => {
@@ -216,13 +213,11 @@ export function AutonomyDirectivePanel({
               </option>
             ))}
           </select>
-          <p className="cw-muted">
-            {activeOption ? pick(activeOption.zhHint, activeOption.enHint) : null}
-          </p>
+          {activeOption ? <p className="cw-muted">{pick(activeOption.zhHint, activeOption.enHint)}</p> : null}
         </label>
 
         <label className="cw-field">
-          <span className="cw-label">{pick('额外约束', 'Extra constraint')}</span>
+          <span className="cw-label">{pick('提示词', 'Prompt')}</span>
           <textarea
             value={text}
             onChange={(event) => {
@@ -233,9 +228,8 @@ export function AutonomyDirectivePanel({
             rows={4}
             disabled={!isOwner || loading || saving || isSigning}
             className="cw-input cw-input--textarea"
-            placeholder={pick('例如：如果上一局已结算可领，就先领再进新局。', 'Example: If a settled reward is claimable, prefer claiming it before entering a new match.')}
+            placeholder={pick('例如：有已结算奖励就先领，再进新局。', 'Example: Claim settled rewards before entering a new match.')}
           />
-          <p className="cw-muted">{pick('这段文字会被签名、存储，并注入 planner prompt。', 'This text is signed and stored, then injected into the planner prompt.')}</p>
           <p className="cw-muted">{text.length}/220 · {remainingChars} {pick('字符剩余', 'chars left')}</p>
         </label>
       </div>
@@ -244,11 +238,11 @@ export function AutonomyDirectivePanel({
         <div className="cw-section-head">
           <div>
             <span className="cw-label">{pick('预览', 'Preview')}</span>
-            <h3>{pick('可见的 planner 指令', 'Visible planner instruction')}</h3>
+            <h3>{pick('当前效果', 'Current effect')}</h3>
           </div>
           <span className="cw-chip cw-chip--warm">
             <PenSquare size={14} />
-            {pick('实时预览', 'Live preview')}
+            {pick('预览', 'Preview')}
           </span>
         </div>
         <p className="cw-muted">{loading ? pick('正在读取 directive...', 'Loading directive...') : preview}</p>
@@ -277,13 +271,13 @@ export function AutonomyDirectivePanel({
           className="cw-button cw-button--secondary"
         >
           <Bot size={16} />
-          {saving || isSigning ? pick('保存中', 'Saving directive') : pick('保存 directive', 'Save directive')}
+          {saving || isSigning ? pick('保存中', 'Saving directive') : pick('保存策略', 'Save policy')}
         </button>
       </div>
 
-      {!isOwner ? <p className="cw-muted">{pick('只有当前 NFA owner 才能签名并保存 directive。', 'Only the current NFA owner can sign and save directive updates.')}</p> : null}
+      {!isOwner ? <p className="cw-muted">{pick('只有持有人钱包能保存。', 'Only the owner wallet can save this policy.')}</p> : null}
       {success ? <p className="cw-result-celebration">{success}</p> : null}
-      {error ? <p className="cw-muted">{pick(`directive 错误：${error}`, `Directive error: ${error}`)}</p> : null}
+      {error ? <p className="cw-muted">{pick(`策略保存失败：${error}`, `Directive error: ${error}`)}</p> : null}
     </section>
   );
 }

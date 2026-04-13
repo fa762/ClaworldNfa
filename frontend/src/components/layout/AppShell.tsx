@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Globe2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Compass, Globe2 } from 'lucide-react';
 
 import { BottomTabs } from './BottomTabs';
 import { PwaStatusBanner } from './PwaStatusBanner';
@@ -125,16 +126,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const companion = useActiveCompanion();
   const { t, pick, lang, setLang } = useI18n();
   const shellCopy = getShellCopy(pathname, companion, pick);
+  const showMintShortcut = pathname === '/';
 
   return (
     <div className="cw-shell">
       <div className={`cw-screen cw-screen--${shellCopy.variant}`}>
         <header className="cw-topbar">
           <div className="cw-topbar-brand">
-            <p className="cw-overline">Mobile dApp</p>
-            <h1 className="cw-brand">Clawworld</h1>
+            <p className="cw-overline">{pick('移动端', 'Mobile dApp')}</p>
+            <h1 className="cw-brand">{pick('龙虾世界', 'Clawworld')}</h1>
           </div>
           <div className="cw-top-actions">
+            {showMintShortcut ? (
+              <Link href="/mint" className="cw-toplink cw-toplink--mint" aria-label={pick('前往铸造', 'Open mint')}>
+                <Compass size={14} />
+                {pick('铸造', 'Mint')}
+              </Link>
+            ) : null}
             {companion.ownedCount > 1 ? (
               <div className="cw-switcher" aria-label={t('shell.selector')}>
                 <button

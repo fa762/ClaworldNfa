@@ -252,6 +252,58 @@ This pass continued the reset plan in the correct order: fix live blockers befor
 3. continue reducing text density on Arena / Auto default surfaces
 4. only after the live interaction path is stable: resume art/motion and companion personality work
 
+## Progress checkpoint - 2026-04-13 session 19
+
+This pass focused on the next real product need: make the shell and Auto page readable without explanation.
+
+### Completed in this pass
+
+1. Topbar simplified further
+- Chinese brand now reads `龙虾世界`
+- Home topbar now exposes `铸造` as a direct action
+- lobster switcher width/padding were reduced again
+
+2. Auto page simplified into the intended interaction model
+- removed the large intro band
+- default path now prioritizes:
+  - current state
+  - strategy
+  - one-line prompt
+  - claim request
+  - latest result
+- permission detail remains available only behind `高级`
+
+3. Auto copy became Chinese-first and shorter
+- directive panel now behaves like a simple player control:
+  - 保守 / 平衡 / 进取
+  - 一句提示词
+  - 保存策略
+- claim-request panel now behaves like an action surface instead of an operator document
+- default view no longer leads with protocol terms and English-heavy explanation
+
+4. Live blockers were re-verified
+- the real owner wallet balance for `Clawworld` was rechecked on-chain and is still ~`7.7M`
+- deployed `previewTypedTaskOutcome(...)` still reverts on-chain
+- therefore:
+  - wallet read hardening stays required
+  - local Mining preview fallback stays required
+
+### Verification
+
+- `npm --prefix frontend run build`
+- passed
+
+### Updated next priority after session 19
+
+1. deploy and verify the latest shell in the real environment
+2. continue stripping verbose copy from remaining Arena / Settings surfaces
+3. check every top-level route against the hard rule:
+   - action
+   - reward
+   - blocker
+   - result
+4. keep art/motion behind live interaction stability
+
 ## Long task plan
 
 ### Phase 1 — Stop false zero states
