@@ -118,7 +118,7 @@ export function CompanionUpkeepPanel({
           <strong>{formatCLW(dailyCost)}</strong>
         </div>
         <div className="cw-state-card">
-          <span className="cw-label">{pick('钱包 CLW', 'Wallet CLW')}</span>
+          <span className="cw-label">{pick('钱包 Claworld', 'Wallet Claworld')}</span>
           <strong>{clwBalanceText}</strong>
         </div>
       </div>
@@ -224,8 +224,8 @@ export function CompanionUpkeepPanel({
             <Wallet size={16} />
             <span>
               {pick(
-                `钱包里只有 ${formatCLW(clwBalance)}，不足 ${amount || '0'}。`,
-                `Wallet balance ${formatCLW(clwBalance)} is below ${amount || '0'}.`,
+                `钱包里只有 ${formatCLW(clwBalance)} Claworld，不足 ${amount || '0'}。`,
+                `Wallet balance ${formatCLW(clwBalance)} Claworld is below ${amount || '0'}.`,
               )}
             </span>
           </div>
@@ -252,8 +252,8 @@ export function CompanionUpkeepPanel({
         {hasBalanceRead ? (
           <p className="cw-muted">
             {pick(
-              `钱包 CLW: ${Number(formatEther(clwBalance)).toFixed(2)} / 当前模式：${mode === 'clw' ? '充值 Clawworld' : 'BNB 快充'}`,
-              `Wallet CLW: ${Number(formatEther(clwBalance)).toFixed(2)} / mode: ${mode === 'clw' ? 'Deposit Clawworld' : 'Quick buy+deposit'}`,
+              `钱包 Clawworld: ${Number(formatEther(clwBalance)).toFixed(2)} / 当前模式：${mode === 'clw' ? '充值 Clawworld' : 'BNB 快充'}`,
+              `Wallet Claworld: ${Number(formatEther(clwBalance)).toFixed(2)} / mode: ${mode === 'clw' ? 'Deposit Clawworld' : 'Quick buy+deposit'}`,
             )}
           </p>
         ) : null}

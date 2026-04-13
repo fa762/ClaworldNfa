@@ -290,19 +290,19 @@
 
 .cw-stage {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
   position: relative;
   margin: 0 16px;
-  padding: 10px 0;
+  padding: 8px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   overflow: hidden;
 }
 
 .cw-stage--compact {
-  padding: 8px 0;
+  padding: 6px 0;
 }
 
 .cw-stage::after {
@@ -326,13 +326,13 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .cw-stage-title {
   margin: 4px 0 0;
   font-family: var(--font-heading);
-  font-size: 1.06rem;
+  font-size: 0.98rem;
   line-height: 1.04;
   font-weight: 700;
 }
@@ -476,12 +476,11 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  grid-column: 1 / -1;
 }
 
 .cw-stage-readout {
   min-height: 0;
-  padding: 6px 8px;
+  padding: 5px 8px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(10, 13, 18, 0.48);
@@ -560,7 +559,7 @@
   display: block;
   margin-top: 1px;
   font-family: var(--font-heading);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1058,7 +1057,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 16px;
+  padding: 12px 12px calc(var(--cw-tab-shell-height) + 10px);
 }
 
 .cw-modal__scrim {
@@ -1071,7 +1070,7 @@
 .cw-modal__sheet {
   position: relative;
   width: min(100%, 560px);
-  max-height: min(82vh, 720px);
+  max-height: min(68dvh, 620px);
   overflow-y: auto;
 }
 

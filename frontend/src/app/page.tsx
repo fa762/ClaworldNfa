@@ -97,49 +97,8 @@ export default function HomePage() {
     },
   ] as const;
 
-  const summaryCards = [
-    { label: pick('钱包 CLW', 'Wallet CLW'), value: companion.walletClaworldText },
-    { label: pick('储备', 'Reserve'), value: companion.routerClaworldText },
-    { label: pick('日维护', 'Daily upkeep'), value: companion.dailyCostText },
-    { label: pick('状态', 'Status'), value: companion.statusLabel },
-  ] as const;
-
   return (
     <>
-      <section className="cw-band">
-        {isCompanionLoading ? (
-          <div className="cw-loading-card">
-            <div className="cw-skeleton-line cw-skeleton-line--short" />
-            <div className="cw-skeleton-grid">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={`home-summary-loading-${index}`} className="cw-skeleton-block" />
-              ))}
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="cw-band--split">
-              <div>
-                <p className="cw-eyebrow">{pick('首页', 'Home')}</p>
-                <h2 className="cw-section-title">{companion.name}</h2>
-              </div>
-              <div className="cw-score">
-                <strong>Lv.{companion.level}</strong>
-                <span>{companion.shelterName}</span>
-              </div>
-            </div>
-            <div className="cw-metrics">
-              {summaryCards.map((item) => (
-                <div key={item.label} className="cw-metric">
-                  <span className="cw-label">{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </section>
-
       {companion.connected && !companion.hasToken ? (
         <section className="cw-panel cw-panel--cool">
           <div className="cw-section-head">

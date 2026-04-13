@@ -32,14 +32,13 @@ function getArenaStatus(companion: ReturnType<typeof useActiveCompanion>, pick: 
       tone: companion.pkWinRate >= 50 ? ('warm' as const) : ('cool' as const),
     };
   }
-  return { label: pick('待开赛', 'Ready'), tone: 'cool' as const };
+  return { label: pick('待开赛', 'Ready') as string, tone: 'cool' as const };
 }
 
 function getShellCopy(
   pathname: string,
   companion: ReturnType<typeof useActiveCompanion>,
   pick: <T,>(zh: T, en: T) => T,
-  t: (key: string) => string,
 ): ShellCopy {
   if (pathname.startsWith('/play')) {
     return {
@@ -83,9 +82,9 @@ function getShellCopy(
       statusLabel: pick('受控', 'Bounded'),
       statusTone: 'cool',
       readouts: [
+        { label: pick('储备', 'Reserve'), value: companion.routerClaworldText, tone: 'warm' },
         { label: pick('维护', 'Upkeep'), value: companion.dailyCostText, tone: 'growth' },
         { label: pick('续航', 'Runway'), value: runwayLabel(companion, pick), tone: companion.statusTone },
-        { label: pick('来源', 'Source'), value: companion.sourceLabel, tone: companion.sourceTone },
       ],
     };
   }
@@ -100,7 +99,7 @@ function getShellCopy(
       statusTone: companion.connected ? 'cool' : 'alert',
       readouts: [
         { label: pick('持有', 'Owned'), value: `${companion.ownedCount}`, tone: 'cool' },
-        { label: pick('钱包', 'Wallet'), value: companion.walletClaworldText, tone: 'warm' },
+        { label: pick('储备', 'Reserve'), value: companion.routerClaworldText, tone: 'warm' },
         { label: pick('状态', 'Status'), value: companion.statusLabel, tone: companion.statusTone },
       ],
     };
@@ -114,8 +113,8 @@ function getShellCopy(
     statusLabel: companion.statusLabel,
     statusTone: companion.statusTone,
     readouts: [
-      { label: pick('钱包', 'Wallet'), value: companion.walletClaworldText, tone: 'growth' },
       { label: pick('储备', 'Reserve'), value: companion.routerClaworldText, tone: 'warm' },
+      { label: pick('日维护', 'Upkeep'), value: companion.dailyCostText, tone: 'cool' },
       { label: pick('续航', 'Runway'), value: runwayLabel(companion, pick), tone: companion.statusTone },
     ],
   };
@@ -125,7 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const companion = useActiveCompanion();
   const { t, pick, lang, setLang } = useI18n();
-  const shellCopy = getShellCopy(pathname, companion, pick, t);
+  const shellCopy = getShellCopy(pathname, companion, pick);
 
   return (
     <div className="cw-shell">
@@ -186,8 +185,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           statusLabel={shellCopy.statusLabel}
           statusTone={shellCopy.statusTone}
           readouts={shellCopy.readouts}
-          imageSrc={companion.imageSrc}
-          imageAlt={companion.imageAlt}
           loading={companion.isLoading}
         />
 

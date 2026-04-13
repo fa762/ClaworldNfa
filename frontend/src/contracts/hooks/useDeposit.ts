@@ -1,6 +1,6 @@
 'use client';
 
-import { useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { parseEther, maxUint256, type Address, zeroAddress } from 'viem';
 import { ClawNFAABI } from '../abis/ClawNFA';
 import { ClawRouterABI } from '../abis/ClawRouter';
@@ -60,7 +60,7 @@ export function useCLWBalance(owner: Address | undefined) {
     functionName: 'balanceOf',
     args: owner ? [owner] : undefined,
     query: {
-      enabled: !!owner,
+      enabled: !!owner && !!addresses.clwToken && addresses.clwToken !== zeroAddress,
       refetchInterval: 3000,
     },
   });

@@ -1,6 +1,6 @@
 # Current Handoff
 
-Last updated: 2026-04-13 (session 16) Asia/Singapore
+Last updated: 2026-04-13 (session 17) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
@@ -139,6 +139,58 @@ The new rule from this point:
 - stop counting route presence and build-green status as product completion
 - prioritize real usability blockers before any further art or feature expansion
 - treat silent zero reads, overcrowded screens, duplicate navigation, and wrong interaction model as P0/P1 product defects
+
+## Frontend real-device fix checkpoint - 2026-04-13 session 17
+
+This pass was driven by the latest real-device screenshots and focused on four immediate product defects.
+
+What is now done:
+
+1. Claworld wallet balance now uses a stable ERC20 `balanceOf(...)` read path
+- both the shell companion snapshot and the upkeep panel were switched away from the token-balance helper path
+- this removes one likely source of false `0` wallet reads on the rebuilt shell
+- build passed after the hook swap
+
+2. `Claworld` naming is now normalized on the rebuilt shell path
+- user-facing `CLW` labels were removed from the rebuilt Home/upkeep surfaces
+- balance labels now read as `Claworld`
+- compact value formatting also now follows:
+  - `1k`
+  - `500k`
+  - `1M`
+
+3. The persistent companion stage was compressed again
+- the fixed image slot was removed from the shell stage
+- the stage is now only:
+  - eyebrow
+  - title
+  - status chip
+  - three compact readouts
+- empty right-side visual space is gone, which gives more room back to the active page
+
+4. Home middle duplication was removed
+- the extra Home summary band under the fixed stage was deleted
+- Home now starts directly from:
+  - no-NFA empty state when needed
+  - next actions
+  - upkeep / reserve maintenance
+  - current result
+
+5. Mining preview failure is now shorter and contained
+- `previewTypedTaskOutcome(...)` reverts no longer dump the full viem error blob into the modal
+- preview failures now collapse into a compact retry state inside the same modal
+- the modal height was also tightened so it does not eat as much of the phone viewport
+
+Verification:
+
+- `npm --prefix frontend run build` passed after this pass
+
+Next real-environment checks after deploy:
+
+1. confirm wallet `Claworld` balance on the live deployed shell
+2. confirm the compact stage no longer wastes vertical space
+3. confirm Home no longer duplicates the fixed companion data
+4. confirm mining preview failure now shows a short retry state instead of the raw revert blob
 
 The frontend is now re-baselined around the following blocking problems:
 

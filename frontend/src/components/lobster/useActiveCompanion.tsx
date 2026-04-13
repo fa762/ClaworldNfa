@@ -10,9 +10,8 @@ import {
   type ReactNode,
 } from 'react';
 import { useAccount, useBalance, useReadContract } from 'wagmi';
-import { type Address } from 'viem';
+import { type Address, zeroAddress } from 'viem';
 
-import { ERC20ABI } from '@/contracts/abis/ERC20';
 import { useAgentMetadata, useAgentState, useTokensOfOwner } from '@/contracts/hooks/useClawNFA';
 import {
   useClwBalance,
@@ -21,6 +20,7 @@ import {
   useLobsterState,
 } from '@/contracts/hooks/useClawRouter';
 import { usePkStats, useTaskStats } from '@/contracts/hooks/useNFAStats';
+import { ERC20ABI } from '@/contracts/abis/ERC20';
 import { addresses } from '@/contracts/addresses';
 import { formatBNB, formatCLW } from '@/lib/format';
 import { resolveIpfsUrl } from '@/lib/ipfs';
@@ -269,7 +269,11 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
     abi: ERC20ABI,
     functionName: 'balanceOf',
     args: ownerAddress ? [ownerAddress] : undefined,
-    query: { enabled: connected && Boolean(ownerAddress && addresses.clwToken) },
+    query: {
+      enabled:
+        connected &&
+        Boolean(ownerAddress && addresses.clwToken && addresses.clwToken !== zeroAddress),
+    },
   });
 
   const selectCompanion = useCallback(

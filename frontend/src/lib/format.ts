@@ -8,10 +8,17 @@ export function formatBNB(wei: bigint, decimals = 4): string {
   return val.toFixed(decimals);
 }
 
+function formatCompactClaworld(value: number, divisor: number, suffix: 'k' | 'M') {
+  const compact = value / divisor;
+  const precision = compact >= 100 ? 0 : 1;
+  return `${compact.toFixed(precision).replace(/\.0$/, '')}${suffix}`;
+}
+
 export function formatCLW(wei: bigint, decimals = 2): string {
   const val = Number(formatEther(wei));
-  if (val >= 1_000_000) return Math.floor(val).toLocaleString();
-  if (val >= 1_000) return Math.floor(val).toLocaleString();
+  if (val >= 1_000_000) return formatCompactClaworld(val, 1_000_000, 'M');
+  if (val >= 999_500) return '1M';
+  if (val >= 1_000) return formatCompactClaworld(val, 1_000, 'k');
   return val.toFixed(decimals);
 }
 

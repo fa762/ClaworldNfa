@@ -147,6 +147,52 @@ This pass executed the first five reset tasks as one closure batch.
 3. keep stripping filler copy from nested panels
 4. finish Chinese-first cleanup on secondary components
 
+## Progress checkpoint - 2026-04-13 session 17
+
+This pass handled the latest real-device defects before any further art work.
+
+### Completed in this pass
+
+1. Wallet `Claworld` read path hardened
+- the rebuilt shell and upkeep panel now read token balance through ERC20 `balanceOf(...)`
+- this is intended to eliminate the misleading token-balance helper path on the main surfaces
+
+2. Token naming tightened
+- active rebuilt-shell surfaces now use `Claworld` instead of `CLW`
+- compact value formatting now follows the expected readability pattern:
+  - `1k`
+  - `500k`
+  - `1M`
+
+3. Persistent stage compressed again
+- the image slot was removed from the fixed stage
+- the stage now behaves as a compact status strip instead of a half-screen hero
+- no blank right-side art gutter remains
+
+4. Home duplicate middle section removed
+- the page no longer repeats the same companion summary below the fixed stage
+- Home now starts directly from action and maintenance surfaces
+
+5. Mining preview failure reduced to a compact modal state
+- raw viem revert blobs are no longer allowed to dominate the preview sheet
+- preview failure now resolves to:
+  - short error
+  - retry
+  - close
+- modal height was reduced to behave more like a bounded action sheet on mobile
+
+### Verification
+
+- `npm --prefix frontend run build`
+- passed
+
+### Updated next priority after session 17
+
+1. verify live deployed wallet `Claworld` balance on the rebuilt shell
+2. continue stripping filler copy from nested panels
+3. continue turning Arena / Auto inner flows into shorter decision surfaces
+4. keep art/motion blocked until these live interaction defects are cleared
+
 ## Long task plan
 
 ### Phase 1 — Stop false zero states

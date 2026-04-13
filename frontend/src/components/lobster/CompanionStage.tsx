@@ -10,8 +10,6 @@ type CompanionStageProps = {
   statusLabel: string;
   statusTone: CompanionStageTone;
   readouts: Array<{ label: string; value: string; tone?: CompanionStageTone }>;
-  imageSrc?: string;
-  imageAlt?: string;
 };
 
 function toneClass(tone?: CompanionStageTone) {
@@ -31,11 +29,7 @@ export function CompanionStage({
   statusLabel,
   statusTone,
   readouts,
-  imageSrc = '/icon.png',
-  imageAlt = 'Clawworld lobster companion',
 }: CompanionStageProps) {
-  const normalizedImage = imageSrc || '/icon.png';
-
   return (
     <section
       className={`cw-stage cw-stage--${variant} cw-stage--status-${statusTone} ${compact ? 'cw-stage--compact' : ''}`}
@@ -58,15 +52,6 @@ export function CompanionStage({
             </div>
           </>
         )}
-      </div>
-
-      <div className="cw-stage-visual">
-        <div className={`cw-stage-art ${compact ? 'cw-stage-art--compact' : ''}`}>
-          <div className="cw-stage-shell" />
-          <div className="cw-stage-ring" />
-          <div className="cw-stage-glow" />
-          <img src={normalizedImage} alt={imageAlt} className="cw-stage-image" />
-        </div>
       </div>
 
       <div className="cw-stage-readouts">

@@ -73,6 +73,9 @@ function clamp(value: number, min: number, max: number) {
 
 function getErrorMessage(error: unknown, pick: <T,>(zh: T, en: T) => T) {
   if (!(error instanceof Error)) return pick('任务提交失败', 'Task transaction failed.');
+  if (error.message.includes('previewTypedTaskOutcome') || error.message.includes(' reverted')) {
+    return pick('链上预览失败，请重试或换一个任务。', 'Preview reverted. Retry or choose another task.');
+  }
   if (error.message.includes('Cooldown active')) return pick('任务还在冷却', 'Task cooldown is still active.');
   if (error.message.includes('Not NFA owner')) return pick('当前钱包不是持有人', 'Connected wallet does not own this lobster.');
   if (error.message.includes('XP cap exceeded')) return pick('XP 超过上限', 'XP reward exceeds the current TaskSkill cap.');
@@ -273,6 +276,7 @@ export default function PlayPage() {
   const previewNeedsRetry = Boolean(previewReadError || gasEstimateError);
   const previewRefreshing =
     refreshingPreview || previewQuery.isRefetching || lastTaskTimeQuery.isRefetching;
+  const previewUnavailable = !previewLoading && !preview && Boolean(previewReadError);
 
   useEffect(() => {
     let cancelled = false;
@@ -547,6 +551,34 @@ export default function PlayPage() {
                     <div className="cw-skeleton-line" />
                     <div className="cw-skeleton-line cw-skeleton-line--mid" />
                   </div>
+                ) : previewUnavailable ? (
+                  <>
+                    <div className="cw-list">
+                      <div className="cw-list-item cw-list-item--alert">
+                        <Shield size={16} />
+                        <span>{pick(`预览失败：${getErrorMessage(previewReadError, pick)}`, `Preview failed: ${getErrorMessage(previewReadError, pick)}`)}</span>
+                      </div>
+                    </div>
+
+                    <div className="cw-button-row">
+                      <button
+                        type="button"
+                        className="cw-button cw-button--secondary"
+                        disabled={previewRefreshing}
+                        onClick={() => void handleRefreshPreview()}
+                      >
+                        <TimerReset size={16} />
+                        {previewRefreshing ? pick('重读中', 'Refreshing') : pick('重试预览', 'Retry preview')}
+                      </button>
+                      <button
+                        type="button"
+                        className="cw-button cw-button--ghost"
+                        onClick={() => setSheetOpen(false)}
+                      >
+                        {pick('关闭', 'Close')}
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   <>
                     <div className="cw-state-grid">
