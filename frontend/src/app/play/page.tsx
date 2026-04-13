@@ -9,12 +9,9 @@ import {
   Sparkles,
   Swords,
   TimerReset,
+  X,
 } from 'lucide-react';
-import {
-  decodeEventLog,
-  parseEther,
-  type Address,
-} from 'viem';
+import { decodeEventLog, parseEther, type Address } from 'viem';
 import {
   useAccount,
   usePublicClient,
@@ -23,7 +20,6 @@ import {
   useWriteContract,
 } from 'wagmi';
 
-import { OwnedCompanionRail } from '@/components/lobster/OwnedCompanionRail';
 import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
 import { WalletGate } from '@/components/wallet/WalletGate';
 import { TaskSkillABI } from '@/contracts/abis/TaskSkill';
@@ -32,6 +28,7 @@ import { formatBasisPoints, formatBNB, formatCLW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 
 type TaskTone = 'cw-card--ready' | 'cw-card--watch' | 'cw-card--safe' | 'cw-card--warning';
+type SheetMode = 'preview' | 'confirm';
 
 type TaskTemplate = {
   key: string;
@@ -75,26 +72,24 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function getErrorMessage(error: unknown, pick: <T,>(zh: T, en: T) => T) {
-  if (!(error instanceof Error)) return pick('任务交易失败。', 'Task transaction failed.');
-  if (error.message.includes('Cooldown active')) return pick('任务冷却还没结束。', 'Task cooldown is still active.');
-  if (error.message.includes('Not NFA owner')) return pick('当前钱包不是这只龙虾的持有人。', 'Connected wallet does not own this lobster.');
-  if (error.message.includes('XP cap exceeded')) return pick('XP 奖励超过当前 TaskSkill 上限。', 'XP reward exceeds the current TaskSkill cap.');
-  if (error.message.includes('CLW cap exceeded')) return pick('请求的 Claworld 奖励超过当前 TaskSkill 上限。', 'Requested Claworld reward exceeds the current TaskSkill cap.');
-  if (error.message.includes('User rejected')) return pick('钱包拒绝了签名。', 'Wallet signature was rejected.');
+  if (!(error instanceof Error)) return pick('任务提交失败', 'Task transaction failed.');
+  if (error.message.includes('Cooldown active')) return pick('任务还在冷却', 'Task cooldown is still active.');
+  if (error.message.includes('Not NFA owner')) return pick('当前钱包不是持有人', 'Connected wallet does not own this lobster.');
+  if (error.message.includes('XP cap exceeded')) return pick('XP 超过上限', 'XP reward exceeds the current TaskSkill cap.');
+  if (error.message.includes('CLW cap exceeded')) return pick('奖励超过上限', 'Requested Claworld reward exceeds the current TaskSkill cap.');
+  if (error.message.includes('Monthly cap exceeded')) return pick('本月性格漂移已到上限', 'Monthly personality drift cap reached.');
+  if (error.message.includes('User rejected')) return pick('钱包拒绝签名', 'Wallet signature was rejected.');
   return error.message;
 }
 
-function formatRemaining(seconds: number) {
+function formatRemaining(seconds: number, pick: <T,>(zh: T, en: T) => T) {
   const safe = Math.max(0, Math.floor(seconds));
   const hours = Math.floor(safe / 3600);
   const minutes = Math.floor((safe % 3600) / 60);
   const secs = safe % 60;
-  const parts = [
-    hours > 0 ? `${hours}h` : null,
-    minutes > 0 ? `${minutes}m` : null,
-    hours === 0 ? `${secs}s` : null,
-  ].filter(Boolean);
-  return parts.join(' ') || '0s';
+  if (hours > 0) return pick(`${hours}小时 ${minutes}分`, `${hours}h ${minutes}m`);
+  if (minutes > 0) return pick(`${minutes}分 ${secs}秒`, `${minutes}m ${secs}s`);
+  return pick(`${secs}秒`, `${secs}s`);
 }
 
 function buildTaskTemplates(
@@ -120,21 +115,14 @@ function buildTaskTemplates(
       taskType: 0,
       xpReward: clamp(16 + level * 2, 12, 32),
       requestedClw: parseEther(
-        String(
-          Math.max(8, Math.round(traits.courage * 0.22 + traits.grit * 0.14 + level * 1.8)),
-        ),
+        String(Math.max(8, Math.round(traits.courage * 0.22 + traits.grit * 0.14 + level * 1.8))),
       ),
       score: clamp(
-        Math.round(
-          traits.courage * 0.62 + traits.grit * 0.36 + levelLift - upkeepPressure * 0.25,
-        ),
+        Math.round(traits.courage * 0.62 + traits.grit * 0.36 + levelLift - upkeepPressure * 0.25),
         8,
         99,
       ),
-      detail:
-        traits.courage >= traits.wisdom
-          ? pick('更吃勇气和韧性，适合在储备扛得住时追求更高回报。', 'Leans into courage and grit. Best when you want upside and the reserve can handle it.')
-          : pick('也能做，但当前这只龙虾并不是纯进攻型。', 'Still viable, but this lobster is not primarily aggression-led right now.'),
+      detail: pick('高回报', 'High upside'),
       icon: Swords,
       tone: active ? 'cw-card--ready' : 'cw-card--warning',
     },
@@ -144,21 +132,14 @@ function buildTaskTemplates(
       taskType: 1,
       xpReward: clamp(14 + level * 2, 12, 30),
       requestedClw: parseEther(
-        String(
-          Math.max(6, Math.round(traits.wisdom * 0.16 + traits.create * 0.08 + level * 1.2)),
-        ),
+        String(Math.max(6, Math.round(traits.wisdom * 0.16 + traits.create * 0.08 + level * 1.2))),
       ),
       score: clamp(
-        Math.round(
-          traits.wisdom * 0.7 + traits.create * 0.18 + levelLift - upkeepPressure * 0.16,
-        ),
+        Math.round(traits.wisdom * 0.7 + traits.create * 0.18 + levelLift - upkeepPressure * 0.16),
         8,
         99,
       ),
-      detail:
-        traits.wisdom >= 55
-          ? pick('更适合当前想走稳一点、方差低一点的成长线。', 'Stronger fit when the current goal is cleaner growth and lower variance.')
-          : pick('即使不是收益最高，也是一条更平稳的路线。', 'Useful as a steadier line even when it is not the highest-upside task.'),
+      detail: pick('稳一点', 'Steady'),
       icon: Shield,
       tone: 'cw-card--watch',
     },
@@ -168,21 +149,14 @@ function buildTaskTemplates(
       taskType: 3,
       xpReward: clamp(12 + level * 2, 10, 28),
       requestedClw: parseEther(
-        String(
-          Math.max(4, Math.round(traits.create * 0.12 + traits.social * 0.06 + level)),
-        ),
+        String(Math.max(4, Math.round(traits.create * 0.12 + traits.social * 0.06 + level))),
       ),
       score: clamp(
-        Math.round(
-          traits.create * 0.58 + traits.social * 0.22 + levelLift - upkeepPressure * 0.1,
-        ),
+        Math.round(traits.create * 0.58 + traits.social * 0.22 + levelLift - upkeepPressure * 0.1),
         8,
         99,
       ),
-      detail:
-        upkeepDays !== null && upkeepDays <= 2
-          ? pick('当前储备偏紧，低波动路线更值得优先考虑。', 'Reserve is tighter, so the lower-variance route deserves more weight.')
-          : pick('当保预算比追最高回报更重要时，这条更合适。', 'Best when preserving budget matters more than chasing the highest return.'),
+      detail: upkeepDays !== null && upkeepDays <= 2 ? pick('保守', 'Lower risk') : pick('平衡', 'Balanced'),
       icon: Hammer,
       tone: upkeepDays !== null && upkeepDays <= 2 ? 'cw-card--warning' : 'cw-card--safe',
     },
@@ -198,7 +172,8 @@ export default function PlayPage() {
   const receiptQuery = useWaitForTransactionReceipt({ hash });
 
   const [selectedTaskKey, setSelectedTaskKey] = useState<string | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<SheetMode>('preview');
   const [gasUnits, setGasUnits] = useState<bigint | null>(null);
   const [gasCostWei, setGasCostWei] = useState<bigint | null>(null);
   const [gasEstimateError, setGasEstimateError] = useState<string | null>(null);
@@ -230,7 +205,6 @@ export default function PlayPage() {
   );
 
   const topTask = rankedTaskTemplates[0];
-  const reserveFloor = companion.dailyCost > 0n ? companion.dailyCost * 3n : 0n;
 
   useEffect(() => {
     if (!topTask) return;
@@ -241,7 +215,8 @@ export default function PlayPage() {
   }, [rankedTaskTemplates, topTask]);
 
   useEffect(() => {
-    setConfirmOpen(false);
+    setSheetOpen(false);
+    setSheetMode('preview');
     setResult(null);
     setSubmittedTask(null);
     setSubmittedPreview(null);
@@ -252,9 +227,7 @@ export default function PlayPage() {
       setNow(Math.floor(Date.now() / 1000));
     }, 1000);
 
-    return () => {
-      window.clearInterval(timer);
-    };
+    return () => window.clearInterval(timer);
   }, []);
 
   const selectedTask = rankedTaskTemplates.find((task) => task.key === selectedTaskKey) ?? topTask;
@@ -264,21 +237,16 @@ export default function PlayPage() {
     functionName: 'previewTypedTaskOutcome',
     args:
       companion.hasToken && selectedTask
-        ? [
-            companion.tokenId,
-            selectedTask.taskType,
-            selectedTask.xpReward,
-            selectedTask.requestedClw,
-          ]
+        ? [companion.tokenId, selectedTask.taskType, selectedTask.xpReward, selectedTask.requestedClw]
         : undefined,
-    query: { enabled: companion.hasToken && Boolean(selectedTask) },
+    query: { enabled: companion.hasToken && sheetOpen && Boolean(selectedTask) },
   });
 
   const lastTaskTimeQuery = useReadContract({
     ...taskSkillContract,
     functionName: 'lastTaskTime',
     args: companion.hasToken ? [companion.tokenId] : undefined,
-    query: { enabled: companion.hasToken },
+    query: { enabled: companion.hasToken && sheetOpen },
   });
 
   const preview = useMemo(() => {
@@ -306,16 +274,6 @@ export default function PlayPage() {
   const previewRefreshing =
     refreshingPreview || previewQuery.isRefetching || lastTaskTimeQuery.isRefetching;
 
-  const flowStage = result
-    ? 'result'
-    : receiptQuery.isLoading || isPending
-      ? 'executing'
-      : confirmOpen
-        ? 'confirm'
-        : selectedTask
-          ? 'preview'
-          : 'idle';
-
   useEffect(() => {
     let cancelled = false;
 
@@ -326,7 +284,8 @@ export default function PlayPage() {
         !companion.hasToken ||
         !selectedTask ||
         !preview ||
-        !effectiveCooldownReady
+        !effectiveCooldownReady ||
+        !sheetOpen
       ) {
         setGasUnits(null);
         setGasCostWei(null);
@@ -366,11 +325,10 @@ export default function PlayPage() {
     }
 
     void estimateGas();
-
     return () => {
       cancelled = true;
     };
-  }, [address, companion.hasToken, companion.tokenId, effectiveCooldownReady, pick, preview, publicClient, selectedTask]);
+  }, [address, companion.hasToken, companion.tokenId, effectiveCooldownReady, pick, preview, publicClient, selectedTask, sheetOpen]);
 
   useEffect(() => {
     if (!receiptQuery.data || !hash || !submittedTask) return;
@@ -414,7 +372,8 @@ export default function PlayPage() {
       driftState,
       driftReason,
     });
-    setConfirmOpen(false);
+    setSheetOpen(false);
+    setSheetMode('preview');
     setSubmittedTask(null);
     setSubmittedPreview(null);
   }, [hash, receiptQuery.data, submittedPreview, submittedTask]);
@@ -430,38 +389,33 @@ export default function PlayPage() {
   const taskPulse = error
     ? {
         tone: 'cw-panel--cool',
-        chip: 'Failed',
+        chip: pick('失败', 'Failed'),
         chipTone: 'cw-chip--alert',
-        title: 'Task request failed',
+        title: pick('任务提交失败', 'Task request failed'),
         detail: getErrorMessage(error, pick),
       }
     : awaitingWallet || isPending
       ? {
           tone: 'cw-panel--warm',
-          chip: pick('等待签名', 'Sign'),
+          chip: pick('签名', 'Sign'),
           chipTone: 'cw-chip--warm',
           title: selectedTask ? pick(`请在钱包确认 ${selectedTask.title}`, `Sign ${selectedTask.title}`) : pick('请在钱包确认任务', 'Sign task'),
-          detail: pick('预览已经锁定，下一步去钱包确认 owner-path 交易。', 'The task preview is locked. Confirm the owner-path transaction in the wallet to continue.'),
+          detail: pick('先去钱包确认，再回来等链上结果。', 'Confirm in wallet, then wait for the on-chain result.'),
         }
       : receiptQuery.isLoading && submittedTask
         ? {
-          tone: 'cw-panel--warm',
-          chip: pick('确认中', 'Confirming'),
-          chipTone: 'cw-chip--warm',
-          title: pick(`${submittedTask.title} 链上确认中`, `${submittedTask.title} is confirming on-chain`),
-          detail: pick('交易已经发到 BNB Chain，等回执落地后结果面板会自动完成。', 'The transaction is live on BNB Chain. Hold this surface until the receipt lands and the result panel resolves.'),
-        }
+            tone: 'cw-panel--warm',
+            chip: pick('确认中', 'Confirming'),
+            chipTone: 'cw-chip--warm',
+            title: pick(`${submittedTask.title} 链上确认中`, `${submittedTask.title} is confirming`),
+            detail: pick('交易已发出，等回执。', 'Transaction sent. Waiting for receipt.'),
+          }
         : null;
 
-  function handleReview(taskKey: string) {
+  function handleOpenTask(taskKey: string) {
     setSelectedTaskKey(taskKey);
-    setConfirmOpen(false);
-    setResult(null);
-  }
-
-  function handleOpenConfirm() {
-    if (!selectedTask || !preview) return;
-    setConfirmOpen(true);
+    setSheetMode('preview');
+    setSheetOpen(true);
     setResult(null);
   }
 
@@ -493,7 +447,7 @@ export default function PlayPage() {
         ],
       });
     } catch {
-      // wagmi error renders via error state
+      // wagmi error handled above
     } finally {
       setAwaitingWallet(false);
     }
@@ -505,340 +459,328 @@ export default function PlayPage() {
         <div className="cw-band--split">
           <div>
             <p className="cw-eyebrow">{pick('任务挖矿', 'Task mining')}</p>
-            <h2 className="cw-section-title">{pick(`${companion.name} 准备开始挖矿。`, `${companion.name} is ready to mine.`)}</h2>
-            <p className="cw-muted">
-              {pick('选一条挖矿路线，先看实时报价，再签一次，结果直接回到同一页。', 'Pick a mining line, review the live quote, sign once, and read the result back on the same surface.')}
-            </p>
+            <h2 className="cw-section-title">{companion.name}</h2>
           </div>
           <div className="cw-score">
             <strong>{topTask.score}%</strong>
-            <span>{pick('最优匹配', 'top fit')}</span>
+            <span>{pick('匹配', 'fit')}</span>
           </div>
         </div>
       </section>
 
       <WalletGate
-        title={pick('先连接 owner 钱包，再开始挖矿。', 'Connect the owner wallet to start mining.')}
-        detail={pick('挖矿依赖真实所有权、储备、冷却和钱包签名状态。在这些读数就绪前，页面应停在这里。', 'Mining needs real ownership, reserve, cooldown, and wallet-signature state. The page should stop here until those reads are live.')}
+        title={pick('先连接持有人钱包', 'Connect owner wallet first')}
+        detail={pick('没有钱包或没有 NFA 时，这里不继续显示任务操作。', 'Task actions stay gated until wallet and ownership are ready.')}
       >
-      <OwnedCompanionRail
-        title={pick('挖矿编组', 'Task roster')}
-        subtitle={pick('开始下一轮工作前，先切换当前龙虾。', 'Switch the active lobster before committing to the next work loop.')}
-      />
-
-      <section className="cw-panel cw-panel--warm">
-        <div className="cw-section-head">
-          <div>
-            <span className="cw-label">{pick('循环状态', 'Loop state')}</span>
-            <h3>{pick(`${topTask.title} 是当前最契合的路线。`, `${topTask.title} is currently the best fit.`)}</h3>
-            <p className="cw-muted">
-              {pick(`储备 ${companion.routerClaworldText} / 安全底线 ${formatCLW(reserveFloor)} / 维护 ${companion.dailyCostText}。`, `Reserve ${companion.routerClaworldText} / safety floor ${formatCLW(reserveFloor)} / upkeep ${companion.dailyCostText}.`)}
-            </p>
-          </div>
-          <span className={`cw-chip ${effectiveCooldownReady ? 'cw-chip--growth' : 'cw-chip--alert'}`}>
-            <TimerReset size={14} />
-            {effectiveCooldownReady ? pick('现在可挖', 'Ready now') : formatRemaining(cooldownRemaining)}
-          </span>
-        </div>
-
-        <div className="cw-flow-track">
-          {[
-            { key: 'preview', label: pick('预览', 'Preview') },
-            { key: 'confirm', label: pick('确认', 'Confirm') },
-            { key: 'executing', label: pick('执行', 'Execute') },
-            { key: 'result', label: pick('结果', 'Result') },
-          ].map((step) => {
-            const active =
-              flowStage === step.key ||
-              (flowStage === 'confirm' && step.key === 'preview') ||
-              (flowStage === 'executing' && (step.key === 'preview' || step.key === 'confirm')) ||
-              (flowStage === 'result' && step.key !== 'idle');
+        <section className="cw-card-stack">
+          {rankedTaskTemplates.map((task) => {
+            const Icon = task.icon;
             return (
-              <div key={step.key} className={`cw-flow-node ${active ? 'cw-flow-node--active' : ''}`}>
-                <span>{step.label}</span>
-              </div>
+              <button
+                key={task.key}
+                type="button"
+                className={`cw-card cw-card--button ${task.tone} ${selectedTask?.key === task.key ? 'cw-card--selected' : ''}`}
+                onClick={() => handleOpenTask(task.key)}
+              >
+                <div className="cw-card-icon">
+                  <Icon size={18} />
+                </div>
+                <div className="cw-card-copy">
+                  <p className="cw-label">{task.title}</p>
+                  <h3>{pick(`约 ${formatCLW(task.requestedClw)}`, `~${formatCLW(task.requestedClw)}`)}</h3>
+                </div>
+                <div className="cw-score">
+                  <strong>{task.score}%</strong>
+                  <span>{task.detail}</span>
+                </div>
+              </button>
             );
           })}
-        </div>
-      </section>
+        </section>
 
-      <section className="cw-card-stack">
-        {rankedTaskTemplates.map((task) => {
-          const Icon = task.icon;
-          const selected = selectedTask?.key === task.key;
-          return (
+        {sheetOpen && selectedTask ? (
+          <section className="cw-modal" aria-modal="true" role="dialog">
             <button
-              key={task.key}
               type="button"
-              className={`cw-card cw-card--button ${task.tone} ${selected ? 'cw-card--selected' : ''}`}
-              onClick={() => handleReview(task.key)}
-            >
-              <div className="cw-card-icon">
-                <Icon size={18} />
-              </div>
-              <div className="cw-card-copy">
-                <p className="cw-label">{task.title}</p>
-                <h3>~{formatCLW(task.requestedClw)} Claworld</h3>
-                <p className="cw-muted">{task.detail}</p>
-              </div>
-              <div className="cw-score">
-                <strong>{task.score}%</strong>
-                <span>{pick('匹配', 'match')}</span>
-              </div>
-            </button>
-          );
-        })}
-      </section>
+              className="cw-modal__scrim"
+              aria-label={pick('关闭', 'Close')}
+              onClick={() => {
+                if (!awaitingWallet && !receiptQuery.isLoading) {
+                  setSheetOpen(false);
+                  setSheetMode('preview');
+                }
+              }}
+            />
+            <div className="cw-modal__sheet">
+              <section className="cw-sheet">
+                <div className="cw-sheet-head">
+                  <div>
+                    <span className="cw-label">
+                      {sheetMode === 'preview' ? pick('预览', 'Preview') : pick('确认', 'Confirm')}
+                    </span>
+                    <h3>{selectedTask.title}</h3>
+                  </div>
+                  <button
+                    type="button"
+                    className="cw-icon-button cw-sheet-close"
+                    onClick={() => {
+                      if (!awaitingWallet && !receiptQuery.isLoading) {
+                        setSheetOpen(false);
+                        setSheetMode('preview');
+                      }
+                    }}
+                    aria-label={pick('关闭', 'Close')}
+                    disabled={awaitingWallet || receiptQuery.isLoading}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
 
-      <section className="cw-panel cw-panel--cool">
-        {previewLoading ? (
-          <div className="cw-loading-card">
-            <div className="cw-skeleton-line cw-skeleton-line--short" />
-            <div className="cw-skeleton-line cw-skeleton-line--mid" />
-            <div className="cw-skeleton-grid">
-              <div className="cw-skeleton-block" />
-              <div className="cw-skeleton-block" />
-              <div className="cw-skeleton-block" />
+                {previewLoading ? (
+                  <div className="cw-loading-card">
+                    <div className="cw-skeleton-line cw-skeleton-line--short" />
+                    <div className="cw-skeleton-grid">
+                      <div className="cw-skeleton-block" />
+                      <div className="cw-skeleton-block" />
+                      <div className="cw-skeleton-block" />
+                    </div>
+                    <div className="cw-skeleton-line" />
+                    <div className="cw-skeleton-line cw-skeleton-line--mid" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="cw-state-grid">
+                      <div className="cw-state-card">
+                        <span className="cw-label">{pick('请求奖励', 'Requested')}</span>
+                        <strong>{formatCLW(selectedTask.requestedClw)}</strong>
+                      </div>
+                      <div className="cw-state-card">
+                        <span className="cw-label">{pick('预计奖励', 'Projected')}</span>
+                        <strong>{preview ? formatCLW(preview.actualClw) : '--'}</strong>
+                      </div>
+                      <div className="cw-state-card">
+                        <span className="cw-label">XP</span>
+                        <strong>{selectedTask.xpReward}</strong>
+                      </div>
+                    </div>
+
+                    <div className="cw-detail-list">
+                      <div className="cw-detail-row">
+                        <span>{pick('冷却', 'Cooldown')}</span>
+                        <strong>{effectiveCooldownReady ? pick('就绪', 'Ready') : formatRemaining(cooldownRemaining, pick)}</strong>
+                      </div>
+                      <div className="cw-detail-row">
+                        <span>{pick('匹配', 'Match')}</span>
+                        <strong>{preview ? `${Math.round(preview.matchScore / 100)}%` : '--'}</strong>
+                      </div>
+                      <div className="cw-detail-row">
+                        <span>{pick('连胜倍率', 'Streak')}</span>
+                        <strong>{preview ? formatBasisPoints(preview.streakMul) : '--'}</strong>
+                      </div>
+                      <div className="cw-detail-row">
+                        <span>{pick('世界倍率', 'World')}</span>
+                        <strong>{preview ? formatBasisPoints(preview.worldMul) : '--'}</strong>
+                      </div>
+                      <div className="cw-detail-row">
+                        <span>{pick('预估 gas', 'Gas')}</span>
+                        <strong>{gasCostWei !== null ? `${formatBNB(gasCostWei, 6)} BNB` : '--'}</strong>
+                      </div>
+                    </div>
+
+                    <div className="cw-list">
+                      {!companion.active ? (
+                        <div className="cw-list-item cw-list-item--cool">
+                          <TimerReset size={16} />
+                          <span>{pick('先维护，再挖矿。', 'Process upkeep before mining.')}</span>
+                        </div>
+                      ) : null}
+                      {!effectiveCooldownReady ? (
+                        <div className="cw-list-item cw-list-item--cool">
+                          <TimerReset size={16} />
+                          <span>{pick(`还要等 ${formatRemaining(cooldownRemaining, pick)}`, `Wait ${formatRemaining(cooldownRemaining, pick)}`)}</span>
+                        </div>
+                      ) : null}
+                      {preview?.personalityDrift ? (
+                        <div className="cw-list-item cw-list-item--warm">
+                          <Sparkles size={16} />
+                          <span>{pick('本次可能触发性格漂移。', 'This run may trigger personality drift.')}</span>
+                        </div>
+                      ) : null}
+                      {gasEstimateError ? (
+                        <div className="cw-list-item cw-list-item--cool">
+                          <Shield size={16} />
+                          <span>{pick(`Gas 估算失败：${gasEstimateError}`, `Gas estimate failed: ${gasEstimateError}`)}</span>
+                        </div>
+                      ) : null}
+                      {previewQuery.error ? (
+                        <div className="cw-list-item cw-list-item--cool">
+                          <Shield size={16} />
+                          <span>{pick(`预览失败：${getErrorMessage(previewQuery.error, pick)}`, `Preview failed: ${getErrorMessage(previewQuery.error, pick)}`)}</span>
+                        </div>
+                      ) : null}
+                      {lastTaskTimeQuery.error ? (
+                        <div className="cw-list-item cw-list-item--cool">
+                          <Shield size={16} />
+                          <span>{pick(`冷却读取失败：${getErrorMessage(lastTaskTimeQuery.error, pick)}`, `Cooldown read failed: ${getErrorMessage(lastTaskTimeQuery.error, pick)}`)}</span>
+                        </div>
+                      ) : null}
+                      {(awaitingWallet || isPending) && sheetMode === 'confirm' ? (
+                        <div className="cw-list-item cw-list-item--warm">
+                          <Shield size={16} />
+                          <span>{pick('现在去钱包确认。', 'Open the wallet and confirm now.')}</span>
+                        </div>
+                      ) : null}
+                      {receiptQuery.isLoading && sheetMode === 'confirm' ? (
+                        <div className="cw-list-item cw-list-item--cool">
+                          <TimerReset size={16} />
+                          <span>{pick('交易已发出，正在等回执。', 'Transaction sent. Waiting for receipt.')}</span>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="cw-button-row">
+                      {previewNeedsRetry ? (
+                        <button
+                          type="button"
+                          className="cw-button cw-button--secondary"
+                          disabled={previewRefreshing}
+                          onClick={() => void handleRefreshPreview()}
+                        >
+                          <TimerReset size={16} />
+                          {previewRefreshing ? pick('重读中', 'Refreshing') : pick('重试预览', 'Retry preview')}
+                        </button>
+                      ) : null}
+                      {sheetMode === 'preview' ? (
+                        <>
+                          <button
+                            type="button"
+                            className="cw-button cw-button--primary"
+                            disabled={!selectedTask || !preview || previewNeedsRetry}
+                            onClick={() => setSheetMode('confirm')}
+                          >
+                            <CheckCircle2 size={16} />
+                            {pick('继续确认', 'Continue')}
+                          </button>
+                          <button
+                            type="button"
+                            className="cw-button cw-button--ghost"
+                            onClick={() => setSheetOpen(false)}
+                          >
+                            {pick('关闭', 'Close')}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="cw-button cw-button--primary"
+                            disabled={!canExecute || awaitingWallet || isPending || receiptQuery.isLoading}
+                            onClick={() => void handleExecute()}
+                          >
+                            <Sparkles size={16} />
+                            {awaitingWallet || isPending
+                              ? pick('等钱包签名', 'Waiting for signature')
+                              : receiptQuery.isLoading
+                                ? pick('链上确认中', 'Confirming')
+                                : pick('执行任务', 'Execute task')}
+                          </button>
+                          <button
+                            type="button"
+                            className="cw-button cw-button--ghost"
+                            disabled={awaitingWallet || isPending || receiptQuery.isLoading}
+                            onClick={() => setSheetMode('preview')}
+                          >
+                            {pick('返回预览', 'Back')}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+              </section>
             </div>
-            <div className="cw-skeleton-line" />
-            <div className="cw-skeleton-line" />
-            <div className="cw-skeleton-line cw-skeleton-line--mid" />
-          </div>
-        ) : (
-          <>
+          </section>
+        ) : null}
+
+        {taskPulse ? (
+          <section className={`cw-panel ${taskPulse.tone}`}>
             <div className="cw-section-head">
               <div>
-                <span className="cw-label">{pick('预览', 'Preview')}</span>
-                <h3>{selectedTask?.title ?? pick('先选一条任务', 'Select a task')} {pick('执行读数', 'execution readout')}</h3>
-                <p className="cw-muted">
-                  {pick('在钱包签任务前，先读取真实 TaskSkill 报价。', 'Preview reads the actual TaskSkill quote before the wallet signs the task.')}
-                </p>
+                <span className="cw-label">{pick('任务状态', 'Task pulse')}</span>
+                <h3>{taskPulse.title}</h3>
               </div>
-              <span className={`cw-chip ${preview?.cooldownReady ? 'cw-chip--growth' : 'cw-chip--alert'}`}>
-                <Sparkles size={14} />
-                {preview ? `${Math.round(preview.matchScore / 100)}% ${pick('匹配', 'match')}` : pick('还没有预览', 'No preview yet')}
-              </span>
+              <span className={`cw-chip ${taskPulse.chipTone}`}>{taskPulse.chip}</span>
             </div>
-
-            <div className="cw-state-grid">
-              <div className="cw-state-card">
-                <span className="cw-label">{pick('请求奖励', 'Requested reward')}</span>
-                <strong>{selectedTask ? formatCLW(selectedTask.requestedClw) : '--'}</strong>
-              </div>
-              <div className="cw-state-card">
-                <span className="cw-label">{pick('预计奖励', 'Projected reward')}</span>
-                <strong>{preview ? formatCLW(preview.actualClw) : '--'}</strong>
-              </div>
-              <div className="cw-state-card">
-                <span className="cw-label">{pick('XP 奖励', 'XP reward')}</span>
-                <strong>{selectedTask?.xpReward ?? '--'}</strong>
-              </div>
-            </div>
-
-            <div className="cw-detail-list">
-              <div className="cw-detail-row">
-                  <span>{pick('冷却', 'Cooldown')}</span>
-                  <strong>{effectiveCooldownReady ? pick('就绪', 'Ready') : formatRemaining(cooldownRemaining)}</strong>
-                </div>
-                <div className="cw-detail-row">
-                  <span>{pick('连胜倍率', 'Streak multiplier')}</span>
-                  <strong>{preview ? formatBasisPoints(preview.streakMul) : '--'}</strong>
-                </div>
-                <div className="cw-detail-row">
-                  <span>{pick('世界倍率', 'World multiplier')}</span>
-                  <strong>{preview ? formatBasisPoints(preview.worldMul) : '--'}</strong>
-                </div>
-                <div className="cw-detail-row">
-                  <span>{pick('Gas 估算', 'Gas estimate')}</span>
-                  <strong>{gasCostWei !== null ? `${formatBNB(gasCostWei, 6)} BNB` : '--'}</strong>
-                </div>
-              </div>
-
-            <div className="cw-list">
-              {!companion.active ? (
-                <div className="cw-list-item cw-list-item--cool">
-                  <TimerReset size={16} />
-                  <span>{pick('这只龙虾要先补维护，才能继续执行新任务。', 'This lobster needs upkeep before a new task can execute.')}</span>
-                </div>
-              ) : null}
-              {!effectiveCooldownReady ? (
-                <div className="cw-list-item cw-list-item--cool">
-                  <TimerReset size={16} />
-                  <span>{pick(`任务冷却还剩 ${formatRemaining(cooldownRemaining)}。`, `Task cooldown is still active for another ${formatRemaining(cooldownRemaining)}.`)}</span>
-                </div>
-              ) : null}
-              {preview?.personalityDrift ? (
-                <div className="cw-list-item cw-list-item--warm">
-                  <Sparkles size={16} />
-                  <span>{pick('如果这次跑得干净，这条任务会触发 personality drift。', 'This task qualifies for personality drift if the run lands cleanly.')}</span>
-                </div>
-              ) : (
-                <div className="cw-list-item cw-list-item--cool">
-                  <Shield size={16} />
-                  <span>{pick('这条路线 drift 很低，更偏稳健成长。', 'This route is a low-drift line focused on steady progression.')}</span>
-                </div>
-              )}
-              {gasEstimateError ? (
-                <div className="cw-list-item cw-list-item--cool">
-                  <Shield size={16} />
-                  <span>{pick(`Gas 估算失败：${gasEstimateError}`, `Gas estimate failed: ${gasEstimateError}`)}</span>
-                </div>
-              ) : null}
-              {previewQuery.error ? (
-                <div className="cw-list-item cw-list-item--cool">
-                  <Shield size={16} />
-                  <span>{pick(`预览失败：${getErrorMessage(previewQuery.error, pick)}`, `Preview failed: ${getErrorMessage(previewQuery.error, pick)}`)}</span>
-                </div>
-              ) : null}
-              {lastTaskTimeQuery.error ? (
-                <div className="cw-list-item cw-list-item--cool">
-                  <Shield size={16} />
-                  <span>{pick(`冷却读数失败：${getErrorMessage(lastTaskTimeQuery.error, pick)}`, `Cooldown read failed: ${getErrorMessage(lastTaskTimeQuery.error, pick)}`)}</span>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="cw-button-row">
-              {previewNeedsRetry ? (
-                <button
-                  type="button"
+            <p className="cw-muted">{taskPulse.detail}</p>
+            {hash ? (
+              <div className="cw-button-row">
+                <a
+                  href={getBscScanTxUrl(hash)}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="cw-button cw-button--secondary"
-                  disabled={previewRefreshing}
-                  onClick={() => void handleRefreshPreview()}
                 >
-                  <TimerReset size={16} />
-                  {previewRefreshing ? pick('重新读取中', 'Refreshing preview') : pick('重新读取预览', 'Retry preview')}
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="cw-button cw-button--primary"
-                disabled={!selectedTask || !preview || !companion.active}
-                onClick={handleOpenConfirm}
-              >
-                <CheckCircle2 size={16} />
-                {pick('先看确认面板', 'Review before execute')}
-              </button>
-            </div>
-          </>
-        )}
-      </section>
+                  <ArrowUpRight size={16} />
+                  {pick('查看交易', 'View transaction')}
+                </a>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
 
-      {confirmOpen && selectedTask && preview ? (
-        <section className="cw-sheet">
-          <div className="cw-sheet-head">
-            <div>
-              <span className="cw-label">{pick('确认任务', 'Confirm task')}</span>
-              <h3>{selectedTask.title}</h3>
-              <p className="cw-muted">
-                {pick('这条链路会直接由持有人钱包签名，确认后就会把这轮挖矿真正发到链上。', 'This flow is signed directly by the owner wallet and sends the mining run on-chain after confirmation.')}
-              </p>
+        {result ? (
+          <section className="cw-result-panel cw-result-panel--success">
+            <div className="cw-result-head">
+              <div className="cw-result-icon">
+                <CheckCircle2 size={22} />
+              </div>
+              <div>
+                <span className="cw-label">{pick('任务完成', 'Task complete')}</span>
+                <h3>{result.taskTitle}</h3>
+                <div className="cw-result-celebration">+{formatCLW(result.actualClw)}</div>
+              </div>
             </div>
-            <span className={`cw-chip ${canExecute ? 'cw-chip--warm' : 'cw-chip--alert'}`}>
-              {canExecute ? pick('就绪', 'Ready') : pick('阻塞', 'Blocked')}
-            </span>
-          </div>
 
-          <div className="cw-state-grid">
-            <div className="cw-state-card">
-              <span className="cw-label">{pick('预计奖励', 'Projected reward')}</span>
-              <strong>{formatCLW(preview.actualClw)}</strong>
+            <div className="cw-result-grid">
+              <div className="cw-result-stat cw-result-stat--hero">
+                <span className="cw-label">{pick('实际奖励', 'Actual reward')}</span>
+                <strong>+{formatCLW(result.actualClw)}</strong>
+              </div>
+              <div className="cw-result-stat">
+                <span className="cw-label">XP</span>
+                <strong>+{result.xpReward}</strong>
+              </div>
+              <div className="cw-result-stat">
+                <span className="cw-label">{pick('匹配', 'Match')}</span>
+                <strong>{Math.round(result.matchScore / 100)}%</strong>
+              </div>
             </div>
-            <div className="cw-state-card">
-              <span className="cw-label">{pick('XP 增长', 'XP gain')}</span>
-              <strong>{selectedTask.xpReward}</strong>
-            </div>
-            <div className="cw-state-card">
-              <span className="cw-label">{pick('执行后储备', 'Reserve after task')}</span>
-              <strong>{formatCLW(companion.routerClaworld + preview.actualClw)}</strong>
-            </div>
-          </div>
 
-          <div className="cw-detail-list">
-            <div className="cw-detail-row">
-              <span>{pick('性格匹配', 'Personality match')}</span>
-              <strong>{Math.round(preview.matchScore / 100)}%</strong>
-            </div>
-            <div className="cw-detail-row">
-              <span>{pick('钱包', 'Wallet')}</span>
-              <strong>{address ? `${address.slice(0, 6)}...${address.slice(-4)}` : pick('未连接', 'Not connected')}</strong>
-            </div>
-            <div className="cw-detail-row">
-              <span>{pick('预估 gas', 'Estimated gas')}</span>
-              <strong>{gasCostWei !== null ? formatBNB(gasCostWei, 6) : '--'} BNB</strong>
-            </div>
-            <div className="cw-detail-row">
-              <span>{pick('Drift 路径', 'Drift path')}</span>
-              <strong>{preview.personalityDrift ? pick('可能触发', 'Possible') : pick('不会触发', 'Not triggered')}</strong>
-            </div>
-          </div>
-
-          {awaitingWallet || isPending ? (
             <div className="cw-list">
               <div className="cw-list-item cw-list-item--warm">
+                <Sparkles size={16} />
+                <span>
+                  {pick(
+                    `请求 ${formatCLW(result.requestedClw)} / 实际 ${formatCLW(result.actualClw)}`,
+                    `Requested ${formatCLW(result.requestedClw)} / actual ${formatCLW(result.actualClw)}`,
+                  )}
+                </span>
+              </div>
+              <div className={`cw-list-item ${result.driftState === 'applied' ? 'cw-list-item--warm' : 'cw-list-item--cool'}`}>
                 <Shield size={16} />
                 <span>
-                  {pick(
-                    '现在去钱包里确认这笔挖矿交易。确认完成前，不要切走这个页面。',
-                    'Open the wallet and confirm this mining transaction. Keep this page open until the signature is done.',
-                  )}
+                  {result.driftState === 'applied'
+                    ? pick('已触发性格漂移。', 'Personality drift applied.')
+                    : result.driftState === 'skipped'
+                      ? pick(`性格漂移已跳过：${result.driftReason ?? '受上限约束'}`, `Personality drift skipped: ${result.driftReason ?? 'bounded by cap'}`)
+                      : pick('本次没有漂移。', 'No drift on this run.')}
                 </span>
               </div>
             </div>
-          ) : receiptQuery.isLoading ? (
-            <div className="cw-list">
-              <div className="cw-list-item cw-list-item--cool">
-                <TimerReset size={16} />
-                <span>
-                  {pick(
-                    '交易已经发出，正在等链上回执。保持页面打开，结果面板会在确认后自动完成。',
-                    'The transaction is on-chain and waiting for the receipt. Keep this page open and the result panel will resolve automatically.',
-                  )}
-                </span>
-              </div>
-            </div>
-          ) : null}
 
-          <div className="cw-button-row">
-            <button
-              type="button"
-              className="cw-button cw-button--primary"
-              disabled={!canExecute || awaitingWallet || isPending || receiptQuery.isLoading}
-              onClick={() => void handleExecute()}
-            >
-              <Sparkles size={16} />
-              {awaitingWallet || isPending
-                ? pick('等待钱包签名', 'Waiting for signature')
-                : receiptQuery.isLoading
-                  ? pick('链上确认中', 'Confirming')
-                  : pick('执行任务', 'Execute task')}
-            </button>
-            <button
-              type="button"
-              className="cw-button cw-button--ghost"
-              disabled={awaitingWallet || isPending || receiptQuery.isLoading}
-              onClick={() => setConfirmOpen(false)}
-            >
-              {pick('返回任务列表', 'Back to tasks')}
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      {taskPulse ? (
-        <section className={`cw-panel ${taskPulse.tone}`}>
-          <div className="cw-section-head">
-            <div>
-              <span className="cw-label">{pick('任务脉冲', 'Task pulse')}</span>
-              <h3>{taskPulse.title}</h3>
-              <p className="cw-muted">{taskPulse.detail}</p>
-            </div>
-            <span className={`cw-chip ${taskPulse.chipTone}`}>{taskPulse.chip}</span>
-          </div>
-          {hash ? (
             <div className="cw-button-row">
               <a
-                href={getBscScanTxUrl(hash)}
+                href={getBscScanTxUrl(result.txHash)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="cw-button cw-button--secondary"
@@ -846,88 +788,12 @@ export default function PlayPage() {
                 <ArrowUpRight size={16} />
                 {pick('查看交易', 'View transaction')}
               </a>
+              <button type="button" className="cw-button cw-button--ghost" onClick={() => setResult(null)}>
+                {pick('完成', 'Done')}
+              </button>
             </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {result ? (
-        <section className="cw-result-panel cw-result-panel--success">
-          <div className="cw-result-head">
-            <div className="cw-result-icon">
-              <CheckCircle2 size={22} />
-            </div>
-            <div>
-              <span className="cw-label">{pick('任务完成', 'Task complete')}</span>
-              <h3>{pick(`${result.taskTitle} 已经链上结算。`, `${result.taskTitle} settled on-chain`)}</h3>
-              <div className="cw-result-celebration">+{formatCLW(result.actualClw)}</div>
-            </div>
-          </div>
-
-          <div className="cw-result-grid">
-            <div className="cw-result-stat cw-result-stat--hero">
-              <span className="cw-label">{pick('实际奖励', 'Actual reward')}</span>
-              <strong>+{formatCLW(result.actualClw)}</strong>
-            </div>
-            <div className="cw-result-stat">
-              <span className="cw-label">{pick('XP 增长', 'XP gain')}</span>
-              <strong>+{result.xpReward}</strong>
-            </div>
-            <div className="cw-result-stat">
-              <span className="cw-label">{pick('匹配分', 'Match score')}</span>
-              <strong>{Math.round(result.matchScore / 100)}%</strong>
-            </div>
-          </div>
-
-          <div className="cw-list">
-            <div className="cw-list-item cw-list-item--warm">
-              <Sparkles size={16} />
-              <span>
-                {pick(`请求 ${formatCLW(result.requestedClw)} / 实际结算 ${formatCLW(result.actualClw)}，已经回到 router 储备。`, `Requested ${formatCLW(result.requestedClw)} / settled ${formatCLW(result.actualClw)} into router reserve.`)}
-              </span>
-            </div>
-            <div className={`cw-list-item ${result.driftState === 'applied' ? 'cw-list-item--warm' : 'cw-list-item--cool'}`}>
-              <Shield size={16} />
-              <span>
-                {result.driftState === 'applied'
-                  ? pick('personality drift 已在这次任务里生效。', 'Personality drift was applied on this run.')
-                  : result.driftState === 'skipped'
-                    ? pick(`personality drift 被跳过：${result.driftReason ?? '受当前上限约束。'}`, `Personality drift was skipped: ${result.driftReason ?? 'bounded by current cap.'}`)
-                    : pick('这次没有触发 personality drift。', 'This run did not trigger personality drift.')}
-              </span>
-            </div>
-          </div>
-
-          <div className="cw-button-row">
-            <a
-              href={getBscScanTxUrl(result.txHash)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cw-button cw-button--secondary"
-            >
-              <ArrowUpRight size={16} />
-              {pick('查看交易', 'View transaction')}
-            </a>
-            <button
-              type="button"
-              className="cw-button cw-button--ghost"
-              onClick={() => setResult(null)}
-            >
-              {pick('继续下一轮', 'Continue')}
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      {gasUnits !== null && !previewLoading ? (
-        <p className="cw-muted">
-          {pick(
-            `预估链上成本：${gasUnits.toString()} gas${gasCostWei !== null ? ` / 约 ${formatBNB(gasCostWei, 6)} BNB。` : '。'}`,
-            `Estimated network cost: ${gasUnits.toString()} gas${gasCostWei !== null ? ` / approx ${formatBNB(gasCostWei, 6)} BNB at current gas price.` : '.'}`,
-          )}
-        </p>
-      ) : null}
-      {error ? <p className="cw-muted">{pick(`任务提交失败：${getErrorMessage(error, pick)}`, `Task failed to submit: ${getErrorMessage(error, pick)}`)}</p> : null}
+          </section>
+        ) : null}
       </WalletGate>
     </>
   );

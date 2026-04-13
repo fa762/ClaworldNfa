@@ -5,6 +5,337 @@ Last updated: 2026-04-13 Asia/Singapore
 This file is the source of truth for the frontend product rewrite.
 If agent or chat context changes, continue from this file together with `CURRENT_HANDOFF.md`.
 
+## Reset baseline after real testing
+
+The rebuild plan is now reset around production usability, not around route coverage.
+
+The previous checkpoints remain historically true as implementation notes, but they are no longer sufficient progress signals.
+
+From this point the frontend must be judged by:
+
+- can the user understand the page in seconds
+- can the user complete the action without scrolling through multiple stacked modules
+- does failed data loading stay visibly different from a real zero/empty state
+- does Chinese mode read as Chinese-first instead of mixed bilingual filler
+- does the shell preserve vertical space on real mobile / PWA screens
+
+This creates a new execution order:
+
+1. Data correctness and non-zero-state recovery
+2. Shell compression and topbar overflow fixes
+3. IA simplification:
+   - remove duplicate roster switching
+   - merge Home and Companion
+4. Interaction model rewrite:
+   - Play -> preview/confirm/result in modal or sheet
+   - Arena -> PK / BR entry split into selectable surfaces, not one long page
+   - Auto -> strategy + prompt + action + result, no operator-dashboard essay
+5. Chinese-first cleanup
+6. Settings into real controls
+7. Only then: stronger art, motion, and companion emotional layer
+
+## UX hard rules
+
+These rules override the earlier tendency to explain too much.
+
+### 1. Default view: only four information types
+
+The default surface should only present:
+
+1. action name
+2. reward / yield
+3. condition / blocker
+4. current status / result
+
+Anything else is secondary.
+
+### 2. No long explanation on the default path
+
+Do not use the main view to explain:
+
+- principles
+- system design
+- implementation details
+- which reads or hooks are being used
+
+If something needs explanation, move it behind an advanced affordance.
+
+### 3. One screen, one primary job
+
+- Home: asset state and next action
+- Mining: choose task -> preview -> confirm
+- Arena: choose PK or Battle Royale
+- Auto: choose strategy / write prompt / submit
+- Settings: real settings only
+
+### 4. Long text moves backward
+
+- advanced explanation goes into collapses, drawers, or secondary routes
+- proof / ledger / operator detail must stay behind `Advanced`
+- the default screen must not read like a dashboard essay or protocol walkthrough
+
+### 5. Interaction beats copy
+
+- if the action can live in a modal or bottom sheet, do not stack it into the page body
+- if cards and labels can drive the decision, do not replace them with paragraphs
+- if a state color, number, and chip are enough, do not add filler sentences
+
+### 6. Current negative examples to remove
+
+- Home has too much filler copy
+- Companion has too much filler copy
+- Arena stacks multiple systems into one long page
+- Auto reads like an operator console
+- the persistent companion stage still includes explanatory text that should not be default-visible
+
+These are not polish notes. They are active structural defects.
+
+## Progress checkpoint - 2026-04-13 session 16
+
+This pass executed the first five reset tasks as one closure batch.
+
+### Completed in this pass
+
+1. Stop false zero states
+- wallet CLW reads now surface loading / failed / real-value states instead of silently degrading to `0`
+- upkeep/deposit flow also reflects wallet CLW read failure instead of pretending the user has `0`
+
+2. Compress shell chrome
+- top-right extra CTA was removed from the shell
+- long NFA names no longer own the topbar width
+- the switcher is now compact and token-centric
+- the persistent stage was reduced to:
+  - title
+  - status
+  - compact readouts
+
+3. Remove duplicated structure
+- `OwnedCompanionRail` was removed from page bodies
+- shell remains the only lobster-switch surface
+
+4. Merge Home and Companion
+- `/companion` now redirects to `/`
+- Home is the single ownership / next-action surface
+- redundant identity/presence duplication was removed from the main flow
+
+5. Rewrite Play interaction model
+- task cards now open one modal/sheet flow
+- preview / retry / confirm / execute are now in the same container
+- preview failure no longer appears lower on the page
+
+### Additional structural cleanup landed in the same pass
+
+- Arena now opens from a mode split:
+  - PK
+  - Battle Royale
+- Auto now leans toward:
+  - strategy
+  - prompt
+  - claim request
+  - result
+  with advanced detail pushed behind a secondary toggle
+
+### Verification
+
+- `npm --prefix frontend run build`
+- passed
+
+### Next priority after session 16
+
+1. real-wallet validation
+2. real-device / PWA validation
+3. keep stripping filler copy from nested panels
+4. finish Chinese-first cleanup on secondary components
+
+## Long task plan
+
+### Phase 1 — Stop false zero states
+
+Goal:
+
+- make read failures impossible to confuse with true zero balances / zero reserve / zero upkeep
+
+Tasks:
+
+- refactor active-companion data layer so failed reads do not default silently to `0`
+- distinguish:
+  - loading
+  - read error
+  - real zero
+- surface per-source failures for:
+  - wallet Claworld
+  - router reserve
+  - daily upkeep
+  - active state
+  - trait reads
+- block action CTAs only from real conditions, not from fallback-zero pollution
+
+Acceptance:
+
+- disconnected wallet, failed RPC read, and real zero balance each render differently
+- user can tell whether the wallet truly has `0` or the read failed
+
+### Phase 2 — Compress shell chrome
+
+Goal:
+
+- reclaim vertical budget and stop topbar overflow on real phones / PWA
+
+Tasks:
+
+- redesign topbar to tolerate long NFA names
+- reduce or remove top-right CTA clutter
+- ensure language toggle never gets pushed off-screen
+- shrink persistent companion stage to a compact status header:
+  - remove subtitle
+  - remove explanatory chips
+  - keep only key status and numbers
+- reduce art footprint to support a later animated GIF without taking half the screen
+
+Acceptance:
+
+- topbar never overflows on long names
+- stage consumes clearly less than current height on mobile
+- language toggle and selector remain tappable on narrow devices
+
+### Phase 3 — Remove duplicated structure
+
+Goal:
+
+- remove redundant navigation and duplicate information surfaces
+
+Tasks:
+
+- delete `OwnedCompanionRail` from page bodies
+- keep lobster switching only in the shell
+- merge Home and Companion into one real homepage
+- redefine the single homepage as:
+  - current lobster
+  - reserve / upkeep / wallet
+  - next actions
+  - minimal recent result/output
+
+Acceptance:
+
+- no page below the shell repeats lobster switching
+- user no longer has to decide between two near-duplicate “home/companion” pages
+
+### Phase 4 — Rewrite Play interaction model
+
+Goal:
+
+- make task mining feel like one compact action, not a long scroll page
+
+Tasks:
+
+- make task cards the primary surface
+- move preview into modal/bottom-sheet
+- move confirm into the same flow
+- keep errors and retry inside the modal, not lower on the page
+- result should return as a compact success/result surface
+
+Acceptance:
+
+- from tap to result, the user stays in one interaction container
+- preview failure appears where the action was initiated
+
+### Phase 5 — Rewrite Arena interaction model
+
+Goal:
+
+- separate PK and Battle Royale instead of stacking them down one long page
+
+Tasks:
+
+- first screen: choose PK or Battle Royale
+- each mode opens its own focused surface
+- PK flow:
+  - browse/create/join
+  - commit
+  - reveal
+  - settle/cancel
+  inside modal/sheet or route-scoped overlay
+- BR flow:
+  - lobby
+  - enter
+  - claim
+  - result
+  inside its own focused surface
+
+Acceptance:
+
+- user no longer scrolls through both PK and BR to act in one of them
+- mode separation is visually and structurally obvious
+
+### Phase 6 — Rewrite Auto interaction model
+
+Goal:
+
+- turn Auto from operator dashboard into user action surface
+
+Tasks:
+
+- reduce the page to:
+  - choose strategy
+  - write prompt
+  - choose action scope
+  - submit
+  - see result / latest decision output
+- move proof/ledger/operator detail behind expandable advanced section
+- remove large explanatory text blocks from default view
+
+Acceptance:
+
+- a normal user can understand what to do on Auto without reading long paragraphs
+- the default screen reads like a control panel, not an internal operations page
+
+### Phase 7 — Chinese-first cleanup
+
+Goal:
+
+- make Chinese mode actually read as Chinese-first
+
+Tasks:
+
+- clean mixed bilingual copy on active pages
+- reduce English to badges, labels, or controlled ornament only
+- remove hardcoded English defaults from shared components
+- normalize shell brand copy and action labels
+
+Acceptance:
+
+- Chinese mode does not show major English paragraphs or mixed default props on the main path
+
+### Phase 8 — Settings into real settings
+
+Goal:
+
+- replace placeholder cards with real controls
+
+Tasks:
+
+- keep wallet connect/disconnect
+- add real language control
+- add real PWA/install/offline controls if available
+- hide future features that are not yet operable
+
+Acceptance:
+
+- settings page contains real settings, not roadmap cards disguised as controls
+
+### Phase 9 — Only after that: art and motion
+
+Goal:
+
+- strengthen companion identity after the app is structurally correct
+
+Tasks:
+
+- integrate final GIF/animated companion art
+- improve result feedback
+- add stateful character reactions
+- tighten visual warmth without reintroducing clutter
+
 ## Decision
 
 The old frontend direction is no longer the target shape.

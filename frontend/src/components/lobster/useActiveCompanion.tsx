@@ -306,6 +306,8 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
     const isLoading =
       connected &&
       (ownedTokensQuery.isLoading ||
+        walletNativeQuery.isLoading ||
+        walletClwQuery.isLoading ||
         (hasToken &&
           (agentStateQuery.isLoading ||
             agentMetadataQuery.isLoading ||
@@ -410,10 +412,26 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
       pkWins,
       pkLosses,
       pkWinRate,
-      walletClaworldText: formatCLW(walletClaworld),
-      walletNativeText: formatBNB(walletNative),
-      routerClaworldText: formatCLW(routerClaworld),
-      dailyCostText: formatCLW(dailyCost),
+      walletClaworldText: walletClwQuery.isLoading
+        ? pick('读取中', 'Loading')
+        : walletClwQuery.error
+          ? pick('读取失败', 'Read failed')
+          : formatCLW(walletClaworld),
+      walletNativeText: walletNativeQuery.isLoading
+        ? pick('读取中', 'Loading')
+        : walletNativeQuery.error
+          ? pick('读取失败', 'Read failed')
+          : formatBNB(walletNative),
+      routerClaworldText: routerClwQuery.isLoading
+        ? pick('读取中', 'Loading')
+        : routerClwQuery.error
+          ? pick('读取失败', 'Read failed')
+          : formatCLW(routerClaworld),
+      dailyCostText: dailyCostQuery.isLoading
+        ? pick('读取中', 'Loading')
+        : dailyCostQuery.error
+          ? pick('读取失败', 'Read failed')
+          : formatCLW(dailyCost),
       imageSrc,
       imageAlt: `${getLobsterName(tokenNumber)} #${tokenNumber}`,
       selectCompanion,
@@ -435,6 +453,7 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
     ownerAddress,
     pick,
     routerClwQuery.data,
+    routerClwQuery.error,
     routerClwQuery.isLoading,
     selectedIndex,
     selectCompanion,
@@ -447,6 +466,10 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
     taskStatsQuery.data,
     taskStatsQuery.isLoading,
     walletClwQuery.data,
+    walletClwQuery.error,
+    walletClwQuery.isLoading,
+    walletNativeQuery.error,
+    walletNativeQuery.isLoading,
     walletNativeQuery.data?.value,
   ]);
 }

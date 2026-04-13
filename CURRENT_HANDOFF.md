@@ -1,9 +1,168 @@
 # Current Handoff
 
-Last updated: 2026-04-13 (session 13) Asia/Singapore
+Last updated: 2026-04-13 (session 16) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
+
+## Frontend reset note
+
+Real-device / real-user testing has invalidated the previous optimistic frontend checkpoints.
+
+## Frontend UX hard rules
+
+These are now hard product rules, not design suggestions.
+
+Default surfaces may only show four classes of information:
+
+1. action name
+2. reward / yield
+3. condition / blocker
+4. current status / result
+
+Default surfaces must not lead with long explanation:
+
+- do not explain principles
+- do not explain system design
+- do not explain implementation details
+- do not explain which reads/hooks the page is performing
+
+One screen should do one primary job:
+
+- Home: asset state and next action
+- Mining: choose task -> preview -> confirm
+- Arena: choose PK or Battle Royale
+- Auto: choose strategy / write prompt / submit
+- Settings: real settings only
+
+Long text must move behind secondary affordances:
+
+- advanced notes belong in collapses or drawers
+- proof / ledger / operator details belong in advanced sections
+- the default view must not read like product documentation
+
+Interaction has priority over copy:
+
+- if it can be a modal or sheet, do not stack it into a long page
+- if a card can drive the decision, do not replace it with paragraphs
+- if status color, number, and tag are enough, do not add explanatory sentences
+
+Current confirmed UX judgement:
+
+- Home still has too much filler copy
+- Companion still has too much filler copy
+- Arena still behaves like a long system page
+- Auto still behaves like an internal control panel
+- the persistent companion stage still carries too much explanatory text
+
+This is not a polish issue. It is the current frontend design baseline.
+
+## Frontend closure checkpoint - 2026-04-13 session 16
+
+This pass was executed against the new UX hard rules and treated the first five frontend reset tasks as one batch.
+
+What is now done:
+
+1. False-zero wallet CLW state is no longer silent
+- wallet CLW now distinguishes:
+  - loading
+  - read failed
+  - real balance
+- the shell header and Home summary no longer blindly print `0` while the read is unresolved
+- upkeep/deposit UI also stops treating a failed wallet CLW read as spendable `0`
+
+2. Shell chrome is compressed
+- topbar CTA clutter was removed
+- long NFA names no longer drive the topbar width
+- the shell switcher now shows compact token-relative identity instead of a long name block
+- the persistent companion stage was reduced to:
+  - name/title
+  - status chip
+  - three compact readouts
+- explanatory subtitle/signal clutter was removed from the default stage
+
+3. Duplicate roster switching is removed from page bodies
+- `OwnedCompanionRail` was removed from:
+  - Home
+  - Play
+  - Arena
+  - Auto
+- lobster switching is now shell-only
+
+4. Home and Companion are merged
+- `/companion` now redirects to `/`
+- Home is now the single asset/next-action surface
+- the new Home keeps only:
+  - wallet / reserve / upkeep / status
+  - next actions
+  - upkeep panel
+  - current result summary
+
+5. Play is rewritten into one action container
+- task cards are now the primary surface
+- tapping a task opens one modal/sheet flow
+- preview, retry, confirm, and execute all stay in the same container
+- preview failures no longer fall into a lower page section
+
+Additional simplification completed in the same pass:
+
+- Arena now starts with a mode split:
+  - PK
+  - Battle Royale
+- Auto was reduced toward:
+  - strategy / prompt
+  - claim request
+  - latest result
+  - optional advanced details
+
+Verification:
+
+- `npm --prefix frontend run build` passed after this pass
+
+Current remaining focus after session 16:
+
+- real wallet / real device validation on:
+  - `/play`
+  - `/arena`
+  - `/auto`
+- continue removing verbose copy inside nested panels/components
+- continue converting user-critical screens to pure Chinese-first wording
+
+The current rebuild must now be treated as:
+
+- structurally promising
+- partially integrated
+- not yet production-usable
+
+The new rule from this point:
+
+- stop counting route presence and build-green status as product completion
+- prioritize real usability blockers before any further art or feature expansion
+- treat silent zero reads, overcrowded screens, duplicate navigation, and wrong interaction model as P0/P1 product defects
+
+The frontend is now re-baselined around the following blocking problems:
+
+1. wallet / reserve / upkeep / Claworld reads can silently degrade to `0`
+2. topbar overflows when the active NFA name is long
+3. the persistent companion stage is still too tall and too verbose
+4. Home and Companion are partially duplicate surfaces
+5. top switcher and roster switcher are duplicated; roster must be removed
+6. Play / Arena / Auto still use scroll-heavy page composition where modal/sheet-driven interaction is required
+7. Chinese mode is still not pure Chinese-first; too much mixed English remains
+8. Settings is still mostly placeholder, not a real control surface
+
+Immediate execution order after this reset:
+
+1. fix false zero reads
+2. compress shell chrome
+3. remove duplicate roster switching
+4. merge Home + Companion
+5. rewrite Play to modal/sheet flow
+6. split Arena into PK / Battle Royale focused surfaces
+7. simplify Auto into strategy/prompt/action/result
+8. finish Chinese-first cleanup
+9. replace placeholder Settings with real controls
+10. only then deepen art/motion
 
 ## Current product direction
 
