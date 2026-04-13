@@ -1,26 +1,24 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowRight, Shield, Swords, Trophy, X } from 'lucide-react';
+import { Swords, Trophy, X } from 'lucide-react';
 
-import { BattleRoyaleActionPanel } from '@/components/game/BattleRoyaleActionPanel';
-import { BattleRoyaleClaimPanel } from '@/components/game/BattleRoyaleClaimPanel';
+import { BattleRoyaleArenaPanel } from '@/components/game/BattleRoyaleArenaPanel';
 import { PKArenaPanel } from '@/components/game/PKArenaPanel';
 import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
-import { useBattleRoyaleClaimWindow } from '@/components/lobster/useBattleRoyaleClaimWindow';
-import { useBattleRoyaleOverview } from '@/components/lobster/useBattleRoyaleOverview';
 import { useBattleRoyaleParticipantState } from '@/components/lobster/useBattleRoyaleParticipantState';
+import { useBattleRoyaleOverview } from '@/components/lobster/useBattleRoyaleOverview';
 import { WalletGate } from '@/components/wallet/WalletGate';
 import { formatCLW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 
 type ArenaSheet = 'pk' | 'br' | null;
 
-function getMatchStatusText(status: number, pick: <T,>(zh: T, en: T) => T) {
-  if (status === 0) return pick('开放中', 'Open');
-  if (status === 1) return pick('待揭示', 'Pending reveal');
-  if (status === 2) return pick('已结算', 'Settled');
-  return pick('未知', 'Unknown');
+function matchStatusText(status: number) {
+  if (status === 0) return '开放中';
+  if (status === 1) return '待揭示';
+  if (status === 2) return '已结算';
+  return '未知';
 }
 
 export default function ArenaPage() {
@@ -28,30 +26,23 @@ export default function ArenaPage() {
   const companion = useActiveCompanion();
   const [sheet, setSheet] = useState<ArenaSheet>(null);
   const battleRoyale = useBattleRoyaleOverview();
-  const battleRoyaleParticipant = useBattleRoyaleParticipantState(
+  const participant = useBattleRoyaleParticipantState(
     battleRoyale.matchId,
     companion.hasToken ? companion.tokenId : undefined,
     companion.ownerAddress,
   );
-  const claimWindow = useBattleRoyaleClaimWindow(
-    companion.hasToken ? companion.tokenId : undefined,
-    companion.ownerAddress,
-  );
 
-  const claimableAmount = useMemo(
-    () => (claimWindow.claimable > 0n ? claimWindow.claimable : battleRoyaleParticipant.claimable),
-    [battleRoyaleParticipant.claimable, claimWindow.claimable],
-  );
+  const claimableAmount = participant.claimable;
 
   const pkSummary = companion.pkWins + companion.pkLosses > 0
-    ? `${companion.pkWins}W / ${companion.pkLosses}L`
-    : pick('立即开打', 'Open a match');
+    ? `胜败 ${companion.pkWins} / ${companion.pkLosses}`
+    : '当前空闲';
 
-  const brSummary = claimableAmount > 0n
-    ? pick(`可领 ${formatCLW(claimableAmount)}`, `Claim ${formatCLW(claimableAmount)}`)
-    : battleRoyale.ready
-      ? `${getMatchStatusText(battleRoyale.status, pick)} / ${battleRoyale.totalPlayers}/${battleRoyale.triggerCount}`
-      : pick('查看大逃杀', 'Open Battle Royale');
+  const brSummary = useMemo(() => {
+    if (claimableAmount > 0n) return `可领 ${formatCLW(claimableAmount)}`;
+    if (battleRoyale.ready) return `${matchStatusText(battleRoyale.status)} / ${battleRoyale.totalPlayers}/${battleRoyale.triggerCount}`;
+    return '查看大逃杀';
+  }, [battleRoyale.ready, battleRoyale.status, battleRoyale.totalPlayers, battleRoyale.triggerCount, claimableAmount]);
 
   return (
     <WalletGate
@@ -64,16 +55,14 @@ export default function ArenaPage() {
           className={`cw-card cw-card--button cw-card--watch ${sheet === 'pk' ? 'cw-card--selected' : ''}`}
           onClick={() => setSheet('pk')}
         >
-          <div className="cw-card-icon">
-            <Swords size={18} />
-          </div>
+          <div className="cw-card-icon"><Swords size={18} /></div>
           <div className="cw-card-copy">
             <p className="cw-label">PK</p>
             <h3>{pkSummary}</h3>
           </div>
           <div className="cw-score">
             <strong>{companion.pkWinRate}%</strong>
-            <span>{pick('进入', 'Open')}</span>
+            <span>进入</span>
           </div>
         </button>
 
@@ -82,41 +71,29 @@ export default function ArenaPage() {
           className={`cw-card cw-card--button cw-card--warm ${sheet === 'br' ? 'cw-card--selected' : ''}`}
           onClick={() => setSheet('br')}
         >
-          <div className="cw-card-icon">
-            <Trophy size={18} />
-          </div>
+          <div className="cw-card-icon"><Trophy size={18} /></div>
           <div className="cw-card-copy">
-            <p className="cw-label">{pick('大逃杀', 'Battle Royale')}</p>
+            <p className="cw-label">大逃杀</p>
             <h3>{brSummary}</h3>
           </div>
           <div className="cw-score">
             <strong>{battleRoyale.ready ? formatCLW(battleRoyale.pot) : '--'}</strong>
-            <span>{pick('进入', 'Open')}</span>
+            <span>进入</span>
           </div>
         </button>
       </section>
 
-      {sheet !== null ? (
+      {sheet ? (
         <section className="cw-modal" aria-modal="true" role="dialog">
-          <button
-            type="button"
-            className="cw-modal__scrim"
-            aria-label={pick('关闭', 'Close')}
-            onClick={() => setSheet(null)}
-          />
+          <button type="button" className="cw-modal__scrim" aria-label="关闭" onClick={() => setSheet(null)} />
           <div className="cw-modal__sheet">
             <section className="cw-sheet">
               <div className="cw-sheet-head">
                 <div>
-                  <span className="cw-label">{sheet === 'pk' ? 'PK' : pick('大逃杀', 'Battle Royale')}</span>
-                  <h3>{sheet === 'pk' ? pick('选择动作', 'Choose action') : pick('查看赛况', 'Review match')}</h3>
+                  <span className="cw-label">{sheet === 'pk' ? 'PK' : '大逃杀'}</span>
+                  <h3>{sheet === 'pk' ? '选择 PK 动作' : '选择房间'}</h3>
                 </div>
-                <button
-                  type="button"
-                  className="cw-icon-button cw-sheet-close"
-                  onClick={() => setSheet(null)}
-                  aria-label={pick('关闭', 'Close')}
-                >
+                <button type="button" className="cw-icon-button cw-sheet-close" onClick={() => setSheet(null)} aria-label="关闭">
                   <X size={16} />
                 </button>
               </div>
@@ -132,67 +109,23 @@ export default function ArenaPage() {
                   traits={companion.traits}
                 />
               ) : (
-                <div className="cw-page">
-                  <section className="cw-panel cw-panel--warm">
-                    <div className="cw-section-head">
-                      <div>
-                        <span className="cw-label">{pick('大逃杀', 'Battle Royale')}</span>
-                        <h3>
-                          {battleRoyale.ready
-                            ? pick(
-                                `第 #${battleRoyale.matchId?.toString()} 场 ${getMatchStatusText(battleRoyale.status, pick)}`,
-                                `Match #${battleRoyale.matchId?.toString()} ${getMatchStatusText(battleRoyale.status, pick)}`,
-                              )
-                            : pick('暂无可读对局', 'No readable match')}
-                        </h3>
-                      </div>
-                      <span className="cw-chip cw-chip--warm">
-                        <Trophy size={14} />
-                        {battleRoyale.ready ? `${battleRoyale.totalPlayers}/${battleRoyale.triggerCount}` : '--'}
-                      </span>
-                    </div>
-
-                    {battleRoyale.ready ? (
-                      <div className="cw-state-grid">
-                        <div className="cw-state-card">
-                          <span className="cw-label">{pick('奖池', 'Pot')}</span>
-                          <strong>{formatCLW(battleRoyale.pot)}</strong>
-                        </div>
-                        <div className="cw-state-card">
-                          <span className="cw-label">{pick('门票', 'Stake')}</span>
-                          <strong>{formatCLW(battleRoyale.minStake)}</strong>
-                        </div>
-                        <div className="cw-state-card">
-                          <span className="cw-label">{pick('待领', 'Claim')}</span>
-                          <strong>{claimableAmount > 0n ? formatCLW(claimableAmount) : '--'}</strong>
-                        </div>
-                      </div>
-                    ) : null}
-                  </section>
-
-                  <BattleRoyaleActionPanel
-                    matchId={battleRoyale.matchId}
-                    status={battleRoyale.status}
-                    totalPlayers={battleRoyale.totalPlayers}
-                    triggerCount={battleRoyale.triggerCount}
-                    pot={battleRoyale.pot}
-                    participant={battleRoyaleParticipant}
-                    compact
-                  />
-
-                  <BattleRoyaleClaimPanel
-                    matchId={claimWindow.matchId}
-                    claimable={claimWindow.claimable}
-                    claimPath={claimWindow.preferredPath?.key}
-                    hasConflict={claimWindow.hasConflict}
-                  />
-                </div>
+                <BattleRoyaleArenaPanel
+                  matchId={battleRoyale.matchId}
+                  status={battleRoyale.status}
+                  totalPlayers={battleRoyale.totalPlayers}
+                  triggerCount={battleRoyale.triggerCount}
+                  pot={battleRoyale.pot}
+                  minStake={battleRoyale.minStake}
+                  ownerAddress={companion.ownerAddress}
+                  participant={participant}
+                  onRefresh={battleRoyale.refresh}
+                  isRefreshing={battleRoyale.isRefreshing}
+                />
               )}
 
               <div className="cw-button-row">
                 <button type="button" className="cw-button cw-button--ghost" onClick={() => setSheet(null)}>
-                  <ArrowRight size={16} />
-                  {pick('关闭', 'Close')}
+                  关闭
                 </button>
               </div>
             </section>

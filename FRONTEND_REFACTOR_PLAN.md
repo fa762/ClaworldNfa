@@ -5,6 +5,96 @@ Last updated: 2026-04-13 Asia/Singapore
 This file is the source of truth for the frontend product rewrite.
 If agent or chat context changes, continue from this file together with `CURRENT_HANDOFF.md`.
 
+## Execution checkpoint - 2026-04-13 session 22
+
+This checkpoint moves the rebuilt shell closer to the intended game UX rule:
+
+- default screen shows action, reward, condition, result
+- long explanation stays out of the default path
+- arena and mint are now action surfaces, not document pages
+
+### 1. Arena interaction model is now aligned with the product direction
+
+Accepted model now implemented:
+
+- Arena landing:
+  - `PK`
+  - `大逃杀`
+- each opens its own bottom sheet
+- no default long page that mixes:
+  - PK
+  - Battle Royale
+  - claim
+  - room data
+  - internal state
+
+`PK` sheet now focuses on:
+
+- current status
+- reserve
+- `胜败`
+- open-match pager
+- strategy choice
+- create / join / reveal / settle / cancel
+
+`大逃杀` sheet now focuses on:
+
+- current match
+- room grid
+- stake
+- join / change room / claim
+
+### 2. Mint is now part of the same product language
+
+Accepted model now implemented:
+
+- one compact page
+- rarity choice first
+- commit / wait / reveal / refund as the only default actions
+- sold counts come from live rarity reads
+- admin mint UI stays removed
+
+### 3. Shell compactness was improved again
+
+This pass tightened:
+
+- topbar padding
+- switcher width
+- stage spacing
+- panel padding
+- card height
+- modal height
+
+Selected-state feedback is now stronger on:
+
+- tabs
+- action cards
+- strategy cards
+- Battle Royale room tiles
+
+### 4. Current product truth about task mining
+
+Task mining is currently:
+
+- three fixed categories on the frontend
+  - exploration
+  - puzzle / decoding
+  - crafting / modding
+- not random-generated tasks
+- but each card's reward / score / tone is derived from:
+  - active lobster traits
+  - level
+  - upkeep pressure
+
+So the categories are fixed, while the value and recommendation layer is dynamic.
+
+### Updated execution order after session 22
+
+1. use the hosted build to live-test PK / BR / mint
+2. simplify `/auto` further into strategy + prompt + result
+3. continue removing leftover mixed-language or operator-facing copy
+4. only then resume higher-order visual polish and motion
+
 ## Execution checkpoint - 2026-04-13 session 21
 
 This checkpoint corrects two assumptions from the previous pass.

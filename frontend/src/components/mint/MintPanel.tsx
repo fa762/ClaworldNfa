@@ -2,9 +2,17 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowUpRight, CheckCircle2, Compass, Gift, Shield, Sparkles, TimerReset } from 'lucide-react';
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  Compass,
+  Gift,
+  Shield,
+  Sparkles,
+  TimerReset,
+} from 'lucide-react';
 import { simulateContract } from '@wagmi/core';
-import { isAddress, parseEther, type Address, zeroHash } from 'viem';
+import { parseEther, zeroHash } from 'viem';
 import { useAccount } from 'wagmi';
 
 import { config } from '@/components/wallet/WalletProvider';
@@ -21,13 +29,11 @@ import {
   saveSalt,
   useCommitment,
   useCommitMint,
-  useMintedCount,
   useMintingActive,
-  useOwnerMint,
+  useMintedCount,
   useRarityMinted,
   useRefund,
   useRevealMint,
-  useVaultOwner,
   vaultContract,
 } from '@/contracts/hooks/useGenesisVault';
 import { useI18n } from '@/lib/i18n';
@@ -39,14 +45,14 @@ const REVEAL_WINDOW = 86400;
 
 type Phase = 'select' | 'waiting' | 'ready' | 'expired' | 'success';
 
-function formatCountdown(totalSeconds: number, pick: <T,>(zh: T, en: T) => T) {
-  const safe = Math.max(0, totalSeconds);
+function formatCountdown(seconds: number) {
+  const safe = Math.max(0, seconds);
   const hours = Math.floor(safe / 3600);
   const minutes = Math.floor((safe % 3600) / 60);
-  const seconds = safe % 60;
-  if (hours > 0) return pick(`${hours}小时 ${minutes}分`, `${hours}h ${minutes}m`);
-  if (minutes > 0) return pick(`${minutes}分 ${seconds}秒`, `${minutes}m ${seconds}s`);
-  return pick(`${seconds}秒`, `${seconds}s`);
+  const secs = safe % 60;
+  if (hours > 0) return `${hours}小时 ${minutes}分`;
+  if (minutes > 0) return `${minutes}分 ${secs}秒`;
+  return `${secs}秒`;
 }
 
 function rarityTone(rarity: number) {
@@ -56,51 +62,52 @@ function rarityTone(rarity: number) {
   return 'cw-card--safe';
 }
 
+function mintError(error: unknown) {
+  if (!(error instanceof Error)) return '铸造失败。';
+  const message = error.message;
+  if (message.includes('User rejected') || message.includes('OKX Wallet Reject')) return '钱包取消了这次签名。';
+  if (message.includes('insufficient funds')) return '钱包 BNB 不足。';
+  if (message.includes('Already committed')) return '这个钱包已经有一笔进行中的铸造。';
+  return message;
+}
+
 export function MintPanel() {
   const { address, isConnected } = useAccount();
-  const { lang, pick } = useI18n();
+  const { lang } = useI18n();
   const isCN = lang === 'zh';
 
   const [selectedRarity, setSelectedRarity] = useState(0);
   const [countdown, setCountdown] = useState(0);
-  const [debugError, setDebugError] = useState<string | null>(null);
-  const [revealedNfaId, setRevealedNfaId] = useState<string | null>(null);
-  const [ownerRarity, setOwnerRarity] = useState(0);
-  const [ownerRecipient, setOwnerRecipient] = useState('');
-  const [ownerSimError, setOwnerSimError] = useState<string | null>(null);
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState(false);
 
   const { data: mintingActive } = useMintingActive();
   const { data: mintedCount } = useMintedCount();
-  const { data: totalSupply } = useTotalSupply();
   const { data: rarityMinted } = useRarityMinted();
+  const { data: totalSupply } = useTotalSupply();
   const { data: commitment } = useCommitment(address);
-  const { data: vaultOwner } = useVaultOwner();
 
   const commitMint = useCommitMint();
   const revealMint = useRevealMint();
   const refundHook = useRefund();
-  const ownerMintHook = useOwnerMint();
 
   const commitHash = commitment?.[0] as `0x${string}` | undefined;
   const commitTimestamp = commitment?.[2] ? Number(commitment[2]) : 0;
   const commitRevealed = commitment?.[3] as boolean | undefined;
   const hasActiveCommit = Boolean(commitHash && commitHash !== zeroHash && !commitRevealed);
-  const isOwner =
-    Boolean(isConnected && address && vaultOwner) &&
-    address!.toLowerCase() === (vaultOwner as string).toLowerCase();
-
   const totalMinted =
     totalSupply !== undefined ? Number(totalSupply) : mintedCount !== undefined ? Number(mintedCount) : 0;
+  const raritySold = (rarityMinted as readonly bigint[] | undefined) ?? [];
 
   const phase = useMemo<Phase>(() => {
-    if (revealedNfaId) return 'success';
+    if (revealed) return 'success';
     if (!hasActiveCommit) return 'select';
     const now = Math.floor(Date.now() / 1000);
     const elapsed = now - commitTimestamp;
     if (elapsed < REVEAL_DELAY) return 'waiting';
     if (elapsed < REVEAL_WINDOW) return 'ready';
     return 'expired';
-  }, [commitTimestamp, hasActiveCommit, revealedNfaId]);
+  }, [commitTimestamp, hasActiveCommit, revealed]);
 
   useEffect(() => {
     if (!hasActiveCommit) {
@@ -127,61 +134,10 @@ export function MintPanel() {
     return () => window.clearInterval(timer);
   }, [commitTimestamp, hasActiveCommit]);
 
-  const savedSalt = address ? loadSalt(address) : null;
-  const selectedPrice = RARITY_PRICES[selectedRarity];
-  const selectedAirdrop = RARITY_AIRDROPS[selectedRarity];
-
-  function handleCommit() {
-    if (!address) return;
-    const salt = generateSalt();
-    saveSalt(address, salt, selectedRarity);
-    const hash = computeCommitHash(selectedRarity, salt, address);
-    commitMint.commitMint(hash, parseEther(selectedPrice));
-  }
-
-  async function handleReveal() {
-    if (!address) return;
-    const saved = loadSalt(address);
-    if (!saved) {
-      setDebugError(pick('本地没找到铸造凭据，当前设备无法继续揭示。', 'No local reveal bundle was found on this device.'));
-      return;
-    }
-
-    if (!commitHash || commitHash === zeroHash) {
-      setDebugError(pick('链上没有当前钱包的铸造承诺。', 'No active mint commitment was found on-chain.'));
-      return;
-    }
-
-    const localHash = computeCommitHash(saved.rarity, saved.salt, address);
-    if (localHash.toLowerCase() !== commitHash.toLowerCase()) {
-      setDebugError(pick('本地凭据和链上承诺不一致，只能用原设备继续揭示。', 'The local reveal bundle does not match the on-chain commitment.'));
-      return;
-    }
-
-    setDebugError(null);
-    try {
-      await simulateContract(config, {
-        ...vaultContract,
-        functionName: 'reveal',
-        args: [saved.rarity, saved.salt],
-        account: address,
-      });
-    } catch (error: any) {
-      setDebugError(error?.shortMessage || error?.message || String(error));
-      return;
-    }
-
-    revealMint.revealMint(saved.rarity, saved.salt);
-  }
-
-  function handleRefund() {
-    refundHook.refund();
-  }
-
   useEffect(() => {
     if (revealMint.isSuccess && address) {
       clearSalt(address);
-      setRevealedNfaId('new');
+      setRevealed(true);
     }
   }, [address, revealMint.isSuccess]);
 
@@ -191,56 +147,63 @@ export function MintPanel() {
     }
   }, [address, refundHook.isSuccess]);
 
-  function handleReset() {
-    setRevealedNfaId(null);
-    setDebugError(null);
-    commitMint.reset();
-    revealMint.reset();
-    refundHook.reset();
+  const mintBlockedReason = !isConnected
+    ? '先连接钱包。'
+    : mintingActive === false
+      ? '当前还没开放铸造。'
+      : hasActiveCommit
+        ? '这个钱包已经有一笔进行中的铸造。'
+        : null;
+
+  async function handleCommit() {
+    if (!address) return;
+    const salt = generateSalt();
+    saveSalt(address, salt, selectedRarity);
+    const hash = computeCommitHash(selectedRarity, salt, address);
+    setErrorText(null);
+    commitMint.commitMint(hash, parseEther(RARITY_PRICES[selectedRarity]));
   }
 
-  async function handleOwnerMint() {
+  async function handleReveal() {
     if (!address) return;
-    setOwnerSimError(null);
-    ownerMintHook.reset();
-
-    const rawRecipient = ownerRecipient.trim();
-    if (rawRecipient && !isAddress(rawRecipient)) {
-      setOwnerSimError(pick('接收地址不合法。', 'Recipient address is invalid.'));
+    const saved = loadSalt(address);
+    if (!saved) {
+      setErrorText('本地没有找到这笔铸造的揭示凭据。');
+      return;
+    }
+    if (!commitHash || commitHash === zeroHash) {
+      setErrorText('链上没有找到当前钱包的铸造承诺。');
+      return;
+    }
+    const localHash = computeCommitHash(saved.rarity, saved.salt, address);
+    if (localHash.toLowerCase() !== commitHash.toLowerCase()) {
+      setErrorText('本地凭据和链上承诺不一致。');
       return;
     }
 
-    const recipient = (rawRecipient || address) as Address;
+    setErrorText(null);
     try {
       await simulateContract(config, {
         ...vaultContract,
-        functionName: 'ownerMint',
-        args: [ownerRarity, recipient],
+        functionName: 'reveal',
+        args: [saved.rarity, saved.salt],
         account: address,
       });
-    } catch (error: any) {
-      setOwnerSimError(error?.shortMessage || error?.message || String(error));
+    } catch (error) {
+      setErrorText(mintError(error));
       return;
     }
 
-    ownerMintHook.ownerMint(ownerRarity, recipient);
+    revealMint.revealMint(saved.rarity, saved.salt);
   }
-
-  const mintBlockedReason = !isConnected
-    ? pick('先连接钱包。', 'Connect wallet first.')
-    : mintingActive === false
-      ? pick('铸造还没开放。', 'Mint is not active yet.')
-      : hasActiveCommit
-        ? pick('当前钱包已经有一笔进行中的铸造。', 'This wallet already has an active mint.')
-        : null;
 
   return (
     <div className="cw-page">
       <section className="cw-panel cw-panel--warm">
         <div className="cw-section-head">
           <div>
-            <span className="cw-label">{pick('Genesis 铸造', 'Genesis Mint')}</span>
-            <h3>{pick('铸造你的龙虾', 'Mint your lobster')}</h3>
+            <span className="cw-label">Genesis</span>
+            <h3>铸造你的龙虾</h3>
           </div>
           <span className="cw-chip cw-chip--warm">
             <Compass size={14} />
@@ -250,102 +213,73 @@ export function MintPanel() {
 
         <div className="cw-state-grid">
           <div className="cw-state-card">
-            <span className="cw-label">{pick('已铸造', 'Minted')}</span>
+            <span className="cw-label">总进度</span>
             <strong>{totalMinted}</strong>
           </div>
           <div className="cw-state-card">
-            <span className="cw-label">{pick('当前选择', 'Selected')}</span>
+            <span className="cw-label">稀有度</span>
             <strong>{getRarityName(selectedRarity, isCN)}</strong>
           </div>
           <div className="cw-state-card">
-            <span className="cw-label">{pick('空投', 'Airdrop')}</span>
-            <strong>{selectedAirdrop} Clawworld</strong>
+            <span className="cw-label">空投</span>
+            <strong>{RARITY_AIRDROPS[selectedRarity]} Claworld</strong>
           </div>
         </div>
       </section>
 
       {phase === 'select' ? (
         <>
-          <section className="cw-card-stack">
+          <section className="cw-choice-grid">
             {[0, 1, 2, 3, 4].map((rarity) => {
-              const minted = rarityMinted ? Number(rarityMinted[rarity]) : 0;
-              const cap = RARITY_CAPS[rarity];
-              const soldOut = minted >= cap;
-              const selected = selectedRarity === rarity;
-
+              const minted = Number(raritySold[rarity] ?? 0n);
+              const soldOut = minted >= RARITY_CAPS[rarity];
               return (
                 <button
                   key={rarity}
                   type="button"
-                  className={`cw-card cw-card--button ${rarityTone(rarity)} ${selected ? 'cw-card--selected' : ''}`}
+                  className={`cw-choice-card ${rarityTone(rarity)} ${selectedRarity === rarity ? 'cw-choice-card--selected' : ''}`}
                   onClick={() => !soldOut && setSelectedRarity(rarity)}
                   disabled={soldOut}
                 >
-                  <div className="cw-card-icon">
-                    <Sparkles size={18} />
-                  </div>
-                  <div className="cw-card-copy">
-                    <p className="cw-label">{getRarityName(rarity, isCN)}</p>
-                    <h3>{RARITY_PRICES[rarity]} BNB</h3>
-                  </div>
-                  <div className="cw-score">
-                    <strong>{RARITY_AIRDROPS[rarity]} Clawworld</strong>
-                    <span>{soldOut ? pick('已售罄', 'Sold out') : `${minted}/${cap}`}</span>
-                  </div>
+                  <span>
+                    {getRarityName(rarity, isCN)} {getRarityStars(rarity)}
+                  </span>
+                  <strong>{RARITY_PRICES[rarity]} BNB</strong>
+                  <em>{soldOut ? '已售罄' : `${minted}/${RARITY_CAPS[rarity]}`}</em>
                 </button>
               );
             })}
           </section>
 
           <section className="cw-panel cw-panel--cool">
-            <div className="cw-section-head">
-              <div>
-                <span className="cw-label">{pick('本次铸造', 'This mint')}</span>
-                <h3>{getRarityName(selectedRarity, isCN)} {getRarityStars(selectedRarity)}</h3>
+            <div className="cw-stage-stats">
+              <div className="cw-mini-stat">
+                <span>价格</span>
+                <strong>{RARITY_PRICES[selectedRarity]} BNB</strong>
               </div>
-              <span className={`cw-chip ${rarityTone(selectedRarity) === 'cw-card--warning' ? 'cw-chip--alert' : 'cw-chip--cool'}`}>
-                <Gift size={14} />
-                {selectedAirdrop}
-              </span>
-            </div>
-
-            <div className="cw-state-grid">
-              <div className="cw-state-card">
-                <span className="cw-label">{pick('价格', 'Price')}</span>
-                <strong>{selectedPrice} BNB</strong>
+              <div className="cw-mini-stat">
+                <span>空投</span>
+                <strong>{RARITY_AIRDROPS[selectedRarity]} Claworld</strong>
               </div>
-              <div className="cw-state-card">
-                <span className="cw-label">{pick('空投', 'Airdrop')}</span>
-                <strong>{selectedAirdrop} Clawworld</strong>
-              </div>
-              <div className="cw-state-card">
-                <span className="cw-label">{pick('状态', 'Status')}</span>
-                <strong>{mintBlockedReason ? pick('被阻塞', 'Blocked') : pick('可铸造', 'Ready')}</strong>
+              <div className="cw-mini-stat">
+                <span>状态</span>
+                <strong>{mintBlockedReason ? '暂不可用' : '可铸造'}</strong>
               </div>
             </div>
-
-            {mintBlockedReason ? (
-              <div className="cw-list">
-                <div className="cw-list-item cw-list-item--cool">
-                  <Shield size={16} />
-                  <span>{mintBlockedReason}</span>
-                </div>
-              </div>
-            ) : null}
 
             <div className="cw-button-row">
               <button
                 type="button"
                 className="cw-button cw-button--primary"
-                onClick={handleCommit}
+                onClick={() => void handleCommit()}
                 disabled={Boolean(mintBlockedReason) || commitMint.isPending || commitMint.isConfirming}
               >
                 <Sparkles size={16} />
                 {commitMint.isPending
-                  ? pick('等待签名', 'Waiting')
+                  ? '等钱包签名'
                   : commitMint.isConfirming
-                    ? pick('链上确认中', 'Confirming')
-                    : pick(`支付 ${selectedPrice} BNB`, `Pay ${selectedPrice} BNB`)}
+                    ? '链上确认中'
+                    : `支付 ${RARITY_PRICES[selectedRarity]} BNB`}
               </button>
             </div>
           </section>
@@ -359,9 +293,9 @@ export function MintPanel() {
               <TimerReset size={22} />
             </div>
             <div>
-              <span className="cw-label">{pick('等待揭示', 'Waiting')}</span>
-              <h3>{pick('倒计时结束后再揭示', 'Wait before reveal')}</h3>
-              <div className="cw-result-celebration">{formatCountdown(countdown, pick)}</div>
+              <span className="cw-label">等待揭示</span>
+              <h3>倒计时结束后再揭示</h3>
+              <div className="cw-result-celebration">{formatCountdown(countdown)}</div>
             </div>
           </div>
         </section>
@@ -371,37 +305,28 @@ export function MintPanel() {
         <section className="cw-panel cw-panel--warm">
           <div className="cw-section-head">
             <div>
-              <span className="cw-label">{pick('揭示窗口', 'Reveal')}</span>
-              <h3>{pick('现在可以揭示', 'Reveal is open')}</h3>
+              <span className="cw-label">揭示</span>
+              <h3>现在可以揭示</h3>
             </div>
             <span className="cw-chip cw-chip--warm">
-              <TimerReset size={14} />
-              {formatCountdown(countdown, pick)}
+              <Gift size={14} />
+              {formatCountdown(countdown)}
             </span>
           </div>
-
-          {debugError ? (
-            <div className="cw-list">
-              <div className="cw-list-item cw-list-item--alert">
-                <Shield size={16} />
-                <span>{debugError}</span>
-              </div>
-            </div>
-          ) : null}
 
           <div className="cw-button-row">
             <button
               type="button"
               className="cw-button cw-button--primary"
-              onClick={handleReveal}
-              disabled={revealMint.isPending || revealMint.isConfirming || !savedSalt}
+              onClick={() => void handleReveal()}
+              disabled={revealMint.isPending || revealMint.isConfirming}
             >
               <Sparkles size={16} />
               {revealMint.isPending
-                ? pick('等待签名', 'Waiting')
+                ? '等钱包签名'
                 : revealMint.isConfirming
-                  ? pick('链上确认中', 'Confirming')
-                  : pick('立即揭示', 'Reveal now')}
+                  ? '链上确认中'
+                  : '立即揭示'}
             </button>
           </div>
         </section>
@@ -411,12 +336,12 @@ export function MintPanel() {
         <section className="cw-panel cw-panel--cool">
           <div className="cw-section-head">
             <div>
-              <span className="cw-label">{pick('窗口已过', 'Expired')}</span>
-              <h3>{pick('当前只能退款', 'Refund only')}</h3>
+              <span className="cw-label">窗口已过</span>
+              <h3>这笔铸造只能退款</h3>
             </div>
             <span className="cw-chip cw-chip--alert">
               <Shield size={14} />
-              {pick('已超时', 'Expired')}
+              已过期
             </span>
           </div>
 
@@ -424,15 +349,15 @@ export function MintPanel() {
             <button
               type="button"
               className="cw-button cw-button--primary"
-              onClick={handleRefund}
+              onClick={() => refundHook.refund()}
               disabled={refundHook.isPending || refundHook.isConfirming}
             >
               <TimerReset size={16} />
               {refundHook.isPending
-                ? pick('等待签名', 'Waiting')
+                ? '等钱包签名'
                 : refundHook.isConfirming
-                  ? pick('链上确认中', 'Confirming')
-                  : pick('发起退款', 'Refund')}
+                  ? '链上确认中'
+                  : '申请退款'}
             </button>
           </div>
         </section>
@@ -445,22 +370,57 @@ export function MintPanel() {
               <CheckCircle2 size={22} />
             </div>
             <div>
-              <span className="cw-label">{pick('铸造完成', 'Minted')}</span>
-              <h3>{pick('新的龙虾已经加入你的编组', 'New lobster minted')}</h3>
-              <div className="cw-result-celebration">+{selectedAirdrop} Clawworld</div>
+              <span className="cw-label">铸造完成</span>
+              <h3>新的龙虾已经加入你的编组</h3>
+              <div className="cw-result-celebration">+{RARITY_AIRDROPS[selectedRarity]} Claworld</div>
             </div>
           </div>
 
           <div className="cw-button-row">
             <Link href="/" className="cw-button cw-button--secondary">
               <Compass size={16} />
-              {pick('返回首页', 'Back home')}
+              返回首页
             </Link>
-            <button type="button" className="cw-button cw-button--ghost" onClick={handleReset}>
-              {pick('继续铸造', 'Mint again')}
+            <button type="button" className="cw-button cw-button--ghost" onClick={() => setRevealed(false)}>
+              继续铸造
             </button>
           </div>
         </section>
+      ) : null}
+
+      {(mintBlockedReason || errorText || commitMint.error || revealMint.error || refundHook.error) ? (
+        <div className="cw-list">
+          {mintBlockedReason ? (
+            <div className="cw-list-item cw-list-item--cool">
+              <Shield size={16} />
+              <span>{mintBlockedReason}</span>
+            </div>
+          ) : null}
+          {errorText ? (
+            <div className="cw-list-item cw-list-item--alert">
+              <Shield size={16} />
+              <span>{errorText}</span>
+            </div>
+          ) : null}
+          {commitMint.error ? (
+            <div className="cw-list-item cw-list-item--alert">
+              <Shield size={16} />
+              <span>{mintError(commitMint.error)}</span>
+            </div>
+          ) : null}
+          {revealMint.error ? (
+            <div className="cw-list-item cw-list-item--alert">
+              <Shield size={16} />
+              <span>{mintError(revealMint.error)}</span>
+            </div>
+          ) : null}
+          {refundHook.error ? (
+            <div className="cw-list-item cw-list-item--alert">
+              <Shield size={16} />
+              <span>{mintError(refundHook.error)}</span>
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       {(commitMint.hash || revealMint.hash || refundHook.hash) ? (
@@ -470,72 +430,8 @@ export function MintPanel() {
           rel="noopener noreferrer"
           className="cw-inline-link"
         >
-          {pick('查看交易', 'View transaction')} <ArrowUpRight size={14} />
+          查看交易 <ArrowUpRight size={14} />
         </a>
-      ) : null}
-
-      {commitMint.error ? <p className="cw-muted">{commitMint.error.message}</p> : null}
-      {revealMint.error ? <p className="cw-muted">{revealMint.error.message}</p> : null}
-      {refundHook.error ? <p className="cw-muted">{refundHook.error.message}</p> : null}
-
-      {isOwner ? (
-        <details className="cw-advanced">
-          <summary className="cw-advanced-summary">{pick('高级', 'Advanced')}</summary>
-          <div className="cw-panel cw-panel--cool">
-            <div className="cw-section-head">
-              <div>
-                <span className="cw-label">{pick('管理员铸造', 'Owner mint')}</span>
-                <h3>{pick('免费发放', 'Free mint')}</h3>
-              </div>
-            </div>
-
-            <div className="cw-card-stack">
-              {[0, 1, 2, 3, 4].map((rarity) => (
-                <button
-                  key={rarity}
-                  type="button"
-                  className={`cw-card cw-card--button ${rarityTone(rarity)} ${ownerRarity === rarity ? 'cw-card--selected' : ''}`}
-                  onClick={() => setOwnerRarity(rarity)}
-                >
-                  <div className="cw-card-copy">
-                    <p className="cw-label">{pick('稀有度', 'Rarity')}</p>
-                    <h3>{getRarityName(rarity, isCN)}</h3>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <label className="cw-field">
-              <span className="cw-label">{pick('接收地址', 'Recipient')}</span>
-              <input
-                type="text"
-                value={ownerRecipient}
-                onChange={(event) => setOwnerRecipient(event.target.value)}
-                className="cw-input"
-                placeholder={pick('留空则发给当前钱包', 'Leave blank to mint to current wallet')}
-              />
-            </label>
-
-            <div className="cw-button-row">
-              <button
-                type="button"
-                className="cw-button cw-button--primary"
-                onClick={() => void handleOwnerMint()}
-                disabled={ownerMintHook.isPending || ownerMintHook.isConfirming}
-              >
-                <Sparkles size={16} />
-                {ownerMintHook.isPending
-                  ? pick('等待签名', 'Waiting')
-                  : ownerMintHook.isConfirming
-                    ? pick('链上确认中', 'Confirming')
-                    : pick('发放', 'Mint')}
-              </button>
-            </div>
-
-            {ownerSimError ? <p className="cw-muted">{ownerSimError}</p> : null}
-            {ownerMintHook.error ? <p className="cw-muted">{ownerMintHook.error.message}</p> : null}
-          </div>
-        </details>
       ) : null}
     </div>
   );

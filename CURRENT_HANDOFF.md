@@ -1,9 +1,89 @@
 # Current Handoff
 
-Last updated: 2026-04-13 (session 21) Asia/Singapore
+Last updated: 2026-04-13 (session 22) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
+
+## Frontend closure checkpoint - 2026-04-13 session 22
+
+This pass was focused on the default mobile shell, arena modal flows, and mint-page simplification.
+
+What is now done:
+
+1. Arena is now truly modal-first on the rebuilt shell
+- `/arena` now opens from two action cards only:
+  - `PK`
+  - `大逃杀`
+- tapping either opens a bottom sheet instead of pushing the user into a long stacked page
+
+2. `PKArenaPanel` was rebuilt into a short player-facing flow
+- top area now shows only:
+  - current status
+  - reserve
+  - `胜败`
+- open matches are now browsed in a compact pager
+- strategy choice is now:
+  - `强攻`
+  - `均衡`
+  - `防守`
+- active-match actions remain:
+  - `亮招`
+  - `结算`
+  - `清局`
+- raw protocol wording and garbled copy were removed
+
+3. `BattleRoyaleArenaPanel` was added as a dedicated room selector flow
+- the sheet now shows:
+  - current match status
+  - total players / trigger count
+  - prize pool
+  - 10 rooms as a grid
+  - per-room player count
+  - per-room total stake
+- owner path supports:
+  - `授权 Claworld`
+  - `加入房间`
+  - one room change before reveal
+  - owner-path reward claim
+- autonomy-path presence is now shown as a short redirect to `/auto`, not mixed into the same action surface
+
+4. Mint page is now compact and single-path
+- `frontend/src/components/mint/MintPanel.tsx` was rebuilt into the new mobile card language
+- admin/owner mint controls remain removed
+- the page now keeps only:
+  - rarity choice
+  - pay / wait / reveal / refund
+  - final success state
+- rarity sold counts are now wired back to the real `getRarityMinted()` read
+
+5. Shell and global spacing were tightened again
+- top bar padding reduced
+- switcher width reduced
+- stage remains text-only and was compacted further
+- cards, panels, button rows, and modal sheets were all tightened
+- selected feedback is now stronger on:
+  - cards
+  - tabs
+  - strategy choices
+  - room tiles
+
+6. Frontend build is green after the arena and mint rewrite
+- `npm --prefix frontend run build`
+
+Current honest frontend state after session 22:
+
+- wallet `Claworld` balance path is now working in the live shell
+- arena interaction model is much closer to the intended game flow
+- mint page is now aligned with the rebuilt shell instead of the old terminal style
+- task mining page still uses three generated task cards only:
+  - they are not random chain-generated tasks
+  - they are fixed categories whose reward/score numbers are derived from the active lobster state
+- proxy/auto page can still be simplified further in a later pass
+- live wallet testing is still required for:
+  - PK create/join/reveal/settle
+  - Battle Royale join/change/claim
+  - mint commit/reveal/refund
 
 ## Contract closure checkpoint - 2026-04-13 session 21
 

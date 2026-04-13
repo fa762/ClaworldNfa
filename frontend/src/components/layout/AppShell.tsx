@@ -20,56 +20,52 @@ type ShellCopy = {
   readouts: Array<{ label: string; value: string; tone?: CompanionStageTone }>;
 };
 
-function runwayLabel(companion: ReturnType<typeof useActiveCompanion>, pick: <T,>(zh: T, en: T) => T) {
-  if (companion.upkeepDays === null) return pick('未知', 'n/a');
-  return pick(`${companion.upkeepDays}天`, `${companion.upkeepDays}d`);
+function runwayLabel(companion: ReturnType<typeof useActiveCompanion>) {
+  if (companion.upkeepDays === null) return 'n/a';
+  return `${companion.upkeepDays}天`;
 }
 
-function getArenaStatus(companion: ReturnType<typeof useActiveCompanion>, pick: <T,>(zh: T, en: T) => T) {
-  if (!companion.active) return { label: pick('先维护', 'Upkeep first'), tone: 'alert' as const };
+function getArenaStatus(companion: ReturnType<typeof useActiveCompanion>) {
+  if (!companion.active) return { label: '先维护', tone: 'alert' as const };
   if (companion.pkWins + companion.pkLosses > 0) {
     return {
-      label: `${companion.pkWins}W / ${companion.pkLosses}L`,
+      label: `胜败 ${companion.pkWins}/${companion.pkLosses}`,
       tone: companion.pkWinRate >= 50 ? ('warm' as const) : ('cool' as const),
     };
   }
-  return { label: pick('待开赛', 'Ready') as string, tone: 'cool' as const };
+  return { label: '当前空闲', tone: 'cool' as const };
 }
 
-function getShellCopy(
-  pathname: string,
-  companion: ReturnType<typeof useActiveCompanion>,
-  pick: <T,>(zh: T, en: T) => T,
-): ShellCopy {
+function getShellCopy(pathname: string, companion: ReturnType<typeof useActiveCompanion>, pick: <T,>(zh: T, en: T) => T): ShellCopy {
   if (pathname.startsWith('/play')) {
     return {
       variant: 'play',
       compact: true,
       eyebrow: `#${companion.tokenNumber} / ${companion.name}`,
-      title: pick('任务挖矿', 'Task Mining'),
-      statusLabel: companion.active ? pick('可开始', 'Ready') : companion.statusLabel,
+      title: '任务挖矿',
+      statusLabel: companion.active ? '可开始' : companion.statusLabel,
       statusTone: companion.active ? 'growth' : companion.statusTone,
       readouts: [
-        { label: pick('储备', 'Reserve'), value: companion.routerClaworldText, tone: 'warm' },
-        { label: pick('续航', 'Runway'), value: runwayLabel(companion, pick), tone: companion.statusTone },
-        { label: pick('任务', 'Tasks'), value: `${companion.taskTotal}`, tone: 'growth' },
+        { label: '储备', value: companion.routerClaworldText, tone: 'warm' },
+        { label: '续航', value: runwayLabel(companion), tone: companion.statusTone },
+        { label: '任务', value: `${companion.taskTotal}`, tone: 'growth' },
       ],
     };
   }
 
   if (pathname.startsWith('/arena')) {
-    const arenaStatus = getArenaStatus(companion, pick);
+    const arenaStatus = getArenaStatus(companion);
     return {
       variant: 'arena',
       compact: true,
       eyebrow: `#${companion.tokenNumber} / ${companion.name}`,
-      title: pick('竞技', 'Arena'),
+      title: '竞技',
       statusLabel: arenaStatus.label,
       statusTone: arenaStatus.tone,
       readouts: [
-        { label: 'PK', value: `${companion.pkWinRate}%`, tone: arenaStatus.tone },
-        { label: pick('胜场', 'Wins'), value: `${companion.pkWins}`, tone: 'warm' },
-        { label: pick('储备', 'Reserve'), value: companion.routerClaworldText, tone: 'cool' },
+        { label: '胜率', value: `${companion.pkWinRate}%`, tone: arenaStatus.tone },
+        { label: '胜败', value: `${companion.pkWins}/${companion.pkLosses}`, tone: 'warm' },
+        { label: '储备', value: companion.routerClaworldText, tone: 'cool' },
       ],
     };
   }
@@ -79,13 +75,13 @@ function getShellCopy(
       variant: 'auto',
       compact: true,
       eyebrow: `#${companion.tokenNumber} / ${companion.name}`,
-      title: pick('代理', 'Auto'),
-      statusLabel: pick('受控', 'Bounded'),
+      title: '代理',
+      statusLabel: '受控策略',
       statusTone: 'cool',
       readouts: [
-        { label: pick('储备', 'Reserve'), value: companion.routerClaworldText, tone: 'warm' },
-        { label: pick('维护', 'Upkeep'), value: companion.dailyCostText, tone: 'growth' },
-        { label: pick('续航', 'Runway'), value: runwayLabel(companion, pick), tone: companion.statusTone },
+        { label: '储备', value: companion.routerClaworldText, tone: 'warm' },
+        { label: '维护', value: companion.dailyCostText, tone: 'growth' },
+        { label: '续航', value: runwayLabel(companion), tone: companion.statusTone },
       ],
     };
   }
@@ -94,14 +90,30 @@ function getShellCopy(
     return {
       variant: 'settings',
       compact: true,
-      eyebrow: pick('系统', 'System'),
-      title: pick('设置', 'Settings'),
-      statusLabel: companion.connected ? pick('已连接', 'Connected') : pick('未连接', 'Offline'),
+      eyebrow: '系统',
+      title: '设置',
+      statusLabel: companion.connected ? '已连接' : '离线',
       statusTone: companion.connected ? 'cool' : 'alert',
       readouts: [
-        { label: pick('持有', 'Owned'), value: `${companion.ownedCount}`, tone: 'cool' },
-        { label: pick('储备', 'Reserve'), value: companion.routerClaworldText, tone: 'warm' },
-        { label: pick('状态', 'Status'), value: companion.statusLabel, tone: companion.statusTone },
+        { label: '持有', value: `${companion.ownedCount}`, tone: 'cool' },
+        { label: '储备', value: companion.routerClaworldText, tone: 'warm' },
+        { label: '状态', value: companion.statusLabel, tone: companion.statusTone },
+      ],
+    };
+  }
+
+  if (pathname.startsWith('/mint')) {
+    return {
+      variant: 'home',
+      compact: true,
+      eyebrow: 'Genesis Mint',
+      title: '铸造',
+      statusLabel: companion.connected ? '可铸造' : '先连钱包',
+      statusTone: companion.connected ? 'warm' : 'cool',
+      readouts: [
+        { label: '储备', value: companion.routerClaworldText, tone: 'warm' },
+        { label: '维护', value: companion.dailyCostText, tone: 'cool' },
+        { label: '续航', value: runwayLabel(companion), tone: companion.statusTone },
       ],
     };
   }
@@ -114,9 +126,9 @@ function getShellCopy(
     statusLabel: companion.statusLabel,
     statusTone: companion.statusTone,
     readouts: [
-      { label: pick('储备', 'Reserve'), value: companion.routerClaworldText, tone: 'warm' },
-      { label: pick('日维护', 'Upkeep'), value: companion.dailyCostText, tone: 'cool' },
-      { label: pick('续航', 'Runway'), value: runwayLabel(companion, pick), tone: companion.statusTone },
+      { label: '储备', value: companion.routerClaworldText, tone: 'warm' },
+      { label: '维护', value: companion.dailyCostText, tone: 'cool' },
+      { label: '续航', value: runwayLabel(companion), tone: companion.statusTone },
     ],
   };
 }
@@ -133,42 +145,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className={`cw-screen cw-screen--${shellCopy.variant}`}>
         <header className="cw-topbar">
           <div className="cw-topbar-brand">
-            <p className="cw-overline">{pick('移动端', 'Mobile dApp')}</p>
+            <p className="cw-overline">MOBILE DAPP</p>
             <h1 className="cw-brand">{pick('龙虾世界', 'Clawworld')}</h1>
           </div>
           <div className="cw-top-actions">
             {showMintShortcut ? (
-              <Link href="/mint" className="cw-toplink cw-toplink--mint" aria-label={pick('前往铸造', 'Open mint')}>
+              <Link href="/mint" className="cw-toplink cw-toplink--mint" aria-label="前往铸造">
                 <Compass size={14} />
                 {pick('铸造', 'Mint')}
               </Link>
             ) : null}
             {companion.ownedCount > 1 ? (
               <div className="cw-switcher" aria-label={t('shell.selector')}>
-                <button
-                  type="button"
-                  className="cw-switcher-btn"
-                  onClick={companion.selectPrevious}
-                  aria-label={t('shell.previous')}
-                  disabled={companion.isLoading}
-                >
+                <button type="button" className="cw-switcher-btn" onClick={companion.selectPrevious} aria-label={t('shell.previous')} disabled={companion.isLoading}>
                   <ChevronLeft size={14} />
                 </button>
                 <div className="cw-switcher-label">
                   <strong>#{companion.tokenNumber || '--'}</strong>
-                  <span>
-                    {companion.isLoading
-                      ? pick('同步中', 'Syncing')
-                      : `${companion.selectedIndex + 1}/${companion.ownedCount}`}
-                  </span>
+                  <span>{companion.isLoading ? pick('同步中', 'Syncing') : `${companion.selectedIndex + 1}/${companion.ownedCount}`}</span>
                 </div>
-                <button
-                  type="button"
-                  className="cw-switcher-btn"
-                  onClick={companion.selectNext}
-                  aria-label={t('shell.next')}
-                  disabled={companion.isLoading}
-                >
+                <button type="button" className="cw-switcher-btn" onClick={companion.selectNext} aria-label={t('shell.next')} disabled={companion.isLoading}>
                   <ChevronRight size={14} />
                 </button>
               </div>
