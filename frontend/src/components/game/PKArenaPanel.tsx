@@ -5,9 +5,9 @@ import {
   AlertTriangle,
   ArrowUpRight,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Eye,
+  Plus,
+  RefreshCw,
   Shield,
   Swords,
   TimerReset,
@@ -36,6 +36,7 @@ import { formatCLW } from '@/lib/format';
 
 type StrategyValue = 0 | 1 | 2;
 type MatchWithResolution = PKMatch & { resolution: CachedPKResolution | null };
+type ArenaMode = 'browse' | 'join' | 'create';
 type PendingAction =
   | { kind: 'create'; stake: bigint; strategy: StrategyValue; commitHash: `0x${string}`; salt: `0x${string}` }
   | { kind: 'join'; matchId: number; strategy: StrategyValue; stake: bigint; commitHash: `0x${string}`; salt: `0x${string}` }
@@ -115,6 +116,9 @@ export function PKArenaPanel({
   companionName,
   reserve,
   reserveText,
+  pkWins,
+  pkLosses,
+  pkWinRate,
   level,
   traits,
 }: {
@@ -123,6 +127,9 @@ export function PKArenaPanel({
   companionName: string;
   reserve: bigint;
   reserveText: string;
+  pkWins: number;
+  pkLosses: number;
+  pkWinRate: number;
   level: number;
   traits: { courage: number; wisdom: number; social: number; create: number; grit: number };
 }) {
@@ -133,7 +140,8 @@ export function PKArenaPanel({
   const [matches, setMatches] = useState<MatchWithResolution[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [mode, setMode] = useState<ArenaMode>('browse');
+  const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
   const [createStakeInput, setCreateStakeInput] = useState('');
   const [createStrategy, setCreateStrategy] = useState<StrategyValue>(1);
   const [joinStrategy, setJoinStrategy] = useState<StrategyValue>(1);
@@ -224,23 +232,19 @@ export function PKArenaPanel({
         .slice(0, 3),
     [matches],
   );
-  const selectedMatch = joinableMatches[selectedIndex] ?? null;
+  const selectedMatch = joinableMatches.find((match) => match.matchId === selectedMatchId) ?? null;
   const savedReveal = useMemo(
     () => (activeMatch ? loadPKSalt(activeMatch.matchId) : null),
     [activeMatch, saltVersion],
   );
-  const wins = matches.filter(
-    (match) => match.resolution?.type === 'settled' && match.resolution.winnerNfaId === tokenNumber,
-  ).length;
-  const losses = matches.filter(
-    (match) => match.resolution?.type === 'settled' && match.resolution.loserNfaId === tokenNumber,
-  ).length;
 
   useEffect(() => {
-    setSelectedIndex((current) =>
-      joinableMatches.length === 0 ? 0 : Math.min(current, joinableMatches.length - 1),
-    );
-  }, [joinableMatches.length]);
+    if (!selectedMatchId) return;
+    if (!joinableMatches.some((match) => match.matchId === selectedMatchId)) {
+      setSelectedMatchId(null);
+      setMode('browse');
+    }
+  }, [joinableMatches, selectedMatchId]);
 
   async function submitCreate() {
     if (!tokenId || !ownerConnected) return;
@@ -405,11 +409,23 @@ export function PKArenaPanel({
           </div>
           <div className="cw-state-card">
             <span className="cw-label">胜败</span>
-            <strong>{wins} / {losses}</strong>
+            <strong>{pkWins}胜 / {pkLosses}败</strong>
           </div>
           <div className="cw-state-card">
             <span className="cw-label">状态</span>
             <strong>{activeMatch ? phaseLabel(activeMatch.phase) : '待机'}</strong>
+          </div>
+        </div>
+
+        <div className="cw-rule-strip">
+          <div className="cw-rule-copy">
+            <span className="cw-label">对局规则</span>
+            <strong>{activeMatch ? '亮招后见真章，赢的人拿走这一局。' : '一对一锁注，先藏招，后亮招，赢者拿走整局。'}</strong>
+          </div>
+          <div className="cw-pill-row">
+            <span className="cw-chip cw-chip--warm">{pkWinRate}% 胜率</span>
+            <span className="cw-chip cw-chip--cool">押注来自储备</span>
+            <span className="cw-chip cw-chip--growth">亮招自动保存</span>
           </div>
         </div>
 
@@ -477,135 +493,198 @@ export function PKArenaPanel({
 
       {!activeMatch ? (
         <>
-          <section className="cw-panel cw-panel--warm">
-            <div className="cw-section-head">
-              <div>
-                <span className="cw-label">应战列表</span>
-                <h3>{selectedMatch ? `PK #${selectedMatch.matchId}` : '当前没有公开对局'}</h3>
-              </div>
-              {joinableMatches.length > 1 ? (
-                <div className="cw-pager">
-                  <button
-                    type="button"
-                    className="cw-icon-button"
-                    onClick={() => setSelectedIndex((value) => (value - 1 + joinableMatches.length) % joinableMatches.length)}
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <span className="cw-pager-label">{selectedIndex + 1}/{joinableMatches.length}</span>
-                  <button
-                    type="button"
-                    className="cw-icon-button"
-                    onClick={() => setSelectedIndex((value) => (value + 1) % joinableMatches.length)}
-                  >
-                    <ChevronRight size={16} />
-                  </button>
+          {mode === 'browse' ? (
+            <section className="cw-panel cw-panel--warm">
+              <div className="cw-section-head">
+                <div>
+                  <span className="cw-label">应战列表</span>
+                  <h3>{joinableMatches.length > 0 ? `当前有 ${joinableMatches.length} 场可应战` : '当前没有公开对局'}</h3>
                 </div>
-              ) : null}
-            </div>
-
-            {selectedMatch ? (
-              <>
-                <div className="cw-stage-stats">
-                  <div className="cw-mini-stat">
-                    <span>对手</span>
-                    <strong>#{selectedMatch.nfaA}</strong>
-                  </div>
-                  <div className="cw-mini-stat">
-                    <span>质押</span>
-                    <strong>{formatCLW(selectedMatch.stake)}</strong>
-                  </div>
-                  <div className="cw-mini-stat">
-                    <span>伙伴</span>
-                    <strong>{companionName}</strong>
-                  </div>
-                </div>
-
-                <div className="cw-choice-grid">
-                  {STRATEGIES.map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      className={`cw-choice-card ${item.tone} ${joinStrategy === item.value ? 'cw-choice-card--selected' : ''}`}
-                      onClick={() => setJoinStrategy(item.value)}
-                    >
-                      <span>{item.label}</span>
-                      <strong>{item.note}</strong>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="cw-button-row">
-                  <button
-                    type="button"
-                    className="cw-button cw-button--primary"
-                    disabled={!ownerConnected || reserve < selectedMatch.stake}
-                    onClick={() => void submitJoin()}
-                  >
-                    <Swords size={16} />
-                    加入这局
-                  </button>
-                  <button type="button" className="cw-button cw-button--ghost" onClick={() => void refreshMatches()}>
-                    <TimerReset size={16} />
-                    刷新
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="cw-list">
-                <div className="cw-list-item cw-list-item--cool">
-                  <Shield size={16} />
-                  <span>现在没有可应战的公开 PK，你可以自己开擂。</span>
-                </div>
-              </div>
-            )}
-          </section>
-
-          <section className="cw-panel cw-panel--cool">
-            <div className="cw-section-head">
-              <div>
-                <span className="cw-label">自己开擂</span>
-                <h3>定一笔质押，等别人来应战</h3>
-              </div>
-            </div>
-
-            <label className="cw-field">
-              <span className="cw-label">质押数</span>
-              <input
-                className="cw-input"
-                inputMode="decimal"
-                value={createStakeInput}
-                onChange={(event) => setCreateStakeInput(event.target.value)}
-                placeholder="50"
-              />
-            </label>
-
-            <div className="cw-choice-grid">
-              {STRATEGIES.map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  className={`cw-choice-card ${item.tone} ${createStrategy === item.value ? 'cw-choice-card--selected' : ''}`}
-                  onClick={() => setCreateStrategy(item.value)}
-                >
-                  <span>{item.label}</span>
-                  <strong>{item.note}</strong>
+                <button type="button" className="cw-button cw-button--ghost" onClick={() => void refreshMatches()} disabled={isLoading}>
+                  <RefreshCw size={16} className={isLoading ? 'cw-spin' : ''} />
+                  {isLoading ? '刷新中' : '刷新'}
                 </button>
-              ))}
-            </div>
+              </div>
 
-            <div className="cw-button-row">
-              <button
-                type="button"
-                className="cw-button cw-button--primary"
-                disabled={!ownerConnected}
-                onClick={() => void submitCreate()}
-              >
-                <Swords size={16} />
-                开擂
-              </button>
-            </div>
-          </section>
+              {joinableMatches.length > 0 ? (
+                <>
+                  <div className="cw-match-list">
+                    {joinableMatches.map((match) => (
+                      <button
+                        key={match.matchId}
+                        type="button"
+                        className={`cw-match-row ${selectedMatch?.matchId === match.matchId ? 'cw-match-row--selected' : ''}`}
+                        onClick={() => {
+                          setSelectedMatchId(match.matchId);
+                          setMode('join');
+                          setActionError(null);
+                          setResultText(null);
+                        }}
+                      >
+                        <div className="cw-match-row-copy">
+                          <span className="cw-label">PK #{match.matchId}</span>
+                          <strong>对手 #{match.nfaA}</strong>
+                        </div>
+                        <div className="cw-match-row-meta">
+                          <strong>{formatCLW(match.stake)}</strong>
+                          <span>{selectedMatch?.matchId === match.matchId ? '已选中' : '点我应战'}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="cw-button-row">
+                    <button
+                      type="button"
+                      className="cw-button cw-button--ghost"
+                      onClick={() => {
+                        setMode('create');
+                        setSelectedMatchId(null);
+                        setActionError(null);
+                      }}
+                    >
+                      <Plus size={16} />
+                      我要开擂
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="cw-list">
+                    <div className="cw-list-item cw-list-item--cool">
+                      <Shield size={16} />
+                      <span>现在没有可应战的公开 PK，你可以自己开擂。</span>
+                    </div>
+                  </div>
+                  <div className="cw-button-row">
+                    <button
+                      type="button"
+                      className="cw-button cw-button--primary"
+                      onClick={() => {
+                        setMode('create');
+                        setActionError(null);
+                      }}
+                    >
+                      <Plus size={16} />
+                      我要开擂
+                    </button>
+                  </div>
+                </>
+              )}
+            </section>
+          ) : null}
+
+          {mode === 'join' && selectedMatch ? (
+            <section className="cw-sheet">
+              <div className="cw-sheet-head">
+                <div>
+                  <span className="cw-label">应战确认</span>
+                  <h3>PK #{selectedMatch.matchId}</h3>
+                </div>
+                <button type="button" className="cw-icon-button cw-sheet-close" onClick={() => setMode('browse')} aria-label="返回">
+                  <TimerReset size={16} />
+                </button>
+              </div>
+
+              <div className="cw-detail-list">
+                <div className="cw-detail-row">
+                  <span>对手</span>
+                  <strong>#{selectedMatch.nfaA}</strong>
+                </div>
+                <div className="cw-detail-row">
+                  <span>质押</span>
+                  <strong>{formatCLW(selectedMatch.stake)}</strong>
+                </div>
+                <div className="cw-detail-row">
+                  <span>伙伴</span>
+                  <strong>{companionName}</strong>
+                </div>
+              </div>
+
+              <div className="cw-choice-grid">
+                {STRATEGIES.map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    className={`cw-choice-card ${item.tone} ${joinStrategy === item.value ? 'cw-choice-card--selected' : ''}`}
+                    onClick={() => setJoinStrategy(item.value)}
+                  >
+                    <span>{item.label}</span>
+                    <strong>{item.note}</strong>
+                  </button>
+                ))}
+              </div>
+
+              <div className="cw-button-row">
+                <button
+                  type="button"
+                  className="cw-button cw-button--primary"
+                  disabled={!ownerConnected || reserve < selectedMatch.stake}
+                  onClick={() => void submitJoin()}
+                >
+                  <Swords size={16} />
+                  提交这一步
+                </button>
+                <button type="button" className="cw-button cw-button--ghost" onClick={() => setMode('browse')}>
+                  返回上一层
+                </button>
+              </div>
+            </section>
+          ) : null}
+
+          {mode === 'create' ? (
+            <section className="cw-sheet">
+              <div className="cw-sheet-head">
+                <div>
+                  <span className="cw-label">开擂</span>
+                  <h3>定一笔质押，等别人来应战</h3>
+                </div>
+                <button type="button" className="cw-icon-button cw-sheet-close" onClick={() => setMode('browse')} aria-label="返回">
+                  <TimerReset size={16} />
+                </button>
+              </div>
+
+              <label className="cw-field">
+                <span className="cw-label">质押数</span>
+                <input
+                  className="cw-input"
+                  inputMode="decimal"
+                  value={createStakeInput}
+                  onChange={(event) => setCreateStakeInput(event.target.value)}
+                  placeholder="50"
+                />
+              </label>
+
+              <div className="cw-choice-grid">
+                {STRATEGIES.map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    className={`cw-choice-card ${item.tone} ${createStrategy === item.value ? 'cw-choice-card--selected' : ''}`}
+                    onClick={() => setCreateStrategy(item.value)}
+                  >
+                    <span>{item.label}</span>
+                    <strong>{item.note}</strong>
+                  </button>
+                ))}
+              </div>
+
+              <div className="cw-button-row">
+                <button
+                  type="button"
+                  className="cw-button cw-button--primary"
+                  disabled={!ownerConnected}
+                  onClick={() => void submitCreate()}
+                >
+                  <Swords size={16} />
+                  开擂
+                </button>
+                <button type="button" className="cw-button cw-button--ghost" onClick={() => setMode('browse')}>
+                  返回上一层
+                </button>
+              </div>
+            </section>
+          ) : null}
         </>
       ) : null}
 

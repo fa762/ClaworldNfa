@@ -223,6 +223,7 @@
   border-radius: 8px;
   border: 1px solid var(--cw-route-accent);
   background: var(--cw-route-tint);
+  transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease;
 }
 
 .cw-toplink--mint {
@@ -289,7 +290,7 @@
 }
 
 .cw-switcher-btn:active {
-  transform: translateY(1px);
+  transform: scale(0.96);
 }
 
 .cw-stage {
@@ -545,10 +546,11 @@
   border-radius: 8px;
   color: var(--color-bunker-text-soft);
   background: rgba(255, 255, 255, 0.03);
+  transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease;
 }
 
 .cw-icon-button:active {
-  transform: translateY(1px);
+  transform: scale(0.94);
 }
 
 .cw-stage-readout span {
@@ -765,6 +767,10 @@
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
 }
 
+.cw-card--button:active {
+  transform: scale(0.985);
+}
+
 .cw-card:active {
   transform: translateY(1px);
 }
@@ -921,6 +927,7 @@
   color: var(--color-bunker-text);
   font-size: 0.84rem;
   font-weight: 600;
+  transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
 }
 
 .cw-button--primary {
@@ -941,6 +948,10 @@
 
 .cw-button:disabled {
   opacity: 0.65;
+}
+
+.cw-button:not(:disabled):active {
+  transform: scale(0.97);
 }
 
 .cw-field-grid,
@@ -1044,6 +1055,7 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(255, 255, 255, 0.03);
   text-align: left;
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
 }
 
 .cw-choice-card span {
@@ -1071,6 +1083,10 @@
     0 0 0 1px rgba(255, 180, 92, 0.16),
     0 0 18px rgba(255, 180, 92, 0.14);
   transform: translateY(-1px);
+}
+
+.cw-choice-card:active {
+  transform: scale(0.98);
 }
 
 .cw-pager {
@@ -1105,6 +1121,7 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(255, 255, 255, 0.03);
   text-align: left;
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
 }
 
 .cw-room-tile span {
@@ -1137,6 +1154,89 @@
     linear-gradient(180deg, rgba(123, 200, 164, 0.08), transparent 34%),
     rgba(255, 255, 255, 0.03);
   border-color: rgba(123, 200, 164, 0.18);
+}
+
+.cw-room-tile:active {
+  transform: scale(0.98);
+}
+
+.cw-rule-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.cw-rule-copy strong {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-heading);
+  font-size: 0.94rem;
+  line-height: 1.3;
+}
+
+.cw-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cw-match-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 60px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
+  text-align: left;
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.cw-match-row-copy,
+.cw-match-row-meta {
+  min-width: 0;
+}
+
+.cw-match-row-copy strong,
+.cw-match-row-meta strong {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 0.94rem;
+  line-height: 1.2;
+}
+
+.cw-match-row-meta {
+  text-align: right;
+}
+
+.cw-match-row-meta span {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-bunker-text-soft);
+  font-size: 0.74rem;
+}
+
+.cw-match-row--selected {
+  border-color: var(--cw-route-accent-strong);
+  box-shadow:
+    inset 0 0 0 1px var(--cw-route-accent-strong),
+    0 0 0 1px rgba(255, 180, 92, 0.14),
+    0 0 18px rgba(255, 180, 92, 0.12);
+  background:
+    linear-gradient(180deg, var(--cw-route-tint), transparent 36%),
+    rgba(255, 255, 255, 0.03);
+}
+
+.cw-match-row:active {
+  transform: scale(0.985);
 }
 
 .cw-detail-list {
@@ -1620,7 +1720,11 @@
 }
 
 .cw-tab:active {
-  transform: translateY(1px);
+  transform: scale(0.97);
+}
+
+.cw-spin {
+  animation: cw-spin 0.9s linear infinite;
 }
 
 @keyframes cw-pulse {
@@ -1632,6 +1736,15 @@
   50% {
     opacity: 1;
     transform: scale(1.02);
+  }
+}
+
+@keyframes cw-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 

@@ -5,6 +5,78 @@ Last updated: 2026-04-13 Asia/Singapore
 This file is the source of truth for the frontend product rewrite.
 If agent or chat context changes, continue from this file together with `CURRENT_HANDOFF.md`.
 
+## Execution checkpoint - 2026-04-13 session 23
+
+This checkpoint tightens the rebuilt shell around a clearer game-mobile rule:
+
+- shell chrome should read correctly in Chinese mode
+- PK and Battle Royale should open as short decision flows, not stacked system pages
+- win/loss, claim, and refresh state should be visible without reading debug copy
+
+### 1. Chinese shell chrome is now corrected
+
+Accepted model now implemented:
+
+- shell overline in Chinese mode:
+  - `移动端 DApp`
+- brand remains:
+  - `龙虾世界`
+- mint eyebrow in Chinese mode no longer stays English-only
+- arena status formatting is now:
+  - `X胜 / Y败`
+
+### 2. PK modal now follows a more game-like structure
+
+Accepted model now implemented:
+
+- top strip:
+  - current status
+  - reserve
+  - `X胜 / Y败`
+  - short rule/highlight copy
+- main idle surface:
+  - compact multi-row match list
+  - refresh
+  - open-create button
+- tap a match row:
+  - leave the list state
+  - enter a dedicated join confirm state
+- create-match now also has its own confirm state
+
+This replaces the earlier pager-like flow that still felt too much like a stacked dashboard.
+
+### 3. Battle Royale flow is now clearer at the top of the sheet
+
+Accepted model now implemented:
+
+- short rules strip at the top
+- explicit highlight that settlement auto-opens the next round
+- earlier reward-claim entry
+- visible refresh feedback
+
+### 4. Current honest product limitation
+
+This remains true after session 23:
+
+- manual BR join still spends owner-wallet `Claworld`
+- NFA-reserve BR entry is not a front-end-only switch
+- the current contract split is still:
+  - owner wallet path: `enterRoom(...)`
+  - autonomy/resolver path: `autonomousEnterRoomFor(...)`
+
+So the rebuilt UI can explain and route better, but it cannot truthfully pretend owner manual entry already spends NFA reserve.
+
+### Updated execution order after session 23
+
+1. validate the hosted build for:
+  - Chinese shell copy
+  - PK live stats
+  - PK list -> confirm flow
+  - BR claim entry / refresh state
+2. keep stripping leftover mixed-language copy from nested sheets
+3. continue reducing any remaining vertical waste in persistent shell chrome
+4. if product requires BR manual join from NFA reserve, handle it as a contract-path change, not a copy tweak
+
 ## Execution checkpoint - 2026-04-13 session 22
 
 This checkpoint moves the rebuilt shell closer to the intended game UX rule:

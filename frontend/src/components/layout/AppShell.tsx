@@ -29,7 +29,7 @@ function getArenaStatus(companion: ReturnType<typeof useActiveCompanion>) {
   if (!companion.active) return { label: '先维护', tone: 'alert' as const };
   if (companion.pkWins + companion.pkLosses > 0) {
     return {
-      label: `胜败 ${companion.pkWins}/${companion.pkLosses}`,
+      label: `${companion.pkWins}胜 / ${companion.pkLosses}败`,
       tone: companion.pkWinRate >= 50 ? ('warm' as const) : ('cool' as const),
     };
   }
@@ -64,7 +64,7 @@ function getShellCopy(pathname: string, companion: ReturnType<typeof useActiveCo
       statusTone: arenaStatus.tone,
       readouts: [
         { label: '胜率', value: `${companion.pkWinRate}%`, tone: arenaStatus.tone },
-        { label: '胜败', value: `${companion.pkWins}/${companion.pkLosses}`, tone: 'warm' },
+        { label: '胜败', value: `${companion.pkWins}胜 / ${companion.pkLosses}败`, tone: 'warm' },
         { label: '储备', value: companion.routerClaworldText, tone: 'cool' },
       ],
     };
@@ -106,7 +106,7 @@ function getShellCopy(pathname: string, companion: ReturnType<typeof useActiveCo
     return {
       variant: 'home',
       compact: true,
-      eyebrow: 'Genesis Mint',
+      eyebrow: pick('创世铸造', 'Genesis Mint'),
       title: '铸造',
       statusLabel: companion.connected ? '可铸造' : '先连钱包',
       statusTone: companion.connected ? 'warm' : 'cool',
@@ -145,7 +145,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className={`cw-screen cw-screen--${shellCopy.variant}`}>
         <header className="cw-topbar">
           <div className="cw-topbar-brand">
-            <p className="cw-overline">MOBILE DAPP</p>
+            <p className="cw-overline">{pick('移动端 DApp', 'Mobile Dapp')}</p>
             <h1 className="cw-brand">{pick('龙虾世界', 'Clawworld')}</h1>
           </div>
           <div className="cw-top-actions">

@@ -79,7 +79,7 @@ export default function HomePage() {
       meta:
         battleRoyale.ready && battleRoyale.triggerCount > 0
           ? `${battleRoyale.totalPlayers}/${battleRoyale.triggerCount}`
-          : `${companion.pkWins}W / ${companion.pkLosses}L`,
+          : `${companion.pkWins}胜 / ${companion.pkLosses}败`,
       tone: claimableAmount > 0n ? 'cw-card--ready' : 'cw-card--watch',
     },
     {

@@ -136,6 +136,9 @@ export function BattleRoyaleArenaPanel({
   const currentRoom = activePath?.roomId ?? 0;
   const currentStake = activePath?.stake ?? 0n;
   const roomChangeCount = Number(roomChangeCountQuery.data ?? 0);
+  const refreshing = Boolean(
+    isRefreshing || snapshotQuery.isFetching || roomChangeCountQuery.isFetching || allowanceQuery.isFetching,
+  );
   const ownerJoined = participant.ownerPath.entered;
   const autonomyJoined = participant.autonomyPath.entered && !ownerJoined;
   const canChangeRoom = ownerJoined && status === 0 && roomChangeCount < 1;
@@ -237,10 +240,10 @@ export function BattleRoyaleArenaPanel({
             type="button"
             className="cw-button cw-button--ghost"
             onClick={() => void refreshAll()}
-            disabled={Boolean(isRefreshing)}
+            disabled={refreshing}
           >
-            <RefreshCw size={16} />
-            {isRefreshing ? '刷新中' : '刷新'}
+            <RefreshCw size={16} className={refreshing ? 'cw-spin' : ''} />
+            {refreshing ? '刷新中' : '刷新'}
           </button>
         </div>
 
@@ -256,6 +259,18 @@ export function BattleRoyaleArenaPanel({
           <div className="cw-state-card">
             <span className="cw-label">奖池</span>
             <strong>{formatCLW(pot)}</strong>
+          </div>
+        </div>
+
+        <div className="cw-rule-strip">
+          <div className="cw-rule-copy">
+            <span className="cw-label">规则亮点</span>
+            <strong>十房混战，爆房就出局。每局只准换房一次，结算后系统自动开新局。</strong>
+          </div>
+          <div className="cw-pill-row">
+            <span className="cw-chip cw-chip--warm">10 房混战</span>
+            <span className="cw-chip cw-chip--cool">可换房 1 次</span>
+            <span className="cw-chip cw-chip--growth">自动开新局</span>
           </div>
         </div>
 
@@ -275,13 +290,31 @@ export function BattleRoyaleArenaPanel({
             </div>
           </div>
         ) : null}
+
+        {ownerClaimReady ? (
+          <div className="cw-button-row">
+            <button type="button" className="cw-button cw-button--primary" onClick={() => void handleAction('claim')}>
+              <Trophy size={16} />
+              领取 {formatCLW(participant.claimable)}
+            </button>
+          </div>
+        ) : null}
+
+        {autonomyClaimOnly ? (
+          <div className="cw-list">
+            <div className="cw-list-item cw-list-item--cool">
+              <Shield size={16} />
+              <span>这笔奖励走代理路径，请去代理页领取。</span>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="cw-panel cw-panel--cool">
         <div className="cw-section-head">
           <div>
             <span className="cw-label">房间列表</span>
-            <h3>{ownerJoined ? '可换房一次' : '选一间房加入'}</h3>
+            <h3>{ownerJoined ? '可以换房一次' : '点一间房，再确认质押加入'}</h3>
           </div>
           <span className="cw-chip cw-chip--cool">
             <Shield size={14} />
@@ -306,6 +339,20 @@ export function BattleRoyaleArenaPanel({
 
         {!ownerJoined && !autonomyJoined ? (
           <>
+            <div className="cw-detail-list">
+              <div className="cw-detail-row">
+                <span>当前选房</span>
+                <strong>{selectedRoom} 号房</strong>
+              </div>
+              <div className="cw-detail-row">
+                <span>最低门槛</span>
+                <strong>{formatCLW(minStake)}</strong>
+              </div>
+              <div className="cw-detail-row">
+                <span>手动入场</span>
+                <strong>钱包 Claworld</strong>
+              </div>
+            </div>
             <label className="cw-field">
               <span className="cw-label">质押数</span>
               <input
@@ -364,36 +411,6 @@ export function BattleRoyaleArenaPanel({
           </div>
         ) : null}
       </section>
-
-      {ownerClaimReady ? (
-        <section className="cw-panel cw-panel--warm">
-          <div className="cw-section-head">
-            <div>
-              <span className="cw-label">奖励</span>
-              <h3>可领取 {formatCLW(participant.claimable)}</h3>
-            </div>
-            <span className="cw-chip cw-chip--warm">
-              <Trophy size={14} />
-              可领取
-            </span>
-          </div>
-          <div className="cw-button-row">
-            <button type="button" className="cw-button cw-button--primary" onClick={() => void handleAction('claim')}>
-              <Trophy size={16} />
-              领取奖励
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      {autonomyClaimOnly ? (
-        <div className="cw-list">
-          <div className="cw-list-item cw-list-item--cool">
-            <Shield size={16} />
-            <span>这笔奖励在代理路径下，请去代理页领取。</span>
-          </div>
-        </div>
-      ) : null}
 
       {(snapshotQuery.error || actionError || error || isPending || receiptQuery.isLoading || resultText) ? (
         <div className="cw-list">

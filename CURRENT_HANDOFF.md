@@ -1,9 +1,73 @@
 # Current Handoff
 
-Last updated: 2026-04-13 (session 22) Asia/Singapore
+Last updated: 2026-04-13 (session 23) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
+
+## Frontend closure checkpoint - 2026-04-13 session 23
+
+This pass focused on the live PWA shell language issue, PK sheet readability, and clearer Battle Royale entry/claim flow.
+
+What is now done:
+
+1. Chinese shell chrome is now Chinese-first
+- the shell overline no longer hardcodes `MOBILE DAPP`
+- Chinese mode now shows `移动端 DApp`
+- the mint eyebrow no longer hardcodes `Genesis Mint`
+- shell arena status now uses player-readable formatting:
+  - `0胜 / 2败`
+
+2. PK now uses real live win/loss stats in the modal flow
+- `PKArenaPanel` no longer derives胜败 from recent cached results only
+- arena shell and PK panel now use the active companion's live `pkWins / pkLosses`
+- display format is now:
+  - `X胜 / Y败`
+
+3. PK interaction is now tighter and less scroll-heavy
+- open PK matches are now shown as a compact multi-row list
+- tapping one row now moves into a dedicated confirm sheet state
+- the join confirm now focuses on:
+  - opponent
+  - stake
+  - strategy
+  - submit / back
+- create-match flow now follows the same pattern instead of always living inline under the list
+
+4. Battle Royale now explains its loop and surfaces reward entry earlier
+- the BR sheet now starts with a short rules strip:
+  - 10 rooms
+  - one room change
+  - auto-open next round after settlement
+- owner-claim CTA is now surfaced higher in the BR flow instead of feeling buried
+- refresh now has visible feedback:
+  - button disabled while refreshing
+  - icon spin
+  - `刷新中`
+
+5. Button and tile feedback is now stronger on touch
+- top links
+- buttons
+- icon buttons
+- arena entry cards
+- PK list rows
+- strategy cards
+- BR room tiles
+- tabs
+all now have clearer press-down feedback instead of feeling static
+
+6. Build verification is green after this pass
+- `npm --prefix frontend run build`
+
+Current honest product truth after session 23:
+
+- Battle Royale does auto-open the next match after settlement
+  - this is contract behavior (`_settle()` -> `_openMatch()`)
+- manual Battle Royale join still uses owner-wallet `Claworld`
+  - this was not changed in this pass
+  - current contract path for owner entry is still `enterRoom(...)`
+- NFA-reserve Battle Royale entry is still a different path
+  - it requires the autonomy / resolver route, not just a frontend label change
 
 ## Frontend closure checkpoint - 2026-04-13 session 22
 

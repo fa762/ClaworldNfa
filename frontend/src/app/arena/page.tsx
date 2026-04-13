@@ -35,7 +35,7 @@ export default function ArenaPage() {
   const claimableAmount = participant.claimable;
 
   const pkSummary = companion.pkWins + companion.pkLosses > 0
-    ? `胜败 ${companion.pkWins} / ${companion.pkLosses}`
+    ? `${companion.pkWins}胜 / ${companion.pkLosses}败`
     : '当前空闲';
 
   const brSummary = useMemo(() => {
@@ -105,6 +105,9 @@ export default function ArenaPage() {
                   companionName={companion.name}
                   reserve={companion.routerClaworld}
                   reserveText={companion.routerClaworldText}
+                  pkWins={companion.pkWins}
+                  pkLosses={companion.pkLosses}
+                  pkWinRate={companion.pkWinRate}
                   level={companion.level}
                   traits={companion.traits}
                 />
