@@ -5,6 +5,59 @@ Last updated: 2026-04-14 Asia/Singapore
 This file is the source of truth for the frontend product rewrite.
 If agent or chat context changes, continue from this file together with `CURRENT_HANDOFF.md`.
 
+## Arena detail checkpoint - 2026-04-14 session 25
+
+This checkpoint tightens the Arena page around one product rule:
+
+- history should not be a dead log
+- history should let the user review and act
+
+### 1. Battle Royale history is now an action surface
+
+Accepted model now implemented:
+
+- open BR history detail
+- review:
+  - room
+  - stake
+  - pot
+  - status
+  - claimable reward
+- if reward is still claimable:
+  - claim from the same detail sheet
+  - reserve-route rewards point back to Home maintenance withdraw
+
+### 2. PK history detail now behaves like a duel review
+
+Accepted model now implemented:
+
+- open PK history detail
+- review:
+  - win / loss
+  - role
+  - opponent
+  - my strategy
+  - opponent strategy
+  - reward
+  - winner
+
+This is much closer to the intended game UX than the previous “match id + result + stake” shell.
+
+### 3. Battle Royale path display now follows the selected lobster
+
+Accepted model now implemented:
+
+- owner-wallet path is no longer shown just because the wallet participated somewhere
+- the BR room sheet only prefers paths whose effective NFA matches the currently selected lobster
+- claim-window scanning now follows the same relevance rule
+
+### Updated execution order after session 25
+
+1. validate hosted Arena history detail against live BR claim cases
+2. validate NFA switching inside BR room sheet on real data
+3. keep removing leftover dashboard-style copy from Arena sheets
+4. after live verification, continue the same action-first cleanup on Auto and Settings
+
 ## Execution checkpoint - 2026-04-14 session 24
 
 This checkpoint locks in a cleaner game-product rule for the rebuilt mobile shell:

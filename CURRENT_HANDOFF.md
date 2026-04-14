@@ -5,6 +5,56 @@ Last updated: 2026-04-14 (session 24) Asia/Singapore
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
 
+## Arena follow-up checkpoint - 2026-04-14 session 25
+
+This pass closed the biggest remaining Arena detail gaps after live review.
+
+What is now done:
+
+1. Battle Royale history detail now contains the reward-claim entry
+- if a historical BR record still has claimable reward:
+  - owner path can claim directly from the history detail sheet
+  - reserve / NFA path can claim back into the lobster ledger account from the same sheet
+- if the reward returns to the lobster ledger account:
+  - the detail sheet now also points back to Home maintenance withdraw
+
+2. PK history detail now shows actual battle context instead of only summary labels
+- the PK history detail sheet now includes:
+  - win / loss result
+  - role (`发起` / `应战`)
+  - opponent
+  - my strategy
+  - opponent strategy
+  - match reward
+  - winner NFA
+
+3. Battle Royale rule copy has been updated to the accepted product rule
+- Arena now states:
+  - choose any room and stake to hide
+  - once 10 players fill the match, one room is randomly eliminated
+  - surviving rooms split rewards by stake size
+
+4. Switching the top NFA now stops leaking unrelated owner-wallet BR participation
+- `useBattleRoyaleParticipantState` no longer prefers any owner-wallet record blindly
+- the selected NFA only sees BR participation/claim data when the match record actually maps back to that NFA
+- this prevents the common failure where switching to a different lobster still showed the old wallet path from another lobster
+
+5. Claim-window path resolution has been updated to match the same rule
+- settled BR lookback / claim-window scanning now tracks:
+  - `claimed`
+  - owner-vs-autonomy path relevance
+  - NFA match filtering
+
+Verification completed in this pass:
+
+- `npm --prefix frontend run build`
+
+Current honest product truth after session 25:
+
+- Arena history is now actionable, not just informational
+- PK history detail is finally specific enough to review a real duel
+- BR room detail should now follow the currently selected NFA instead of stale owner-wallet participation from another lobster
+
 ## Closure checkpoint - 2026-04-14 session 24
 
 This pass closed the mint audit, upkeep-withdraw path, companion details sheet, and the code path for Battle Royale rewards returning to the NFA ledger account.

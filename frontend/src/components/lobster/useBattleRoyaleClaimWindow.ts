@@ -48,6 +48,7 @@ function buildPath(
   playerInfo: readonly [number, bigint],
   claimable: bigint,
   effectiveNfa: bigint,
+  claimed: boolean,
 ): ParticipantPath {
   const roomId = Number(playerInfo?.[0] ?? 0);
   const stake = BigInt(playerInfo?.[1] ?? 0n);
@@ -58,6 +59,7 @@ function buildPath(
     roomId,
     stake,
     claimable,
+    claimed,
     effectiveNfa,
     entered: roomId > 0 || stake > 0n,
     matchesToken: effectiveNfa === tokenId,
@@ -147,8 +149,10 @@ export function useBattleRoyaleClaimWindow(
               ownerPlayerInfo,
               ownerClaimable,
               ownerEffectiveNfa,
+              ownerClaimed,
               autonomyPlayerInfo,
               autonomyClaimable,
+              autonomyClaimed,
               autonomyEffectiveNfa,
             ] = (await client.multicall({
               contracts: [
@@ -169,12 +173,22 @@ export function useBattleRoyaleClaimWindow(
                 },
                 {
                   ...battleRoyaleContract,
+                  functionName: 'claimed',
+                  args: [currentMatchId, owner],
+                },
+                {
+                  ...battleRoyaleContract,
                   functionName: 'getPlayerInfo',
                   args: [currentMatchId, participant],
                 },
                 {
                   ...battleRoyaleContract,
                   functionName: 'getClaimable',
+                  args: [currentMatchId, participant],
+                },
+                {
+                  ...battleRoyaleContract,
+                  functionName: 'claimed',
                   args: [currentMatchId, participant],
                 },
                 {
@@ -188,8 +202,10 @@ export function useBattleRoyaleClaimWindow(
               readonly [number, bigint],
               bigint,
               bigint,
+              boolean,
               readonly [number, bigint],
               bigint,
+              boolean,
               bigint,
             ];
 
@@ -200,6 +216,7 @@ export function useBattleRoyaleClaimWindow(
               ownerPlayerInfo,
               BigInt(ownerClaimable.toString()),
               BigInt(ownerEffectiveNfa.toString()),
+              ownerClaimed,
             );
             const derivedAutonomyPath = buildPath(
               'autonomy',
@@ -208,11 +225,14 @@ export function useBattleRoyaleClaimWindow(
               autonomyPlayerInfo,
               BigInt(autonomyClaimable.toString()),
               BigInt(autonomyEffectiveNfa.toString()),
+              autonomyClaimed,
             );
-            const preferredPath = preferPath(ownerPath, derivedAutonomyPath);
+            const preferredPath = preferPath(ownerPath, derivedAutonomyPath, activeTokenId);
             const hasConflict =
-              ownerPath.entered &&
-              derivedAutonomyPath.entered &&
+              ownerPath.matchesToken &&
+              derivedAutonomyPath.matchesToken &&
+              (ownerPath.entered || ownerPath.claimed || ownerPath.claimable > 0n) &&
+              (derivedAutonomyPath.entered || derivedAutonomyPath.claimed || derivedAutonomyPath.claimable > 0n) &&
               ownerPath.address !== derivedAutonomyPath.address;
 
             if (hasConflict || (preferredPath?.claimable ?? 0n) > 0n) {

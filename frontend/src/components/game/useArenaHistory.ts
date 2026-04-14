@@ -22,12 +22,17 @@ export type PkHistoryEntry = {
   stake: bigint;
   result: string;
   reward: bigint;
+  myStrategy: string;
+  opponentStrategy: string;
+  winnerNfaId: number;
+  loserNfaId: number;
   txHash?: `0x${string}`;
 };
 
 export type BrHistoryEntry = {
   matchId: number;
-  path: 'NFA 记账账户' | '持有人钱包';
+  path: 'owner' | 'autonomy';
+  pathLabel: '持有人钱包' | 'NFA 记账账户';
   status: number;
   roomId: number;
   stake: bigint;
@@ -56,11 +61,11 @@ function brResultText(
   claimable: bigint,
   claimed: boolean,
 ) {
-  if (status === 0) return '开放中';
-  if (status === 1) return '待揭示';
-  if (roomId === 0) return '未参赛';
-  if (roomId === losingRoom) return '出局';
-  if (claimable > 0n) return '待领取';
+  if (status === 0) return '进行中';
+  if (status === 1) return '等待揭示';
+  if (roomId === 0) return '未入场';
+  if (roomId === losingRoom) return '已出局';
+  if (claimable > 0n) return '可领奖';
   if (claimed) return '已领取';
   return '已结算';
 }
@@ -68,6 +73,14 @@ function brResultText(
 function toTxHash(value: string | undefined): `0x${string}` | undefined {
   if (!value || !value.startsWith('0x')) return undefined;
   return value as `0x${string}`;
+}
+
+function strategyLabel(strategy: number, revealed: boolean) {
+  if (!revealed) return '未亮招';
+  if (strategy === 0) return '强攻';
+  if (strategy === 1) return '均衡';
+  if (strategy === 2) return '防守';
+  return '未知';
 }
 
 async function resolvePkHistory(tokenNumber: number) {
@@ -104,10 +117,18 @@ async function resolvePkHistory(tokenNumber: number) {
         }
       }
 
-      const role = match.nfaA === tokenNumber ? '发起' : '应战';
-      const opponent = match.nfaA === tokenNumber ? match.nfaB : match.nfaA;
+      const isCreator = match.nfaA === tokenNumber;
+      const myStrategy = strategyLabel(
+        isCreator ? match.strategyA : match.strategyB,
+        match.phase >= 4 || (isCreator ? match.revealedA : match.revealedB),
+      );
+      const opponentStrategy = strategyLabel(
+        isCreator ? match.strategyB : match.strategyA,
+        match.phase >= 4 || (isCreator ? match.revealedB : match.revealedA),
+      );
+
       const reward =
-        resolution?.type === 'settled' && resolution.winnerNfaId === tokenNumber
+        resolution?.type === 'settled'
           ? BigInt(resolution.reward)
           : 0n;
       const result =
@@ -121,12 +142,16 @@ async function resolvePkHistory(tokenNumber: number) {
 
       return {
         matchId: match.matchId,
-        role,
-        opponent,
+        role: isCreator ? '发起' : '应战',
+        opponent: isCreator ? match.nfaB : match.nfaA,
         phase: match.phase,
         stake: match.stake,
         result,
         reward,
+        myStrategy,
+        opponentStrategy,
+        winnerNfaId: resolution?.type === 'settled' ? resolution.winnerNfaId : 0,
+        loserNfaId: resolution?.type === 'settled' ? resolution.loserNfaId : 0,
         txHash:
           resolution?.type === 'settled'
             ? toTxHash(resolution.txHash)
@@ -269,7 +294,8 @@ export function useArenaHistory(tokenId: bigint | undefined, ownerAddress?: Addr
 
         brEntries.push({
           matchId,
-          path: usingAuto ? 'NFA 记账账户' : '持有人钱包',
+          path: usingAuto ? 'autonomy' : 'owner',
+          pathLabel: usingAuto ? 'NFA 记账账户' : '持有人钱包',
           status: Number(matchInfo[0] ?? 0),
           totalPlayers: Number(matchInfo[1] ?? 0),
           losingRoom,
@@ -287,7 +313,7 @@ export function useArenaHistory(tokenId: bigint | undefined, ownerAddress?: Addr
       setPkHistory(pkEntries);
       setBrHistory(brEntries);
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Arena history load failed.');
+      setError(nextError instanceof Error ? nextError.message : '竞技历史读取失败。');
     } finally {
       setIsLoading(false);
     }

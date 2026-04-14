@@ -135,8 +135,8 @@ export function BattleRoyaleArenaPanel({
   const refreshing = Boolean(
     isRefreshing || snapshotQuery.isFetching || roomChangeCountQuery.isFetching,
   );
-  const ownerJoined = participant.ownerPath.entered;
-  const nfaJoined = participant.autonomyPath.entered;
+  const ownerJoined = participant.ownerPath.matchesToken && participant.ownerPath.entered;
+  const nfaJoined = participant.autonomyPath.matchesToken && participant.autonomyPath.entered;
   const canChangeRoom = Boolean(activePath?.entered) && status === 0 && roomChangeCount < 1 && !participant.hasConflict;
   const hasEnoughReserve = amount === null || reserve >= amount;
   const ownerClaimReady =
@@ -267,13 +267,13 @@ export function BattleRoyaleArenaPanel({
 
         <div className="cw-rule-strip">
           <div className="cw-rule-copy">
-            <span className="cw-label">规则亮点</span>
-            <strong>十房混战，爆房就出局。每局只准换房一次，结算后系统自动开新局。</strong>
+            <span className="cw-label">规则</span>
+            <strong>任选一个房间质押代币躲避，满 10 人后随机一个房间被杀掉，幸存房按质押代币数瓜分奖励。</strong>
           </div>
           <div className="cw-pill-row">
-            <span className="cw-chip cw-chip--warm">10 房混战</span>
+            <span className="cw-chip cw-chip--warm">满 10 人开杀</span>
             <span className="cw-chip cw-chip--cool">可换房 1 次</span>
-            <span className="cw-chip cw-chip--growth">自动开新局</span>
+            <span className="cw-chip cw-chip--growth">结算后自动开新局</span>
           </div>
         </div>
 
@@ -286,6 +286,10 @@ export function BattleRoyaleArenaPanel({
             <div className="cw-mini-stat">
               <span>当前质押</span>
               <strong>{currentStake > 0n ? formatCLW(currentStake) : '--'}</strong>
+            </div>
+            <div className="cw-mini-stat">
+              <span>参赛路径</span>
+              <strong>{activePath.key === 'autonomy' ? 'NFA 记账账户' : '持有人钱包'}</strong>
             </div>
             <div className="cw-mini-stat">
               <span>换房次数</span>
