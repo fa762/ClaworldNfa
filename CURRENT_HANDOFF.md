@@ -1,9 +1,50 @@
 # Current Handoff
 
-Last updated: 2026-04-14 (session 24) Asia/Singapore
+Last updated: 2026-04-14 (session 26) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
+
+## Companion detail checkpoint - 2026-04-14 session 26
+
+This pass trims the fixed companion detail sheet back to a real game-style role panel.
+
+What is now done:
+
+1. Companion detail no longer reads like an operator sheet
+- removed from the default detail surface:
+  - owner wallet
+  - reserve
+  - daily upkeep
+  - wallet balance
+  - runway
+- the fixed companion detail now keeps only:
+  - level
+  - status
+  - shelter
+
+2. Task traits and PK stats now share the same visual language
+- task traits stay as progress bars
+- PK stats are no longer plain number cards
+- PK now also uses game-style progress bars:
+  - STR
+  - DEF
+  - SPD
+  - VIT
+
+3. The sheet is now much closer to a character panel than a data dump
+- no explanatory copy
+- no maintenance/account rows
+- just the core identity block plus two stat sections
+
+Verification completed in this pass:
+
+- `npm --prefix frontend run build`
+
+Current honest product truth after session 26:
+
+- fixed companion detail is now compact enough to support the top-strip role of the shell
+- the detail sheet is no longer duplicating Home maintenance/account information
 
 ## Arena follow-up checkpoint - 2026-04-14 session 25
 
@@ -57,6 +98,15 @@ What is now done:
 - this prevents settled PK history detail from showing blank core fields
 - important caveat:
   - for very old matches, if a lobster's combat stats changed after the original settlement, the fallback is best-effort rather than a historical proof record
+
+7. Arena action sheets now explain and unblock the next on-chain step
+- Battle Royale `待揭示` is not a dead-end state anymore:
+  - the sheet now tells the user reveal still needs to be triggered on-chain
+  - once the reveal block is reached, the sheet exposes a direct `触发揭示` action
+  - once reveal settles, the contract auto-opens the next round
+- PK no longer only drops a footer status line after submit:
+  - create / join / reveal / settle / cancel now raise a short result sheet immediately
+  - this gives the user a proper “what happened next” panel instead of a tiny status strip
 
 Verification completed in this pass:
 

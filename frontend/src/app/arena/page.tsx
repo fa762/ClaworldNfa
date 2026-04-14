@@ -314,6 +314,7 @@ export default function ArenaPage() {
                 <BattleRoyaleArenaPanel
                   matchId={battleRoyale.matchId}
                   status={battleRoyale.status}
+                  revealBlock={battleRoyale.revealBlock}
                   totalPlayers={battleRoyale.totalPlayers}
                   triggerCount={battleRoyale.triggerCount}
                   pot={battleRoyale.pot}

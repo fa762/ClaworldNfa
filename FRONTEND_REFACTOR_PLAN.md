@@ -5,6 +5,47 @@ Last updated: 2026-04-14 Asia/Singapore
 This file is the source of truth for the frontend product rewrite.
 If agent or chat context changes, continue from this file together with `CURRENT_HANDOFF.md`.
 
+## Companion detail checkpoint - 2026-04-14 session 26
+
+This checkpoint tightens the top fixed companion strip around one rule:
+
+- tapping it should open a short character panel, not a maintenance dashboard
+
+### 1. Companion detail is now a stat panel
+
+Accepted model now implemented:
+
+- top row:
+  - level
+  - status
+  - shelter
+- second block:
+  - task traits as progress bars
+- third block:
+  - PK stats as progress bars
+
+Removed from the default sheet:
+
+- owner wallet
+- reserve
+- daily upkeep
+- wallet balance
+- runway
+
+### 2. Visual language is now consistent across role stats
+
+Accepted model now implemented:
+
+- task traits and PK stats now share the same meter treatment
+- no plain-number PK tiles in the details sheet
+- the fixed companion strip can stay compact because the sheet now opens only the useful character view
+
+### Updated execution order after session 26
+
+1. validate the hosted companion detail sheet on mobile
+2. keep cutting any remaining account/ops copy out of character-facing surfaces
+3. continue tightening Arena and Auto around the same action-first rule
+
 ## Arena detail checkpoint - 2026-04-14 session 25
 
 This checkpoint tightens the Arena page around one product rule:
@@ -64,6 +105,20 @@ Accepted model now implemented:
 2. validate NFA switching inside BR room sheet on real data
 3. keep removing leftover dashboard-style copy from Arena sheets
 4. after live verification, continue the same action-first cleanup on Auto and Settings
+
+### Arena interaction follow-up
+
+Accepted model now implemented:
+
+- `待揭示` must no longer look like a freeze:
+  - when reveal is still waiting on-chain, tell the user exactly that
+  - when the reveal block arrives, offer a direct `触发揭示` action
+  - after settlement, explain that the next round is auto-opened by the contract
+
+- PK submit should not end in a thin status row:
+  - after create / join / reveal / settle / cancel
+  - show a short result sheet immediately
+  - make the next state legible without forcing the user to infer it from the footer
 
 ## Execution checkpoint - 2026-04-14 session 24
 

@@ -13,7 +13,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import { parseEther } from 'viem';
-import { useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useBlockNumber, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 
 import { type ParticipantPath } from '@/components/lobster/useBattleRoyaleParticipantState';
 import { BattleRoyaleABI } from '@/contracts/abis/BattleRoyale';
@@ -56,6 +56,7 @@ function brError(error: unknown) {
 export function BattleRoyaleArenaPanel({
   matchId,
   status,
+  revealBlock,
   totalPlayers,
   triggerCount,
   pot,
@@ -68,6 +69,7 @@ export function BattleRoyaleArenaPanel({
 }: {
   matchId?: bigint;
   status: number;
+  revealBlock: bigint;
   totalPlayers: number;
   triggerCount: number;
   pot: bigint;
@@ -86,12 +88,13 @@ export function BattleRoyaleArenaPanel({
 }) {
   const [selectedRoom, setSelectedRoom] = useState(1);
   const [amountInput, setAmountInput] = useState('');
-  const [pendingAction, setPendingAction] = useState<'enter' | 'change' | 'claim' | null>(null);
+  const [pendingAction, setPendingAction] = useState<'enter' | 'change' | 'claim' | 'reveal' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [resultText, setResultText] = useState<string | null>(null);
 
   const { data: hash, error, isPending, writeContractAsync } = useWriteContract();
   const receiptQuery = useWaitForTransactionReceipt({ hash });
+  const blockNumberQuery = useBlockNumber({ watch: true });
 
   useEffect(() => {
     setAmountInput(minStake > 0n ? (Number(minStake) / 1e18).toString() : '');
@@ -132,6 +135,7 @@ export function BattleRoyaleArenaPanel({
   const currentRoom = activePath?.roomId ?? 0;
   const currentStake = activePath?.stake ?? 0n;
   const roomChangeCount = Number(roomChangeCountQuery.data ?? 0);
+  const currentBlock = BigInt(blockNumberQuery.data?.toString() ?? '0');
   const refreshing = Boolean(
     isRefreshing || snapshotQuery.isFetching || roomChangeCountQuery.isFetching,
   );
@@ -147,6 +151,15 @@ export function BattleRoyaleArenaPanel({
     participant.claimable > 0n &&
     participant.preferredPath?.key === 'autonomy' &&
     !participant.hasConflict;
+  const canRevealNow =
+    status === 1 &&
+    revealBlock > 0n &&
+    currentBlock > revealBlock &&
+    currentBlock - revealBlock <= 256n;
+  const revealExpired =
+    status === 1 &&
+    revealBlock > 0n &&
+    currentBlock > revealBlock + 256n;
 
   async function refreshAll() {
     await Promise.all([
@@ -160,7 +173,7 @@ export function BattleRoyaleArenaPanel({
     if (currentRoom > 0) setSelectedRoom(currentRoom);
   }, [currentRoom]);
 
-  async function handleAction(kind: 'enter' | 'change' | 'claim') {
+  async function handleAction(kind: 'enter' | 'change' | 'claim' | 'reveal') {
     if (!matchId) return;
     setActionError(null);
     setResultText(null);
@@ -187,6 +200,13 @@ export function BattleRoyaleArenaPanel({
               ? [matchId, tokenId, selectedRoom]
               : [matchId, selectedRoom],
         });
+      } else if (kind === 'reveal') {
+        await writeContractAsync({
+          address: addresses.battleRoyale,
+          abi: BattleRoyaleABI,
+          functionName: 'reveal',
+          args: [matchId],
+        });
       } else {
         await writeContractAsync({
           address: addresses.battleRoyale,
@@ -209,6 +229,7 @@ export function BattleRoyaleArenaPanel({
     if (!receiptQuery.isSuccess || !pendingAction) return;
     if (pendingAction === 'enter') setResultText(`已加入 ${selectedRoom} 号房。`);
     if (pendingAction === 'change') setResultText(`已换到 ${selectedRoom} 号房。`);
+    if (pendingAction === 'reveal') setResultText('这一局已经结算，合约会自动开下一局。');
     if (pendingAction === 'claim') {
       setResultText(
         activePath?.key === 'autonomy'
@@ -259,10 +280,16 @@ export function BattleRoyaleArenaPanel({
             <span className="cw-label">人数</span>
             <strong>{triggerCount > 0 ? `${totalPlayers}/${triggerCount}` : '--'}</strong>
           </div>
-          <div className="cw-state-card">
-            <span className="cw-label">奖池</span>
-            <strong>{formatCLW(pot)}</strong>
-          </div>
+            <div className="cw-state-card">
+              <span className="cw-label">奖池</span>
+              <strong>{formatCLW(pot)}</strong>
+            </div>
+            {status === 1 ? (
+              <div className="cw-state-card">
+                <span className="cw-label">揭示块</span>
+                <strong>#{revealBlock.toString()}</strong>
+              </div>
+            ) : null}
         </div>
 
         <div className="cw-rule-strip">
@@ -317,6 +344,33 @@ export function BattleRoyaleArenaPanel({
               <Shield size={16} />
               去维护提现
             </Link>
+          </div>
+        ) : null}
+
+        {status === 1 ? (
+          <div className="cw-list">
+            <div className="cw-list-item cw-list-item--warm">
+              <Shield size={16} />
+              <span>
+                {canRevealNow
+                  ? '已经到揭示块，这一步需要有人触发揭示；结算完成后合约会自动开下一局。'
+                  : revealExpired
+                    ? '普通揭示窗口已过，需要管理员补 emergencyReveal，补完后合约才会自动开下一局。'
+                    : '人数已满，先等揭示块到来；到了之后需要有人触发揭示，结算后会自动开下一局。'}
+              </span>
+            </div>
+            {canRevealNow ? (
+              <div className="cw-button-row">
+                <button
+                  type="button"
+                  className="cw-button cw-button--primary"
+                  onClick={() => void handleAction('reveal')}
+                >
+                  <Trophy size={16} />
+                  触发揭示
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>

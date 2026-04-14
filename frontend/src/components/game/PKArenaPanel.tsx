@@ -37,6 +37,12 @@ import { formatCLW } from '@/lib/format';
 type StrategyValue = 0 | 1 | 2;
 type MatchWithResolution = PKMatch & { resolution: CachedPKResolution | null };
 type ArenaMode = 'browse' | 'join' | 'create';
+type ResultPanelState = {
+  title: string;
+  detail: string;
+  reward?: string;
+  tone: 'growth' | 'warm' | 'cool';
+};
 type PendingAction =
   | { kind: 'create'; stake: bigint; strategy: StrategyValue; commitHash: `0x${string}`; salt: `0x${string}` }
   | { kind: 'join'; matchId: number; strategy: StrategyValue; stake: bigint; commitHash: `0x${string}`; salt: `0x${string}` }
@@ -148,6 +154,7 @@ export function PKArenaPanel({
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [resultText, setResultText] = useState<string | null>(null);
+  const [resultPanel, setResultPanel] = useState<ResultPanelState | null>(null);
   const [saltVersion, setSaltVersion] = useState(0);
 
   const tokenNumber = tokenId ? Number(tokenId) : 0;
@@ -260,6 +267,7 @@ export function PKArenaPanel({
     const { commitHash, salt } = generateCommit(createStrategy, address as Address);
     setActionError(null);
     setResultText(null);
+    setResultPanel(null);
     setPendingAction({ kind: 'create', stake, strategy: createStrategy, commitHash, salt });
     try {
       await writeContractAsync(pkCreateArgs(tokenNumber, stake, commitHash));
@@ -278,6 +286,7 @@ export function PKArenaPanel({
     const { commitHash, salt } = generateCommit(joinStrategy, address as Address);
     setActionError(null);
     setResultText(null);
+    setResultPanel(null);
     setPendingAction({
       kind: 'join',
       matchId: selectedMatch.matchId,
@@ -297,6 +306,7 @@ export function PKArenaPanel({
   async function submitSimple(action: PendingAction) {
     setActionError(null);
     setResultText(null);
+    setResultPanel(null);
     setPendingAction(action);
     try {
       if (action.kind === 'reveal') {
@@ -334,7 +344,15 @@ export function PKArenaPanel({
               walletAddress: address as Address,
             });
           } catch {}
-          if (!cancelled) setResultText(`PK #${matchId} 已开擂。`);
+          if (!cancelled) {
+            setResultText(`PK #${matchId} 已开擂。`);
+            setResultPanel({
+              title: `PK #${matchId} 已开擂`,
+              detail: '你的策略已经锁定，先等别人应战；一旦配对完成，后续亮招和结算会继续推进。',
+              reward: formatCLW(pendingAction.stake),
+              tone: 'warm',
+            });
+          }
         }
       } else if (pendingAction.kind === 'join') {
         savePKSalt(pendingAction.matchId, pendingAction.strategy, pendingAction.salt, tokenNumber);
@@ -348,16 +366,33 @@ export function PKArenaPanel({
             walletAddress: address as Address,
           });
         } catch {}
-        if (!cancelled) setResultText(`已加入 PK #${pendingAction.matchId}。`);
+        if (!cancelled) {
+          setResultText(`已加入 PK #${pendingAction.matchId}。`);
+          setResultPanel({
+            title: `已加入 PK #${pendingAction.matchId}`,
+            detail: '这局已经锁定，策略也保存好了。接下来等双方亮招并推进结算。',
+            reward: formatCLW(pendingAction.stake),
+            tone: 'warm',
+          });
+        }
       } else if (pendingAction.kind === 'reveal') {
-        if (!cancelled) setResultText(`PK #${pendingAction.matchId} 已亮招。`);
+        if (!cancelled) {
+          setResultText(`PK #${pendingAction.matchId} 已亮招。`);
+          setResultPanel({
+            title: `PK #${pendingAction.matchId} 已亮招`,
+            detail: '你的出招已经上链，接下来只等结算结果。',
+            tone: 'cool',
+          });
+        }
       } else if (pendingAction.kind === 'settle') {
         const settled = decodePkEvent(receiptQuery.data, 'MatchSettled');
+        const winnerNfaId = Number(settled?.winner ?? 0);
+        const rewardText = settled?.reward ? formatCLW(BigInt(toBigIntString(settled.reward))) : undefined;
         if (settled?.matchId) {
           savePKResolutionCache({
             type: 'settled',
             matchId: Number(settled.matchId),
-            winnerNfaId: Number(settled.winner ?? 0),
+            winnerNfaId,
             loserNfaId: Number(settled.loser ?? 0),
             reward: toBigIntString(settled.reward),
             burned: toBigIntString(settled.burned),
@@ -365,7 +400,18 @@ export function PKArenaPanel({
             ts: Date.now(),
           });
         }
-        if (!cancelled) setResultText(`PK #${pendingAction.matchId} 已结算。`);
+        if (!cancelled) {
+          setResultText(`PK #${pendingAction.matchId} 已结算。`);
+          setResultPanel({
+            title: winnerNfaId === tokenNumber ? `PK #${pendingAction.matchId} 胜利` : `PK #${pendingAction.matchId} 结算完成`,
+            detail:
+              winnerNfaId === tokenNumber
+                ? '你拿下了这一局，奖励已经回到这只龙虾的记账账户。'
+                : '这一局已经结算完成，可以继续看下一场。',
+            reward: rewardText,
+            tone: winnerNfaId === tokenNumber ? 'growth' : 'cool',
+          });
+        }
       } else if (pendingAction.kind === 'cancel') {
         savePKResolutionCache({
           type: 'cancelled',
@@ -373,7 +419,14 @@ export function PKArenaPanel({
           txHash,
           ts: Date.now(),
         });
-        if (!cancelled) setResultText(`PK #${pendingAction.matchId} 已清局。`);
+        if (!cancelled) {
+          setResultText(`PK #${pendingAction.matchId} 已清局。`);
+          setResultPanel({
+            title: `PK #${pendingAction.matchId} 已清局`,
+            detail: '这一局已经结束，质押会按规则退回。',
+            tone: 'cool',
+          });
+        }
       }
 
       if (!cancelled) {
@@ -757,6 +810,55 @@ export function PKArenaPanel({
             </a>
           ) : null}
         </div>
+      ) : null}
+
+      {resultPanel ? (
+        <section className="cw-modal" aria-modal="true" role="dialog">
+          <button
+            type="button"
+            className="cw-modal__scrim"
+            aria-label="关闭"
+            onClick={() => setResultPanel(null)}
+          />
+          <div className="cw-modal__sheet">
+            <section className="cw-sheet">
+              <div className="cw-sheet-head">
+                <div>
+                  <span className="cw-label">对局结果</span>
+                  <h3>{resultPanel.title}</h3>
+                </div>
+                <button
+                  type="button"
+                  className="cw-icon-button cw-sheet-close"
+                  onClick={() => setResultPanel(null)}
+                  aria-label="关闭"
+                >
+                  <TimerReset size={16} />
+                </button>
+              </div>
+
+              <div className={`cw-list-item ${resultPanel.tone === 'growth' ? 'cw-list-item--growth' : resultPanel.tone === 'warm' ? 'cw-list-item--warm' : 'cw-list-item--cool'}`}>
+                <CheckCircle2 size={16} />
+                <span>{resultPanel.detail}</span>
+              </div>
+
+              {resultPanel.reward ? (
+                <div className="cw-detail-list">
+                  <div className="cw-detail-row">
+                    <span>本局金额</span>
+                    <strong>{resultPanel.reward}</strong>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="cw-button-row">
+                <button type="button" className="cw-button cw-button--primary" onClick={() => setResultPanel(null)}>
+                  继续
+                </button>
+              </div>
+            </section>
+          </div>
+        </section>
       ) : null}
     </div>
   );
