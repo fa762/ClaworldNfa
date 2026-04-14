@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowUpRight, Bot, Shield, Swords } from 'lucide-react';
+import { ArrowUpRight, Bot, Shield } from 'lucide-react';
 import { decodeEventLog, encodeAbiParameters, type Address } from 'viem';
 import {
   useAccount,
@@ -16,7 +16,7 @@ import {
   AUTONOMY_ACTION_KIND,
   AUTONOMY_ASSET_ID,
 } from '@/contracts/hooks/useAutonomy';
-import { formatBNB, formatCLW, truncateAddress } from '@/lib/format';
+import { formatCLW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 
 type ClaimPathKey = 'owner' | 'autonomy' | null | undefined;
@@ -24,7 +24,15 @@ type ClaimPathKey = 'owner' | 'autonomy' | null | undefined;
 const MODE_CLAIM_EXISTING = 3;
 
 function buildClaimPrompt(tokenId: bigint, matchId: bigint) {
-  return `为 NFA #${tokenId.toString()} 领取第 #${matchId.toString()} 场已结算的大逃杀奖励。`;
+  return `Use NFA #${tokenId.toString()} to claim settled Battle Royale reward for match #${matchId.toString()}.`;
+}
+
+function shortError(message: string | null | undefined, pick: <T,>(zh: T, en: T) => T) {
+  if (!message) return null;
+  if (message.includes('User rejected') || message.includes('rejected')) {
+    return pick('你取消了这次签名。', 'You cancelled the signature.');
+  }
+  return message.slice(0, 90);
 }
 
 export function AutonomyClaimRequestPanel({
@@ -56,8 +64,6 @@ export function AutonomyClaimRequestPanel({
   const { data: hash, error, writeContractAsync } = useWriteContract();
   const receiptQuery = useWaitForTransactionReceipt({ hash });
   const [requestId, setRequestId] = useState<bigint | null>(null);
-  const [gasCostWei, setGasCostWei] = useState<bigint | null>(null);
-  const [estimateError, setEstimateError] = useState<string | null>(null);
   const [awaitingWallet, setAwaitingWallet] = useState(false);
 
   const isOwner =
@@ -74,129 +80,27 @@ export function AutonomyClaimRequestPanel({
     [matchId, tokenId],
   );
 
-  const blockers = useMemo(() => {
-    const next: string[] = [];
-    if (!isOwner) {
-      next.push(pick('先连接持有人钱包。', 'Connect the owner wallet first.'));
-    }
-    if (emergencyPaused) {
-      next.push(pick('代理当前已暂停。', 'Agent is paused.'));
-    }
-    if (!policyEnabled) {
-      next.push(pick('先启用策略。', 'Enable the policy first.'));
-    }
+  const blocker = useMemo(() => {
+    if (!isOwner) return pick('先连接持有人钱包。', 'Connect the owner wallet first.');
+    if (emergencyPaused) return pick('代理现在是暂停状态。', 'The agent is paused.');
+    if (!policyEnabled) return pick('先把代理开起来。', 'Enable the agent first.');
     if (missingPermissions.length > 0) {
-      next.push(pick(`先补权限：${missingPermissions.join(' / ')}`, `Missing: ${missingPermissions.join(' / ')}`));
+      return pick(`先补齐权限：${missingPermissions.join(' / ')}`, `Missing: ${missingPermissions.join(' / ')}`);
     }
-    if (hasConflict) {
-      next.push(pick('领取路径冲突，先别提交。', 'Claim path conflicts.'));
-    }
+    if (hasConflict) return pick('这笔奖励路径冲突，先别自动领。', 'This reward path conflicts.');
     if (preferredPath === 'owner' && claimable > 0n) {
-      next.push(pick('这笔奖励该直接手动领取。', 'Use direct owner claim for this reward.'));
+      return pick('这笔奖励适合你手动领。', 'This reward should be claimed manually.');
     }
-    if (matchId === undefined || claimable <= 0n) {
-      next.push(pick('当前没有可提交的奖励。', 'No reward is ready.'));
-    }
-    return next;
-  }, [claimable, emergencyPaused, hasConflict, isOwner, matchId, missingPermissions, policyEnabled, preferredPath, pick]);
+    if (matchId === undefined || claimable <= 0n) return pick('现在还没有可领奖励。', 'No reward is ready.');
+    return null;
+  }, [claimable, emergencyPaused, hasConflict, isOwner, matchId, missingPermissions, pick, policyEnabled, preferredPath]);
 
   const canSubmit =
-    blockers.length === 0 &&
+    !blocker &&
     payload !== undefined &&
     matchId !== undefined &&
     preferredPath === 'autonomy' &&
     claimable > 0n;
-
-  const requestPulse = error
-    ? {
-        tone: 'cw-panel--cool',
-        chip: pick('失败', 'Failed'),
-        chipTone: 'cw-chip--alert',
-        title: pick('自治请求失败', 'Autonomy request failed'),
-        detail: error.message,
-      }
-    : awaitingWallet
-      ? {
-          tone: 'cw-panel--warm',
-          chip: pick('等待签名', 'Waiting for signature'),
-          chipTone: 'cw-chip--warm',
-          title: pick('去钱包确认', 'Confirm in wallet'),
-          detail: pick('这笔领取请求已经准备好。', 'The request is ready.'),
-        }
-      : receiptQuery.isLoading
-        ? {
-            tone: 'cw-panel--warm',
-            chip: pick('确认中', 'Confirming'),
-            chipTone: 'cw-chip--warm',
-            title: pick('请求已发出', 'Request confirming'),
-            detail: pick('正在等链上回执。', 'Waiting for the receipt.'),
-          }
-        : requestId !== null
-          ? {
-              tone: 'cw-panel--warm',
-              chip: pick('已入队', 'Queued'),
-              chipTone: 'cw-chip--growth',
-              title: pick(`请求 #${requestId.toString()} 已入队`, `Request #${requestId.toString()} queued`),
-              detail: pick('等待代理执行。', 'Waiting for the agent to execute it.'),
-            }
-          : hash
-            ? {
-              tone: 'cw-panel--warm',
-              chip: pick('已提交', 'Submitted'),
-              chipTone: 'cw-chip--cool',
-              title: pick('请求已提交', 'Request submitted'),
-              detail: pick('如果编号还没出来，等回执即可。', 'Wait for the receipt if the id is still blank.'),
-            }
-            : null;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function estimate() {
-      if (!publicClient || !address || !canSubmit || payload === undefined) {
-        setGasCostWei(null);
-        setEstimateError(null);
-        return;
-      }
-
-      try {
-        const [estimated, gasPrice] = await Promise.all([
-          publicClient.estimateContractGas({
-            address: addresses.oracleActionHub,
-            abi: ClawOracleActionHubABI,
-            functionName: 'requestAutonomousAction',
-            args: [
-              tokenId,
-              AUTONOMY_ACTION_KIND.battleRoyale,
-              AUTONOMY_ASSET_ID.claworld,
-              0n,
-              payload,
-              prompt,
-              2,
-            ],
-            account: address,
-          }),
-          publicClient.getGasPrice(),
-        ]);
-
-        if (!cancelled) {
-          setGasCostWei(estimated * gasPrice);
-          setEstimateError(null);
-        }
-      } catch (estimateFailure) {
-        if (!cancelled) {
-          setGasCostWei(null);
-          setEstimateError((estimateFailure as Error).message);
-        }
-      }
-    }
-
-    void estimate();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [address, canSubmit, payload, prompt, publicClient, tokenId]);
 
   useEffect(() => {
     if (!receiptQuery.data) return;
@@ -221,6 +125,27 @@ export function AutonomyClaimRequestPanel({
     }
   }, [receiptQuery.data]);
 
+  useEffect(() => {
+    if (!publicClient || !address || !canSubmit || payload === undefined) return;
+    void publicClient.simulateContract({
+      address: addresses.oracleActionHub,
+      abi: ClawOracleActionHubABI,
+      functionName: 'requestAutonomousAction',
+      args: [
+        tokenId,
+        AUTONOMY_ACTION_KIND.battleRoyale,
+        AUTONOMY_ASSET_ID.claworld,
+        0n,
+        payload,
+        prompt,
+        2,
+      ],
+      account: address,
+    }).catch(() => {
+      // keep UX light; submit path will surface any real error
+    });
+  }, [address, canSubmit, payload, prompt, publicClient, tokenId]);
+
   async function handleSubmit() {
     if (!canSubmit || payload === undefined) return;
 
@@ -242,28 +167,38 @@ export function AutonomyClaimRequestPanel({
         ],
       });
     } catch {
-      // wagmi error renders via error state
+      // wagmi error shows via `error`
     } finally {
       setAwaitingWallet(false);
     }
   }
 
+  const currentState = error
+    ? shortError(error.message, pick)
+    : awaitingWallet
+      ? pick('去钱包确认这次领奖请求。', 'Confirm the claim request in your wallet.')
+      : receiptQuery.isLoading
+        ? pick('链上确认中。', 'Waiting for the receipt.')
+        : requestId !== null
+          ? pick(`请求 #${requestId.toString()} 已排队。`, `Request #${requestId.toString()} queued.`)
+          : null;
+
   return (
     <section className={`cw-panel ${canSubmit ? 'cw-panel--warm' : 'cw-panel--cool'}`}>
       <div className="cw-section-head">
         <div>
-          <span className="cw-label">{pick('领取请求', 'Claim request')}</span>
+          <span className="cw-label">{pick('自动领奖', 'Auto claim')}</span>
           <h3>
             {matchId !== undefined
-              ? pick(`提交第 #${matchId.toString()} 场的领取`, `Claim match #${matchId.toString()}`)
-              : pick('当前没有可提交的奖励', 'No claimable reward')}
+              ? pick(`第 #${matchId.toString()} 场`, `Match #${matchId.toString()}`)
+              : pick('当前没有可领奖励', 'No reward ready')}
           </h3>
           <p className="cw-muted">
-            {preferredPath === 'owner'
-              ? pick('这笔奖励该直接手动领取。', 'Use direct owner claim.')
-              : preferredPath === 'autonomy'
-                ? pick('这笔奖励可以交给代理。', 'This reward can go through the agent.')
-                : pick('先等下一笔可领奖结果。', 'Wait for the next settled reward.')}
+            {preferredPath === 'autonomy'
+              ? pick('奖励会回到这只龙虾的记账账户。', 'The reward returns to this lobster ledger.')
+              : preferredPath === 'owner'
+                ? pick('这笔奖励现在走手动领奖。', 'This reward uses manual claim.')
+                : pick('等对局结算后，这里会出现入口。', 'This area unlocks after settlement.')}
           </p>
         </div>
         <span className={`cw-chip ${canSubmit ? 'cw-chip--warm' : 'cw-chip--cool'}`}>
@@ -274,100 +209,65 @@ export function AutonomyClaimRequestPanel({
 
       <div className="cw-state-grid">
         <div className="cw-state-card">
-          <span className="cw-label">{pick('claim 路径', 'Claim path')}</span>
+          <span className="cw-label">{pick('领取路径', 'Path')}</span>
           <strong>
             {preferredPath === 'autonomy'
               ? pick('代理领取', 'Agent')
               : preferredPath === 'owner'
-                ? pick('手动领取', 'Owner wallet')
+                ? pick('手动领取', 'Owner')
                 : pick('未找到', 'Not found')}
           </strong>
         </div>
         <div className="cw-state-card">
-          <span className="cw-label">{pick('权限', 'Ready')}</span>
-          <strong>{pick(`${permissionCount}/4 就绪`, `${permissionCount}/4 ready`)}</strong>
+          <span className="cw-label">{pick('准备度', 'Ready')}</span>
+          <strong>{permissionCount}/4</strong>
         </div>
         <div className="cw-state-card">
-          <span className="cw-label">{pick('预计 gas', 'Estimated gas')}</span>
-          <strong>{gasCostWei !== null ? formatBNB(gasCostWei, 6) : '--'} BNB</strong>
+          <span className="cw-label">{pick('可领金额', 'Claimable')}</span>
+          <strong>{claimable > 0n ? formatCLW(claimable) : '--'}</strong>
         </div>
       </div>
 
-      {requestPulse ? (
-        <div className={`cw-panel ${requestPulse.tone}`}>
-          <div className="cw-section-head">
-            <div>
-              <span className="cw-label">{pick('状态', 'State')}</span>
-              <h3>{requestPulse.title}</h3>
-              <p className="cw-muted">{requestPulse.detail}</p>
-            </div>
-            <span className={`cw-chip ${requestPulse.chipTone}`}>{requestPulse.chip}</span>
+      {blocker ? (
+        <div className="cw-list">
+          <div className="cw-list-item cw-list-item--cool">
+            <Shield size={16} />
+            <span>{blocker}</span>
           </div>
-          {hash ? (
-            <div className="cw-button-row">
-              <a href={getBscScanTxUrl(hash)} target="_blank" rel="noopener noreferrer" className="cw-button cw-button--secondary">
-                <ArrowUpRight size={16} />
-                {pick('查看请求交易', 'View request transaction')}
-              </a>
-            </div>
-          ) : null}
         </div>
       ) : null}
 
-      {blockers.length > 0 ? (
+      {currentState ? (
         <div className="cw-list">
-          {blockers.map((blocker) => (
-            <div key={blocker} className="cw-list-item cw-list-item--cool">
-              <Shield size={16} />
-              <span>{blocker}</span>
-            </div>
-          ))}
-          {estimateError ? (
-            <div className="cw-list-item cw-list-item--cool">
-              <Shield size={16} />
-              <span>{pick(`gas 估算失败：${estimateError}`, `Gas estimate failed: ${estimateError}`)}</span>
-            </div>
-          ) : null}
+          <div className={`cw-list-item ${error ? 'cw-list-item--alert' : 'cw-list-item--warm'}`}>
+            <Shield size={16} />
+            <span>{currentState}</span>
+          </div>
         </div>
       ) : null}
 
       <div className="cw-button-row">
-          <button
-            type="button"
-            className="cw-button cw-button--primary"
-            disabled={!canSubmit || awaitingWallet || receiptQuery.isLoading}
-            onClick={handleSubmit}
-          >
-            <Bot size={16} />
+        <button
+          type="button"
+          className="cw-button cw-button--primary"
+          disabled={!canSubmit || awaitingWallet || receiptQuery.isLoading}
+          onClick={handleSubmit}
+        >
+          <Bot size={16} />
           {awaitingWallet
             ? pick('等待签名', 'Waiting for signature')
             : receiptQuery.isLoading
               ? pick('链上确认中', 'Confirming')
-              : pick('提交领取请求', 'Request autonomy claim')}
+              : pick('提交自动领奖', 'Request auto claim')}
         </button>
+
+        {hash ? (
+          <a href={getBscScanTxUrl(hash)} target="_blank" rel="noopener noreferrer" className="cw-button cw-button--secondary">
+            <ArrowUpRight size={16} />
+            {pick('查看交易', 'View transaction')}
+          </a>
+        ) : null}
       </div>
-
-      {awaitingWallet ? (
-        <div className="cw-list">
-          <div className="cw-list-item cw-list-item--warm">
-            <Shield size={16} />
-            <span>{pick('现在去钱包确认。', 'Confirm in your wallet now.')}</span>
-          </div>
-        </div>
-      ) : receiptQuery.isLoading ? (
-        <div className="cw-list">
-          <div className="cw-list-item cw-list-item--cool">
-            <Shield size={16} />
-            <span>{pick('交易已发出，正在等编号。', 'Waiting for the request id.')}</span>
-          </div>
-        </div>
-      ) : null}
-
-      {requestId !== null ? (
-        <p className="cw-result-celebration">
-          {pick(`请求 #${requestId.toString()} 已成功入队。`, `Request #${requestId.toString()} queued.`)}
-        </p>
-      ) : null}
     </section>
   );
 }

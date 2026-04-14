@@ -22,34 +22,34 @@ const STYLE_OPTIONS: Array<{ value: DirectiveStyle; zh: string; en: string; zhHi
   {
     value: 'tight',
     zh: '保守',
-    en: 'Tight execution',
-    zhHint: '先保储备，再动手。',
-    enHint: 'Less flourish, more discipline and bounded action.',
+    en: 'Tight',
+    zhHint: '先保底，再行动。',
+    enHint: 'Protect reserve first, then act.',
   },
   {
     value: 'balanced',
     zh: '平衡',
-    en: 'Balanced judgment',
-    zhHint: '稳着来，先看收益风险。',
-    enHint: 'Default posture for stable reasoning and controlled upside.',
+    en: 'Balanced',
+    zhHint: '收益和风险一起看。',
+    enHint: 'Balance upside and risk.',
   },
   {
     value: 'expressive',
-    zh: '进取',
-    en: 'Explain more',
-    zhHint: '机会大时敢上。',
-    enHint: 'Show more tradeoff reasoning while still acting only inside policy bounds.',
+    zh: '激进',
+    en: 'Aggressive',
+    zhHint: '机会明显时更主动。',
+    enHint: 'Push harder when the upside is clear.',
   },
 ];
 
 function buildDirectiveTemplate(style: DirectiveStyle) {
   if (style === 'tight') {
-    return '优先保储备，避免高波动动作。';
+    return '优先保底和稳定，只有在把握足够时再行动。';
   }
   if (style === 'expressive') {
-    return '机会明显时可以更主动，但不要越界。';
+    return '机会足够明显时更主动，但不要越过预算和保底。';
   }
-  return '平衡收益、风险和续航。';
+  return '在收益、风险和续航之间做平衡。';
 }
 
 function buildDirectivePreview(style: DirectiveStyle, extra: string) {
@@ -79,7 +79,7 @@ export function AutonomyDirectivePanel({
   tokenId,
   actionKind,
   ownerAddress,
-  title = 'Directive',
+  title = 'Prompt',
 }: {
   tokenId: bigint;
   actionKind: number;
@@ -95,7 +95,6 @@ export function AutonomyDirectivePanel({
   const [style, setStyle] = useState<DirectiveStyle>('balanced');
   const [text, setText] = useState('');
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
-  const [updatedBy, setUpdatedBy] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +119,6 @@ export function AutonomyDirectivePanel({
         setStyle(data.style);
         setText(data.text);
         setUpdatedAt(data.updatedAt);
-        setUpdatedBy(data.updatedBy);
       } catch (loadError) {
         if (!cancelled) setError((loadError as Error).message);
       } finally {
@@ -140,7 +138,7 @@ export function AutonomyDirectivePanel({
   const activeOption = STYLE_OPTIONS.find((option) => option.value === style);
 
   async function handleSave() {
-    if (!isOwner || !address || saving || isSigning) return;
+    if (!isOwner || saving || isSigning || !address) return;
 
     setSaving(true);
     setError(null);
@@ -172,8 +170,7 @@ export function AutonomyDirectivePanel({
       setStyle(data.style);
       setText(data.text);
       setUpdatedAt(data.updatedAt);
-      setUpdatedBy(data.updatedBy);
-      setSuccess(pick('directive 已保存。', 'Directive saved.'));
+      setSuccess(pick('设定已保存。', 'Settings saved.'));
     } catch (saveError) {
       setError((saveError as Error).message);
     } finally {
@@ -186,7 +183,7 @@ export function AutonomyDirectivePanel({
       <div className="cw-section-head">
         <div>
           <span className="cw-label">{title}</span>
-          <h3>{pick('选策略，写一句提示', 'Pick a style and one prompt')}</h3>
+          <h3>{pick('告诉代理怎么做', 'Tell the agent how to act')}</h3>
         </div>
         <span className="cw-chip cw-chip--cool">
           <Bot size={14} />
@@ -196,7 +193,7 @@ export function AutonomyDirectivePanel({
 
       <div className="cw-field-grid">
         <label className="cw-field">
-          <span className="cw-label">{pick('策略', 'Style')}</span>
+          <span className="cw-label">{pick('风格', 'Style')}</span>
           <select
             value={style}
             onChange={(event) => {
@@ -217,7 +214,7 @@ export function AutonomyDirectivePanel({
         </label>
 
         <label className="cw-field">
-          <span className="cw-label">{pick('提示词', 'Prompt')}</span>
+          <span className="cw-label">{pick('一句提示', 'Prompt')}</span>
           <textarea
             value={text}
             onChange={(event) => {
@@ -228,28 +225,27 @@ export function AutonomyDirectivePanel({
             rows={4}
             disabled={!isOwner || loading || saving || isSigning}
             className="cw-input cw-input--textarea"
-            placeholder={pick('例如：有已结算奖励就先领，再进新局。', 'Example: Claim settled rewards before entering a new match.')}
+            placeholder={pick('比如：先领已结算奖励，再进新一局。', 'Example: Claim settled rewards before entering a new match.')}
           />
-          <p className="cw-muted">{text.length}/220 · {remainingChars} {pick('字符剩余', 'chars left')}</p>
+          <p className="cw-muted">{text.length}/220 · {remainingChars} {pick('字可用', 'chars left')}</p>
         </label>
       </div>
 
       <div className="cw-panel cw-panel--warm">
         <div className="cw-section-head">
           <div>
-            <span className="cw-label">{pick('预览', 'Preview')}</span>
-            <h3>{pick('当前效果', 'Current effect')}</h3>
+            <span className="cw-label">{pick('当前效果', 'Current effect')}</span>
+            <h3>{pick('代理会按这个口径做判断', 'This is how the agent will reason')}</h3>
           </div>
           <span className="cw-chip cw-chip--warm">
             <PenSquare size={14} />
             {pick('预览', 'Preview')}
           </span>
         </div>
-        <p className="cw-muted">{loading ? pick('正在读取 directive...', 'Loading directive...') : preview}</p>
+        <p className="cw-muted">{loading ? pick('正在读取设定...', 'Loading settings...') : preview}</p>
         {updatedAt ? (
           <p className="cw-muted">
-            {pick('最近保存于', 'Last saved')} {new Date(updatedAt).toLocaleString()}
-            {updatedBy ? ` / ${updatedBy.slice(0, 6)}...${updatedBy.slice(-4)}` : ''}
+            {pick('最近保存', 'Last saved')} {new Date(updatedAt).toLocaleString()}
           </p>
         ) : null}
       </div>
@@ -258,7 +254,7 @@ export function AutonomyDirectivePanel({
         <div className="cw-list">
           <div className="cw-list-item cw-list-item--warm">
             <Bot size={16} />
-            <span>{pick('正在等待钱包签名 directive。', 'Waiting for wallet signature for the directive.')}</span>
+            <span>{pick('去钱包确认这次保存。', 'Confirm this save in your wallet.')}</span>
           </div>
         </div>
       ) : null}
@@ -271,13 +267,13 @@ export function AutonomyDirectivePanel({
           className="cw-button cw-button--secondary"
         >
           <Bot size={16} />
-          {saving || isSigning ? pick('保存中', 'Saving directive') : pick('保存策略', 'Save policy')}
+          {saving || isSigning ? pick('保存中', 'Saving') : pick('保存设定', 'Save settings')}
         </button>
       </div>
 
-      {!isOwner ? <p className="cw-muted">{pick('只有持有人钱包能保存。', 'Only the owner wallet can save this policy.')}</p> : null}
+      {!isOwner ? <p className="cw-muted">{pick('只有持有人钱包可以改这里。', 'Only the owner wallet can edit this.')}</p> : null}
       {success ? <p className="cw-result-celebration">{success}</p> : null}
-      {error ? <p className="cw-muted">{pick(`策略保存失败：${error}`, `Directive error: ${error}`)}</p> : null}
+      {error ? <p className="cw-muted">{pick(`保存失败：${error}`, `Save failed: ${error}`)}</p> : null}
     </section>
   );
 }

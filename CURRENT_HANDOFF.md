@@ -1,6 +1,51 @@
 # Current Handoff
 
-Last updated: 2026-04-14 (session 35) Asia/Singapore
+Last updated: 2026-04-14 (session 36) Asia/Singapore
+
+## Auto page simplification - 2026-04-14 session 36
+
+This pass starts the overdue cleanup of the player-facing AI agent page.
+
+What changed:
+
+1. The `/auto` page is now cut down to the core player questions
+- can I enable it
+- what do I need
+- what numbers do I set
+- what did it do most recently
+
+2. The live threshold is now explicit in code and in the page
+- current frontend threshold source:
+  - `NEXT_PUBLIC_AUTONOMY_MIN_WALLET_HOLDING`
+- current default:
+  - `2,000,000 Claworld`
+
+3. The page now exposes the real setup flow instead of a read-only status shell
+- protocol approval
+- adapter approval
+- operator approval
+- lease
+- reserve / breaker write
+- policy enable
+- pause / resume
+
+4. The default page no longer leads with request / proof / ledger language
+- those details now sit behind the `Advanced` fold
+
+5. Directive save and autonomy claim request were rewritten in simpler language
+- shorter labels
+- shorter errors
+- clearer wallet-signature messaging
+
+Validation:
+
+- `npx tsc --noEmit --project frontend/tsconfig.json` passes
+- `npm --prefix frontend run build` did not complete because Google Fonts fetch failed during `next/font` download in this environment
+
+Notes:
+
+- this page still manages the Battle Royale autonomy path first
+- CML is still runtime-real but not yet surfaced as a proper user-facing memory card on the new mainline frontend
 
 ## Open-source maturity docs - 2026-04-14 session 35
 

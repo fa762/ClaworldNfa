@@ -1,6 +1,48 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-14 (session 35) Asia/Singapore
+Last updated: 2026-04-14 (session 36) Asia/Singapore
+
+## Auto page simplification checkpoint - 2026-04-14 session 36
+
+This checkpoint resets the AI agent page around one product rule:
+
+- the player should only see what they can turn on, what they need, what they set, and what they got
+
+Accepted shape now implemented:
+
+1. Default `/auto` view is cut to:
+- agent state
+- wallet threshold
+- lobster reserve
+- a few live settings
+- one main setup button
+- one latest-result block
+
+2. Internal operator detail is folded away
+- permissions
+- raw proof ids
+- detailed claim request mechanics
+- raw execution references
+
+3. Current live threshold is now explicit
+- frontend source: `NEXT_PUBLIC_AUTONOMY_MIN_WALLET_HOLDING`
+- current default: `2,000,000 Claworld`
+
+4. The page now drives the real setup path instead of just showing status
+- protocol
+- adapter
+- operator
+- roles
+- lease
+- risk controls
+- policy enable
+- pause / resume
+
+Remaining follow-up after session 36:
+
+1. validate the hosted `/auto` page with a real owner wallet
+2. decide how much of CML should be visible on the default agent page versus a separate memory page
+3. keep trimming any wording that still reads like an internal control panel
 
 ## Open-source maturity docs - 2026-04-14 session 35
 
