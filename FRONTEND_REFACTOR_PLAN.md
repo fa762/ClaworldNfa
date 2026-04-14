@@ -39,6 +39,10 @@ Accepted model now implemented:
 - task traits and PK stats now share the same meter treatment
 - no plain-number PK tiles in the details sheet
 - the fixed companion strip can stay compact because the sheet now opens only the useful character view
+- meter rows are now locked to a mobile-safe three-column layout:
+  - label
+  - bar
+  - value
 
 ### Updated execution order after session 26
 

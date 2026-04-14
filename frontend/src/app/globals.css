@@ -1476,13 +1476,23 @@
 
 .cw-meter-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 64px minmax(0, 1fr) 40px;
   gap: 10px;
   align-items: center;
 }
 
+.cw-meter-row > span:first-child {
+  color: var(--color-bunker-text-primary);
+}
+
+.cw-meter-row > strong {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .cw-meter {
   position: relative;
+  min-width: 0;
   width: 100%;
   height: 8px;
   overflow: hidden;

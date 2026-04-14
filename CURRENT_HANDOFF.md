@@ -31,6 +31,11 @@ What is now done:
   - DEF
   - SPD
   - VIT
+- the mobile meter row layout is now fixed to a true three-column bar row:
+  - label
+  - bar
+  - value
+- this prevents the detail sheet from collapsing back into stacked plain numbers on narrow screens
 
 3. The sheet is now much closer to a character panel than a data dump
 - no explanatory copy
