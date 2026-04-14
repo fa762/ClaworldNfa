@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ExternalLink, Shield, Swords, TimerReset } from 'lucide-react';
+import { ExternalLink, Shield, Swords } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 
@@ -72,7 +72,7 @@ export function BattleRoyaleActionPanel({
     participant.preferredPath?.key === 'owner' &&
     !participant.hasConflict &&
     contractFundingReady;
-  const needsAutonomyClaim =
+  const canReserveClaim =
     participant.claimable > 0n &&
     participant.preferredPath?.key === 'autonomy' &&
     !participant.hasConflict;
@@ -85,7 +85,7 @@ export function BattleRoyaleActionPanel({
         `Owner path selected, but the contract holds ${formatCLW(contractBalance)} for a ${formatCLW(participant.claimable)} claim.`,
       );
     }
-    if (needsAutonomyClaim) return pick('这笔奖励需要去代理页领取。', 'This reward must be claimed from Auto.');
+    if (canReserveClaim) return pick('这笔奖励会回到这只 NFA 的记账账户，随后可去首页维护里提现。', 'This reward returns to the NFA ledger account.');
     if (participant.entered) return null;
     if (matchId !== undefined) return pick(`当前第 #${matchId.toString()} 场可查看。`, `Match #${matchId.toString()} is available.`);
     return pick('暂时没有可读的大逃杀对局。', 'No readable Battle Royale match.');
@@ -93,7 +93,7 @@ export function BattleRoyaleActionPanel({
     contractBalance,
     contractFundingReady,
     matchId,
-    needsAutonomyClaim,
+    canReserveClaim,
     participant.claimable,
     participant.entered,
     participant.hasConflict,
@@ -101,15 +101,18 @@ export function BattleRoyaleActionPanel({
     pick,
   ]);
 
-  async function handleOwnerClaim() {
-    if (!canOwnerClaim || matchId === undefined) return;
+  async function handleClaim() {
+    if (matchId === undefined || (!canOwnerClaim && !canReserveClaim)) return;
     setAwaitingWallet(true);
     try {
       await writeContractAsync({
         address: addresses.battleRoyale,
         abi: BattleRoyaleABI,
-        functionName: 'claim',
-        args: [matchId],
+        functionName: canReserveClaim ? 'claimForNfa' : 'claim',
+        args:
+          canReserveClaim && participant.preferredPath?.effectiveNfa
+            ? [matchId, participant.preferredPath.effectiveNfa]
+            : [matchId],
       });
     } catch {
       // rendered below
@@ -177,11 +180,11 @@ export function BattleRoyaleActionPanel({
       ) : null}
 
       <div className="cw-button-row">
-        {canOwnerClaim ? (
+        {canOwnerClaim || canReserveClaim ? (
           <button
             type="button"
             className="cw-button cw-button--primary"
-            onClick={handleOwnerClaim}
+            onClick={handleClaim}
             disabled={awaitingWallet || isConfirming}
           >
             <Swords size={16} />
@@ -189,13 +192,10 @@ export function BattleRoyaleActionPanel({
               ? pick('等待签名', 'Waiting')
               : isConfirming
                 ? pick('链上确认中', 'Confirming')
-                : pick(`领取 ${formatCLW(participant.claimable)}`, `Claim ${formatCLW(participant.claimable)}`)}
+                : canReserveClaim
+                  ? pick(`回记账账户 ${formatCLW(participant.claimable)}`, `Return ${formatCLW(participant.claimable)}`)
+                  : pick(`领取 ${formatCLW(participant.claimable)}`, `Claim ${formatCLW(participant.claimable)}`)}
           </button>
-        ) : needsAutonomyClaim ? (
-          <Link href="/auto" className="cw-button cw-button--secondary">
-            <TimerReset size={16} />
-            {pick('去代理页处理', 'Go to Auto')}
-          </Link>
         ) : (
           <Link href="/arena" className="cw-button cw-button--secondary">
             <Swords size={16} />
@@ -207,6 +207,12 @@ export function BattleRoyaleActionPanel({
           <Shield size={16} />
           {compact ? pick('竞技', 'Arena') : pick('竞技详情', 'Arena details')}
         </Link>
+        {canReserveClaim ? (
+          <Link href="/" className="cw-button cw-button--ghost">
+            <Shield size={16} />
+            {pick('去维护提现', 'Withdraw on home')}
+          </Link>
+        ) : null}
       </div>
 
       {hash ? (

@@ -211,6 +211,59 @@ describe("BattleRoyale", function () {
     expect.fail("manual entrant lost in every attempt");
   });
 
+  it("lets one owner enter the same match with multiple NFAs and stake from reserve", async function () {
+    await battleRoyale.initializeV2(router.address, nfa.address, 100);
+    await router.authorizeSkill(battleRoyale.address, true);
+    await battleRoyale.setTriggerCount(3);
+    await fillDefaultMatch([1, 1, 2, 2, 3, 4, 5, 6, 7, 8]);
+    await revealMatch(1);
+
+    const tokenIdA = await setupLobster(players[0], { spd: 70 });
+    const tokenIdB = await setupLobster(players[0], { spd: 30 });
+    await clw.connect(players[0]).approve(router.address, ethers.constants.MaxUint256);
+    await router.connect(players[0]).depositCLW(tokenIdA, ethers.utils.parseEther("1000"));
+    await router.connect(players[0]).depositCLW(tokenIdB, ethers.utils.parseEther("1000"));
+
+    const participantA = await battleRoyale.participantForNfa(tokenIdA);
+    const participantB = await battleRoyale.participantForNfa(tokenIdB);
+
+    await battleRoyale.connect(players[0]).enterRoomForNfa(2, tokenIdA, 1, stake);
+    await battleRoyale.connect(players[0]).enterRoomForNfa(2, tokenIdB, 2, stake);
+
+    expect(await battleRoyale.playerRoom(2, participantA)).to.equal(1);
+    expect(await battleRoyale.playerRoom(2, participantB)).to.equal(2);
+    expect(await router.clwBalances(tokenIdA)).to.equal(ethers.utils.parseEther("900"));
+    expect(await router.clwBalances(tokenIdB)).to.equal(ethers.utils.parseEther("900"));
+
+    await battleRoyale.connect(players[0]).changeRoomForNfa(2, tokenIdB, 3);
+    expect(await battleRoyale.playerRoom(2, participantB)).to.equal(3);
+
+    await expect(
+      battleRoyale.connect(players[0]).enterRoomForNfa(2, tokenIdA, 5, stake)
+    ).to.be.revertedWith("Already entered this match");
+
+    await expect(
+      battleRoyale.connect(players[0]).changeRoomForNfa(2, tokenIdB, 5)
+    ).to.be.revertedWith("Room change limit reached");
+
+    await battleRoyale.connect(players[1]).enterRoom(2, 4, stake);
+
+    await revealMatch(2);
+
+    const claimableA = await battleRoyale.getClaimable(2, participantA);
+    const claimableB = await battleRoyale.getClaimable(2, participantB);
+    const winningTokenId = claimableA > 0 ? tokenIdA : tokenIdB;
+    const claimable = claimableA > 0 ? claimableA : claimableB;
+
+    expect(claimable).to.be.gt(0);
+
+    const beforeBalance = await router.clwBalances(winningTokenId);
+    await battleRoyale.connect(players[0]).claimForNfa(2, winningTokenId);
+    const afterBalance = await router.clwBalances(winningTokenId);
+
+    expect(afterBalance.sub(beforeBalance)).to.equal(claimable);
+  });
+
   it("gives higher-speed survivors a larger prize share", async function () {
     await battleRoyale.initializeV2(router.address, nfa.address, 100);
 

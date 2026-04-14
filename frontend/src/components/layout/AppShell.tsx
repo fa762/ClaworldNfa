@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Compass, Globe2 } from 'lucide-react';
 
 import { BottomTabs } from './BottomTabs';
 import { PwaStatusBanner } from './PwaStatusBanner';
+import { CompanionDetailsSheet } from '@/components/lobster/CompanionDetailsSheet';
 import { CompanionStage, type CompanionStageTone, type CompanionStageVariant } from '@/components/lobster/CompanionStage';
 import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
 import { useI18n } from '@/lib/i18n';
@@ -137,6 +139,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const companion = useActiveCompanion();
   const { t, pick, lang, setLang } = useI18n();
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const shellCopy = getShellCopy(pathname, companion, pick);
   const showMintShortcut = pathname === '/';
 
@@ -181,16 +184,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <CompanionStage
-          compact={shellCopy.compact}
-          variant={shellCopy.variant}
-          eyebrow={shellCopy.eyebrow}
-          title={shellCopy.title}
-          statusLabel={shellCopy.statusLabel}
-          statusTone={shellCopy.statusTone}
-          readouts={shellCopy.readouts}
-          loading={companion.isLoading}
-        />
+        <button
+          type="button"
+          className="cw-stage-trigger"
+          onClick={() => setDetailsOpen(true)}
+          aria-label={pick('打开伙伴详情', 'Open companion details')}
+        >
+          <CompanionStage
+            compact={shellCopy.compact}
+            variant={shellCopy.variant}
+            eyebrow={shellCopy.eyebrow}
+            title={shellCopy.title}
+            statusLabel={shellCopy.statusLabel}
+            statusTone={shellCopy.statusTone}
+            readouts={shellCopy.readouts}
+            loading={companion.isLoading}
+          />
+        </button>
 
         <PwaStatusBanner />
 
@@ -200,6 +210,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <BottomTabs />
       </div>
+
+      <CompanionDetailsSheet companion={companion} open={detailsOpen} onClose={() => setDetailsOpen(false)} />
     </div>
   );
 }

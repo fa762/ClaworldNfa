@@ -1,9 +1,82 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-13 Asia/Singapore
+Last updated: 2026-04-14 Asia/Singapore
 
 This file is the source of truth for the frontend product rewrite.
 If agent or chat context changes, continue from this file together with `CURRENT_HANDOFF.md`.
+
+## Execution checkpoint - 2026-04-14 session 24
+
+This checkpoint locks in a cleaner game-product rule for the rebuilt mobile shell:
+
+- rewards that belong to the lobster should go back to the lobster ledger account
+- the user must have a visible withdraw path back to the main wallet
+- arena landing should show recent record, not just entry buttons
+- tapping the fixed companion strip should reveal a short stats/details sheet
+
+### 1. Home maintenance is now the official ledger-withdraw surface
+
+Accepted model now implemented:
+
+- reserve / upkeep / wallet balances remain visible
+- withdraw flow is now part of the same maintenance surface:
+  - request
+  - cooldown
+  - claim
+  - cancel
+
+This means Battle Royale reward copy can now truthfully point the user back to Home maintenance instead of leaving reward flow half-finished.
+
+### 2. The fixed companion strip is now actionable
+
+Accepted model now implemented:
+
+- tap the fixed companion strip
+- open a short details sheet
+- see:
+  - task traits
+  - PK stats
+  - level / status / shelter
+  - wallet / ledger / upkeep / runway
+
+This replaces the earlier dead shell behavior where the fixed strip only displayed state but did not open deeper context.
+
+### 3. Arena landing now includes history, not just entry
+
+Accepted model now implemented:
+
+- `PK` card still opens the PK action sheet
+- `大逃杀` card still opens the BR action sheet
+- below them, both loops now show recent participation history
+- tapping a history row opens a short detail sheet
+
+This aligns the page more closely with game UX:
+
+- entry
+- status
+- recent record
+- detail on tap
+
+instead of entry buttons with no memory of what just happened.
+
+### 4. Battle Royale product model is now explicit
+
+Accepted local model in code:
+
+- NFA can enter through its own ledger-account path
+- reward returns to the NFA ledger account
+- user can withdraw from Home maintenance
+
+Current live constraint:
+
+- this model still requires the deployed mainnet Battle Royale implementation to be upgraded before hosted frontend usage is safe
+
+### Updated execution order after session 24
+
+1. deploy/upgrade Battle Royale on mainnet if NFA-ledger BR entry should be live
+2. validate hosted frontend against the upgraded implementation
+3. keep cutting non-essential copy from action sheets
+4. continue motion/art polish only after live action paths are healthy
 
 ## Execution checkpoint - 2026-04-13 session 23
 

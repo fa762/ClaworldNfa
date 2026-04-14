@@ -1,9 +1,76 @@
 # Current Handoff
 
-Last updated: 2026-04-13 (session 23) Asia/Singapore
+Last updated: 2026-04-14 (session 24) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
+
+## Closure checkpoint - 2026-04-14 session 24
+
+This pass closed the mint audit, upkeep-withdraw path, companion details sheet, and the code path for Battle Royale rewards returning to the NFA ledger account.
+
+What is now done:
+
+1. GenesisVault / `#116` audit is now grounded in chain state
+- `ownerOf(116)` on `ClawNFA` returns:
+  - `0x76F06952850fA02EedaBf63b808Fe1AFeCe1eDAa`
+- `GenesisVault` currently shows no pending commitment for:
+  - `0x76F06952850fA02EedaBf63b808Fe1AFeCe1eDAa`
+  - `0x4929bd86e8be70a167cce03a64aac692e0c2b3b2`
+- conclusion:
+  - `#116` already exists on-chain
+  - if a user is still stuck at reveal/refund, we still need the exact wallet address that submitted the commit
+  - force-refund cannot be safely guessed because commitments are keyed by wallet and not enumerable
+
+2. Home maintenance now supports withdrawing from the lobster ledger account back to the main wallet
+- `CompanionUpkeepPanel` now supports:
+  - request withdraw
+  - wait through cooldown
+  - claim withdraw
+  - cancel withdraw
+- this is the user-facing exit path after a Battle Royale reward lands in the NFA ledger account
+
+3. The fixed companion stage now opens a real details sheet
+- tapping the top fixed companion block now opens:
+  - level
+  - status
+  - shelter
+  - owner
+  - wallet / ledger / upkeep / runway
+  - task traits
+  - PK stats
+  - task total and `X胜 / Y败`
+
+4. Battle Royale now has a local code path for NFA-ledger entry and ledger-backed reward return
+- `BattleRoyale.sol` now includes:
+  - `participantForNfa(...)`
+  - `enterRoomForNfa(...)`
+  - `addStakeForNfa(...)`
+  - `changeRoomForNfa(...)`
+  - `claimForNfa(...)`
+- reward return for the reserve/NFA route now credits the lobster ledger account
+- the front-end wording now says:
+  - `NFA 记账账户`
+  - reward returns there
+  - withdraw path is available from Home maintenance
+
+5. Arena landing now surfaces recent history under both entry points
+- `PK` now shows recent participation rows
+- `大逃杀` now shows recent participation rows
+- each row opens a short details sheet instead of sending the user into a long stacked page
+
+Verification completed in this pass:
+
+- `npx hardhat compile`
+- `npx hardhat test test\\BattleRoyale.test.ts`
+- `npm --prefix frontend run build`
+
+Current honest product truth after session 24:
+
+- the new NFA-ledger Battle Royale flow is code-complete locally and covered by local tests
+- hosted/live usage of the new BR functions still requires the mainnet Battle Royale implementation to be upgraded
+- until that upgrade happens, the live frontend cannot truthfully rely on `enterRoomForNfa(...)` / `claimForNfa(...)` against the old deployed implementation
+- `#116` is not a “mystery unminted token”; it is already minted on-chain
 
 ## Frontend closure checkpoint - 2026-04-13 session 23
 

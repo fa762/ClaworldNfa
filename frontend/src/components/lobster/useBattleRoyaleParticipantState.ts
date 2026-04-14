@@ -147,7 +147,7 @@ export function useBattleRoyaleParticipantState(
       claimable: preferred?.claimable ?? 0n,
       claimPathLabel:
         preferred?.key === 'autonomy'
-          ? '代理路径'
+          ? 'NFA 记账账户'
           : preferred?.key === 'owner'
             ? '持有人钱包'
             : null,

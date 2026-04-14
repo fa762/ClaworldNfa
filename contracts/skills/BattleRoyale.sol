@@ -21,6 +21,9 @@ contract BattleRoyale is
 {
     using SafeERC20 for IERC20;
 
+    bytes32 public constant PARTICIPANT_SALT =
+        keccak256("clawworld.battle-royale.autonomy.participant");
+
     uint8 public constant MAX_ROOMS = 10;
     uint256 public constant BLOCKHASH_SAFE = 256;
     uint8 public constant MAX_TRIGGER_COUNT = 50;
@@ -302,6 +305,52 @@ contract BattleRoyale is
         emit PlayerNfaSelected(matchId, msg.sender, nfaId);
     }
 
+    function participantForNfa(uint256 nfaId) public pure returns (address) {
+        return address(uint160(uint256(keccak256(abi.encode(PARTICIPANT_SALT, nfaId)))));
+    }
+
+    function enterRoomForNfa(
+        uint256 matchId,
+        uint256 nfaId,
+        uint8 roomId,
+        uint256 amount
+    ) external nonReentrant {
+        require(roomId >= 1 && roomId <= MAX_ROOMS, "Invalid room: 1-10");
+        require(router != address(0), "Router not set");
+        require(nfa != address(0), "NFA not set");
+        require(IBattleRoyaleNFA(nfa).ownerOf(nfaId) == msg.sender, "Not NFA owner");
+
+        address participant = participantForNfa(nfaId);
+        _enterReserveParticipant(matchId, participant, nfaId, roomId, amount);
+    }
+
+    function addStakeForNfa(
+        uint256 matchId,
+        uint256 nfaId,
+        uint256 amount
+    ) external nonReentrant {
+        require(amount > 0, "Amount must be positive");
+        require(router != address(0), "Router not set");
+        require(nfa != address(0), "NFA not set");
+        require(IBattleRoyaleNFA(nfa).ownerOf(nfaId) == msg.sender, "Not NFA owner");
+
+        address participant = participantForNfa(nfaId);
+        _addReserveStake(matchId, participant, nfaId, amount);
+    }
+
+    function changeRoomForNfa(
+        uint256 matchId,
+        uint256 nfaId,
+        uint8 newRoomId
+    ) external nonReentrant {
+        require(roomIdValid(newRoomId), "Invalid room: 1-10");
+        require(nfa != address(0), "NFA not set");
+        require(IBattleRoyaleNFA(nfa).ownerOf(nfaId) == msg.sender, "Not NFA owner");
+
+        address participant = participantForNfa(nfaId);
+        _changeReserveParticipantRoom(matchId, participant, nfaId, newRoomId);
+    }
+
     function setAutonomousResolver(address resolver, bool authorized) external onlyOwner {
         autonomousResolvers[resolver] = authorized;
         emit AutonomousResolverUpdated(resolver, authorized);
@@ -318,34 +367,9 @@ contract BattleRoyale is
         require(participant != address(0), "Invalid participant");
         require(roomId >= 1 && roomId <= MAX_ROOMS, "Invalid room: 1-10");
 
-        BRMatch storage m = matches[matchId];
-        require(m.status == MatchStatus.OPEN, "Match not open");
-        require(playerRoom[matchId][participant] == 0, "Already entered this match");
-        require(amount >= _minStakeForMatch(matchId), "Stake below match minimum");
         require(router != address(0), "Router not set");
         require(nfa != address(0), "NFA not set");
-
-        IClawRouter(router).spendCLW(nfaId, amount);
-
-        roomPlayers[matchId][roomId].push(participant);
-        roomTotal[matchId][roomId] += amount;
-        playerRoom[matchId][participant] = roomId;
-        playerStake[matchId][participant] = amount;
-        matchTotal[matchId] += amount;
-        roomOccupied[matchId][roomId] = true;
-        autonomousPlayerNfa[matchId][participant] = nfaId;
-        playerNfa[matchId][participant] = nfaId;
-
-        m.totalPlayers++;
-        emit PlayerEntered(matchId, participant, roomId, amount);
-        emit PlayerNfaSelected(matchId, participant, nfaId);
-        emit AutonomousPlayerEntered(matchId, participant, nfaId, roomId, amount);
-
-        if (m.totalPlayers == _triggerCountForMatch(matchId)) {
-            m.revealBlock = block.number + _revealDelayForMatch(matchId);
-            m.status = MatchStatus.PENDING_REVEAL;
-            emit RoundTriggered(matchId, m.revealBlock);
-        }
+        _enterReserveParticipant(matchId, participant, nfaId, roomId, amount);
     }
 
     function autonomousAddStakeFor(
@@ -357,23 +381,8 @@ contract BattleRoyale is
         require(autonomousResolvers[msg.sender], "Not autonomous resolver");
         require(participant != address(0), "Invalid participant");
         require(amount > 0, "Amount must be positive");
-        require(autonomousPlayerNfa[matchId][participant] == nfaId, "Wrong autonomous NFA");
         require(router != address(0), "Router not set");
-
-        BRMatch storage m = matches[matchId];
-        require(m.status == MatchStatus.OPEN, "Match locked: cannot add stake");
-
-        uint8 currentRoom = playerRoom[matchId][participant];
-        require(currentRoom != 0, "Not in this match");
-
-        IClawRouter(router).spendCLW(nfaId, amount);
-
-        uint256 newTotalStake = playerStake[matchId][participant] + amount;
-        playerStake[matchId][participant] = newTotalStake;
-        roomTotal[matchId][currentRoom] += amount;
-        matchTotal[matchId] += amount;
-
-        emit PlayerAddedStake(matchId, participant, currentRoom, amount, newTotalStake);
+        _addReserveStake(matchId, participant, nfaId, amount);
     }
 
     function autonomousChangeRoomFor(
@@ -385,41 +394,7 @@ contract BattleRoyale is
         require(autonomousResolvers[msg.sender], "Not autonomous resolver");
         require(participant != address(0), "Invalid participant");
         require(roomIdValid(newRoomId), "Invalid room: 1-10");
-        require(autonomousPlayerNfa[matchId][participant] == nfaId, "Wrong autonomous NFA");
-
-        BRMatch storage m = matches[matchId];
-        require(m.status == MatchStatus.OPEN, "Match locked: cannot change room");
-
-        uint8 currentRoom = playerRoom[matchId][participant];
-        require(currentRoom != 0, "Not in this match");
-        require(currentRoom != newRoomId, "Already in this room");
-        require(
-            roomChangeCount[matchId][participant] < MAX_ROOM_CHANGES_PER_MATCH,
-            "Room change limit reached"
-        );
-
-        uint256 currentStake = playerStake[matchId][participant];
-        address[] storage oldPlayers = roomPlayers[matchId][currentRoom];
-        for (uint256 i = 0; i < oldPlayers.length; i++) {
-            if (oldPlayers[i] == participant) {
-                oldPlayers[i] = oldPlayers[oldPlayers.length - 1];
-                oldPlayers.pop();
-                break;
-            }
-        }
-
-        roomTotal[matchId][currentRoom] -= currentStake;
-        if (oldPlayers.length == 0) {
-            roomOccupied[matchId][currentRoom] = false;
-        }
-
-        roomPlayers[matchId][newRoomId].push(participant);
-        roomTotal[matchId][newRoomId] += currentStake;
-        playerRoom[matchId][participant] = newRoomId;
-        roomOccupied[matchId][newRoomId] = true;
-        roomChangeCount[matchId][participant] += 1;
-
-        emit PlayerChangedRoom(matchId, participant, currentRoom, newRoomId, currentStake);
+        _changeReserveParticipantRoom(matchId, participant, nfaId, newRoomId);
     }
 
     function autonomousClaimFor(
@@ -431,31 +406,21 @@ contract BattleRoyale is
         require(participant != address(0), "Invalid participant");
         require(autonomousPlayerNfa[matchId][participant] == nfaId, "Wrong autonomous NFA");
         require(router != address(0), "Router not set");
+        amount = _claimReserveParticipant(matchId, participant, nfaId);
+    }
 
-        BRMatch storage m = matches[matchId];
-        require(m.status == MatchStatus.SETTLED, "Match not settled");
-        require(!claimed[matchId][participant], "Already claimed");
+    function claimForNfa(uint256 matchId, uint256 nfaId)
+        external
+        nonReentrant
+        returns (uint256 amount)
+    {
+        require(router != address(0), "Router not set");
+        require(nfa != address(0), "NFA not set");
+        require(IBattleRoyaleNFA(nfa).ownerOf(nfaId) == msg.sender, "Not NFA owner");
 
-        claimed[matchId][participant] = true;
-
-        uint8 roomId = playerRoom[matchId][participant];
-        if (roomId == 0 || roomId == m.losingRoom) {
-            emit PlayerClaimed(matchId, participant, 0, 0, 0);
-            emit AutonomousClaimed(matchId, participant, nfaId, 0);
-            return 0;
-        }
-
-        MatchSettlement storage settlement = matchSettlements[matchId];
-        uint256 stake = playerStake[matchId][participant];
-        uint256 weight = survivorWeight[matchId][participant];
-        uint256 prize = settlement.totalSurvivorWeight > 0
-            ? (weight * settlement.survivorPrize) / settlement.totalSurvivorWeight
-            : 0;
-
-        amount = stake + prize;
-        IClawRouter(router).addCLW(nfaId, amount);
-        emit PlayerClaimed(matchId, participant, stake, prize, amount);
-        emit AutonomousClaimed(matchId, participant, nfaId, amount);
+        address participant = participantForNfa(nfaId);
+        require(autonomousPlayerNfa[matchId][participant] == nfaId, "Wrong autonomous NFA");
+        amount = _claimReserveParticipant(matchId, participant, nfaId);
     }
 
     function reveal(uint256 matchId) external nonReentrant {
@@ -626,6 +591,154 @@ contract BattleRoyale is
         uint256 shortfall = amount - localBalance;
         require(router != address(0), "Router not set");
         IClawRouter(router).payoutCLW(recipient, shortfall);
+    }
+
+    function _enterReserveParticipant(
+        uint256 matchId,
+        address participant,
+        uint256 nfaId,
+        uint8 roomId,
+        uint256 amount
+    ) internal {
+        BRMatch storage m = matches[matchId];
+        require(m.status == MatchStatus.OPEN, "Match not open");
+        require(playerRoom[matchId][participant] == 0, "Already entered this match");
+        require(amount >= _minStakeForMatch(matchId), "Stake below match minimum");
+        require(router != address(0), "Router not set");
+
+        IClawRouter(router).spendCLW(nfaId, amount);
+
+        roomPlayers[matchId][roomId].push(participant);
+        roomTotal[matchId][roomId] += amount;
+        playerRoom[matchId][participant] = roomId;
+        playerStake[matchId][participant] = amount;
+        matchTotal[matchId] += amount;
+        roomOccupied[matchId][roomId] = true;
+        autonomousPlayerNfa[matchId][participant] = nfaId;
+        playerNfa[matchId][participant] = nfaId;
+
+        m.totalPlayers++;
+        emit PlayerEntered(matchId, participant, roomId, amount);
+        emit PlayerNfaSelected(matchId, participant, nfaId);
+        emit AutonomousPlayerEntered(matchId, participant, nfaId, roomId, amount);
+
+        if (m.totalPlayers == _triggerCountForMatch(matchId)) {
+            m.revealBlock = block.number + _revealDelayForMatch(matchId);
+            m.status = MatchStatus.PENDING_REVEAL;
+            emit RoundTriggered(matchId, m.revealBlock);
+        }
+    }
+
+    function _addReserveStake(
+        uint256 matchId,
+        address participant,
+        uint256 nfaId,
+        uint256 amount
+    ) internal {
+        BRMatch storage m = matches[matchId];
+        require(m.status == MatchStatus.OPEN, "Match locked: cannot add stake");
+        require(autonomousPlayerNfa[matchId][participant] == nfaId, "Wrong autonomous NFA");
+
+        uint8 currentRoom = playerRoom[matchId][participant];
+        require(currentRoom != 0, "Not in this match");
+
+        IClawRouter(router).spendCLW(nfaId, amount);
+
+        uint256 newTotalStake = playerStake[matchId][participant] + amount;
+        playerStake[matchId][participant] = newTotalStake;
+        roomTotal[matchId][currentRoom] += amount;
+        matchTotal[matchId] += amount;
+
+        emit PlayerAddedStake(matchId, participant, currentRoom, amount, newTotalStake);
+    }
+
+    function _changeReserveParticipantRoom(
+        uint256 matchId,
+        address participant,
+        uint256 nfaId,
+        uint8 newRoomId
+    ) internal {
+        BRMatch storage m = matches[matchId];
+        require(m.status == MatchStatus.OPEN, "Match locked: cannot change room");
+        require(autonomousPlayerNfa[matchId][participant] == nfaId, "Wrong autonomous NFA");
+
+        uint8 currentRoom = playerRoom[matchId][participant];
+        require(currentRoom != 0, "Not in this match");
+        require(currentRoom != newRoomId, "Already in this room");
+        require(
+            roomChangeCount[matchId][participant] < MAX_ROOM_CHANGES_PER_MATCH,
+            "Room change limit reached"
+        );
+
+        uint256 currentStake = playerStake[matchId][participant];
+        address[] storage oldPlayers = roomPlayers[matchId][currentRoom];
+        for (uint256 i = 0; i < oldPlayers.length; i++) {
+            if (oldPlayers[i] == participant) {
+                oldPlayers[i] = oldPlayers[oldPlayers.length - 1];
+                oldPlayers.pop();
+                break;
+            }
+        }
+
+        roomTotal[matchId][currentRoom] -= currentStake;
+        if (oldPlayers.length == 0) {
+            roomOccupied[matchId][currentRoom] = false;
+        }
+
+        roomPlayers[matchId][newRoomId].push(participant);
+        roomTotal[matchId][newRoomId] += currentStake;
+        playerRoom[matchId][participant] = newRoomId;
+        roomOccupied[matchId][newRoomId] = true;
+        roomChangeCount[matchId][participant] += 1;
+
+        emit PlayerChangedRoom(matchId, participant, currentRoom, newRoomId, currentStake);
+    }
+
+    function _payReserveClaim(uint256 nfaId, uint256 amount) internal {
+        if (amount == 0) {
+            return;
+        }
+
+        require(router != address(0), "Router not set");
+
+        uint256 localBalance = clwToken.balanceOf(address(this));
+        uint256 bridged = localBalance >= amount ? amount : localBalance;
+        if (bridged > 0) {
+            clwToken.safeTransfer(router, bridged);
+        }
+
+        IClawRouter(router).addCLW(nfaId, amount);
+    }
+
+    function _claimReserveParticipant(
+        uint256 matchId,
+        address participant,
+        uint256 nfaId
+    ) internal returns (uint256 amount) {
+        BRMatch storage m = matches[matchId];
+        require(m.status == MatchStatus.SETTLED, "Match not settled");
+        require(!claimed[matchId][participant], "Already claimed");
+
+        claimed[matchId][participant] = true;
+
+        uint8 roomId = playerRoom[matchId][participant];
+        if (roomId == 0 || roomId == m.losingRoom) {
+            emit PlayerClaimed(matchId, participant, 0, 0, 0);
+            emit AutonomousClaimed(matchId, participant, nfaId, 0);
+            return 0;
+        }
+
+        MatchSettlement storage settlement = matchSettlements[matchId];
+        uint256 stake = playerStake[matchId][participant];
+        uint256 weight = survivorWeight[matchId][participant];
+        uint256 prize = settlement.totalSurvivorWeight > 0
+            ? (weight * settlement.survivorPrize) / settlement.totalSurvivorWeight
+            : 0;
+
+        amount = stake + prize;
+        _payReserveClaim(nfaId, amount);
+        emit PlayerClaimed(matchId, participant, stake, prize, amount);
+        emit AutonomousClaimed(matchId, participant, nfaId, amount);
     }
 
     function _computeSurvivorWeight(

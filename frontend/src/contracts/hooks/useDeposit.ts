@@ -140,3 +140,50 @@ export function useProcessUpkeep() {
 
   return { processUpkeep, isPending, isConfirming, isSuccess, hash, error };
 }
+
+export function useWithdrawCLW() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+
+  function requestWithdraw(tokenId: bigint, amount: string) {
+    writeContract({
+      address: addresses.clawRouter,
+      abi: ClawRouterABI,
+      functionName: 'requestWithdrawCLW',
+      args: [tokenId, parseEther(amount)],
+      gas: 180000n,
+    });
+  }
+
+  function claimWithdraw(tokenId: bigint) {
+    writeContract({
+      address: addresses.clawRouter,
+      abi: ClawRouterABI,
+      functionName: 'claimWithdrawCLW',
+      args: [tokenId],
+      gas: 180000n,
+    });
+  }
+
+  function cancelWithdraw(tokenId: bigint) {
+    writeContract({
+      address: addresses.clawRouter,
+      abi: ClawRouterABI,
+      functionName: 'cancelWithdraw',
+      args: [tokenId],
+      gas: 160000n,
+    });
+  }
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  return {
+    requestWithdraw,
+    claimWithdraw,
+    cancelWithdraw,
+    isPending,
+    isConfirming,
+    isSuccess,
+    hash,
+    error,
+  };
+}

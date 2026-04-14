@@ -38,6 +38,13 @@ type TraitShape = {
   grit: number;
 };
 
+type CombatShape = {
+  str: number;
+  def: number;
+  spd: number;
+  vit: number;
+};
+
 export type ActiveCompanionValue = {
   live: boolean;
   isLoading: boolean;
@@ -64,6 +71,7 @@ export type ActiveCompanionValue = {
   dailyCost: bigint;
   upkeepDays: number | null;
   traits: TraitShape;
+  combat: CombatShape;
   taskTotal: number;
   pkWins: number;
   pkLosses: number;
@@ -114,6 +122,12 @@ const defaultValue: ActiveCompanionValue = {
     social: 58,
     create: 41,
     grit: 67,
+  },
+  combat: {
+    str: 52,
+    def: 44,
+    spd: 61,
+    vit: 49,
   },
   taskTotal: 0,
   pkWins: 0,
@@ -411,6 +425,12 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
       create: Number(lobster?.create ?? lobster?.[5] ?? 0),
       grit: Number(lobster?.grit ?? lobster?.[6] ?? 0),
     };
+    const combat: CombatShape = {
+      str: Number(lobster?.str ?? lobster?.[7] ?? 0),
+      def: Number(lobster?.def ?? lobster?.[8] ?? 0),
+      spd: Number(lobster?.spd ?? lobster?.[9] ?? 0),
+      vit: Number(lobster?.vit ?? lobster?.[10] ?? 0),
+    };
     const shelter = Number(lobster?.shelter ?? lobster?.[1] ?? 0);
     const level = Number(lobster?.level ?? lobster?.[13] ?? 0);
     const routerClaworld = BigInt(routerClwQuery.data?.toString() ?? '0');
@@ -457,6 +477,7 @@ function useProvideActiveCompanion(): ActiveCompanionValue {
       dailyCost,
       upkeepDays,
       traits,
+      combat,
       taskTotal,
       pkWins,
       pkLosses,

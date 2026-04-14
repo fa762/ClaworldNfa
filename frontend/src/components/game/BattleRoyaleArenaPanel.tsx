@@ -1,21 +1,22 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowUpRight,
   CheckCircle2,
+  Coins,
   RefreshCw,
   Shield,
   Swords,
   Trophy,
 } from 'lucide-react';
-import { maxUint256, parseEther, type Address } from 'viem';
+import { parseEther } from 'viem';
 import { useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 
 import { type ParticipantPath } from '@/components/lobster/useBattleRoyaleParticipantState';
 import { BattleRoyaleABI } from '@/contracts/abis/BattleRoyale';
-import { ERC20ABI } from '@/contracts/abis/ERC20';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { formatCLW } from '@/lib/format';
 
@@ -43,9 +44,11 @@ function brError(error: unknown) {
   const message = error.message;
   if (message.includes('User rejected') || message.includes('OKX Wallet Reject')) return '钱包取消了这次签名。';
   if (message.includes('Already entered this match')) return '这只龙虾已经在当前对局里。';
+  if (message.includes('Not NFA owner')) return '当前钱包不是这只龙虾的持有人。';
+  if (message.includes('Wrong autonomous NFA')) return '当前对局不是这只龙虾的参赛记录。';
   if (message.includes('Stake below match minimum')) return '质押低于当前对局门槛。';
   if (message.includes('Room change limit reached')) return '这一局只能换房一次。';
-  if (message.includes('transfer amount exceeds')) return '当前钱包余额或授权不足。';
+  if (message.includes('Insufficient CLW balance')) return '这只龙虾的记账账户余额不够。';
   if (message.includes('Match not open')) return '当前这局已经不能加入了。';
   return message;
 }
@@ -57,7 +60,8 @@ export function BattleRoyaleArenaPanel({
   triggerCount,
   pot,
   minStake,
-  ownerAddress,
+  tokenId,
+  reserve,
   participant,
   onRefresh,
   isRefreshing,
@@ -68,7 +72,8 @@ export function BattleRoyaleArenaPanel({
   triggerCount: number;
   pot: bigint;
   minStake: bigint;
-  ownerAddress?: Address;
+  tokenId?: bigint;
+  reserve: bigint;
   participant: {
     preferredPath: ParticipantPath | null;
     ownerPath: ParticipantPath;
@@ -81,7 +86,7 @@ export function BattleRoyaleArenaPanel({
 }) {
   const [selectedRoom, setSelectedRoom] = useState(1);
   const [amountInput, setAmountInput] = useState('');
-  const [pendingAction, setPendingAction] = useState<'approve' | 'enter' | 'change' | 'claim' | null>(null);
+  const [pendingAction, setPendingAction] = useState<'enter' | 'change' | 'claim' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [resultText, setResultText] = useState<string | null>(null);
 
@@ -104,16 +109,8 @@ export function BattleRoyaleArenaPanel({
     address: addresses.battleRoyale,
     abi: BattleRoyaleABI,
     functionName: 'roomChangeCount',
-    args: matchId && ownerAddress ? [matchId, ownerAddress] : undefined,
-    query: { enabled: Boolean(matchId && ownerAddress) },
-  });
-
-  const allowanceQuery = useReadContract({
-    address: addresses.clwToken,
-    abi: ERC20ABI,
-    functionName: 'allowance',
-    args: ownerAddress ? [ownerAddress, addresses.battleRoyale] : undefined,
-    query: { enabled: Boolean(ownerAddress) },
+    args: matchId && participant.preferredPath?.address ? [matchId, participant.preferredPath.address] : undefined,
+    query: { enabled: Boolean(matchId && participant.preferredPath?.address) },
   });
 
   const snapshot = snapshotQuery.data as readonly [readonly bigint[], readonly bigint[]] | undefined;
@@ -131,23 +128,22 @@ export function BattleRoyaleArenaPanel({
   );
 
   const amount = parseAmount(amountInput);
-  const allowance = BigInt(allowanceQuery.data?.toString() ?? '0');
   const activePath = participant.preferredPath;
   const currentRoom = activePath?.roomId ?? 0;
   const currentStake = activePath?.stake ?? 0n;
   const roomChangeCount = Number(roomChangeCountQuery.data ?? 0);
   const refreshing = Boolean(
-    isRefreshing || snapshotQuery.isFetching || roomChangeCountQuery.isFetching || allowanceQuery.isFetching,
+    isRefreshing || snapshotQuery.isFetching || roomChangeCountQuery.isFetching,
   );
   const ownerJoined = participant.ownerPath.entered;
-  const autonomyJoined = participant.autonomyPath.entered && !ownerJoined;
-  const canChangeRoom = ownerJoined && status === 0 && roomChangeCount < 1;
-  const needsApproval = amount !== null && allowance < amount;
+  const nfaJoined = participant.autonomyPath.entered;
+  const canChangeRoom = Boolean(activePath?.entered) && status === 0 && roomChangeCount < 1 && !participant.hasConflict;
+  const hasEnoughReserve = amount === null || reserve >= amount;
   const ownerClaimReady =
     participant.claimable > 0n &&
     participant.preferredPath?.key === 'owner' &&
     !participant.hasConflict;
-  const autonomyClaimOnly =
+  const nfaClaimReady =
     participant.claimable > 0n &&
     participant.preferredPath?.key === 'autonomy' &&
     !participant.hasConflict;
@@ -157,7 +153,6 @@ export function BattleRoyaleArenaPanel({
       onRefresh(),
       snapshotQuery.refetch(),
       roomChangeCountQuery.refetch(),
-      allowanceQuery.refetch(),
     ]);
   }
 
@@ -165,40 +160,43 @@ export function BattleRoyaleArenaPanel({
     if (currentRoom > 0) setSelectedRoom(currentRoom);
   }, [currentRoom]);
 
-  async function handleAction(kind: 'approve' | 'enter' | 'change' | 'claim') {
+  async function handleAction(kind: 'enter' | 'change' | 'claim') {
     if (!matchId) return;
     setActionError(null);
     setResultText(null);
     setPendingAction(kind);
     try {
-      if (kind === 'approve') {
-        await writeContractAsync({
-          address: addresses.clwToken,
-          abi: ERC20ABI,
-          functionName: 'approve',
-          args: [addresses.battleRoyale, maxUint256],
-        });
-      } else if (kind === 'enter') {
+      if (kind === 'enter') {
         if (amount === null) throw new Error('请输入有效的质押数。');
+        if (tokenId === undefined) throw new Error('先选一只龙虾。');
+        if (reserve < amount) throw new Error('这只龙虾的储备不够。');
         await writeContractAsync({
           address: addresses.battleRoyale,
           abi: BattleRoyaleABI,
-          functionName: 'enterRoom',
-          args: [matchId, selectedRoom, amount],
+          functionName: 'enterRoomForNfa',
+          args: [matchId, tokenId, selectedRoom, amount],
         });
       } else if (kind === 'change') {
         await writeContractAsync({
           address: addresses.battleRoyale,
           abi: BattleRoyaleABI,
-          functionName: 'changeRoom',
-          args: [matchId, selectedRoom],
+          functionName:
+            activePath?.key === 'autonomy' && tokenId !== undefined ? 'changeRoomForNfa' : 'changeRoom',
+          args:
+            activePath?.key === 'autonomy' && tokenId !== undefined
+              ? [matchId, tokenId, selectedRoom]
+              : [matchId, selectedRoom],
         });
       } else {
         await writeContractAsync({
           address: addresses.battleRoyale,
           abi: BattleRoyaleABI,
-          functionName: 'claim',
-          args: [matchId],
+          functionName:
+            activePath?.key === 'autonomy' && tokenId !== undefined ? 'claimForNfa' : 'claim',
+          args:
+            activePath?.key === 'autonomy' && tokenId !== undefined
+              ? [matchId, tokenId]
+              : [matchId],
         });
       }
     } catch (nextError) {
@@ -209,13 +207,18 @@ export function BattleRoyaleArenaPanel({
 
   useEffect(() => {
     if (!receiptQuery.isSuccess || !pendingAction) return;
-    if (pendingAction === 'approve') setResultText('授权已完成。');
     if (pendingAction === 'enter') setResultText(`已加入 ${selectedRoom} 号房。`);
     if (pendingAction === 'change') setResultText(`已换到 ${selectedRoom} 号房。`);
-    if (pendingAction === 'claim') setResultText(`已领取 ${formatCLW(participant.claimable)}。`);
+    if (pendingAction === 'claim') {
+      setResultText(
+        activePath?.key === 'autonomy'
+          ? `奖励已回到 NFA 记账账户 ${formatCLW(participant.claimable)}。`
+          : `已领取 ${formatCLW(participant.claimable)}。`,
+      );
+    }
     setPendingAction(null);
     void refreshAll();
-  }, [allowanceQuery, onRefresh, participant.claimable, pendingAction, receiptQuery.isSuccess, roomChangeCountQuery, selectedRoom, snapshotQuery]);
+  }, [activePath?.key, onRefresh, participant.claimable, pendingAction, receiptQuery.isSuccess, roomChangeCountQuery, selectedRoom, snapshotQuery]);
 
   if (!matchId) {
     return (
@@ -300,12 +303,16 @@ export function BattleRoyaleArenaPanel({
           </div>
         ) : null}
 
-        {autonomyClaimOnly ? (
-          <div className="cw-list">
-            <div className="cw-list-item cw-list-item--cool">
+        {nfaClaimReady ? (
+          <div className="cw-button-row">
+            <button type="button" className="cw-button cw-button--primary" onClick={() => void handleAction('claim')}>
+              <Coins size={16} />
+              回记账账户 {formatCLW(participant.claimable)}
+            </button>
+            <Link href="/" className="cw-button cw-button--ghost">
               <Shield size={16} />
-              <span>这笔奖励走代理路径，请去代理页领取。</span>
-            </div>
+              去维护提现
+            </Link>
           </div>
         ) : null}
       </section>
@@ -314,7 +321,7 @@ export function BattleRoyaleArenaPanel({
         <div className="cw-section-head">
           <div>
             <span className="cw-label">房间列表</span>
-            <h3>{ownerJoined ? '可以换房一次' : '点一间房，再确认质押加入'}</h3>
+            <h3>{activePath?.entered ? '可以换房一次' : '点一间房，再确认从 NFA 记账账户入场'}</h3>
           </div>
           <span className="cw-chip cw-chip--cool">
             <Shield size={14} />
@@ -337,7 +344,7 @@ export function BattleRoyaleArenaPanel({
           ))}
         </div>
 
-        {!ownerJoined && !autonomyJoined ? (
+        {!ownerJoined && !nfaJoined ? (
           <>
             <div className="cw-detail-list">
               <div className="cw-detail-row">
@@ -349,8 +356,12 @@ export function BattleRoyaleArenaPanel({
                 <strong>{formatCLW(minStake)}</strong>
               </div>
               <div className="cw-detail-row">
-                <span>手动入场</span>
-                <strong>钱包 Claworld</strong>
+                <span>入场路径</span>
+                <strong>NFA 记账账户</strong>
+              </div>
+              <div className="cw-detail-row">
+                <span>当前储备</span>
+                <strong>{formatCLW(reserve)}</strong>
               </div>
             </div>
             <label className="cw-field">
@@ -364,26 +375,15 @@ export function BattleRoyaleArenaPanel({
               />
             </label>
             <div className="cw-button-row">
-              {needsApproval ? (
-                <button
-                  type="button"
-                  className="cw-button cw-button--secondary"
-                  onClick={() => void handleAction('approve')}
-                >
-                  <Shield size={16} />
-                  授权 Claworld
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="cw-button cw-button--primary"
-                  onClick={() => void handleAction('enter')}
-                  disabled={!amount || amount < minStake || status !== 0}
-                >
-                  <Swords size={16} />
-                  加入 {selectedRoom} 号房
-                </button>
-              )}
+              <button
+                type="button"
+                className="cw-button cw-button--primary"
+                onClick={() => void handleAction('enter')}
+                disabled={!amount || amount < minStake || status !== 0 || !hasEnoughReserve || tokenId === undefined}
+              >
+                <Swords size={16} />
+                加入 {selectedRoom} 号房
+              </button>
             </div>
           </>
         ) : null}
@@ -402,11 +402,20 @@ export function BattleRoyaleArenaPanel({
           </div>
         ) : null}
 
-        {autonomyJoined ? (
+        {nfaJoined ? (
           <div className="cw-list">
-            <div className="cw-list-item cw-list-item--cool">
+            <div className="cw-list-item cw-list-item--growth">
               <Shield size={16} />
-              <span>这只龙虾当前是代理路径入场，换房和领奖请去代理页。</span>
+              <span>这只龙虾已经用记账账户参赛，换房和领奖都会直接回到这只 NFA 的记账账户。</span>
+            </div>
+          </div>
+        ) : null}
+
+        {!hasEnoughReserve && amount !== null ? (
+          <div className="cw-list">
+            <div className="cw-list-item cw-list-item--alert">
+              <AlertTriangle size={16} />
+              <span>{`记账账户只有 ${formatCLW(reserve)}，不够质押 ${amountInput || '0'}。`}</span>
             </div>
           </div>
         ) : null}
