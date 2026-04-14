@@ -1,6 +1,20 @@
 # Current Handoff
 
-Last updated: 2026-04-14 (session 37) Asia/Singapore
+Last updated: 2026-04-14 (session 38) Asia/Singapore
+
+## PWA install banner removal - 2026-04-14 session 38
+
+This pass removes the persistent install-style PWA banner from the main shell.
+
+What changed:
+
+- the shell no longer shows the install / add-to-home-screen prompt
+- service worker registration stays in place
+- only the offline banner remains
+
+Validation:
+
+- `npx tsc --noEmit --project frontend/tsconfig.json` passes
 
 ## Auto page follow-up - 2026-04-14 session 37
 

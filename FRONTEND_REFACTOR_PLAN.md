@@ -1,6 +1,18 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-14 (session 37) Asia/Singapore
+Last updated: 2026-04-14 (session 38) Asia/Singapore
+
+## PWA banner cleanup - 2026-04-14 session 38
+
+Accepted shell rule:
+
+- do not show install nag banners during normal use
+- keep offline status visible only when it matters
+
+What is now implemented:
+
+- the install / add-to-home-screen banner is removed from the default shell
+- only offline state still surfaces through the banner component
 
 ## Auto page detail recovery checkpoint - 2026-04-14 session 37
 
