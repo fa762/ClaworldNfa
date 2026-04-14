@@ -6,6 +6,7 @@ import { usePublicClient } from 'wagmi';
 
 import { deriveAutonomyParticipant } from '@/components/lobster/useBattleRoyaleParticipantState';
 import { BattleRoyaleABI } from '@/contracts/abis/BattleRoyale';
+import { ClawRouterABI } from '@/contracts/abis/ClawRouter';
 import { addresses, chainId as appChainId } from '@/contracts/addresses';
 import {
   loadPKResolutionCache,
@@ -26,6 +27,7 @@ export type PkHistoryEntry = {
   opponentStrategy: string;
   winnerNfaId: number;
   loserNfaId: number;
+  burned: bigint;
   txHash?: `0x${string}`;
 };
 
@@ -83,7 +85,89 @@ function strategyLabel(strategy: number, revealed: boolean) {
   return '未知';
 }
 
-async function resolvePkHistory(tokenNumber: number) {
+function getStrategyMuls(strategy: number) {
+  if (strategy === 0) return { atkMul: 15000, defMul: 5000 };
+  if (strategy === 1) return { atkMul: 10000, defMul: 10000 };
+  return { atkMul: 5000, defMul: 15000 };
+}
+
+function toLobsterStats(lobster: readonly unknown[]) {
+  return {
+    courage: Number(lobster[2] ?? 0),
+    wisdom: Number(lobster[3] ?? 0),
+    grit: Number(lobster[6] ?? 0),
+    str: Number(lobster[7] ?? 0),
+    def: Number(lobster[8] ?? 0),
+    spd: Number(lobster[9] ?? 0),
+    vit: Number(lobster[10] ?? 0),
+  };
+}
+
+function deriveCombatUnit(lobster: readonly unknown[], strategy: number) {
+  const base = toLobsterStats(lobster);
+  const { atkMul: baseAtkMul, defMul: baseDefMul } = getStrategyMuls(strategy);
+  let atkMul = baseAtkMul;
+  let defMul = baseDefMul;
+
+  if (strategy === 0 && base.courage >= 70) atkMul += 500;
+  if (strategy === 2 && base.grit >= 70) defMul += 500;
+  if (strategy === 1 && base.wisdom >= 70) {
+    atkMul += 300;
+    defMul += 300;
+  }
+
+  return {
+    str: base.str,
+    def: base.def,
+    spd: base.spd,
+    vit: base.vit,
+    atkMul,
+    defMul,
+  };
+}
+
+function derivePkSettlement(
+  match: Awaited<ReturnType<typeof loadRecentMatches>>[number],
+  lobsterA: readonly unknown[],
+  lobsterB: readonly unknown[],
+) {
+  const a = deriveCombatUnit(lobsterA, match.strategyA);
+  const b = deriveCombatUnit(lobsterB, match.strategyB);
+
+  const effStrA = Math.floor((a.str * a.atkMul) / 10000);
+  const effDefA = Math.floor((a.def * a.defMul) / 10000);
+  const effStrB = Math.floor((b.str * b.atkMul) / 10000);
+  const effDefB = Math.floor((b.def * b.defMul) / 10000);
+
+  let rawDmgA = effStrA > effDefB ? effStrA - effDefB : 1;
+  let rawDmgB = effStrB > effDefA ? effStrB - effDefA : 1;
+
+  if (a.spd > b.spd) rawDmgA = Math.floor((rawDmgA * 11000) / 10000);
+  else if (b.spd > a.spd) rawDmgB = Math.floor((rawDmgB * 11000) / 10000);
+
+  const hpA = a.vit * 10;
+  const hpB = b.vit * 10;
+  const damageA = Math.floor((rawDmgA * 10000) / Math.max(hpB, 1));
+  const damageB = Math.floor((rawDmgB * 10000) / Math.max(hpA, 1));
+
+  const winnerNfaId = damageA >= damageB ? match.nfaA : match.nfaB;
+  const loserNfaId = winnerNfaId === match.nfaA ? match.nfaB : match.nfaA;
+  const totalStake = match.stake * 2n;
+  const burned = (totalStake * 1000n) / 10000n;
+  const reward = totalStake - burned;
+
+  return {
+    winnerNfaId,
+    loserNfaId,
+    reward,
+    burned,
+  };
+}
+
+async function resolvePkHistory(
+  publicClient: NonNullable<ReturnType<typeof usePublicClient>>,
+  tokenNumber: number,
+) {
   const recent = await loadRecentMatches({ includeClosed: true, maxCount: 12 });
   const ownMatches = recent.filter(
     (match) => match.nfaA === tokenNumber || match.nfaB === tokenNumber,
@@ -117,6 +201,41 @@ async function resolvePkHistory(tokenNumber: number) {
         }
       }
 
+      let derivedReward = 0n;
+      let derivedBurned = 0n;
+      let derivedWinner = 0;
+      let derivedLoser = 0;
+      if (match.phase === 4 && (!resolution || resolution.type !== 'settled')) {
+        try {
+          const [lobsterA, lobsterB] = (await publicClient.multicall({
+            allowFailure: false,
+            contracts: [
+              {
+                address: addresses.clawRouter,
+                abi: ClawRouterABI,
+                functionName: 'lobsters',
+                args: [BigInt(match.nfaA)],
+              },
+              {
+                address: addresses.clawRouter,
+                abi: ClawRouterABI,
+                functionName: 'lobsters',
+                args: [BigInt(match.nfaB)],
+              },
+            ],
+          })) as [readonly unknown[], readonly unknown[]];
+
+          const derived = derivePkSettlement(match, lobsterA, lobsterB);
+          derivedReward = derived.reward;
+          derivedBurned = derived.burned;
+          derivedWinner = derived.winnerNfaId;
+          derivedLoser = derived.loserNfaId;
+        } catch {
+          derivedReward = 0n;
+          derivedBurned = 0n;
+        }
+      }
+
       const isCreator = match.nfaA === tokenNumber;
       const myStrategy = strategyLabel(
         isCreator ? match.strategyA : match.strategyB,
@@ -130,12 +249,24 @@ async function resolvePkHistory(tokenNumber: number) {
       const reward =
         resolution?.type === 'settled'
           ? BigInt(resolution.reward)
-          : 0n;
+          : derivedReward;
+      const burned =
+        resolution?.type === 'settled'
+          ? BigInt(resolution.burned)
+          : derivedBurned;
+      const winnerNfaId =
+        resolution?.type === 'settled'
+          ? resolution.winnerNfaId
+          : derivedWinner;
+      const loserNfaId =
+        resolution?.type === 'settled'
+          ? resolution.loserNfaId
+          : derivedLoser;
       const result =
         resolution?.type === 'cancelled'
           ? '已清局'
-          : resolution?.type === 'settled'
-            ? resolution.winnerNfaId === tokenNumber
+          : winnerNfaId > 0
+            ? winnerNfaId === tokenNumber
               ? '胜'
               : '败'
             : pkPhaseText(match.phase);
@@ -150,8 +281,9 @@ async function resolvePkHistory(tokenNumber: number) {
         reward,
         myStrategy,
         opponentStrategy,
-        winnerNfaId: resolution?.type === 'settled' ? resolution.winnerNfaId : 0,
-        loserNfaId: resolution?.type === 'settled' ? resolution.loserNfaId : 0,
+        winnerNfaId,
+        loserNfaId,
+        burned,
         txHash:
           resolution?.type === 'settled'
             ? toTxHash(resolution.txHash)
@@ -185,7 +317,7 @@ export function useArenaHistory(tokenId: bigint | undefined, ownerAddress?: Addr
     try {
       const tokenNumber = Number(tokenId);
       const participant = deriveAutonomyParticipant(tokenId);
-      const pkEntries = await resolvePkHistory(tokenNumber);
+      const pkEntries = await resolvePkHistory(publicClient, tokenNumber);
 
       const matchCountValue = (await publicClient.readContract({
         address: addresses.battleRoyale,

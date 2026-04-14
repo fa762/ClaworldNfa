@@ -388,6 +388,10 @@ export default function ArenaPage() {
                     <strong>{historyDetail.entry.reward > 0n ? formatCLW(historyDetail.entry.reward) : '--'}</strong>
                   </div>
                   <div className="cw-detail-row">
+                    <span>{pick('10% 销毁', '10% burned')}</span>
+                    <strong>{historyDetail.entry.burned > 0n ? formatCLW(historyDetail.entry.burned) : '--'}</strong>
+                  </div>
+                  <div className="cw-detail-row">
                     <span>{pick('赢家', 'Winner')}</span>
                     <strong>{historyDetail.entry.winnerNfaId > 0 ? `#${historyDetail.entry.winnerNfaId}` : '--'}</strong>
                   </div>

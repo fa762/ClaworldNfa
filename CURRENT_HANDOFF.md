@@ -45,6 +45,19 @@ What is now done:
   - owner-vs-autonomy path relevance
   - NFA match filtering
 
+6. PK history detail now fills winner / reward / burn even when old settlement logs are missing
+- direct settlement logs are still preferred
+- if public BSC RPC prunes old PK logs and the event cannot be recovered:
+  - frontend now derives:
+    - winner
+    - loser
+    - reward
+    - 10% burn
+  - using the same PKSkill combat formula and current on-chain lobster stats
+- this prevents settled PK history detail from showing blank core fields
+- important caveat:
+  - for very old matches, if a lobster's combat stats changed after the original settlement, the fallback is best-effort rather than a historical proof record
+
 Verification completed in this pass:
 
 - `npm --prefix frontend run build`

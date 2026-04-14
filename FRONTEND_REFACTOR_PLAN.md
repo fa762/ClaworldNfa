@@ -43,6 +43,13 @@ Accepted model now implemented:
 
 This is much closer to the intended game UX than the previous “match id + result + stake” shell.
 
+Additional accepted fallback after session 25:
+
+- when old PK settlement logs are unavailable on public RPCs:
+  - the frontend should still show winner / reward / burn
+  - using a local recomputation of the PKSkill combat formula
+- proof logs remain preferred whenever they are available
+
 ### 3. Battle Royale path display now follows the selected lobster
 
 Accepted model now implemented:
