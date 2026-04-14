@@ -67,14 +67,19 @@ Accepted local model in code:
 - reward returns to the NFA ledger account
 - user can withdraw from Home maintenance
 
-Current live constraint:
+Live state after session 24:
 
-- this model still requires the deployed mainnet Battle Royale implementation to be upgraded before hosted frontend usage is safe
+- Battle Royale mainnet proxy has now been upgraded to the implementation that includes:
+  - `participantForNfa(...)`
+  - `enterRoomForNfa(...)`
+  - `claimForNfa(...)`
+- post-upgrade direct reads confirm the proxy is serving the new reserve-account logic
+- hosted frontend can now use the NFA-ledger Battle Royale path without pretending against an old implementation
 
 ### Updated execution order after session 24
 
-1. deploy/upgrade Battle Royale on mainnet if NFA-ledger BR entry should be live
-2. validate hosted frontend against the upgraded implementation
+1. validate hosted frontend against the upgraded Battle Royale implementation
+2. live-test reserve-account BR entry / claim / withdraw path end to end
 3. keep cutting non-essential copy from action sheets
 4. continue motion/art polish only after live action paths are healthy
 

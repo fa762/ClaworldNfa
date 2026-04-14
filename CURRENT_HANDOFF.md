@@ -59,17 +59,33 @@ What is now done:
 - `大逃杀` now shows recent participation rows
 - each row opens a short details sheet instead of sending the user into a long stacked page
 
+6. Battle Royale mainnet upgrade is now actually executed
+- proxy:
+  - `0x2B2182326Fd659156B2B119034A72D1C2cC9758D`
+- new implementation:
+  - `0x43c0D0c9694f568cd63263BA6e1d38D8d6Ca373c`
+- upgrade tx:
+  - `0xeeb8d435871ac404a49ff216e869d5ab3ec776a0a198596d40178e6d0feb632b`
+- post-upgrade direct read now succeeds:
+  - `participantForNfa(5)` returns a valid participant address
+- Router / NFA / speed bonus remain correct after upgrade:
+  - Router `0x60C0D5276c007Fd151f2A615c315cb364EF81BD5`
+  - NFA `0xAa2094798B5892191124eae9D77E337544FFAE48`
+  - `speedBonusBps = 100`
+
 Verification completed in this pass:
 
 - `npx hardhat compile`
 - `npx hardhat test test\\BattleRoyale.test.ts`
 - `npm --prefix frontend run build`
+- mainnet upgrade execution + direct post-upgrade read verification
 
 Current honest product truth after session 24:
 
-- the new NFA-ledger Battle Royale flow is code-complete locally and covered by local tests
-- hosted/live usage of the new BR functions still requires the mainnet Battle Royale implementation to be upgraded
-- until that upgrade happens, the live frontend cannot truthfully rely on `enterRoomForNfa(...)` / `claimForNfa(...)` against the old deployed implementation
+- the new NFA-ledger Battle Royale flow is code-complete locally, covered by local tests, and the mainnet Battle Royale implementation is now upgraded
+- hosted/live frontend can now truthfully target:
+  - `enterRoomForNfa(...)`
+  - `claimForNfa(...)`
 - `#116` is not a “mystery unminted token”; it is already minted on-chain
 
 ## Frontend closure checkpoint - 2026-04-13 session 23

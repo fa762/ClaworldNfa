@@ -8,6 +8,11 @@
 import { ethers, upgrades } from "hardhat";
 
 const PROXY = "0x2B2182326Fd659156B2B119034A72D1C2cC9758D";
+const REQUIRED_SELECTORS = [
+  ethers.utils.id("participantForNfa(uint256)").slice(2, 10).toLowerCase(),
+  ethers.utils.id("enterRoomForNfa(uint256,uint256,uint8,uint256)").slice(2, 10).toLowerCase(),
+  ethers.utils.id("claimForNfa(uint256,uint256)").slice(2, 10).toLowerCase(),
+];
 
 function getRequiredEnv(name: string): string {
   const value = process.env[name];
@@ -15,6 +20,11 @@ function getRequiredEnv(name: string): string {
     throw new Error(`Missing required env: ${name}`);
   }
   return value;
+}
+
+async function implementationHasReserveSelectors(address: string): Promise<boolean> {
+  const code = (await ethers.provider.getCode(address)).toLowerCase();
+  return REQUIRED_SELECTORS.every((selector) => code.includes(selector));
 }
 
 async function main() {
@@ -39,11 +49,54 @@ async function main() {
   }
 
   const BattleRoyale = await ethers.getContractFactory("BattleRoyale");
-  const upgraded = await upgrades.upgradeProxy(PROXY, BattleRoyale, { kind: "uups" });
-  await upgraded.deployed();
+  const beforeImpl = await upgrades.erc1967.getImplementationAddress(PROXY);
+  console.log("Implementation before upgrade:", beforeImpl);
+
+  try {
+    await upgrades.forceImport(PROXY, BattleRoyale, { kind: "uups" });
+    console.log("forceImport completed for existing proxy");
+  } catch (error: any) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.toLowerCase().includes("already been imported")) {
+      throw error;
+    }
+    console.log("Proxy already imported in local manifest");
+  }
+
+  const preparedImpl = await upgrades.prepareUpgrade(PROXY, BattleRoyale, { kind: "uups" });
+  console.log("Prepared implementation:", preparedImpl);
+  const preparedHasSelectors = await implementationHasReserveSelectors(preparedImpl);
+  console.log("Prepared implementation has NFA reserve selectors:", preparedHasSelectors);
+
+  const proxy = await ethers.getContractAt("BattleRoyale", PROXY);
+
+  if (!preparedHasSelectors) {
+    console.log("Prepared implementation is stale; deploying fresh implementation directly");
+    const implementation = await BattleRoyale.deploy();
+    await implementation.deployed();
+    console.log("Fresh implementation deployed:", implementation.address);
+
+    const freshHasSelectors = await implementationHasReserveSelectors(implementation.address);
+    console.log("Fresh implementation has NFA reserve selectors:", freshHasSelectors);
+    if (!freshHasSelectors) {
+      throw new Error(`Fresh implementation ${implementation.address} still missing reserve selectors`);
+    }
+
+    const upgradeTx = await proxy.upgradeTo(implementation.address);
+    await upgradeTx.wait();
+    console.log("Direct upgradeTo tx:", upgradeTx.hash);
+  } else {
+    const upgraded = await upgrades.upgradeProxy(PROXY, BattleRoyale, { kind: "uups" });
+    await upgraded.deployed();
+  }
+
+  const afterImpl = await upgrades.erc1967.getImplementationAddress(PROXY);
+  const afterHasSelectors = await implementationHasReserveSelectors(afterImpl);
 
   console.log("\n[ok] BattleRoyale upgraded successfully");
-  console.log("Proxy address (unchanged):", upgraded.address);
+  console.log("Proxy address (unchanged):", PROXY);
+  console.log("Implementation after upgrade:", afterImpl);
+  console.log("Implementation after upgrade has NFA reserve selectors:", afterHasSelectors);
 
   const br = await ethers.getContractAt("BattleRoyale", PROXY);
   const routerContract = await ethers.getContractAt("ClawRouter", router);
