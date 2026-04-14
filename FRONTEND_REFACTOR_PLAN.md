@@ -2601,3 +2601,19 @@ For this rewrite, every meaningful decision or completed step should be written 
 - `FRONTEND_REFACTOR_PLAN.md` for frontend-specific direction and progress
 
 `AGENT.md` and `CLAUDE.md` remain background context files, not the primary progress log for this rewrite.
+
+## 2026-04-14 Task Reward Alignment Note
+
+- the rebuilt `/play` shell is currently underpaying relative to the old playable frontend because its task-card `requestedClw` inputs are much smaller
+- old gameplay templates in [frontend/src/game/data/task-templates.ts](D:\claworldNfa\clawworld\frontend\src\game\data\task-templates.ts) still reflect the older economy band:
+  - most task templates carry `40-100` base Claworld
+- current shell cards in [frontend/src/app/play/page.tsx](D:\claworldNfa\clawworld\frontend\src\app\play\page.tsx) compress that band down to roughly `8-30` before match/world/streak multipliers
+- because `ownerCompleteTypedTask(...)` pays from the `clwReward` supplied by the frontend, this is a real economy regression in the shell path, not just a display issue
+- follow-up fix target:
+  - align `/play` task generation back to the old template reward band or map the new UI cards onto the old template reward table
+- status:
+  - `/play` reward generation has now been moved back toward the old reward band
+  - current shell targets:
+    - adventure `55-90`
+    - puzzle `45-75`
+    - crafting `50-80`

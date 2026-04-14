@@ -153,6 +153,21 @@ function buildTaskTemplates(
   pick: <T,>(zh: T, en: T) => T,
 ) {
   const levelLift = level * 2;
+  const adventureReward = clamp(
+    Math.round(34 + traits.courage * 0.32 + traits.grit * 0.14 + level * 1.8),
+    55,
+    90,
+  );
+  const puzzleReward = clamp(
+    Math.round(30 + traits.wisdom * 0.26 + traits.create * 0.12 + level * 1.6),
+    45,
+    75,
+  );
+  const craftingReward = clamp(
+    Math.round(32 + traits.create * 0.28 + traits.social * 0.14 + level * 1.6),
+    50,
+    80,
+  );
 
   return [
     {
@@ -160,9 +175,7 @@ function buildTaskTemplates(
       title: pick('废墟探索', 'Ruins sweep'),
       taskType: 0,
       xpReward: clamp(16 + level * 2, 12, 32),
-      requestedClw: parseEther(
-        String(Math.max(8, Math.round(traits.courage * 0.22 + traits.grit * 0.14 + level * 1.8))),
-      ),
+      requestedClw: parseEther(String(adventureReward)),
       score: clamp(
         Math.round(traits.courage * 0.62 + traits.grit * 0.36 + levelLift - upkeepPressure * 0.25),
         8,
@@ -177,9 +190,7 @@ function buildTaskTemplates(
       title: pick('密码破译', 'Cipher break'),
       taskType: 1,
       xpReward: clamp(14 + level * 2, 12, 30),
-      requestedClw: parseEther(
-        String(Math.max(6, Math.round(traits.wisdom * 0.16 + traits.create * 0.08 + level * 1.2))),
-      ),
+      requestedClw: parseEther(String(puzzleReward)),
       score: clamp(
         Math.round(traits.wisdom * 0.7 + traits.create * 0.18 + levelLift - upkeepPressure * 0.16),
         8,
@@ -194,9 +205,7 @@ function buildTaskTemplates(
       title: pick('终端改装', 'Terminal mod'),
       taskType: 3,
       xpReward: clamp(12 + level * 2, 10, 28),
-      requestedClw: parseEther(
-        String(Math.max(4, Math.round(traits.create * 0.12 + traits.social * 0.06 + level))),
-      ),
+      requestedClw: parseEther(String(craftingReward)),
       score: clamp(
         Math.round(traits.create * 0.58 + traits.social * 0.22 + levelLift - upkeepPressure * 0.1),
         8,

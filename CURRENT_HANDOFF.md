@@ -2676,3 +2676,29 @@ Do not run any of these blindly from here:
 - broad revert / reset commands
 
 If you need a clean operational path again, create or reuse a clean worktree for production fixes.
+
+## 2026-04-14 Task Reward Investigation
+
+- current `/play` task cards use a much smaller base reward than the old playable frontend
+- current shell task cards in [frontend/src/app/play/page.tsx](D:\claworldNfa\clawworld\frontend\src\app\play\page.tsx) compute `requestedClw` with compact formulas such as:
+  - courage task: `traits.courage * 0.22 + traits.grit * 0.14 + level * 1.8`
+  - wisdom task: `traits.wisdom * 0.16 + traits.create * 0.08 + level * 1.2`
+  - create task: `traits.create * 0.12 + traits.social * 0.06 + level`
+- with early-game stats, that usually lands in the `8-30 Claworld` base range before world multiplier and streak decay
+- the preserved old gameplay route in [frontend/src/game/data/task-templates.ts](D:\claworldNfa\clawworld\frontend\src\game\data\task-templates.ts) uses template `baseClw` values mostly in the `40-100` range
+- the old gameplay scene in [frontend/src/game/scenes/TaskScene.ts](D:\claworldNfa\clawworld\frontend\src\game\scenes\TaskScene.ts) submits those larger task values on-chain
+- on-chain `TaskSkill.ownerCompleteTypedTask(...)` in [contracts/skills/TaskSkill.sol](D:\claworldNfa\clawworld\contracts\skills\TaskSkill.sol) still pays:
+  - `actualClw = clwReward * matchScore * worldMul * streakMul / 10000 / 10000 / 10000`
+  - streak decay remains `1.0x / 0.8x / 0.6x / 0.5x`
+  - owner-path base reward cap remains `100 Claworld`
+- current conclusion:
+  - the new shell is currently passing a smaller `clwReward` into `ownerCompleteTypedTask(...)`
+  - this explains why users now see tens of Claworld even when world multiplier is high
+  - this investigation points to a frontend reward-table regression; it does not show evidence that world multiplier itself is broken
+- fix applied:
+  - `/play` task-card `requestedClw` has been raised back toward the old reward band
+  - current shell reward floors now target:
+    - adventure `55-90`
+    - puzzle `45-75`
+    - crafting `50-80`
+  - this should bring early real payouts back much closer to the old frontend range under the same world multiplier and streak state
