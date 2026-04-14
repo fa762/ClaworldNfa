@@ -1,213 +1,171 @@
 # ClaworldNfa
 
-## Project Summary
+## Summary
 
-ClaworldNfa is a live NFA world on BNB Chain.
+ClaworldNfa is an AI-first on-chain NFA world on BNB Chain.
 
-It turns an NFT into a character-like agent with:
+It combines:
 
 - on-chain identity
-- its own internal account
-- playable progression
-- long-term memory
+- NFA-owned internal ledger accounts
+- playable loops
+- structured long-term memory
 - bounded AI autonomy
 
-Product name:
+The core idea is simple: one NFA should be able to hold identity, keep memory, spend from its own ledger path, and act on-chain inside owner-defined boundaries.
 
-- `Clawworld`
+## Why this project matters
 
-Repository name:
+Most agent projects still split ownership into separate pieces:
 
-- `ClaworldNfa`
-
-## What Problem We Solve
-
-Most AI agent products still break ownership into separate pieces:
-
-- identity is separate from account
-- memory is off-platform
+- identity is on one layer
+- assets live somewhere else
+- memory is temporary
 - AI can talk but cannot act safely on-chain
-- assets and execution are disconnected
 
-That makes it hard to truly own, train, trade, and operate an agent as a single asset.
+ClaworldNfa closes that gap by attaching identity, ledger, memory, gameplay, and bounded autonomy to the same NFA.
 
-ClaworldNfa solves this by putting identity, account, gameplay, memory, and autonomy into one coherent system.
+## AI runtime model
 
-## Why AI Matters Here
+AI is not a cosmetic add-on here.
 
-AI is not an extra feature in this project.
+In ClaworldNfa, AI is the runtime layer that:
 
-It is the core runtime layer that turns an NFA from a static token into a character that can:
+- loads memory
+- builds planning context
+- applies directives and policy boundaries
+- routes bounded chain actions
+- writes action outcomes back into memory
 
-- keep long-term memory
-- carry forward preferences and habits
-- plan inside owner-defined policy boundaries
-- execute real on-chain actions through the autonomy stack
+Main components:
 
-The AI side of the project includes:
-
-- `OpenClaw` runtime
-- structured CML memory
+- `OpenClaw`
+- `CML`
 - `ClawOracle`
-- autonomy registry, delegation, action hub, finalization hub
-- adapters and route skills for real gameplay actions
+- `ClawAutonomyRegistry`
+- `ClawOracleActionHub`
+- `ClawAutonomyFinalizationHub`
 
-## Core Product Model
+## Agent surface and runtime compatibility
 
-### 1. Identity
+ClaworldNfa is designed so the same world model can be used by different agent runtimes.
 
-`ClawNFA` is the on-chain identity layer.
+Today that includes:
 
-Each lobster has:
+- `OpenClaw` local runtime
+- the `claw` skill tool surface
+- Hermes-style tool adapters
+- generic function-calling agents that separate reads from wallet-confirmed writes
 
-- rarity
-- shelter
-- level
-- personality
-- DNA battle stats
-- active or dormant state
+This reusable surface already covers:
 
-### 2. Account
+- environment and world reads
+- owned NFA inspection
+- memory load / save
+- mining / upkeep / PK / market helpers
+- autonomy request paths
 
-`ClawRouter` gives each NFA its own internal ledger account.
+## Memory model
 
-That account supports:
+ClaworldNfa uses `OpenClaw + CML` as structured long-term memory.
 
-- reserve balance
-- upkeep
-- deposit
-- withdraw
-- reward return
-- gameplay spending
+The memory path is:
 
-### 3. Gameplay
+1. session fragments are buffered into hippocampus
+2. `SLEEP` consolidates them into a new CML snapshot
+3. the snapshot is hashed
+4. the hash is anchored on-chain with `updateLearningTreeByOwner(...)`
+5. the full file can also be backed up to Greenfield
 
-Current main loops:
+This lets memory stay useful as runtime state while still producing an on-chain anchor for later verification.
 
+## Two AI paths
+
+### 1. Copilot path
+
+The user is online. The runtime reads state and memory, helps with mining / PK / market decisions, and leaves state-changing actions to the wallet.
+
+### 2. Autonomy path
+
+The owner pre-defines policy boundaries. Then the autonomy stack can:
+
+1. read memory and world state
+2. form a bounded candidate action
+3. call `requestAutonomousAction(...)`
+4. get a `reasoningCid` from `ClawOracle`
+5. execute through `ClawOracleActionHub` and adapters
+6. finalize receipts and ledger effects
+7. write memory updates after execution
+
+## Core layers
+
+### Identity
+
+`ClawNFA`
+
+### Account
+
+`ClawRouter`
+
+### Gameplay
+
+- Genesis Mint
 - mining
 - PK
 - Battle Royale
 
-### 4. Memory
+### Memory
 
-`OpenClaw + CML` provide the long-term memory layer.
+- `OpenClaw`
+- `CML`
 
-This is not just chat history. It is persistent state used for:
+### Autonomy
 
-- conversation continuity
-- planner context
-- post-action updates
-- future action preference
+- `ClawOracle`
+- `ClawAutonomyRegistry`
+- `ClawOracleActionHub`
+- `ClawAutonomyFinalizationHub`
 
-### 5. Autonomy
+## Economy model
 
-`ClawOracle` and the autonomy stack allow bounded self-action on-chain.
+1. owner deposits Claworld into `ClawRouter`
+2. `ClawRouter` credits a specific NFA ledger
+3. gameplay spends from that ledger where supported
+4. rewards return to that ledger
+5. owner withdraws back to the main wallet
 
-The owner defines boundaries first, including:
+## Current mainnet status
 
-- policy
-- budget
-- reserve floor
-- protocol approvals
-- delegation lease
+Already live:
 
-The runtime can then act only inside those boundaries.
-
-## Live Features
-
-Already live on BNB Chain mainnet:
-
-- Genesis Mint with commit-reveal
-- NFA internal accounts
-- upkeep, deposit, withdraw
+- Genesis Mint commit-reveal
+- NFA ledger accounts
+- upkeep / deposit / withdraw
 - mining
 - PK
 - Battle Royale
+- Battle Royale public timeout reveal
 - OpenClaw runtime
 - bounded autonomy infrastructure
+- directive sync into the runner
+- autonomy receipt / ledger / reasoning CID flow
 
-Recent live work also includes:
+## Product direction
 
-- Battle Royale public timeout reveal
-- Battle Royale reward routing back into the NFA ledger path
-- directive sync from hosted KV into the live runner
-- planner dry-run and bounded production controls
+The active mainline is:
 
-## AI and Runtime Flow
-
-The current autonomy flow is:
-
-1. owner or directive sets the boundary
-2. planner reads world state and memory
-3. planner forms a candidate action
-4. oracle request is created on-chain
-5. action hub syncs and executes through adapters
-6. finalization records receipts and ledger updates
-7. memory is updated after the action
-
-This is important because the AI layer is connected to the real game and real assets, not kept as a side demo.
-
-## Economy Model
-
-The in-world economy is centered on the NFA ledger model:
-
-1. the owner wallet deposits `Claworld`
-2. `ClawRouter` credits the selected NFA ledger
-3. gameplay spends from the ledger path where supported
-4. rewards return back into the ledger
-5. the owner can withdraw back to the main wallet
-
-This makes the NFA behave more like a persistent game character account than a simple NFT.
-
-## Tech Stack
-
-- Solidity
-- Hardhat
-- OpenZeppelin UUPS
-- Next.js
-- React
-- wagmi
-- viem
-- OpenClaw runtime
-- TypeScript
-
-## Repo Structure
-
-- `contracts/` — on-chain identity, gameplay, oracle, autonomy
-- `frontend/` — owner shell, mint, mining, arena, autonomy, settings
-- `openclaw/` — runtime, memory, planner, runner
-- `scripts/` — deployment, migration, upgrade, validation
-- `test/` — contract tests
-
-## Current Product Direction
-
-The current mainline product is:
-
-- mobile-first companion dapp
+- mobile-first PWA shell
 - mining
 - PK
 - Battle Royale
-- bounded autonomy
+- proxy / autonomy controls
+- OpenClaw runtime
 
-The old `/game` browser RPG path still exists in the repo, but it is no longer the primary product direction.
+The legacy `/game` 2D RPG surface still exists, but it is no longer the mainline product path.
 
-## Mainnet Contracts
+## Notes for judges and reviewers
 
-- ClawNFA: `0xAa2094798B5892191124eae9D77E337544FFAE48`
-- ClawRouter: `0x60C0D5276c007Fd151f2A615c315cb364EF81BD5`
-- GenesisVault: `0xCe04f834aC4581FD5562f6c58C276E60C624fF83`
-- WorldState: `0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA`
-- TaskSkill: `0xaed370784536e31BE4A5D0Dbb1bF275c98179D10`
-- PKSkill: `0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF`
-- BattleRoyale: `0x2B2182326Fd659156B2B119034A72D1C2cC9758D`
-- Claworld: `0x3b486c191c74c9945fa944a3ddde24acdd63ffff`
-
-## Links
-
-- Website: [www.clawnfaterminal.xyz](https://www.clawnfaterminal.xyz)
-- Public repo: [github.com/fa762/ClaworldNfa](https://github.com/fa762/ClaworldNfa)
-- ClawHub Skill: [claw-world](https://clawhub.ai/fa762/claw-world)
-
-## One-Line Positioning
-
-ClaworldNfa is a live on-chain NFA world where identity, account, gameplay, memory, and bounded AI autonomy belong to the same agent.
+- project name: `ClaworldNfa`
+- token name: `Claworld`
+- AI is the runtime core, not a side feature
+- the distinctive part is the full chain from memory -> planner -> oracle -> execution -> receipt -> memory update

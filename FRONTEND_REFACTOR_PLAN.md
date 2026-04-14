@@ -1,6 +1,49 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-14 (session 30) Asia/Singapore
+Last updated: 2026-04-14 (session 34) Asia/Singapore
+
+## PROJECT doc depth sync - 2026-04-14 session 34
+
+This documentation pass keeps the public-facing project docs aligned with the frontend and AI story:
+
+- runtime compatibility across multiple agent surfaces is now explicit
+- copilot vs bounded-autonomy paths are now described clearly
+- the README and PROJECT docs now both highlight the memory -> planner -> oracle -> execution -> receipt loop
+
+No frontend runtime behavior changed in this pass.
+
+## README depth sync - 2026-04-14 session 33
+
+This documentation pass brings the repo entry docs back in line with the actual product depth:
+
+- AI is again documented as the runtime core
+- CML on-chain anchoring is now written explicitly
+- directive -> planner -> oracle -> ActionHub -> adapter -> receipt flow is now visible in the README
+- naming is unified around "ClaworldNfa" with "Claworld" only used for the token
+
+No frontend runtime behavior changed in this pass.
+
+## README entry cleanup - 2026-04-14 session 32
+
+This doc pass aligns the repo entry docs with the requested public presentation:
+
+- top language jump links are restored
+- Chinese is now a first-class README section
+- naming is unified around "ClaworldNfa"
+- AI remains the first product story instead of an appendix
+
+No frontend runtime behavior changed in this pass.
+
+## Documentation follow-up - 2026-04-14 session 31
+
+This pass fixes the public README presentation issue:
+
+- Chinese content is now a first-class section instead of a short footer note
+- AI / OpenClaw / autonomy remains the leading product story
+- project naming is now unified around `ClaworldNfa`
+- `Claworld` is only retained where token naming is required
+
+No frontend runtime behavior changed in this documentation pass.
 
 ## Open-source docs checkpoint - 2026-04-14 session 30
 

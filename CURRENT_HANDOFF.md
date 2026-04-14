@@ -1,6 +1,101 @@
 # Current Handoff
 
-Last updated: 2026-04-14 (session 30) Asia/Singapore
+Last updated: 2026-04-14 (session 34) Asia/Singapore
+
+## PROJECT runtime-detail sync - 2026-04-14 session 34
+
+This pass expands PROJECT.md and the repo README entry again so the project pitch keeps the real differentiators visible.
+
+What is now added:
+
+1. Agent-runtime compatibility is now explicit
+- OpenClaw runtime
+- claw skill surface
+- Hermes-style adapters
+- generic function-calling agents
+
+2. The AI split is clearer
+- local copilot path
+- bounded autonomy path
+- directive / planner / oracle / ActionHub / adapter flow
+
+3. PROJECT.md now mirrors the README at the right level instead of acting like a thin summary
+
+No runtime or mainnet behavior changed in this documentation pass.
+
+## README detail restoration - 2026-04-14 session 33
+
+This pass rewrites both the private and public README again because the previous pass still under-described the project.
+
+What is now restored:
+
+1. README now treats AI as the actual project core, not a short summary bullet
+- OpenClaw runtime
+- CML structured memory
+- directive path
+- autonomy execution path
+- reasoning CID / receipt / ledger story
+
+2. The CML mechanism is now described concretely
+- hippocampus buffering
+- SLEEP consolidation
+- memory hash generation
+- on-chain anchoring through "updateLearningTreeByOwner(...)"
+- optional Greenfield backup
+
+3. The repo entry now matches the requested naming rule
+- only "ClaworldNfa" is used as the project name
+- "Claworld" is kept only for the token
+
+4. The old 2D RPG path is still mentioned, but only as a legacy / experimental surface
+
+No runtime or mainnet behavior changed in this documentation pass.
+
+## README navigation and naming fix - 2026-04-14 session 32
+
+This pass rewrites the README entry shape again so it matches the requested public-facing format.
+
+What is now fixed:
+
+1. Both README files now have top-of-file language jump links
+- "[English](#en)"
+- "[中文](#zh)"
+- Chinese is no longer hidden behind a tiny footer note
+
+2. Naming is now unified around "ClaworldNfa"
+- README no longer describes a separate product name
+- docs now keep "Claworld" only for the token where needed
+
+3. AI remains the lead story in the repo entry
+- OpenClaw
+- CML
+- ClawOracle
+- bounded autonomy flow
+
+No runtime or mainnet behavior changed in this pass.
+
+## README bilingual fix - 2026-04-14 session 31
+
+This pass corrects the public README shape again.
+
+What is now done:
+
+1. The public README is now explicitly bilingual
+- Chinese is no longer a tiny trailing note
+- the public README now contains:
+  - full Chinese section
+  - full English section
+- both sections describe:
+  - AI as the project core
+  - NFA identity/account/gameplay/memory/autonomy
+  - economy model
+  - current product direction
+
+2. Naming is now unified in the README
+- project: `ClaworldNfa`
+- `Claworld` remains token naming only where needed
+
+No code or mainnet behavior changed in this pass.
 
 ## Open-source sync checkpoint - 2026-04-14 session 30
 
@@ -9,8 +104,8 @@ This pass starts the public-repo sync from the current private mainline.
 What is now done:
 
 1. Public README direction has been corrected
-- repo name is documented as `ClaworldNfa`
-- product name remains `Clawworld`
+- project name is unified as `ClaworldNfa`
+- `Claworld` is only kept where token naming is required
 - AI / OpenClaw / CML / autonomy are now treated as the core differentiator instead of an appendix
 - the old 2D RPG path is explicitly downgraded to a legacy/experimental surface
 
