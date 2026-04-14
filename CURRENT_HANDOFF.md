@@ -1,6 +1,41 @@
 # Current Handoff
 
-Last updated: 2026-04-14 (session 29) Asia/Singapore
+Last updated: 2026-04-14 (session 30) Asia/Singapore
+
+## Open-source sync checkpoint - 2026-04-14 session 30
+
+This pass starts the public-repo sync from the current private mainline.
+
+What is now done:
+
+1. Public README direction has been corrected
+- repo name is documented as `ClaworldNfa`
+- product name remains `Clawworld`
+- AI / OpenClaw / CML / autonomy are now treated as the core differentiator instead of an appendix
+- the old 2D RPG path is explicitly downgraded to a legacy/experimental surface
+
+2. Public repo code sync is underway
+- current sync target is:
+  - contracts
+  - frontend
+  - openclaw
+  - scripts
+  - tests
+- current deliberate exclusions remain:
+  - private handoff docs
+  - internal planning docs
+  - local-only operational detail
+  - local `.openzeppelin` runtime artifact drift
+
+3. Public repo build verification is already partially complete
+- `npm --prefix frontend run build` passes in the public mirror
+- `npx hardhat compile` also passes in the public mirror after installing root dependencies
+
+4. `PROJECT.md` is being rewritten into a hackathon-safe simple markdown format
+- no fancy browser-sensitive formatting
+- AI, memory, autonomy, and economy model are being described directly
+
+No new mainnet contract behavior changed in this pass.
 
 ## Documentation refresh - 2026-04-14 session 29
 

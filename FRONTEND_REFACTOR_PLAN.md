@@ -1,6 +1,21 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-14 (session 29) Asia/Singapore
+Last updated: 2026-04-14 (session 30) Asia/Singapore
+
+## Open-source docs checkpoint - 2026-04-14 session 30
+
+This checkpoint updates project-facing docs to match the current frontend and AI direction.
+
+What is now fixed in docs:
+
+- repo naming is now explicit:
+  - repo: `ClaworldNfa`
+  - product: `Clawworld`
+- README now treats AI / OpenClaw / autonomy as first-class product layers
+- the old 2D RPG route is now described as legacy / experimental instead of the mainline product
+- `PROJECT.md` is being rewritten into a simpler hackathon-safe markdown format
+
+No frontend runtime behavior changed in this documentation pass.
 
 ## Documentation checkpoint - 2026-04-14 session 29
 
