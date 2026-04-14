@@ -2,6 +2,37 @@
 
 Last updated: 2026-04-14 (session 39) Asia/Singapore
 
+## Battle Royale reward-path sync - 2026-04-14 session 40
+
+Accepted product rule now implemented on chain:
+
+- entering Battle Royale should be treated as NFA-ledger gameplay
+- rewards should come back to the selected lobster ledger account
+- Home maintenance remains the withdraw surface back to the main wallet
+
+What changed:
+
+1. Battle Royale funding is now Router-centered
+- live contract upgrade is complete
+- BattleRoyale local CLW was swept into Router on mainnet
+- future manual Battle Royale stake is forwarded to Router when Router is configured
+
+2. Reward claim semantics are now cleaner
+- if a Battle Royale record resolves to the selected NFA:
+  - `claim(matchId)` credits the lobster ledger account
+- reserve path still uses `claimForNfa(...)`
+- old wallet-path matches are still compatible when no NFA can be resolved
+
+3. Frontend messaging is being aligned to this rule
+- Arena history result text now points to ledger credit + Home withdraw
+- stale "BattleRoyale contract balance too low" gating copy was removed from shared claim surfaces
+
+Next frontend follow-up after session 40:
+
+1. finish cleaning Battle Royale panel copy so every visible reward button clearly says it returns to the lobster ledger
+2. validate the hosted reward-claim flow for legacy owner-path match `#2`
+3. keep old owner-wallet Battle Royale wording out of the default player path
+
 ## Auto page setup/settings split - 2026-04-14 session 39
 
 Accepted product rule now implemented:

@@ -184,7 +184,7 @@ describe("BattleRoyale", function () {
     expect(await battleRoyale.latestOpenMatch()).to.equal(2);
   });
 
-  it("can pay a manual winner from battle balance plus router treasury in a mixed-source round", async function () {
+  it("can pay a manual winner through router after sweeping battle balance", async function () {
     await battleRoyale.initializeV2(router.address, nfa.address, 100);
     await battleRoyale.setTriggerCount(2);
     await router.authorizeSkill(battleRoyale.address, true);
@@ -199,7 +199,9 @@ describe("BattleRoyale", function () {
     await clw.connect(autonomousPlayer).approve(router.address, ethers.constants.MaxUint256);
     await router.connect(autonomousPlayer).depositCLW(autonomousTokenId, ethers.utils.parseEther("1000"));
 
-    for (let attempt = 0; attempt < 5; attempt++) {
+    await clw.mint(battleRoyale.address, ethers.utils.parseEther("50"));
+
+    for (let attempt = 0; attempt < 12; attempt++) {
       const matchId = Number((await battleRoyale.latestOpenMatch()).toString());
 
       await battleRoyale
@@ -218,14 +220,34 @@ describe("BattleRoyale", function () {
       expect(claimable).to.be.gt(stake);
 
       const manualBalanceBefore = await clw.balanceOf(manualPlayer.address);
+      const routerBalanceBefore = await clw.balanceOf(router.address);
+      const battleBalanceBefore = await clw.balanceOf(battleRoyale.address);
       await battleRoyale.connect(manualPlayer).claim(matchId);
       const manualBalanceAfter = await clw.balanceOf(manualPlayer.address);
+      const routerBalanceAfter = await clw.balanceOf(router.address);
 
       expect(manualBalanceAfter.sub(manualBalanceBefore)).to.equal(claimable);
+      expect(await clw.balanceOf(battleRoyale.address)).to.equal(0);
+      expect(routerBalanceAfter).to.equal(
+        routerBalanceBefore.add(battleBalanceBefore).sub(claimable)
+      );
       return;
     }
 
     expect.fail("manual entrant lost in every attempt");
+  });
+
+  it("sweeps local battle CLW into router on demand", async function () {
+    await battleRoyale.initializeV2(router.address, nfa.address, 100);
+
+    const amount = ethers.utils.parseEther("321");
+    const routerBalanceBefore = await clw.balanceOf(router.address);
+
+    await clw.mint(battleRoyale.address, amount);
+    await battleRoyale.sweepAllClwToRouter();
+
+    expect(await clw.balanceOf(battleRoyale.address)).to.equal(0);
+    expect(await clw.balanceOf(router.address)).to.equal(routerBalanceBefore.add(amount));
   });
 
   it("lets one owner enter the same match with multiple NFAs and stake from reserve", async function () {
@@ -279,6 +301,48 @@ describe("BattleRoyale", function () {
     const afterBalance = await router.clwBalances(winningTokenId);
 
     expect(afterBalance.sub(beforeBalance)).to.equal(claimable);
+  });
+
+  it("credits owner-path claim back into the selected NFA ledger when the player tagged an NFA", async function () {
+    await battleRoyale.initializeV2(router.address, nfa.address, 100);
+    await battleRoyale.setTriggerCount(2);
+    await router.authorizeSkill(battleRoyale.address, true);
+    await fillDefaultMatch([1, 1, 2, 2, 3, 4, 5, 6, 7, 8]);
+    await revealMatch(1);
+
+    const taggedPlayer = players[0];
+    const opponent = players[1];
+    const taggedTokenId = await setupLobster(taggedPlayer, { spd: 55 });
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const matchId = Number((await battleRoyale.latestOpenMatch()).toString());
+
+      await battleRoyale.connect(taggedPlayer).enterRoom(matchId, 1, stake);
+      await battleRoyale.connect(taggedPlayer).selectPlayerNfa(matchId, taggedTokenId);
+      await battleRoyale.connect(opponent).enterRoom(matchId, 2, stake);
+
+      await revealMatch(matchId);
+
+      const matchInfo = await battleRoyale.getMatchInfo(matchId);
+      if (Number(matchInfo.losingRoom) === 1) {
+        continue;
+      }
+
+      const claimable = await battleRoyale.getClaimable(matchId, taggedPlayer.address);
+      const ledgerBefore = await router.clwBalances(taggedTokenId);
+      const walletBefore = await clw.balanceOf(taggedPlayer.address);
+
+      await battleRoyale.connect(taggedPlayer).claim(matchId);
+
+      const ledgerAfter = await router.clwBalances(taggedTokenId);
+      const walletAfter = await clw.balanceOf(taggedPlayer.address);
+
+      expect(ledgerAfter.sub(ledgerBefore)).to.equal(claimable);
+      expect(walletAfter).to.equal(walletBefore);
+      return;
+    }
+
+    expect.fail("tagged owner entrant lost in every attempt");
   });
 
   it("gives higher-speed survivors a larger prize share", async function () {

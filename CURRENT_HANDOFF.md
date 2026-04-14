@@ -2,6 +2,59 @@
 
 Last updated: 2026-04-14 (session 39) Asia/Singapore
 
+## Battle Royale router payout and sweep - 2026-04-14 session 40
+
+This pass closes the live Battle Royale reward failure on the funding side.
+
+What changed:
+
+1. Battle Royale reward payout is now centered on Router
+- owner-path `claim(matchId)` now does this:
+  - if the match can be mapped back to a real NFA, reward is credited into that NFA ledger balance
+  - if no NFA can be resolved, payout still falls back to the wallet path
+- reserve-path `claimForNfa(...)` stays on the NFA ledger path
+
+2. Battle Royale local CLW is now swept into Router
+- new functions:
+  - `sweepClwToRouter(uint256 amount)`
+  - `sweepAllClwToRouter()`
+- when Router is configured:
+  - manual stake entering Battle Royale is forwarded into Router immediately
+  - wallet claim / reserve claim both sweep any leftover BattleRoyale-side CLW into Router before crediting payout
+
+3. Mainnet upgrade is complete
+- new implementation:
+  - `0xC6cFcB33eceaeE06359F8e893DC31c7f3a68f06E`
+- implementation deploy tx:
+  - `0xb2a9aafd8f9a1329f21ecc2d70d37f1224a3852a01f8b8d113ed7c07949616f6`
+- proxy upgrade tx:
+  - `0x413681572bd55af23758b4b300c9e52609d4eb1a1b59b13abe6eb82a109d619a`
+- post-upgrade sweep tx:
+  - `0x046afa4b09a567b23757911f308918bab29b13df66de686f749f8dd3e57f5b23`
+
+4. Live chain checks after upgrade
+- BattleRoyale proxy implementation slot now points to:
+  - `0xC6cFcB33eceaeE06359F8e893DC31c7f3a68f06E`
+- BattleRoyale token balance after sweep:
+  - `0`
+- Router token balance after sweep:
+  - `10015168.074329203826133177 Claworld`
+- legacy owner-path match `#2` for wallet `0x76F069...eDAa`:
+  - `getClaimable(2, owner) = 109.028436018957345971`
+  - `getEffectivePlayerNfa(2, owner) = 116`
+  - `eth_call claim(2)` now succeeds
+
+5. Frontend support was adjusted to match the new payout rule
+- Arena reward copy no longer assumes current rewards go straight to the owner wallet
+- Arena history reward result now points back to Home withdraw
+- stale contract-balance blocking copy was removed from the shared claim panels
+
+Validation:
+
+- `npx hardhat compile`
+- `npx hardhat test test\\BattleRoyale.test.ts`
+- `npx tsc --noEmit --project frontend/tsconfig.json`
+
 ## Auto page trigger and settings split - 2026-04-14 session 39
 
 This pass fixes the main usability problem on the player-facing AI page.

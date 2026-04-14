@@ -59,9 +59,6 @@ function battleRoyaleClaimError(error: unknown, pick: (zh: string, en: string) =
   if (message.includes('Wrong autonomous NFA')) {
     return pick('这笔奖励不属于当前选中的龙虾。', 'This reward does not belong to the selected lobster.');
   }
-  if (message.includes('Prize contract balance is too low')) {
-    return pick('奖池余额不足，暂时不能手动领。', 'Prize balance is too low for direct claim.');
-  }
   return message;
 }
 
@@ -91,9 +88,10 @@ export default function ArenaPage() {
   useEffect(() => {
     if (!claimReceiptQuery.isSuccess || !claimingEntry) return;
 
-    const result = claimingEntry.path === 'autonomy'
-      ? pick('奖励已回到这只 NFA 的记账账户，去首页维护里提现。', 'Reward returned to the lobster ledger account.')
-      : pick('奖励已领取到主钱包。', 'Reward claimed to the owner wallet.');
+    const result = pick(
+      '奖励已回到这只 NFA 的记账账户，去首页维护里提现。',
+      'Reward returned to the lobster ledger account.',
+    );
 
     setClaimResult(result);
     setClaimLocalError(null);
@@ -474,20 +472,16 @@ export default function ArenaPage() {
                     disabled={claimPending || claimReceiptQuery.isLoading}
                   >
                     {historyDetail.entry.path === 'autonomy' ? <Coins size={16} /> : <Trophy size={16} />}
-                    {historyDetail.entry.path === 'autonomy'
-                      ? `${pick('领回记账账户', 'Credit ledger')} ${formatCLW(historyDetail.entry.claimable)}`
-                      : `${pick('领取', 'Claim')} ${formatCLW(historyDetail.entry.claimable)}`}
+                    {`${pick('领回记账账户', 'Credit ledger')} ${formatCLW(historyDetail.entry.claimable)}`}
                   </button>
-                  {historyDetail.entry.path === 'autonomy' ? (
-                    <Link href="/" className="cw-button cw-button--ghost">
-                      <Shield size={16} />
-                      {pick('去首页提现', 'Go withdraw')}
-                    </Link>
-                  ) : null}
+                  <Link href="/" className="cw-button cw-button--ghost">
+                    <Shield size={16} />
+                    {pick('去首页提现', 'Go withdraw')}
+                  </Link>
                 </div>
               ) : null}
 
-              {historyDetail.kind === 'br' && historyDetail.entry.path === 'autonomy' && historyDetail.entry.claimed ? (
+              {historyDetail.kind === 'br' && historyDetail.entry.claimed ? (
                 <div className="cw-button-row">
                   <Link href="/" className="cw-button cw-button--ghost">
                     <Shield size={16} />

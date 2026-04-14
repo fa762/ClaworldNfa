@@ -166,6 +166,7 @@ contract BattleRoyale is
         uint256 indexed nfaId,
         uint256 amount
     );
+    event ClwSweptToRouter(uint256 amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -219,6 +220,7 @@ contract BattleRoyale is
         require(amount >= _minStakeForMatch(matchId), "Stake below match minimum");
 
         clwToken.safeTransferFrom(msg.sender, address(this), amount);
+        _forwardManualStakeToRouter(amount);
 
         roomPlayers[matchId][roomId].push(msg.sender);
         roomTotal[matchId][roomId] += amount;
@@ -247,6 +249,7 @@ contract BattleRoyale is
         require(currentRoom != 0, "Not in this match");
 
         clwToken.safeTransferFrom(msg.sender, address(this), amount);
+        _forwardManualStakeToRouter(amount);
 
         uint256 newTotalStake = playerStake[matchId][msg.sender] + amount;
         playerStake[matchId][msg.sender] = newTotalStake;
@@ -483,8 +486,21 @@ contract BattleRoyale is
             : 0;
 
         amount = stake + prize;
-        _payWalletClaim(msg.sender, amount);
+        uint256 effectiveNfa = _effectivePlayerNfa(matchId, msg.sender);
+        if (effectiveNfa != 0 && router != address(0)) {
+            _payReserveClaim(effectiveNfa, amount);
+        } else {
+            _payWalletClaim(msg.sender, amount);
+        }
         emit PlayerClaimed(matchId, msg.sender, stake, prize, amount);
+    }
+
+    function sweepClwToRouter(uint256 amount) external onlyOwner returns (uint256 swept) {
+        swept = _sweepClwToRouter(amount);
+    }
+
+    function sweepAllClwToRouter() external onlyOwner returns (uint256 swept) {
+        swept = _sweepClwToRouter(clwToken.balanceOf(address(this)));
     }
 
     function _settle(
@@ -586,19 +602,13 @@ contract BattleRoyale is
             return;
         }
 
-        uint256 localBalance = clwToken.balanceOf(address(this));
-        if (localBalance >= amount) {
+        if (router == address(0)) {
             clwToken.safeTransfer(recipient, amount);
             return;
         }
 
-        if (localBalance > 0) {
-            clwToken.safeTransfer(recipient, localBalance);
-        }
-
-        uint256 shortfall = amount - localBalance;
-        require(router != address(0), "Router not set");
-        IClawRouter(router).payoutCLW(recipient, shortfall);
+        _sweepClwToRouter(clwToken.balanceOf(address(this)));
+        IClawRouter(router).payoutCLW(recipient, amount);
     }
 
     function _enterReserveParticipant(
@@ -708,14 +718,28 @@ contract BattleRoyale is
         }
 
         require(router != address(0), "Router not set");
+        _sweepClwToRouter(clwToken.balanceOf(address(this)));
+        IClawRouter(router).addCLW(nfaId, amount);
+    }
 
-        uint256 localBalance = clwToken.balanceOf(address(this));
-        uint256 bridged = localBalance >= amount ? amount : localBalance;
-        if (bridged > 0) {
-            clwToken.safeTransfer(router, bridged);
+    function _sweepClwToRouter(uint256 amount) internal returns (uint256 swept) {
+        require(router != address(0), "Router not set");
+        if (amount == 0) {
+            return 0;
         }
 
-        IClawRouter(router).addCLW(nfaId, amount);
+        swept = amount;
+        clwToken.safeTransfer(router, swept);
+        emit ClwSweptToRouter(swept);
+    }
+
+    function _forwardManualStakeToRouter(uint256 amount) internal {
+        if (amount == 0 || router == address(0)) {
+            return;
+        }
+
+        clwToken.safeTransfer(router, amount);
+        emit ClwSweptToRouter(amount);
     }
 
     function _claimReserveParticipant(

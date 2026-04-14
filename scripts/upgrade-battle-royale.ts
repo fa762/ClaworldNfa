@@ -153,6 +153,19 @@ async function main() {
     console.log("BattleRoyale is already authorized as a Router skill");
   }
 
+  const clwTokenAddress = await br.clwToken();
+  const clwToken = await ethers.getContractAt("IERC20", clwTokenAddress);
+  const localBattleBalance = await clwToken.balanceOf(PROXY);
+  console.log("BattleRoyale local CLW balance:", ethers.utils.formatEther(localBattleBalance));
+
+  if (localBattleBalance.gt(0)) {
+    const tx = await br.sweepAllClwToRouter();
+    await tx.wait();
+    console.log("sweepAllClwToRouter tx:", tx.hash);
+  } else {
+    console.log("BattleRoyale has no local CLW to sweep");
+  }
+
   console.log("\nV2 features ready:");
   console.log("  [ok] changeRoom(matchId, newRoomId)");
   console.log("  [ok] claim(matchId)");
