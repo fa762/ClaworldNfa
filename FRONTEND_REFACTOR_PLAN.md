@@ -1,6 +1,44 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-14 (session 36) Asia/Singapore
+Last updated: 2026-04-14 (session 37) Asia/Singapore
+
+## Auto page detail recovery checkpoint - 2026-04-14 session 37
+
+This checkpoint fixes the first over-trim on the simplified AI page.
+
+Accepted shape now implemented:
+
+1. `/auto` keeps the simplified layout, but the player can switch between:
+- Task
+- PK
+- Battle Royale
+
+2. `Advanced` now shows useful detail instead of just internal ids
+- final choice
+- spend
+- credit
+- short reasoning summary
+- prompt
+- model output
+- memory influence when the stored reasoning document includes it
+
+3. Proof handling now matches reality
+- if the stored proof is `autonomy://...`:
+  - only a digest is available
+  - the frontend should say that directly
+- if the proof is IPFS / HTTP:
+  - the frontend should fetch and render the reasoning document
+
+4. Long proof values must always wrap
+- execution ref
+- reasoning proof
+- receipt hash
+
+Remaining follow-up after session 37:
+
+1. decide whether the runtime should continue using digest-only reasoning uploads by default
+2. if full reasoning review is a product requirement, move the live runner to an upload mode that exposes retrievable documents
+3. continue trimming any wording on `/auto` that still reads like operator tooling
 
 ## Auto page simplification checkpoint - 2026-04-14 session 36
 

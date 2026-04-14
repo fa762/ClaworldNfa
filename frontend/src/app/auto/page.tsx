@@ -1,7 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Bot, CheckCircle2, Coins, PauseCircle, PlayCircle, Settings2, Shield } from 'lucide-react';
+import {
+  Bot,
+  CheckCircle2,
+  Coins,
+  PauseCircle,
+  PlayCircle,
+  Settings2,
+  Shield,
+  Sparkles,
+  Swords,
+  Trophy,
+} from 'lucide-react';
 import { parseEther } from 'viem';
 
 import { AutonomyClaimRequestPanel } from '@/components/auto/AutonomyClaimRequestPanel';
@@ -22,8 +33,10 @@ import {
 } from '@/contracts/hooks/useAutonomy';
 import { addresses } from '@/contracts/addresses';
 import { formatCLW } from '@/lib/format';
+import { resolveIpfsUrl } from '@/lib/ipfs';
 import { useI18n } from '@/lib/i18n';
 
+type AgentKey = 'task' | 'pk' | 'battleRoyale';
 type NextStep =
   | 'contracts'
   | 'owner'
@@ -38,6 +51,63 @@ type NextStep =
   | 'policy'
   | 'resume'
   | 'active';
+
+type ReasoningDoc = {
+  prompt?: string;
+  choice?: number;
+  choiceContext?: unknown;
+  aiResponse?: string;
+  memoryContext?: {
+    source?: string;
+    matchedMemoryIds?: unknown[];
+    prompt?: string;
+  } | null;
+};
+
+const AGENTS = {
+  task: {
+    key: 'task' as const,
+    titleZh: '任务代理',
+    titleEn: 'Task agent',
+    introZh: '自动看任务机会，挑一项去跑。',
+    introEn: 'Auto-checks live tasks and picks one to run.',
+    actionKind: AUTONOMY_ACTION_KIND.task,
+    protocolId: AUTONOMY_PROTOCOL_ID.task,
+    adapter: addresses.taskSkillAdapter,
+    defaultDailyLimit: '3',
+    defaultMaxSpend: '0',
+    defaultMinReserve: '100',
+    supportsSpend: false,
+  },
+  pk: {
+    key: 'pk' as const,
+    titleZh: 'PK 代理',
+    titleEn: 'PK agent',
+    introZh: '自动挑公开 PK，对局前给出策略。',
+    introEn: 'Auto-selects public PK matches and chooses a strategy.',
+    actionKind: AUTONOMY_ACTION_KIND.pk,
+    protocolId: AUTONOMY_PROTOCOL_ID.pk,
+    adapter: addresses.pkSkillAdapter,
+    defaultDailyLimit: '2',
+    defaultMaxSpend: '100',
+    defaultMinReserve: '200',
+    supportsSpend: true,
+  },
+  battleRoyale: {
+    key: 'battleRoyale' as const,
+    titleZh: '大逃杀代理',
+    titleEn: 'Battle Royale agent',
+    introZh: '自动选房、补揭示、自动领奖。',
+    introEn: 'Auto-selects rooms, maintains reveal, and claims rewards.',
+    actionKind: AUTONOMY_ACTION_KIND.battleRoyale,
+    protocolId: AUTONOMY_PROTOCOL_ID.battleRoyale,
+    adapter: addresses.battleRoyaleAdapter,
+    defaultDailyLimit: '2',
+    defaultMaxSpend: '100',
+    defaultMinReserve: '200',
+    supportsSpend: true,
+  },
+} as const;
 
 function parseAmount(value: string) {
   try {
@@ -56,10 +126,26 @@ function receiptStatusText(status: number, pick: <T,>(zh: T, en: T) => T) {
   return pick('空闲', 'Idle');
 }
 
+function getActionLabel(key: AgentKey, pick: <T,>(zh: T, en: T) => T) {
+  if (key === 'task') return pick('任务挖矿', 'Task mining');
+  if (key === 'pk') return 'PK';
+  return pick('大逃杀', 'Battle Royale');
+}
+
+function getChoiceLabel(key: AgentKey, choice: number, pick: <T,>(zh: T, en: T) => T) {
+  if (choice <= 0) return '--';
+  if (key === 'pk') {
+    if (choice === 1) return pick('强攻', 'Attack');
+    if (choice === 2) return pick('均衡', 'Balanced');
+    if (choice === 3) return pick('防守', 'Defense');
+  }
+  return pick(`第 ${choice} 个候选`, `Choice #${choice}`);
+}
+
 function nextStepTitle(step: NextStep, pick: <T,>(zh: T, en: T) => T) {
   switch (step) {
     case 'contracts':
-      return pick('主网代理地址还没配好', 'Autonomy contracts are not configured');
+      return pick('主网地址还没配好', 'Contracts are not configured');
     case 'owner':
       return pick('先连接持有人钱包', 'Connect the owner wallet first');
     case 'wallet':
@@ -71,11 +157,11 @@ function nextStepTitle(step: NextStep, pick: <T,>(zh: T, en: T) => T) {
     case 'adapter':
       return pick('授权适配器', 'Approve adapter');
     case 'operator':
-      return pick('授权代理执行者', 'Approve operator');
+      return pick('授权执行者', 'Approve operator');
     case 'roles':
-      return pick('授予代理角色', 'Grant operator roles');
+      return pick('授予角色', 'Grant roles');
     case 'lease':
-      return pick('签发代理租约', 'Create operator lease');
+      return pick('签发租约', 'Create lease');
     case 'risk':
       return pick('写入保底和熔断', 'Save reserve and breaker');
     case 'policy':
@@ -93,12 +179,12 @@ function nextStepDetail(step: NextStep, thresholdLabel: string, pick: <T,>(zh: T
       return pick(`当前持有人钱包至少要有 ${thresholdLabel}。`, `The owner wallet must hold at least ${thresholdLabel}.`);
     case 'runtime':
       return pick('这只龙虾的记账储备要先够用，代理才会真的去跑。', 'The lobster ledger needs enough reserve before the agent can act.');
-    case 'active':
-      return pick('后面就看最近结果和推理摘要。', 'From here you mainly watch recent results and reasoning.');
     case 'policy':
-      return pick('这一步会把你的预算和风格写到链上。', 'This writes your budget and posture to chain.');
+      return pick('这一步会把预算和风格写到链上。', 'This writes the budget and posture to chain.');
     case 'risk':
       return pick('这一步会写保底余额和失败熔断。', 'This writes the reserve floor and failure breaker.');
+    case 'active':
+      return pick('下面看最近结果，高级里看详细信息。', 'Check recent results below and use Advanced for detail.');
     default:
       return pick('按顺序点下去就行。', 'Just keep going in order.');
   }
@@ -137,17 +223,86 @@ function primaryButtonText(step: NextStep, pick: <T,>(zh: T, en: T) => T) {
 
 function shortError(message: string | null | undefined, pick: <T,>(zh: T, en: T) => T) {
   if (!message) return null;
-  if (message.includes('User rejected')) return pick('你取消了这次签名。', 'You cancelled the signature.');
-  if (message.includes('rejected')) return pick('你取消了这次签名。', 'You cancelled the signature.');
-  if (message.includes('execution reverted')) return pick('链上拒绝了这次动作，请先看条件是否满足。', 'The chain rejected this action.');
+  if (message.includes('User rejected') || message.includes('rejected')) {
+    return pick('你取消了这次签名。', 'You cancelled the signature.');
+  }
+  if (message.includes('execution reverted')) {
+    return pick('链上拒绝了这次动作，请先看条件是否满足。', 'The chain rejected this action.');
+  }
   return message.slice(0, 90);
+}
+
+function trimText(value: string | undefined | null, max = 220) {
+  if (!value) return '--';
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= max) return normalized;
+  return `${normalized.slice(0, max)}...`;
+}
+
+function useReasoningDoc(reasoningCid?: string) {
+  const [state, setState] = useState<{
+    status: 'idle' | 'loading' | 'digest' | 'ready' | 'error';
+    raw?: string;
+    parsed?: ReasoningDoc;
+    error?: string;
+  }>({ status: 'idle' });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!reasoningCid) {
+      setState({ status: 'idle' });
+      return;
+    }
+
+    if (reasoningCid.startsWith('autonomy://')) {
+      setState({ status: 'digest' });
+      return;
+    }
+
+    const resolvedUrl = resolveIpfsUrl(reasoningCid);
+    if (!resolvedUrl || resolvedUrl === '/placeholder-nft.svg') {
+      setState({ status: 'error', error: 'unsupported' });
+      return;
+    }
+
+    setState({ status: 'loading' });
+
+    fetch(resolvedUrl, { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const text = await response.text();
+        let parsed: ReasoningDoc | undefined;
+        try {
+          parsed = JSON.parse(text) as ReasoningDoc;
+        } catch {
+          parsed = undefined;
+        }
+        if (!cancelled) {
+          setState({ status: 'ready', raw: text, parsed });
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setState({ status: 'error', error: String((error as Error).message || error) });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reasoningCid]);
+
+  return state;
 }
 
 export default function AutoPage() {
   const { pick } = useI18n();
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<AgentKey>('battleRoyale');
   const [lastHandledHash, setLastHandledHash] = useState<string | null>(null);
 
+  const agent = AGENTS[selectedAgent];
   const companion = useActiveCompanion();
   const tokenId = companion.hasToken ? companion.tokenId : undefined;
   const thresholdLabel = `${AUTONOMY_MIN_WALLET_HOLDING_RAW} Claworld`;
@@ -156,27 +311,35 @@ export default function AutoPage() {
   const claimWindow = useBattleRoyaleClaimWindow(tokenId, companion.ownerAddress);
   const setup = useAutonomyActionSetup({
     tokenId: tokenId ?? 0n,
-    actionKind: AUTONOMY_ACTION_KIND.battleRoyale,
-    protocolId: AUTONOMY_PROTOCOL_ID.battleRoyale,
-    adapter: addresses.battleRoyaleAdapter,
+    actionKind: agent.actionKind,
+    protocolId: agent.protocolId,
+    adapter: agent.adapter,
   });
-  const proofs = useAutonomyProofs(tokenId, AUTONOMY_PROTOCOL_ID.battleRoyale);
+  const proofs = useAutonomyProofs(tokenId, agent.protocolId);
   const actions = useAutonomyActions();
 
   const [riskMode, setRiskMode] = useState(1);
-  const [dailyLimit, setDailyLimit] = useState('2');
-  const [maxSpend, setMaxSpend] = useState('100');
-  const [minReserve, setMinReserve] = useState('200');
-  const [maxFailures, setMaxFailures] = useState('3');
+  const [dailyLimit, setDailyLimit] = useState<string>(agent.defaultDailyLimit);
+  const [maxSpend, setMaxSpend] = useState<string>(agent.defaultMaxSpend);
+  const [minReserve, setMinReserve] = useState<string>(agent.defaultMinReserve);
+  const [maxFailures, setMaxFailures] = useState<string>('3');
+
+  useEffect(() => {
+    setRiskMode(1);
+    setDailyLimit(agent.defaultDailyLimit);
+    setMaxSpend(agent.defaultMaxSpend);
+    setMinReserve(agent.defaultMinReserve);
+    setMaxFailures('3');
+  }, [agent.defaultDailyLimit, agent.defaultMaxSpend, agent.defaultMinReserve, agent.key]);
 
   useEffect(() => {
     if (!setup.policy || !setup.risk) return;
     setRiskMode(setup.policy.riskMode);
-    setDailyLimit(String(setup.policy.dailyLimit || 2));
-    setMaxSpend(String(Number(setup.policy.maxClwPerAction) / 1e18 || 0));
+    setDailyLimit(String(setup.policy.dailyLimit || Number(agent.defaultDailyLimit)));
+    setMaxSpend(agent.supportsSpend ? String(Number(setup.policy.maxClwPerAction) / 1e18 || 0) : '0');
     setMinReserve(String(Number(setup.risk.minClwReserve) / 1e18 || 0));
     setMaxFailures(String(setup.risk.maxFailureStreak || 3));
-  }, [setup.policy, setup.risk]);
+  }, [agent.defaultDailyLimit, agent.supportsSpend, setup.policy, setup.risk]);
 
   useEffect(() => {
     if (!actions.hash || !actions.isSuccess || lastHandledHash === actions.hash) return;
@@ -185,7 +348,7 @@ export default function AutoPage() {
   }, [actions.hash, actions.isSuccess, claimWindow, lastHandledHash, proofs, setup]);
 
   const desiredDailyLimit = Number(dailyLimit || '0');
-  const desiredMaxSpendWei = parseAmount(maxSpend);
+  const desiredMaxSpendWei = agent.supportsSpend ? parseAmount(maxSpend) : 0n;
   const desiredReserveWei = parseAmount(minReserve);
   const desiredMaxFailures = Number(maxFailures || '0');
   const runtimeRequired = desiredReserveWei + desiredMaxSpendWei;
@@ -249,18 +412,16 @@ export default function AutoPage() {
         clwCredit?: bigint;
         reasoningCid?: string;
         executionRef?: string;
+        receiptHash?: string;
+        resolvedChoice?: number;
         lastError?: string;
       }
     | undefined;
 
+  const reasoningDoc = useReasoningDoc(latestReceipt?.reasoningCid ? String(latestReceipt.reasoningCid) : undefined);
   const latestStatus = latestReceipt ? receiptStatusText(Number(latestReceipt.status ?? 0), pick) : pick('还没有结果', 'No result yet');
   const latestError = shortError(latestReceipt?.lastError ? String(latestReceipt.lastError) : null, pick);
   const actionError = shortError(actions.error?.message ? String(actions.error.message) : null, pick);
-  const awaitingMessage = actions.isPending
-    ? pick('去钱包确认这一步。', 'Confirm this step in your wallet.')
-    : actions.isConfirming
-      ? pick('链上确认中。', 'Waiting for the transaction receipt.')
-      : null;
 
   function handlePrimaryAction() {
     if (!tokenId || actions.isPending || actions.isConfirming || !companion.ownerAddress) return;
@@ -268,41 +429,41 @@ export default function AutoPage() {
     const leaseExpiry = BigInt(Math.floor(Date.now() / 1000) + 30 * 86400);
 
     if (nextStep === 'protocol') {
-      actions.setApprovedProtocol(tokenId, AUTONOMY_PROTOCOL_ID.battleRoyale, true);
+      actions.setApprovedProtocol(tokenId, agent.protocolId, true);
       return;
     }
     if (nextStep === 'adapter') {
-      actions.setApprovedAdapter(tokenId, AUTONOMY_ACTION_KIND.battleRoyale, addresses.battleRoyaleAdapter, true);
+      actions.setApprovedAdapter(tokenId, agent.actionKind, agent.adapter, true);
       return;
     }
     if (nextStep === 'operator') {
-      actions.setApprovedOperator(tokenId, AUTONOMY_ACTION_KIND.battleRoyale, AUTONOMY_OPERATOR, true);
+      actions.setApprovedOperator(tokenId, agent.actionKind, AUTONOMY_OPERATOR, true);
       return;
     }
     if (nextStep === 'roles') {
-      actions.setOperatorRoleMask(tokenId, AUTONOMY_ACTION_KIND.battleRoyale, AUTONOMY_OPERATOR, AUTONOMY_ROLE_MASK.full);
+      actions.setOperatorRoleMask(tokenId, agent.actionKind, AUTONOMY_OPERATOR, AUTONOMY_ROLE_MASK.full);
       return;
     }
     if (nextStep === 'lease') {
-      actions.setDelegationLease(tokenId, AUTONOMY_ACTION_KIND.battleRoyale, AUTONOMY_OPERATOR, AUTONOMY_ROLE_MASK.full, leaseExpiry);
+      actions.setDelegationLease(tokenId, agent.actionKind, AUTONOMY_OPERATOR, AUTONOMY_ROLE_MASK.full, leaseExpiry);
       return;
     }
     if (nextStep === 'risk') {
-      actions.setRiskControls(tokenId, AUTONOMY_ACTION_KIND.battleRoyale, desiredMaxFailures, minReserve || '0');
+      actions.setRiskControls(tokenId, agent.actionKind, desiredMaxFailures, minReserve || '0');
       return;
     }
     if (nextStep === 'policy') {
-      actions.setPolicy(tokenId, AUTONOMY_ACTION_KIND.battleRoyale, true, riskMode, desiredDailyLimit, maxSpend || '0');
+      actions.setPolicy(tokenId, agent.actionKind, true, riskMode, desiredDailyLimit, agent.supportsSpend ? maxSpend || '0' : '0');
       return;
     }
     if (nextStep === 'resume') {
-      actions.setEmergencyPause(tokenId, AUTONOMY_ACTION_KIND.battleRoyale, false);
+      actions.setEmergencyPause(tokenId, agent.actionKind, false);
     }
   }
 
   function handlePauseToggle() {
     if (!tokenId || !setup.policy?.enabled || actions.isPending || actions.isConfirming) return;
-    actions.setEmergencyPause(tokenId, AUTONOMY_ACTION_KIND.battleRoyale, !Boolean(setup.risk?.emergencyPaused));
+    actions.setEmergencyPause(tokenId, agent.actionKind, !Boolean(setup.risk?.emergencyPaused));
   }
 
   const canAct =
@@ -312,7 +473,16 @@ export default function AutoPage() {
     nextStep !== 'runtime' &&
     nextStep !== 'active';
 
-  const primaryButtonDisabled = !canAct || actions.isPending || actions.isConfirming;
+  const reasoningSummary =
+    reasoningDoc.status === 'ready'
+      ? trimText(reasoningDoc.parsed?.aiResponse || reasoningDoc.raw)
+      : reasoningDoc.status === 'digest'
+        ? pick('当前只保存了摘要指纹，前端拿不到完整推理全文。', 'Only a digest proof is available right now.')
+        : reasoningDoc.status === 'loading'
+          ? pick('正在读取推理内容...', 'Loading reasoning...')
+          : reasoningDoc.status === 'error'
+            ? pick('这条推理内容现在拉不下来。', 'The reasoning document could not be loaded.')
+            : pick('这次还没有完整推理文档。', 'No detailed reasoning document yet.');
 
   return (
     <WalletGate
@@ -323,13 +493,27 @@ export default function AutoPage() {
         <div className="cw-section-head">
           <div>
             <span className="cw-label">{pick('AI 代理', 'AI agent')}</span>
-            <h3>{pick('大逃杀代理', 'Battle Royale agent')}</h3>
-            <p className="cw-muted">{pick('当前这页只管：自动入场、补揭示、自动领奖。', 'This page handles auto entry, reveal maintenance, and reward claim.')}</p>
+            <h3>{getActionLabel(agent.key, pick)}</h3>
+            <p className="cw-muted">{pick(agent.introZh, agent.introEn)}</p>
           </div>
           <span className={`cw-chip ${setup.policy?.enabled && !setup.risk?.emergencyPaused ? 'cw-chip--growth' : 'cw-chip--cool'}`}>
             <Bot size={14} />
             {setup.policy?.enabled && !setup.risk?.emergencyPaused ? pick('已开启', 'Enabled') : pick('未开启', 'Disabled')}
           </span>
+        </div>
+
+        <div className="cw-segmented">
+          {(['task', 'pk', 'battleRoyale'] as AgentKey[]).map((key) => (
+            <button
+              key={key}
+              type="button"
+              className={`cw-segmented-btn ${selectedAgent === key ? 'cw-segmented-btn--active' : ''}`}
+              onClick={() => setSelectedAgent(key)}
+            >
+              {key === 'task' ? <Sparkles size={14} /> : key === 'pk' ? <Swords size={14} /> : <Trophy size={14} />}
+              {getActionLabel(key, pick)}
+            </button>
+          ))}
         </div>
 
         <div className="cw-state-grid">
@@ -381,10 +565,12 @@ export default function AutoPage() {
             <input value={dailyLimit} onChange={(event) => setDailyLimit(event.target.value)} type="number" min="0" className="cw-input" />
           </label>
 
-          <label className="cw-field">
-            <span className="cw-label">{pick('单次最多花多少', 'Max spend')}</span>
-            <input value={maxSpend} onChange={(event) => setMaxSpend(event.target.value)} type="number" min="0" step="0.01" className="cw-input" />
-          </label>
+          {agent.supportsSpend ? (
+            <label className="cw-field">
+              <span className="cw-label">{pick('单次最多花多少', 'Max spend')}</span>
+              <input value={maxSpend} onChange={(event) => setMaxSpend(event.target.value)} type="number" min="0" step="0.01" className="cw-input" />
+            </label>
+          ) : null}
 
           <label className="cw-field">
             <span className="cw-label">{pick('最低保底储备', 'Minimum reserve')}</span>
@@ -393,7 +579,7 @@ export default function AutoPage() {
         </div>
 
         <div className="cw-button-row">
-          <button type="button" className="cw-button cw-button--primary" disabled={primaryButtonDisabled} onClick={handlePrimaryAction}>
+          <button type="button" className="cw-button cw-button--primary" disabled={!canAct || actions.isPending || actions.isConfirming} onClick={handlePrimaryAction}>
             <PlayCircle size={16} />
             {actions.isPending
               ? pick('等待签名', 'Waiting for signature')
@@ -415,11 +601,20 @@ export default function AutoPage() {
           </button>
         </div>
 
-        {awaitingMessage ? (
+        {actions.isPending ? (
           <div className="cw-list">
             <div className="cw-list-item cw-list-item--warm">
               <Shield size={16} />
-              <span>{awaitingMessage}</span>
+              <span>{pick('去钱包确认这一步。', 'Confirm this step in your wallet.')}</span>
+            </div>
+          </div>
+        ) : null}
+
+        {actions.isConfirming ? (
+          <div className="cw-list">
+            <div className="cw-list-item cw-list-item--warm">
+              <Shield size={16} />
+              <span>{pick('链上确认中。', 'Waiting for the receipt.')}</span>
             </div>
           </div>
         ) : null}
@@ -437,7 +632,7 @@ export default function AutoPage() {
       {tokenId !== undefined ? (
         <AutonomyDirectivePanel
           tokenId={tokenId}
-          actionKind={AUTONOMY_ACTION_KIND.battleRoyale}
+          actionKind={agent.actionKind}
           ownerAddress={companion.ownerAddress}
           title={pick('一句提示', 'Prompt')}
         />
@@ -448,11 +643,7 @@ export default function AutoPage() {
           <div>
             <span className="cw-label">{pick('最近结果', 'Latest result')}</span>
             <h3>{latestReceipt ? pick(`请求 #${latestReceipt.requestId?.toString() ?? '-'}`, `Request #${latestReceipt.requestId?.toString() ?? '-'}`) : pick('还没有自动动作', 'No recent action')}</h3>
-            <p className="cw-muted">
-              {latestReceipt?.reasoningCid
-                ? pick('这次已经生成推理证明，展开高级就能看。', 'This action has a reasoning proof. Open Advanced to inspect it.')
-                : pick('这里会显示最近一笔自动动作和结果。', 'This area shows the latest autonomous action and result.')}
-            </p>
+            <p className="cw-muted">{reasoningSummary}</p>
           </div>
           <span className={`cw-chip ${latestReceipt && Number(latestReceipt.status ?? 0) === 4 ? 'cw-chip--growth' : 'cw-chip--cool'}`}>
             <CheckCircle2 size={14} />
@@ -470,10 +661,19 @@ export default function AutoPage() {
             <strong>{latestReceipt ? formatCLW(BigInt(latestReceipt.clwCredit ?? 0n)) : '--'}</strong>
           </div>
           <div className="cw-state-card">
-            <span className="cw-label">{pick('错误', 'Error')}</span>
-            <strong>{latestError ?? '--'}</strong>
+            <span className="cw-label">{pick('最终选择', 'Choice')}</span>
+            <strong>{latestReceipt ? getChoiceLabel(agent.key, Number(latestReceipt.resolvedChoice ?? 0), pick) : '--'}</strong>
           </div>
         </div>
+
+        {latestError ? (
+          <div className="cw-list">
+            <div className="cw-list-item cw-list-item--alert">
+              <Shield size={16} />
+              <span>{latestError}</span>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       {showAdvanced ? (
@@ -482,9 +682,10 @@ export default function AutoPage() {
             <div className="cw-section-head">
               <div>
                 <span className="cw-label">{pick('高级', 'Advanced')}</span>
-                <h3>{pick('权限和细节', 'Permissions and details')}</h3>
+                <h3>{pick('具体结果和推理', 'Detailed result and reasoning')}</h3>
               </div>
             </div>
+
             <div className="cw-list">
               {permissionReadiness.map((item) => (
                 <div key={item.key} className={`cw-list-item ${item.ready ? 'cw-list-item--growth' : 'cw-list-item--alert'}`}>
@@ -492,26 +693,84 @@ export default function AutoPage() {
                   <span>{item.label}</span>
                 </div>
               ))}
+
               <div className="cw-list-item cw-list-item--cool">
                 <Coins size={16} />
-                <span>{pick(`失败熔断 ${maxFailures} 次`, `Failure breaker ${maxFailures}`)}</span>
+                <div className="cw-proof-copy">
+                  <strong>{pick('失败熔断', 'Failure breaker')}</strong>
+                  <span>{pick(`${maxFailures} 次`, `${maxFailures} tries`)}</span>
+                </div>
               </div>
+            </div>
+
+            <div className="cw-proof-box">
+              <div className="cw-proof-grid">
+                <div>
+                  <span className="cw-label">{pick('动作', 'Action')}</span>
+                  <strong>{getActionLabel(agent.key, pick)}</strong>
+                </div>
+                <div>
+                  <span className="cw-label">{pick('最终选择', 'Choice')}</span>
+                  <strong>{latestReceipt ? getChoiceLabel(agent.key, Number(latestReceipt.resolvedChoice ?? 0), pick) : '--'}</strong>
+                </div>
+                <div>
+                  <span className="cw-label">{pick('花费', 'Spend')}</span>
+                  <strong>{latestReceipt ? formatCLW(BigInt(latestReceipt.actualSpend ?? 0n)) : '--'}</strong>
+                </div>
+                <div>
+                  <span className="cw-label">{pick('回款', 'Credit')}</span>
+                  <strong>{latestReceipt ? formatCLW(BigInt(latestReceipt.clwCredit ?? 0n)) : '--'}</strong>
+                </div>
+              </div>
+
+              <div className="cw-proof-section">
+                <span className="cw-label">{pick('推理摘要', 'Reasoning summary')}</span>
+                <p>{reasoningSummary}</p>
+              </div>
+
+              {reasoningDoc.status === 'ready' && reasoningDoc.parsed ? (
+                <>
+                  <div className="cw-proof-section">
+                    <span className="cw-label">{pick('提示词', 'Prompt')}</span>
+                    <p>{trimText(reasoningDoc.parsed.prompt, 320)}</p>
+                  </div>
+                  <div className="cw-proof-section">
+                    <span className="cw-label">{pick('模型输出', 'Model output')}</span>
+                    <p>{trimText(reasoningDoc.parsed.aiResponse, 420)}</p>
+                  </div>
+                  {reasoningDoc.parsed.memoryContext?.prompt ? (
+                    <div className="cw-proof-section">
+                      <span className="cw-label">{pick('记忆影响', 'Memory influence')}</span>
+                      <p>{trimText(reasoningDoc.parsed.memoryContext.prompt, 240)}</p>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+
               {latestReceipt?.reasoningCid ? (
-                <div className="cw-list-item cw-list-item--cool">
-                  <Bot size={16} />
-                  <span>{pick(`推理证明 ${latestReceipt.reasoningCid}`, `Reasoning proof ${latestReceipt.reasoningCid}`)}</span>
+                <div className="cw-proof-section">
+                  <span className="cw-label">{pick('推理证明', 'Reasoning proof')}</span>
+                  <code className="cw-proof-code">{String(latestReceipt.reasoningCid)}</code>
                 </div>
               ) : null}
+
               {latestReceipt?.executionRef ? (
-                <div className="cw-list-item cw-list-item--cool">
-                  <Bot size={16} />
-                  <span>{pick(`执行回执 ${latestReceipt.executionRef}`, `Execution ref ${latestReceipt.executionRef}`)}</span>
+                <div className="cw-proof-section">
+                  <span className="cw-label">{pick('执行回执', 'Execution ref')}</span>
+                  <code className="cw-proof-code">{String(latestReceipt.executionRef)}</code>
+                </div>
+              ) : null}
+
+              {latestReceipt?.receiptHash ? (
+                <div className="cw-proof-section">
+                  <span className="cw-label">{pick('链上回执', 'Receipt hash')}</span>
+                  <code className="cw-proof-code">{String(latestReceipt.receiptHash)}</code>
                 </div>
               ) : null}
             </div>
           </section>
 
-          {tokenId !== undefined ? (
+          {agent.key === 'battleRoyale' && tokenId !== undefined ? (
             <AutonomyClaimRequestPanel
               tokenId={tokenId}
               ownerAddress={companion.ownerAddress}

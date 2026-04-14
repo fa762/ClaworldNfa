@@ -1,6 +1,42 @@
 # Current Handoff
 
-Last updated: 2026-04-14 (session 36) Asia/Singapore
+Last updated: 2026-04-14 (session 37) Asia/Singapore
+
+## Auto page follow-up - 2026-04-14 session 37
+
+This pass fixes the first simplification regression on the agent page.
+
+What changed:
+
+1. `/auto` now restores all three agent paths
+- Task agent
+- PK agent
+- Battle Royale agent
+
+2. The advanced panel now focuses on readable action detail
+- final choice
+- spend
+- credit
+- short reasoning summary
+- prompt
+- model output
+- memory influence (when the reasoning document actually contains it)
+
+3. Raw ids now wrap safely
+- reasoning proof
+- execution ref
+- receipt hash
+
+4. The page now says the truth about reasoning storage
+- if the proof is an `autonomy://...` digest:
+  - the frontend cannot reconstruct the full reasoning text from that value alone
+- if the proof is an IPFS / HTTP document:
+  - the frontend now tries to fetch and show the reasoning content
+
+Validation:
+
+- `npx tsc --noEmit --project frontend/tsconfig.json` passes
+- `npm --prefix frontend run build` is still blocked in this environment by Google Fonts fetch failure during `next/font`
 
 ## Auto page simplification - 2026-04-14 session 36
 
