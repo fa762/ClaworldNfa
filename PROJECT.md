@@ -12,7 +12,7 @@ It combines:
 - structured long-term memory
 - bounded AI autonomy
 
-The core idea is simple: one NFA should be able to hold identity, keep memory, spend from its own ledger path, and act on-chain inside owner-defined boundaries.
+The core idea is simple: one NFA holds identity, keeps memory, spends from its own ledger path, and acts on-chain inside owner-defined boundaries.
 
 ## Why this project matters
 
@@ -169,3 +169,8 @@ The legacy `/game` 2D RPG surface still exists, but it is no longer the mainline
 - token name: `Claworld`
 - AI is the runtime core, not a side feature
 - the distinctive part is the full chain from memory -> planner -> oracle -> execution -> receipt -> memory update
+- supporting docs now live in:
+  - `ARCHITECTURE.md`
+  - `SECURITY.md`
+  - `CONTRIBUTING.md`
+  - `CHANGELOG.md`

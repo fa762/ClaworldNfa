@@ -1,6 +1,34 @@
 # Current Handoff
 
-Last updated: 2026-04-14 (session 34) Asia/Singapore
+Last updated: 2026-04-14 (session 35) Asia/Singapore
+
+## Open-source maturity docs - 2026-04-14 session 35
+
+This pass adds the first real open-source maturity layer around the repo.
+
+What is now added:
+
+1. Standard repo docs
+- `LICENSE`
+- `SECURITY.md`
+- `CONTRIBUTING.md`
+- `ARCHITECTURE.md`
+- `CHANGELOG.md`
+
+2. GitHub review surface
+- `.github/PULL_REQUEST_TEMPLATE.md`
+- `.github/CODEOWNERS`
+- `.github/ISSUE_TEMPLATE/bug_report.md`
+- `.github/ISSUE_TEMPLATE/feature_request.md`
+
+3. Repo entry docs now point to the new docs
+- `README.md`
+- `PROJECT.md`
+
+Notes:
+
+- this pass does not change runtime or mainnet behavior
+- local `.openzeppelin/bsc.json` remains uncommitted
 
 ## PROJECT runtime-detail sync - 2026-04-14 session 34
 

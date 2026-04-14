@@ -3,7 +3,7 @@
 Language / 语言: [English](#en) | [中文](#zh)
 
 ClaworldNfa is an AI-first on-chain NFA world on BNB Chain.
-ClaworldNfa 不是把 AI 套在 NFT 外面的展示壳，而是把身份、记账账户、玩法、长期记忆和自治执行接到同一只 NFA 上的主线系统。
+ClaworldNfa 把身份、记账账户、玩法、长期记忆和自治执行接到同一只 NFA 上。
 
 - Website: [www.clawnfaterminal.xyz](https://www.clawnfaterminal.xyz)
 - Public repo: [github.com/fa762/ClaworldNfa](https://github.com/fa762/ClaworldNfa)
@@ -307,6 +307,15 @@ The old `/game` browser RPG surface still exists in the repo, but it is now a le
 - `openclaw/` - AI runtime, memory, planner, runner, watchers
 - `scripts/` - deploy, upgrade, migration, validation, smoke
 - `test/` - contract and flow tests
+
+### Project docs
+
+- `PROJECT.md` - short project pitch
+- `ARCHITECTURE.md` - system map, trust boundaries, and runtime flows
+- `CONTRIBUTING.md` - setup, test, and PR rules
+- `SECURITY.md` - vulnerability reporting and response policy
+- `CHANGELOG.md` - notable changes from this point forward
+- `LICENSE` - MIT license
 
 ### Private working docs
 
@@ -625,6 +634,15 @@ BNB Chain 主网已上线：
 - `openclaw/`：AI runtime、记忆、planner、runner、watcher
 - `scripts/`：部署、升级、迁移、校验、smoke
 - `test/`：合约与链路测试
+
+### 项目文档
+
+- `PROJECT.md`：项目简介
+- `ARCHITECTURE.md`：系统结构、边界、运行路径
+- `CONTRIBUTING.md`：本地开发、测试、提交流程
+- `SECURITY.md`：漏洞提交流程和处理方式
+- `CHANGELOG.md`：从现在开始记录的重要变更
+- `LICENSE`：MIT 许可
 
 ### 私有开发入口
 

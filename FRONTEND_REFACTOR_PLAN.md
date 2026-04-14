@@ -1,6 +1,23 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-14 (session 34) Asia/Singapore
+Last updated: 2026-04-14 (session 35) Asia/Singapore
+
+## Open-source maturity docs - 2026-04-14 session 35
+
+This doc pass adds the missing repo-level support docs around the frontend and runtime work:
+
+- `LICENSE`
+- `SECURITY.md`
+- `CONTRIBUTING.md`
+- `ARCHITECTURE.md`
+- `CHANGELOG.md`
+- PR template
+- CODEOWNERS
+- issue templates
+
+The repo entry docs now link to those files, so the project reads more like a maintained product repository and less like a raw workspace dump.
+
+No frontend runtime behavior changed in this pass.
 
 ## PROJECT doc depth sync - 2026-04-14 session 34
 
