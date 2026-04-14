@@ -74,6 +74,7 @@ export function useBattleRoyaleOverview() {
     const totalPlayers = Number(matchInfo?.[1] ?? 0);
     const status = Number(matchInfo?.[0] ?? 0);
     const revealBlock = BigInt(matchInfo?.[2] ?? 0n);
+    const losingRoom = Number(matchInfo?.[3] ?? 0);
     const pot = BigInt(matchInfo?.[4] ?? 0n);
     const roundId = BigInt(matchInfo?.[5] ?? 0n);
     const minStake = BigInt(matchConfig?.[0] ?? 0n);
@@ -113,6 +114,7 @@ export function useBattleRoyaleOverview() {
       status,
       totalPlayers,
       revealBlock,
+      losingRoom,
       pot,
       roundId,
       minStake,

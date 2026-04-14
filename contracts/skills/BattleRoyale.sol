@@ -427,15 +427,23 @@ contract BattleRoyale is
         BRMatch storage m = matches[matchId];
         require(m.status == MatchStatus.PENDING_REVEAL, "Not pending reveal");
         require(block.number > m.revealBlock, "Too early: wait for reveal block");
-        require(block.number - m.revealBlock <= BLOCKHASH_SAFE, "Reveal window expired");
+        bool fallbackEntropyUsed = block.number - m.revealBlock > BLOCKHASH_SAFE;
 
-        bytes32 seed = keccak256(abi.encodePacked(
-            blockhash(m.revealBlock),
-            matchId,
-            m.roundId
-        ));
+        bytes32 seed = fallbackEntropyUsed
+            ? keccak256(abi.encodePacked(
+                block.prevrandao,
+                block.timestamp,
+                blockhash(block.number - 1),
+                matchId,
+                m.roundId
+            ))
+            : keccak256(abi.encodePacked(
+                blockhash(m.revealBlock),
+                matchId,
+                m.roundId
+            ));
 
-        _settle(matchId, m, seed, false);
+        _settle(matchId, m, seed, fallbackEntropyUsed);
     }
 
     function emergencyReveal(uint256 matchId) external onlyOwner nonReentrant {

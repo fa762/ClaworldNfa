@@ -21,6 +21,7 @@ import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { formatCLW } from '@/lib/format';
 
 const ROOMS = Array.from({ length: 10 }, (_, index) => index + 1);
+const BSC_BLOCK_SECONDS = 3;
 
 function parseAmount(value: string) {
   const trimmed = value.trim();
@@ -53,10 +54,22 @@ function brError(error: unknown) {
   return message;
 }
 
+function formatRevealCountdown(blocksRemaining: bigint) {
+  const totalSeconds = Number(blocksRemaining) * BSC_BLOCK_SECONDS;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) return `${hours}小时 ${minutes}分`;
+  if (minutes > 0) return `${minutes}分 ${seconds}秒`;
+  return `${seconds}秒`;
+}
+
 export function BattleRoyaleArenaPanel({
   matchId,
   status,
   revealBlock,
+  losingRoom,
   totalPlayers,
   triggerCount,
   pot,
@@ -70,6 +83,7 @@ export function BattleRoyaleArenaPanel({
   matchId?: bigint;
   status: number;
   revealBlock: bigint;
+  losingRoom: number;
   totalPlayers: number;
   triggerCount: number;
   pot: bigint;
@@ -151,15 +165,18 @@ export function BattleRoyaleArenaPanel({
     participant.claimable > 0n &&
     participant.preferredPath?.key === 'autonomy' &&
     !participant.hasConflict;
-  const canRevealNow =
+  const canPublicReveal =
     status === 1 &&
     revealBlock > 0n &&
-    currentBlock > revealBlock &&
-    currentBlock - revealBlock <= 256n;
-  const revealExpired =
+    currentBlock > revealBlock;
+  const usingFallbackReveal =
     status === 1 &&
     revealBlock > 0n &&
     currentBlock > revealBlock + 256n;
+  const blocksUntilReveal =
+    status === 1 && revealBlock >= currentBlock ? revealBlock - currentBlock + 1n : 0n;
+  const revealCountdownText =
+    blocksUntilReveal > 0n ? formatRevealCountdown(blocksUntilReveal) : null;
 
   async function refreshAll() {
     await Promise.all([
@@ -172,6 +189,16 @@ export function BattleRoyaleArenaPanel({
   useEffect(() => {
     if (currentRoom > 0) setSelectedRoom(currentRoom);
   }, [currentRoom]);
+
+  useEffect(() => {
+    if (status !== 1) return;
+
+    const timer = window.setInterval(() => {
+      void refreshAll();
+    }, 8000);
+
+    return () => window.clearInterval(timer);
+  }, [status, onRefresh, snapshotQuery, roomChangeCountQuery]);
 
   async function handleAction(kind: 'enter' | 'change' | 'claim' | 'reveal') {
     if (!matchId) return;
@@ -239,6 +266,11 @@ export function BattleRoyaleArenaPanel({
     }
     setPendingAction(null);
     void refreshAll();
+    if (pendingAction === 'reveal') {
+      window.setTimeout(() => {
+        void refreshAll();
+      }, 2500);
+    }
   }, [activePath?.key, onRefresh, participant.claimable, pendingAction, receiptQuery.isSuccess, roomChangeCountQuery, selectedRoom, snapshotQuery]);
 
   if (!matchId) {
@@ -284,12 +316,18 @@ export function BattleRoyaleArenaPanel({
               <span className="cw-label">奖池</span>
               <strong>{formatCLW(pot)}</strong>
             </div>
-            {status === 1 ? (
-              <div className="cw-state-card">
-                <span className="cw-label">揭示块</span>
-                <strong>#{revealBlock.toString()}</strong>
-              </div>
-            ) : null}
+          {status === 1 ? (
+            <div className="cw-state-card">
+              <span className="cw-label">{canPublicReveal ? '揭示状态' : '揭示倒计时'}</span>
+              <strong>
+                {canPublicReveal
+                  ? usingFallbackReveal
+                    ? '可补揭示'
+                    : '可揭示'
+                  : revealCountdownText ?? `#${revealBlock.toString()}`}
+              </strong>
+            </div>
+          ) : null}
         </div>
 
         <div className="cw-rule-strip">
@@ -352,14 +390,14 @@ export function BattleRoyaleArenaPanel({
             <div className="cw-list-item cw-list-item--warm">
               <Shield size={16} />
               <span>
-                {canRevealNow
-                  ? '已经到揭示块，这一步需要有人触发揭示；结算完成后合约会自动开下一局。'
-                  : revealExpired
-                    ? '普通揭示窗口已过，需要管理员补 emergencyReveal，补完后合约才会自动开下一局。'
-                    : '人数已满，先等揭示块到来；到了之后需要有人触发揭示，结算后会自动开下一局。'}
+                {canPublicReveal
+                  ? usingFallbackReveal
+                    ? '这局已经超过初始揭示阶段，现在任何人都可以补揭示；补完后会自动开下一局。'
+                    : '倒计时已经结束，现在任何人都可以点击揭示；结算完成后会自动开下一局。'
+                    : `人数已满，正在等待揭示倒计时结束。预计还要 ${revealCountdownText ?? '片刻'}，到时任何人都可以揭示。`}
               </span>
             </div>
-            {canRevealNow ? (
+            {canPublicReveal ? (
               <div className="cw-button-row">
                 <button
                   type="button"
@@ -367,7 +405,7 @@ export function BattleRoyaleArenaPanel({
                   onClick={() => void handleAction('reveal')}
                 >
                   <Trophy size={16} />
-                  触发揭示
+                  {usingFallbackReveal ? '补揭示并结算' : '触发揭示'}
                 </button>
               </div>
             ) : null}
@@ -392,7 +430,7 @@ export function BattleRoyaleArenaPanel({
             <button
               key={room.roomId}
               type="button"
-              className={`cw-room-tile ${selectedRoom === room.roomId ? 'cw-room-tile--selected' : ''} ${currentRoom === room.roomId ? 'cw-room-tile--current' : ''}`}
+              className={`cw-room-tile ${selectedRoom === room.roomId ? 'cw-room-tile--selected' : ''} ${currentRoom === room.roomId ? 'cw-room-tile--current' : ''} ${status === 2 && losingRoom === room.roomId ? 'cw-room-tile--losing' : ''}`}
               onClick={() => setSelectedRoom(room.roomId)}
             >
               <span>{room.roomId} 号房</span>

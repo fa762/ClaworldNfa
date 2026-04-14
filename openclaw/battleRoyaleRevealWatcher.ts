@@ -46,9 +46,7 @@ export type BattleRoyaleRevealResult =
   | { kind: "no-open-match"; scan: BattleRoyaleRevealScan }
   | { kind: "not-pending"; scan: BattleRoyaleRevealScan; match: BattleRoyaleRevealMatch }
   | { kind: "too-early"; scan: BattleRoyaleRevealScan; match: BattleRoyaleRevealMatch; blocksRemaining: number }
-  | { kind: "need-owner"; scan: BattleRoyaleRevealScan; match: BattleRoyaleRevealMatch }
-  | { kind: "revealed"; scan: BattleRoyaleRevealScan; match: BattleRoyaleRevealMatch; txHash: string }
-  | { kind: "emergency-revealed"; scan: BattleRoyaleRevealScan; match: BattleRoyaleRevealMatch; txHash: string };
+  | { kind: "revealed"; scan: BattleRoyaleRevealScan; match: BattleRoyaleRevealMatch; txHash: string; fallbackEntropyUsed: boolean };
 
 export type BattleRoyaleRevealWatcherConfig = {
   proxy: string;
@@ -118,29 +116,6 @@ export async function revealBattleRoyaleIfReady(
     };
   }
 
-  if (match.blocksPastReveal >= BATTLE_ROYALE_BLOCKHASH_SAFE) {
-    if (!scan.signerIsOwner) {
-      logger?.warn?.(
-        `[battle-royale-reveal] match #${match.matchId} exceeded reveal window but signer is not owner`
-      );
-      return { kind: "need-owner", scan, match };
-    }
-
-    const overrides = await buildAutonomyTxOverrides(
-      battleRoyale,
-      "emergencyReveal",
-      [match.matchId],
-      txPolicy ?? { gasLimitBufferBps: 10750, gasLimitExtra: 8000 }
-    );
-    const tx =
-      Object.keys(overrides).length > 0
-        ? await battleRoyale.emergencyReveal(match.matchId, overrides)
-        : await battleRoyale.emergencyReveal(match.matchId);
-    await tx.wait();
-    logger?.info?.(`[battle-royale-reveal] emergencyReveal #${match.matchId}: ${tx.hash}`);
-    return { kind: "emergency-revealed", scan, match, txHash: tx.hash };
-  }
-
   const overrides = await buildAutonomyTxOverrides(
     battleRoyale,
     "reveal",
@@ -152,6 +127,9 @@ export async function revealBattleRoyaleIfReady(
       ? await battleRoyale.reveal(match.matchId, overrides)
       : await battleRoyale.reveal(match.matchId);
   await tx.wait();
-  logger?.info?.(`[battle-royale-reveal] reveal #${match.matchId}: ${tx.hash}`);
-  return { kind: "revealed", scan, match, txHash: tx.hash };
+  const fallbackEntropyUsed = match.blocksPastReveal > BATTLE_ROYALE_BLOCKHASH_SAFE;
+  logger?.info?.(
+    `[battle-royale-reveal] ${fallbackEntropyUsed ? "fallback reveal" : "reveal"} #${match.matchId}: ${tx.hash}`
+  );
+  return { kind: "revealed", scan, match, txHash: tx.hash, fallbackEntropyUsed };
 }

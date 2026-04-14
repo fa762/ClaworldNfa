@@ -315,6 +315,7 @@ export default function ArenaPage() {
                   matchId={battleRoyale.matchId}
                   status={battleRoyale.status}
                   revealBlock={battleRoyale.revealBlock}
+                  losingRoom={battleRoyale.losingRoom}
                   totalPlayers={battleRoyale.totalPlayers}
                   triggerCount={battleRoyale.triggerCount}
                   pot={battleRoyale.pot}
@@ -409,7 +410,11 @@ export default function ArenaPage() {
                   </div>
                   <div className="cw-detail-row">
                     <span>{pick('房间', 'Room')}</span>
-                    <strong>{historyDetail.entry.roomId > 0 ? `${historyDetail.entry.roomId}${pick('号房', ' room')}` : '--'}</strong>
+                    <strong>
+                      {historyDetail.entry.roomId > 0 ? (
+                        <span className="cw-chip cw-chip--warm">{`${historyDetail.entry.roomId}${pick('号房', ' room')}`}</span>
+                      ) : '--'}
+                    </strong>
                   </div>
                   <div className="cw-detail-row">
                     <span>{pick('质押', 'Stake')}</span>
@@ -425,7 +430,15 @@ export default function ArenaPage() {
                   </div>
                   <div className="cw-detail-row">
                     <span>{pick('淘汰房', 'Losing room')}</span>
-                    <strong>{historyDetail.entry.losingRoom > 0 ? `${historyDetail.entry.losingRoom}${pick('号房', ' room')}` : '--'}</strong>
+                    <strong>
+                      {historyDetail.entry.losingRoom > 0 ? (
+                        <span className="cw-chip cw-chip--alert">{`${historyDetail.entry.losingRoom}${pick('号房', ' room')}`}</span>
+                      ) : '--'}
+                    </strong>
+                  </div>
+                  <div className="cw-detail-row">
+                    <span>{pick('10% 销毁', '10% burned')}</span>
+                    <strong>{historyDetail.entry.burned > 0n ? formatCLW(historyDetail.entry.burned) : '--'}</strong>
                   </div>
                   <div className="cw-detail-row">
                     <span>{pick('可领奖励', 'Claimable')}</span>

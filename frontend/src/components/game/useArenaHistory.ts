@@ -43,6 +43,7 @@ export type BrHistoryEntry = {
   pot: bigint;
   totalPlayers: number;
   losingRoom: number;
+  burned: bigint;
   result: string;
 };
 
@@ -423,6 +424,15 @@ export function useArenaHistory(tokenId: bigint | undefined, ownerAddress?: Addr
         const claimed = usingAuto ? autoClaimed : ownerClaimed;
         const roomId = Number(playerInfo[0] ?? 0);
         const losingRoom = Number(matchInfo[3] ?? 0);
+        const settlement =
+          Number(matchInfo[0] ?? 0) === 2
+            ? ((await publicClient.readContract({
+                address: addresses.battleRoyale,
+                abi: BattleRoyaleABI,
+                functionName: 'getMatchSettlement',
+                args: [BigInt(matchId)],
+              })) as readonly [bigint, bigint, bigint, bigint, bigint, boolean])
+            : null;
 
         brEntries.push({
           matchId,
@@ -431,6 +441,7 @@ export function useArenaHistory(tokenId: bigint | undefined, ownerAddress?: Addr
           status: Number(matchInfo[0] ?? 0),
           totalPlayers: Number(matchInfo[1] ?? 0),
           losingRoom,
+          burned: settlement?.[2] ?? 0n,
           pot: BigInt(matchInfo[4] ?? 0n),
           roomId,
           stake: BigInt(playerInfo[1] ?? 0n),

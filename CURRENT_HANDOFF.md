@@ -1,9 +1,107 @@
 # Current Handoff
 
-Last updated: 2026-04-14 (session 26) Asia/Singapore
+Last updated: 2026-04-14 (session 28) Asia/Singapore
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
+
+## Battle Royale live recovery - 2026-04-14 session 27
+
+This pass resolved the live stuck `pending reveal` match and tightened the frontend rule wording around reveal timing.
+
+What is now done:
+
+1. The stuck live Battle Royale round has been settled on mainnet
+- before recovery:
+  - match `#2`
+  - `status = PENDING_REVEAL`
+  - `totalPlayers = 10`
+  - `revealBlock = 92445366`
+  - current block at inspection: `92449048`
+  - expired by `3682` blocks
+- recovery executed:
+  - owner-path `emergencyReveal(2)`
+  - tx: `0xc604511da72b7b0789f98d051744b814854ad29fd5f591fef732d965da794848`
+- after recovery:
+  - match `#2` is settled
+  - losing room = `7`
+  - `latestOpenMatch = 3`
+
+2. Reveal timeout is now documented honestly
+- normal `reveal(matchId)` only works while:
+  - `block.number > revealBlock`
+  - and `block.number - revealBlock <= 256`
+- this is not arbitrary UX friction:
+  - the contract uses `blockhash(revealBlock)`
+  - EVM only keeps the most recent 256 block hashes
+- once that window is missed:
+  - normal reveal is impossible
+  - only owner `emergencyReveal(matchId)` can recover the round
+
+3. Arena reveal copy has been rewritten into player language
+- after the lobby fills, the sheet now shows:
+  - reveal countdown
+  - then `任何人都可以揭示`
+  - only after the real chain-side timeout does it mention admin recovery
+
+4. Arena now auto-refreshes while a round is pending reveal
+- if someone else reveals the round, the open Arena sheet should roll forward into the next open match instead of sitting on the old one
+- if the user reveals the round themselves, a delayed follow-up refresh also runs to catch the newly opened match
+
+5. Battle Royale history detail now has stronger settlement cues
+- the history detail sheet now shows:
+  - player room as a yellow tag
+  - losing room as a red tag
+  - `10% 销毁` from on-chain settlement data
+
+## Battle Royale timeout removal checkpoint - 2026-04-14 session 28
+
+This pass removes the owner-only timeout recovery bottleneck from the live Battle Royale reveal path.
+
+What is now done:
+
+1. Battle Royale mainnet reveal logic has been upgraded
+- old behavior:
+  - once the `blockhash(revealBlock)` window was missed
+  - only owner `emergencyReveal(matchId)` could recover the round
+- new behavior:
+  - anyone can still call `reveal(matchId)` after timeout
+  - the contract automatically switches to fallback entropy once the blockhash window is gone
+- mainnet proxy:
+  - `0x2B2182326Fd659156B2B119034A72D1C2cC9758D`
+- implementation before:
+  - `0x43c0D0c9694f568cd63263BA6e1d38D8d6Ca373c`
+- implementation after:
+  - `0xe707429D95372d390f352eED8fEcf820a9EeE725`
+- deployment tx:
+  - `0xac83095ad20caa181e88cd9ecde09ee682f00a8d9ff8101856d2a8a92df25304`
+- upgrade tx:
+  - `0xc7de313ffcd6765eb908e52974273988e04dafa7191ae2dba31335a018290408`
+
+2. The timeout rule is now honest and simpler
+- normal reveal still uses `blockhash(revealBlock)` when available
+- after that window passes, `reveal(matchId)` stays public and falls back to alternate entropy
+- owner-only `emergencyReveal` is no longer required for ordinary timeout recovery
+
+3. Frontend Arena reveal UX now matches live chain behavior
+- pending reveal shows a countdown first
+- once countdown ends:
+  - anyone can reveal
+- after the initial reveal window is missed:
+  - the sheet now shows `补揭示并结算`
+  - and still exposes a public button
+
+4. Battle Royale history detail is now more scannable
+- player room uses a warm tag
+- losing room uses an alert tag
+- `10% 销毁` is read from `getMatchSettlement(matchId)`
+
+Verification completed in this pass:
+
+- `npx hardhat compile`
+- `npx hardhat test test\\BattleRoyale.test.ts`
+- `npm --prefix frontend run build`
+- direct mainnet deployment + proxy upgrade + post-upgrade runtime read checks
 
 ## Companion detail checkpoint - 2026-04-14 session 26
 
@@ -106,9 +204,11 @@ What is now done:
 
 7. Arena action sheets now explain and unblock the next on-chain step
 - Battle Royale `待揭示` is not a dead-end state anymore:
-  - the sheet now tells the user reveal still needs to be triggered on-chain
-  - once the reveal block is reached, the sheet exposes a direct `触发揭示` action
+  - the sheet now shows a real countdown after the match fills
+  - when the countdown ends, the sheet states clearly that anyone can trigger reveal
+  - only after the chain-side reveal window expires does it fall back to an admin-only recovery message
   - once reveal settles, the contract auto-opens the next round
+  - while a match is pending reveal, the Arena sheet now auto-refreshes so the UI can roll forward into the newly opened next match without waiting for a manual refresh
 - PK no longer only drops a footer status line after submit:
   - create / join / reveal / settle / cancel now raise a short result sheet immediately
   - this gives the user a proper “what happened next” panel instead of a tiny status strip

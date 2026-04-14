@@ -5,6 +5,77 @@ Last updated: 2026-04-14 Asia/Singapore
 This file is the source of truth for the frontend product rewrite.
 If agent or chat context changes, continue from this file together with `CURRENT_HANDOFF.md`.
 
+## Battle Royale reveal checkpoint - 2026-04-14 session 27
+
+This checkpoint locks the Arena reveal UX to the actual chain rule instead of internal contract wording.
+
+### 1. Reveal flow now follows the player mental model
+
+Accepted model now implemented:
+
+- when the match fills:
+  - show a reveal countdown
+- when the countdown ends:
+  - tell the user that anyone can reveal
+- if the chain-side reveal window is missed:
+  - only then show the admin recovery state
+
+This is the right product expression for the current contract:
+
+- normal reveal uses `blockhash(revealBlock)`
+- EVM only preserves the latest 256 block hashes
+- so the contract really does have a hard recovery boundary
+
+### 2. Arena should roll into the next match automatically
+
+Accepted model now implemented:
+
+- while a match is pending reveal, the BR sheet now auto-refreshes
+- after a successful reveal, the sheet also performs a delayed second refresh
+- this is meant to move the open sheet forward to the newly auto-opened next round without asking the user to manually refresh
+
+### 3. Battle Royale history detail should be scannable at a glance
+
+Accepted model now implemented:
+
+- player room uses a warm tag
+- losing room uses an alert tag
+- history detail also shows the settlement-side `10% 销毁`
+
+## Battle Royale public timeout reveal checkpoint - 2026-04-14 session 28
+
+This checkpoint locks in the accepted product rule:
+
+- after timeout, anyone can still reveal
+- the frontend must always expose that action
+
+### 1. Contract path now matches the product rule
+
+Accepted model now implemented:
+
+- `reveal(matchId)` remains the public action after the countdown
+- if the original `blockhash(revealBlock)` entropy is still available:
+  - use normal reveal path
+- if that window is gone:
+  - the same public `reveal(matchId)` call falls back to alternate entropy
+
+This removes the old owner-only timeout recovery bottleneck from the ordinary player flow.
+
+### 2. Frontend reveal states are now simpler
+
+Accepted model now implemented:
+
+- countdown
+- public reveal
+- public fallback reveal
+
+No default Arena state should imply:
+
+- match is stuck forever
+- only admin can continue
+
+unless the chain really has entered an exceptional state beyond the intended public flow.
+
 ## Companion detail checkpoint - 2026-04-14 session 26
 
 This checkpoint tightens the top fixed companion strip around one rule:

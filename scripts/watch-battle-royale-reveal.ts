@@ -88,17 +88,8 @@ async function revealOnce() {
     return;
   }
 
-  if (result.kind === "need-owner") {
-    throw new Error("Reveal window expired; owner signer is required for emergencyReveal(matchId)");
-  }
-
-  if (result.kind === "emergency-revealed") {
-    console.log(`emergencyReveal tx: ${result.txHash}`);
-    return;
-  }
-
   if (result.kind === "revealed") {
-    console.log(`reveal tx: ${result.txHash}`);
+    console.log(`${result.fallbackEntropyUsed ? "fallback reveal" : "reveal"} tx: ${result.txHash}`);
   }
 }
 

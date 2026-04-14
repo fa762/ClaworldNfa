@@ -167,6 +167,23 @@ describe("BattleRoyale", function () {
     expect(await battleRoyale.latestOpenMatch()).to.equal(2);
   });
 
+  it("allows any player to reveal after the blockhash window expires", async function () {
+    await fillDefaultMatch([1, 1, 2, 2, 3, 4, 5, 6, 7, 8]);
+
+    const matchInfoBefore = await battleRoyale.getMatchInfo(1);
+    expect(matchInfoBefore.status).to.equal(1);
+
+    await mineBlocks(262);
+    await battleRoyale.connect(players[0]).reveal(1);
+
+    const matchInfoAfter = await battleRoyale.getMatchInfo(1);
+    const settlement = await battleRoyale.getMatchSettlement(1);
+
+    expect(matchInfoAfter.status).to.equal(2);
+    expect(settlement.fallbackEntropyUsed).to.equal(true);
+    expect(await battleRoyale.latestOpenMatch()).to.equal(2);
+  });
+
   it("can pay a manual winner from battle balance plus router treasury in a mixed-source round", async function () {
     await battleRoyale.initializeV2(router.address, nfa.address, 100);
     await battleRoyale.setTriggerCount(2);

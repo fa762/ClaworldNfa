@@ -289,9 +289,9 @@ async function main(): Promise<void> {
           warn: (...args) => console.warn(...args),
         },
       });
-      if (result.kind === "revealed" || result.kind === "emergency-revealed") {
+      if (result.kind === "revealed") {
         console.log(
-          `[autonomy-runner] battle royale ${result.kind === "revealed" ? "reveal" : "emergencyReveal"} #${result.match.matchId}: ${result.txHash}`
+          `[autonomy-runner] battle royale ${result.fallbackEntropyUsed ? "fallback reveal" : "reveal"} #${result.match.matchId}: ${result.txHash}`
         );
       }
     } catch (error) {
