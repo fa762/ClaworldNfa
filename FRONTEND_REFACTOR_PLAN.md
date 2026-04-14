@@ -2617,3 +2617,4 @@ For this rewrite, every meaningful decision or completed step should be written 
     - adventure `55-90`
     - puzzle `45-75`
     - crafting `50-80`
+  - mainline `/play` now uses a 3-slot shell with rolled task variants under each slot, so the task titles and flavor rotate without changing the basic flow

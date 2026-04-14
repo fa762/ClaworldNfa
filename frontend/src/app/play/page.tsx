@@ -34,6 +34,7 @@ type SheetMode = 'preview' | 'confirm';
 type TaskTemplate = {
   key: string;
   title: string;
+  summary?: string;
   taskType: number;
   xpReward: number;
   requestedClw: bigint;
@@ -63,6 +64,19 @@ type TaskResult = {
   driftReason?: string;
 };
 
+type TaskCopy = {
+  zh: string;
+  en: string;
+};
+
+type TaskVariant = {
+  title: TaskCopy;
+  summary: TaskCopy;
+  detail: TaskCopy;
+  rewardBias: number;
+  xpBias: number;
+};
+
 const taskSkillContract = {
   address: addresses.taskSkill,
   abi: TaskSkillABI,
@@ -85,8 +99,127 @@ const taskPreviewStateAbi = [
   },
 ] as const;
 
+const TASK_VARIANTS = {
+  adventure: [
+    {
+      title: { zh: '废墟探索', en: 'Ruins sweep' },
+      summary: { zh: '清掉地表废墟，带回还能卖钱的残件。', en: 'Sweep the ruins and bring back salvage worth selling.' },
+      detail: { zh: '高回报', en: 'High upside' },
+      rewardBias: 1.06,
+      xpBias: 2,
+    },
+    {
+      title: { zh: '信号塔抢修', en: 'Signal rush' },
+      summary: { zh: '抢在风暴前修好信号塔，报酬高，风险也高。', en: 'Repair the signal tower before the storm closes in.' },
+      detail: { zh: '高风险', en: 'High risk' },
+      rewardBias: 1.1,
+      xpBias: 1,
+    },
+    {
+      title: { zh: '护送幸存者', en: 'Escort run' },
+      summary: { zh: '带新来的幸存者穿过地道，路上容易遭遇意外。', en: 'Escort survivors through the tunnels under pressure.' },
+      detail: { zh: '稳中带赚', en: 'Solid payout' },
+      rewardBias: 1,
+      xpBias: 0,
+    },
+    {
+      title: { zh: '巢穴清扫', en: 'Nest purge' },
+      summary: { zh: '清掉洞穴里的危险生物，顺手回收稀有材料。', en: 'Clear a nest and salvage rare materials.' },
+      detail: { zh: '刺激', en: 'Spiky' },
+      rewardBias: 1.04,
+      xpBias: -1,
+    },
+    {
+      title: { zh: '地表突袭', en: 'Surface raid' },
+      summary: { zh: '趁监控盲区冲上地表，抢一波就撤。', en: 'Hit the surface fast and get out before the window closes.' },
+      detail: { zh: '爆发', en: 'Burst' },
+      rewardBias: 1.08,
+      xpBias: 0,
+    },
+  ] satisfies TaskVariant[],
+  puzzle: [
+    {
+      title: { zh: '密码破译', en: 'Cipher break' },
+      summary: { zh: '拆开一段加密通信，看看对面在准备什么。', en: 'Break an encrypted message and read the intent behind it.' },
+      detail: { zh: '偏稳定', en: 'Steady' },
+      rewardBias: 1,
+      xpBias: 2,
+    },
+    {
+      title: { zh: '数据分析', en: 'Data sort' },
+      summary: { zh: '把旧服务器里的碎片数据整理成可用情报。', en: 'Turn broken server scraps into usable intel.' },
+      detail: { zh: '高经验', en: 'XP heavy' },
+      rewardBias: 0.96,
+      xpBias: 3,
+    },
+    {
+      title: { zh: '终端诊断', en: 'Terminal scan' },
+      summary: { zh: '找出异常终端的故障点，顺手抄走里面的资料。', en: 'Diagnose a rogue terminal and copy anything useful.' },
+      detail: { zh: '低波动', en: 'Low swing' },
+      rewardBias: 0.94,
+      xpBias: 1,
+    },
+    {
+      title: { zh: '路径规划', en: 'Route plan' },
+      summary: { zh: '算出一条避开传感器的安全路线，卖给需要的人。', en: 'Chart a sensor-safe route and sell the route intel.' },
+      detail: { zh: '稳健', en: 'Reliable' },
+      rewardBias: 1.02,
+      xpBias: 0,
+    },
+    {
+      title: { zh: '文献翻译', en: 'Archive decode' },
+      summary: { zh: '把旧世界手册翻出来，挖点今天还能用的知识。', en: 'Decode an old-world manual for present-day use.' },
+      detail: { zh: '成长向', en: 'Growth' },
+      rewardBias: 0.92,
+      xpBias: 4,
+    },
+  ] satisfies TaskVariant[],
+  crafting: [
+    {
+      title: { zh: '终端改装', en: 'Terminal mod' },
+      summary: { zh: '改一台旧终端，让它继续给避难所赚钱。', en: 'Refit an old terminal and put it back to work.' },
+      detail: { zh: '平衡', en: 'Balanced' },
+      rewardBias: 1,
+      xpBias: 1,
+    },
+    {
+      title: { zh: '能源改造', en: 'Power splice' },
+      summary: { zh: '把废旧供电系统改出更高效率，省下一大笔。', en: 'Splice the power grid into a more efficient setup.' },
+      detail: { zh: '保储备', en: 'Reserve' },
+      rewardBias: 0.98,
+      xpBias: 2,
+    },
+    {
+      title: { zh: '防线工事', en: 'Fortify line' },
+      summary: { zh: '拿废料做临时防线，顺手把能卖的零件留下。', en: 'Build fortifications and keep the sellable scraps.' },
+      detail: { zh: '稳赚', en: 'Steady gain' },
+      rewardBias: 1.03,
+      xpBias: 0,
+    },
+    {
+      title: { zh: '通信加密', en: 'Signal harden' },
+      summary: { zh: '重做一套通信加密方案，让外面更难摸进来。', en: 'Rework comms encryption to keep outsiders out.' },
+      detail: { zh: '成长向', en: 'Growth' },
+      rewardBias: 0.95,
+      xpBias: 3,
+    },
+    {
+      title: { zh: '地图绘制', en: 'Tunnel map' },
+      summary: { zh: '把散乱的探索记录画成地图，后面进出都能省成本。', en: 'Turn scattered exploration notes into a usable map.' },
+      detail: { zh: '低风险', en: 'Low risk' },
+      rewardBias: 0.97,
+      xpBias: 1,
+    },
+  ] satisfies TaskVariant[],
+} as const;
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function pickSeededVariant<T>(items: readonly T[], seed: number) {
+  if (items.length === 0) throw new Error('Task variant pool is empty.');
+  return items[Math.abs(seed) % items.length];
 }
 
 function getTaskMatchValue(
@@ -151,20 +284,25 @@ function buildTaskTemplates(
   active: boolean,
   upkeepDays: number | null,
   pick: <T,>(zh: T, en: T) => T,
+  tokenNumber: number,
+  rollNonce: number,
 ) {
   const levelLift = level * 2;
+  const adventureVariant = pickSeededVariant(TASK_VARIANTS.adventure, tokenNumber * 11 + rollNonce * 5 + 1);
+  const puzzleVariant = pickSeededVariant(TASK_VARIANTS.puzzle, tokenNumber * 13 + rollNonce * 7 + 2);
+  const craftingVariant = pickSeededVariant(TASK_VARIANTS.crafting, tokenNumber * 17 + rollNonce * 11 + 3);
   const adventureReward = clamp(
-    Math.round(34 + traits.courage * 0.32 + traits.grit * 0.14 + level * 1.8),
+    Math.round((34 + traits.courage * 0.32 + traits.grit * 0.14 + level * 1.8) * adventureVariant.rewardBias),
     55,
     90,
   );
   const puzzleReward = clamp(
-    Math.round(30 + traits.wisdom * 0.26 + traits.create * 0.12 + level * 1.6),
+    Math.round((30 + traits.wisdom * 0.26 + traits.create * 0.12 + level * 1.6) * puzzleVariant.rewardBias),
     45,
     75,
   );
   const craftingReward = clamp(
-    Math.round(32 + traits.create * 0.28 + traits.social * 0.14 + level * 1.6),
+    Math.round((32 + traits.create * 0.28 + traits.social * 0.14 + level * 1.6) * craftingVariant.rewardBias),
     50,
     80,
   );
@@ -218,6 +356,98 @@ function buildTaskTemplates(
   ] satisfies TaskTemplate[];
 }
 
+function buildRolledTaskTemplates(
+  traits: {
+    courage: number;
+    wisdom: number;
+    social: number;
+    create: number;
+    grit: number;
+  },
+  level: number,
+  upkeepPressure: number,
+  active: boolean,
+  upkeepDays: number | null,
+  pick: <T,>(zh: T, en: T) => T,
+  tokenNumber: number,
+  rollNonce: number,
+) {
+  const levelLift = level * 2;
+  const adventureVariant = pickSeededVariant(TASK_VARIANTS.adventure, tokenNumber * 11 + rollNonce * 5 + 1);
+  const puzzleVariant = pickSeededVariant(TASK_VARIANTS.puzzle, tokenNumber * 13 + rollNonce * 7 + 2);
+  const craftingVariant = pickSeededVariant(TASK_VARIANTS.crafting, tokenNumber * 17 + rollNonce * 11 + 3);
+
+  const adventureReward = clamp(
+    Math.round((34 + traits.courage * 0.32 + traits.grit * 0.14 + level * 1.8) * adventureVariant.rewardBias),
+    55,
+    90,
+  );
+  const puzzleReward = clamp(
+    Math.round((30 + traits.wisdom * 0.26 + traits.create * 0.12 + level * 1.6) * puzzleVariant.rewardBias),
+    45,
+    75,
+  );
+  const craftingReward = clamp(
+    Math.round((32 + traits.create * 0.28 + traits.social * 0.14 + level * 1.6) * craftingVariant.rewardBias),
+    50,
+    80,
+  );
+
+  return [
+    {
+      key: 'adventure',
+      title: pick(adventureVariant.title.zh, adventureVariant.title.en),
+      summary: pick(adventureVariant.summary.zh, adventureVariant.summary.en),
+      taskType: 0,
+      xpReward: clamp(16 + level * 2 + adventureVariant.xpBias, 12, 32),
+      requestedClw: parseEther(String(adventureReward)),
+      score: clamp(
+        Math.round(traits.courage * 0.62 + traits.grit * 0.36 + levelLift - upkeepPressure * 0.25),
+        8,
+        99,
+      ),
+      detail: pick(adventureVariant.detail.zh, adventureVariant.detail.en),
+      icon: Swords,
+      tone: active ? 'cw-card--ready' : 'cw-card--warning',
+    },
+    {
+      key: 'puzzle',
+      title: pick(puzzleVariant.title.zh, puzzleVariant.title.en),
+      summary: pick(puzzleVariant.summary.zh, puzzleVariant.summary.en),
+      taskType: 1,
+      xpReward: clamp(14 + level * 2 + puzzleVariant.xpBias, 12, 30),
+      requestedClw: parseEther(String(puzzleReward)),
+      score: clamp(
+        Math.round(traits.wisdom * 0.7 + traits.create * 0.18 + levelLift - upkeepPressure * 0.16),
+        8,
+        99,
+      ),
+      detail: pick(puzzleVariant.detail.zh, puzzleVariant.detail.en),
+      icon: Shield,
+      tone: 'cw-card--watch',
+    },
+    {
+      key: 'crafting',
+      title: pick(craftingVariant.title.zh, craftingVariant.title.en),
+      summary: pick(craftingVariant.summary.zh, craftingVariant.summary.en),
+      taskType: 3,
+      xpReward: clamp(12 + level * 2 + craftingVariant.xpBias, 10, 28),
+      requestedClw: parseEther(String(craftingReward)),
+      score: clamp(
+        Math.round(traits.create * 0.58 + traits.social * 0.22 + levelLift - upkeepPressure * 0.1),
+        8,
+        99,
+      ),
+      detail:
+        upkeepDays !== null && upkeepDays <= 2
+          ? pick('保储备', 'Low risk')
+          : pick(craftingVariant.detail.zh, craftingVariant.detail.en),
+      icon: Hammer,
+      tone: upkeepDays !== null && upkeepDays <= 2 ? 'cw-card--warning' : 'cw-card--safe',
+    },
+  ] satisfies TaskTemplate[];
+}
+
 export default function PlayPage() {
   const { pick } = useI18n();
   const companion = useActiveCompanion();
@@ -239,20 +469,23 @@ export default function PlayPage() {
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   const [awaitingWallet, setAwaitingWallet] = useState(false);
   const [refreshingPreview, setRefreshingPreview] = useState(false);
+  const [taskRollNonce, setTaskRollNonce] = useState(0);
 
   const upkeepPressure =
     companion.upkeepDays === null ? 0 : clamp(100 - companion.upkeepDays * 12, 0, 42);
   const taskTemplates = useMemo(
     () =>
-      buildTaskTemplates(
+      buildRolledTaskTemplates(
         companion.traits,
         companion.level,
         upkeepPressure,
         companion.active,
         companion.upkeepDays,
         pick,
+        companion.tokenNumber,
+        taskRollNonce,
       ),
-    [companion.active, companion.level, companion.traits, companion.upkeepDays, upkeepPressure, pick],
+    [companion.active, companion.level, companion.tokenNumber, companion.traits, companion.upkeepDays, upkeepPressure, pick, taskRollNonce],
   );
 
   const rankedTaskTemplates = useMemo(
@@ -276,6 +509,7 @@ export default function PlayPage() {
     setResult(null);
     setSubmittedTask(null);
     setSubmittedPreview(null);
+    setTaskRollNonce(0);
   }, [companion.tokenId]);
 
   useEffect(() => {
@@ -499,6 +733,7 @@ export default function PlayPage() {
       driftState,
       driftReason,
     });
+    setTaskRollNonce((current) => current + 1);
     setSheetOpen(false);
     setSheetMode('preview');
     setSubmittedTask(null);
@@ -640,6 +875,7 @@ export default function PlayPage() {
                       {sheetMode === 'preview' ? pick('预览', 'Preview') : pick('确认', 'Confirm')}
                     </span>
                     <h3>{selectedTask.title}</h3>
+                    {selectedTask.summary ? <p className="cw-muted">{selectedTask.summary}</p> : null}
                   </div>
                   <button
                     type="button"

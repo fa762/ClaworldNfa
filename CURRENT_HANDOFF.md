@@ -2702,3 +2702,6 @@ If you need a clean operational path again, create or reuse a clean worktree for
     - puzzle `45-75`
     - crafting `50-80`
   - this should bring early real payouts back much closer to the old frontend range under the same world multiplier and streak state
+  - mainline `/play` now keeps 3 mining entry slots but rolls concrete task variants behind them
+  - switching lobster keeps the 3-slot layout and refreshes the task set
+  - completing one mining run also advances the visible task roll
