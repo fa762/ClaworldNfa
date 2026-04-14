@@ -1,6 +1,46 @@
 # Current Handoff
 
-Last updated: 2026-04-14 (session 38) Asia/Singapore
+Last updated: 2026-04-14 (session 39) Asia/Singapore
+
+## Auto page trigger and settings split - 2026-04-14 session 39
+
+This pass fixes the main usability problem on the player-facing AI page.
+
+What changed:
+
+1. `/auto` is now split into three clearer layers
+- `开通代理`
+- `运行设置`
+- `最近动作`
+
+2. The setup area no longer mixes approvals with editable numbers
+- approvals stay in the setup block
+- style / daily limit / max spend / reserve / breaker now live in their own settings block
+- the page now says directly that signing an approval step does not reset those values
+
+3. The trigger model is now stated truthfully
+- after setup, the backend keeps checking on a schedule
+- enabling the page is not a one-shot action
+- the UI now says this in player language
+
+4. Recent action detail is now written in user-facing language
+- what it joined or ran
+- what it picked
+- what it spent
+- what it got back
+
+5. Advanced detail is trimmed toward useful review
+- action
+- target
+- picked option
+- result
+- reasoning summary
+- prompt / model output / memory influence when available
+
+Validation:
+
+- `npx tsc --noEmit --project frontend/tsconfig.json` passes
+- `npm --prefix frontend run build` is still blocked in this environment by Google Fonts fetch failure during `next/font`
 
 ## PWA install banner removal - 2026-04-14 session 38
 

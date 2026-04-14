@@ -1,6 +1,53 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-14 (session 38) Asia/Singapore
+Last updated: 2026-04-14 (session 39) Asia/Singapore
+
+## Auto page setup/settings split - 2026-04-14 session 39
+
+Accepted product rule now implemented:
+
+- opening the AI page should not feel like reading operator tooling
+- the player should know:
+  - how to turn it on
+  - which values they control
+  - that the backend keeps checking automatically
+  - what the last action actually did
+
+What is now implemented:
+
+1. `/auto` is split into:
+- `开通代理`
+- `运行设置`
+- `最近动作`
+
+2. The setup block only handles:
+- wallet connection
+- wallet threshold
+- lobster reserve
+- approvals
+- lease
+- pause / resume
+
+3. The settings block only handles:
+- style
+- daily limit
+- max spend
+- minimum reserve
+- failure breaker
+
+4. The result block now reads like a player log
+- action
+- target
+- choice
+- result
+
+5. Advanced detail stays available, but the useful content comes first
+
+Follow-up after session 39:
+
+1. keep trimming the standalone directive card so it feels lighter than it does today
+2. surface CML memory on the player side in a minimal, readable way
+3. test the hosted `/auto` page with a real owner wallet again after deployment
 
 ## PWA banner cleanup - 2026-04-14 session 38
 
