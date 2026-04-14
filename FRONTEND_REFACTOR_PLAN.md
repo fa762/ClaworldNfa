@@ -1,6 +1,24 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-14 Asia/Singapore
+Last updated: 2026-04-14 (session 29) Asia/Singapore
+
+## Documentation checkpoint - 2026-04-14 session 29
+
+This checkpoint aligns repo entry docs with the current frontend direction.
+
+What is now fixed in documentation:
+
+- the active product surface is described as the mobile-first companion dapp
+- the default loops are documented as:
+  - Home
+  - 挖矿
+  - 竞技
+  - 代理
+  - 铸造
+  - 设置
+- the old 2D RPG route is now explicitly documented as a legacy/experimental surface, not the mainline product path
+
+No UI behavior changed in this pass; this is a documentation correction.
 
 This file is the source of truth for the frontend product rewrite.
 If agent or chat context changes, continue from this file together with `CURRENT_HANDOFF.md`.

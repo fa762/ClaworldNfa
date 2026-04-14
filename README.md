@@ -1,78 +1,147 @@
 # Clawworld
 
-Private main repository for the live Clawworld NFA world on BNB Chain.
+Clawworld 是运行在 BNB Chain 上的 NFA 世界与移动端养成 dapp。  
+这个仓库是当前的**私有主工作仓**，包含合约、前端、OpenClaw 运行时、主网迁移脚本和当前真实交接文档。
 
-[Website](https://www.clawnfaterminal.xyz) · [Game](https://www.clawnfaterminal.xyz/game) · [Public Repo](https://github.com/fa762/ClaworldNfa)
+- 官网：[www.clawnfaterminal.xyz](https://www.clawnfaterminal.xyz)
+- 公开仓库：[github.com/fa762/ClaworldNfa](https://github.com/fa762/ClaworldNfa)
 
-## Overview
+## 当前状态
 
-Clawworld is a full on-chain NFA game world built around three connected layers:
+当前主线已经不再是“终端感网站”或“2D RPG 展示页”，而是这条真实产品路径：
 
-- `contracts/`: identity, balances, gameplay, oracle, and autonomy contracts
-- `frontend/`: mobile-first owner shell, game entry surfaces, mint, mining, arena, auto, settings
-- `openclaw/`: runtime, memory, planner, and bounded autonomy runner
+- `ClawNFA`：每只龙虾的链上身份
+- `ClawRouter`：每只 NFA 的记账账户、储备、维护、提现
+- `任务挖矿`：固定 3 类任务，收益与推荐强度随角色状态变化
+- `PK`：质押、策略、提交、揭示、结算
+- `大逃杀`：房间制生存局、揭示、结算、奖励回记账账户
+- `OpenClaw`：运行时、记忆、规划器、受边界自治执行
+- `frontend/`：正在持续收口的移动端 PWA shell
 
-Each lobster NFA is treated as an agent-like character:
+已经落在主网并被反复验证过的主线能力：
 
-- on-chain identity via `ClawNFA`
-- internal account via `ClawRouter`
-- progression via mining, PK, and Battle Royale
-- long-term runtime memory via OpenClaw + CML
-- bounded self-action through the ClawOracle / autonomy stack
-
-## What Is Live
-
-Mainnet product surfaces already in use:
-
-- Genesis mint with commit-reveal
-- ClawRouter internal balances, upkeep, deposit, withdraw
-- mining / task flows
+- Genesis Mint（commit-reveal）
+- NFA 内部记账账户
+- 储备充值 / 维护 / 提现
+- 任务挖矿
 - PK
-- Battle Royale
-- browser shell and game entry surfaces
-- OpenClaw runtime
-- bounded on-chain autonomy with policy, budget, approval, lease, receipt, and finalization paths
+- 大逃杀
+- Battle Royale 公开超时补揭示
+- Autonomy / ActionHub / Finalization 主链路
+- Vercel KV -> Vultr runner directive 闭环
 
-The frontend is currently being rebuilt toward a mobile-first companion dapp. The live shell now centers on:
+## 先看哪里
 
-- Home
-- Mining
-- Arena
-- Auto
-- Mint
-- Settings
-
-## Current Source Of Truth
-
-For current live status and active work, do not rely only on commit history.
-
-Start here:
+如果你要接着做事，不要只看 commit history。  
+当前真实状态优先看：
 
 - [CURRENT_HANDOFF.md](./CURRENT_HANDOFF.md)
 - [FRONTEND_REFACTOR_PLAN.md](./FRONTEND_REFACTOR_PLAN.md)
 
-These two files track:
+这两个文件记录的是：
 
-- what is already verified live
-- what is still blocked by contract/runtime issues
-- what the frontend is currently optimizing for
+- 当前主网已经验证到哪里
+- 哪些能力已经闭环
+- 哪些是前端问题，哪些是合约问题
+- 当前前端重构遵循的产品规则
 
-## Repo Layout
+## 这个仓库包含什么
 
 ```text
 clawworld/
-├── contracts/      # gameplay, identity, oracle, autonomy contracts
-├── frontend/       # website, rebuilt mobile shell, wallet-gated actions
-├── openclaw/       # runtime, CML memory, planner, runner
-├── scripts/        # deployment, upgrade, migration, validation
-├── test/           # contract tests
-├── CURRENT_HANDOFF.md
-└── FRONTEND_REFACTOR_PLAN.md
+├─ contracts/                  # 合约：身份、记账、玩法、自治、世界状态
+├─ frontend/                   # 移动端 PWA shell、Mint、挖矿、竞技、代理、设置
+├─ openclaw/                   # 运行时、CML、planner、runner、watcher
+├─ scripts/                    # 主网部署、升级、迁移、校验、smoke 脚本
+├─ test/                       # 合约测试
+├─ CURRENT_HANDOFF.md          # 当前真实交接文档
+├─ FRONTEND_REFACTOR_PLAN.md   # 前端重构主计划
+├─ AGENT.md                    # 长期背景上下文
+└─ CLAUDE.md                   # 长期背景上下文
 ```
 
-## Quick Start
+## 当前产品模型
 
-### Contracts
+### 1. 身份层
+
+`ClawNFA` 是世界里的身份载体。  
+每只 NFA 不只是图片，而是：
+
+- 一个链上身份
+- 一个单独的记账账户
+- 一套成长/玩法属性
+- 一个可被策略和记忆影响的角色
+
+### 2. 记账层
+
+`ClawRouter` 负责：
+
+- NFA 储备余额
+- 日维护消耗
+- 充值 / 提现
+- 玩法消耗与奖励回账
+- 共享金库式补付能力
+
+### 3. 玩法层
+
+当前主线玩法：
+
+- `任务挖矿`
+- `PK`
+- `大逃杀`
+
+前端默认表达规则已经固定：
+
+- 默认页面只保留：动作、收益、条件、结果
+- 少解释，少长文，少内部术语
+- 交互优先于说明
+
+### 4. 运行时与自治
+
+`OpenClaw` 负责：
+
+- 记忆与上下文
+- planner / runner
+- oracle request -> sync -> execute -> finalize
+- Battle Royale reveal watcher
+- directive 注入
+
+这部分在私有仓里保留完整代码和运维脚本；公开仓不会包含敏感运行细节。
+
+## 当前主网关键地址
+
+主网前端 canonical 地址来源：
+
+- [frontend/src/contracts/addresses.ts](./frontend/src/contracts/addresses.ts)
+
+### 核心世界合约
+
+| 合约 | 地址 |
+| --- | --- |
+| ClawNFA | `0xAa2094798B5892191124eae9D77E337544FFAE48` |
+| ClawRouter | `0x60C0D5276c007Fd151f2A615c315cb364EF81BD5` |
+| WorldState | `0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA` |
+| GenesisVault | `0xCe04f834aC4581FD5562f6c58C276E60C624fF83` |
+| Claworld | `0x3b486c191c74c9945fa944a3ddde24acdd63ffff` |
+| TaskSkill | `0xaed370784536e31BE4A5D0Dbb1bF275c98179D10` |
+| PKSkill | `0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF` |
+| BattleRoyale | `0x2B2182326Fd659156B2B119034A72D1C2cC9758D` |
+
+### 自治相关合约
+
+| 合约 | 地址 |
+| --- | --- |
+| ClawAutonomyRegistry | `0xD18BaF2670fFcb4CC92260719AbFc9d637dB7044` |
+| ClawAutonomyDelegationRegistry | `0x1C3A69fC7715563D9dDF9847BB5ffF3B6e09aAEa` |
+| ClawOracleActionHub | `0xEdd04D821ab9E8eCD5723189A615333c3509f1D5` |
+| ClawAutonomyFinalizationHub | `0x65F850536bE1B844c407418d8FbaE795045061bd` |
+| TaskSkillAdapter | `0xe7a7E66F9F05eC14925B155C4261F32603857E8E` |
+| PKSkillAdapter | `0x1ef409114BAD145e5289a5e906E9Ea38B7d05A0c` |
+| BattleRoyaleAdapter | `0xCD71fD0429DC82EfD6Ef019a7e1F7f93a5A1AEcc` |
+
+## 快速开始
+
+### 合约
 
 ```bash
 npm install
@@ -80,86 +149,100 @@ npx hardhat compile
 npx hardhat test
 ```
 
-### Frontend
+### 前端
 
 ```bash
 npm --prefix frontend install
 npm --prefix frontend run dev
 ```
 
-### Frontend production build
+### 前端生产构建
 
 ```bash
 npm --prefix frontend run build
 ```
 
-## Mainnet Addresses
+### 运行时自检
 
-Canonical frontend address wiring lives in:
+```bash
+npm run runner:autonomy:check
+npm run directive:check
+npm run watch:battle-royale:check
+```
 
-- [frontend/src/contracts/addresses.ts](./frontend/src/contracts/addresses.ts)
+## 当前工作约定
 
-Do not treat old hosted env values as the source of truth for mainnet addresses.
+这些规则已经在当前产品里固定下来：
 
-## Working Rules
+- 产品名：`Clawworld`
+- 代币名：`Claworld`
+- `/play` 是“任务挖矿”，不是泛动作页
+- `/arena` 只表达两条玩法：
+  - `PK`
+  - `大逃杀`
+- 中文页应当中文优先，只允许极少量英文装饰
+- 默认界面不要写成长解释页
+- 默认界面只保留：
+  - 动作名
+  - 奖励 / 收益
+  - 条件 / 阻塞
+  - 当前状态 / 结果
 
-- Product name: `Clawworld`
-- Token name: `Claworld`
-- `/play` is the mining surface, not a generic action bucket
-- Arena is split into `PK` and `大逃杀`
-- Default frontend screens should stay short:
-  - action
-  - reward
-  - condition/blocker
-  - current result
+## 2D RPG 的当前定位
 
-## Secrets And Hosted Infra
+仓库里仍然保留了旧的 2D RPG / `/game` 路径与相关代码，主要为了：
 
-Real secrets are not tracked in this repository.
+- 历史实验保留
+- 素材和交互参考
+- 旧路由回退
 
-Tracked content should contain:
+但它**已经不是当前主产品主线**。  
+当前主线是：
 
-- code
-- templates
-- examples
-- public addresses
-- non-secret documentation
+- 移动端 PWA shell
+- 任务挖矿
+- PK
+- 大逃杀
+- 代理 / 自治
 
-Local-only or hosted-only values stay outside git, including:
+如果你在做新功能，不要再把 2D RPG 当成默认入口来设计。
 
-- private keys
-- runner env files
-- hosted KV tokens
-- hosted API credentials
+## Secrets 与托管环境
 
-## Public Repo Split
+真实 secrets 不进 git。  
+这个仓库里应该只保留：
 
-This private repository is the main working repo.
+- 代码
+- 示例 env
+- 公共地址
+- 不含密钥的文档
 
-The public code mirror is:
+本地或托管环境中才应该存在：
 
-- [github.com/fa762/ClaworldNfa](https://github.com/fa762/ClaworldNfa)
+- 私钥
+- runner env
+- Vercel / KV token
+- 运行时 API key
+- 任何生产密钥或账户文件
 
-When updating public docs or code, keep out:
+## 私有仓与公开仓的边界
 
-- live operator details
-- internal runbooks
-- private infra notes
-- local secret paths
+这个私有仓是主工作仓。  
+公开仓只应保留：
 
-## 中文说明
+- 合约 / 前端 / 运行时代码
+- 非敏感产品文档
+- 开发者可见的公开地址
 
-这是 Clawworld 的私有主仓库。
+不要把下面这些带进公开仓：
 
-当前主要包含三部分：
+- 运维 runbook
+- 本地路径
+- 托管环境细节
+- operator 账户操作细节
+- 敏感部署步骤
 
-- 合约
-- 前端
-- OpenClaw 运行时 / autonomy
+## 一句话总结
 
-如果要快速了解当前真实进度，不要只看 README，优先看：
-
-- [CURRENT_HANDOFF.md](./CURRENT_HANDOFF.md)
-- [FRONTEND_REFACTOR_PLAN.md](./FRONTEND_REFACTOR_PLAN.md)
-
-这两个文件记录的是当前真实状态，而不是历史理想状态。
+现在的 Clawworld 不是一个“概念展示仓”，也不再是以 2D RPG 为中心的项目。  
+它当前真实主线是：**NFA 身份 + 记账账户 + 任务挖矿 / PK / 大逃杀 + 移动端 PWA shell + 受边界自治运行时。**

@@ -1,6 +1,34 @@
 # Current Handoff
 
-Last updated: 2026-04-14 (session 28) Asia/Singapore
+Last updated: 2026-04-14 (session 29) Asia/Singapore
+
+## Documentation refresh - 2026-04-14 session 29
+
+This pass rewrites both the private and public README so the repo entry matches the current product truth.
+
+What is now done:
+
+1. The private README now reflects the current working repo honestly
+- mobile-first companion dapp is the main product surface
+- contracts / frontend / OpenClaw are described as the real active layers
+- canonical mainnet addresses are listed
+- `CURRENT_HANDOFF.md` and `FRONTEND_REFACTOR_PLAN.md` are explicitly called out as the real source of truth
+
+2. The public README now reflects the current external product honestly
+- core live loops are documented:
+  - mint
+  - NFA ledger
+  - mining
+  - PK
+  - Battle Royale
+  - bounded autonomy
+- public/private boundary is restated cleanly
+
+3. The old 2D RPG path is now demoted in docs
+- `/game` and the old browser-RPG route are still preserved in code
+- they are no longer described as the primary product direction
+
+No runtime, contract, or frontend behavior changed in this pass.
 
 This file is the current source of truth for the autonomy / BattleRoyale / TaskSkill workstream.
 If Codex account or chat context changes, start from this file instead of relying on old conversations.
