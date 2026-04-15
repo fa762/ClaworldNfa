@@ -1,6 +1,37 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-15 (session 41) Asia/Singapore
+Last updated: 2026-04-15 (session 42) Asia/Singapore
+
+## Companion detail compact follow-up - 2026-04-15 session 42
+
+Accepted product rule:
+
+- the companion detail sheet should feel like a compact game panel
+- long vertical stacks should be avoided on mobile
+- monthly growth should be visible where the player already reviews character stats
+
+What is now implemented:
+
+1. Companion detail top summary is compressed
+- level / status / shelter now stay in a tighter row
+- pill sizing and typography were reduced for mobile
+
+2. Task traits now fit a shorter visual block
+- smaller radar
+- tighter legend
+- less dead vertical space
+
+3. Monthly growth now sits inside companion details
+- five live rows
+- each row reads current month growth directly from `PersonalityEngine`
+- display format is `x / 10`
+
+4. PK stats keep the bar language but use a smaller card budget
+
+Follow-up after session 42:
+
+1. review the hosted detail sheet on a real phone and trim again if the radar still feels tall
+2. if monthly growth is useful, mirror just the current task lane inside the mining preview modal
 
 ## Mining stat copy and companion-detail UI - 2026-04-15 session 41
 

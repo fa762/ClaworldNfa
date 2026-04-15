@@ -1,8 +1,12 @@
-'use client';
+﻿'use client';
 
+import { useMemo } from 'react';
 import { X } from 'lucide-react';
+import { useReadContracts } from 'wagmi';
 
 import { type ActiveCompanionValue } from '@/components/lobster/useActiveCompanion';
+import { PersonalityEngineABI } from '@/contracts/abis/PersonalityEngine';
+import { addresses } from '@/contracts/addresses';
 import { useI18n } from '@/lib/i18n';
 
 function clampPercent(value: number) {
@@ -47,22 +51,26 @@ export function CompanionDetailsSheet({
 }) {
   const { pick } = useI18n();
 
-  if (!open) return null;
+  const taskTraits = useMemo(
+    () => [
+      { label: pick('勇气', 'Courage'), value: companion.traits.courage, color: '#ffb347', dimension: 0 },
+      { label: pick('智慧', 'Wisdom'), value: companion.traits.wisdom, color: '#7ecfb0', dimension: 1 },
+      { label: pick('社交', 'Social'), value: companion.traits.social, color: '#5c9ead', dimension: 2 },
+      { label: pick('创造', 'Create'), value: companion.traits.create, color: '#d4a76a', dimension: 3 },
+      { label: pick('韧性', 'Grit'), value: companion.traits.grit, color: '#c44536', dimension: 4 },
+    ],
+    [companion.traits.courage, companion.traits.create, companion.traits.grit, companion.traits.social, companion.traits.wisdom, pick],
+  );
 
-  const taskTraits = [
-    { label: pick('勇气', 'Courage'), value: companion.traits.courage, color: '#ffb347' },
-    { label: pick('智慧', 'Wisdom'), value: companion.traits.wisdom, color: '#7ecfb0' },
-    { label: pick('社交', 'Social'), value: companion.traits.social, color: '#5c9ead' },
-    { label: pick('创造', 'Create'), value: companion.traits.create, color: '#d4a76a' },
-    { label: pick('韧性', 'Grit'), value: companion.traits.grit, color: '#c44536' },
-  ] as const;
-
-  const pkStats = [
-    { label: 'STR', value: companion.combat.str, tone: 'cw-bar-fill--warm' },
-    { label: 'DEF', value: companion.combat.def, tone: 'cw-bar-fill--cool' },
-    { label: 'SPD', value: companion.combat.spd, tone: 'cw-bar-fill--growth' },
-    { label: 'VIT', value: companion.combat.vit, tone: 'cw-bar-fill--alert' },
-  ] as const;
+  const pkStats = useMemo(
+    () => [
+      { label: 'STR', value: companion.combat.str, tone: 'cw-bar-fill--warm' },
+      { label: 'DEF', value: companion.combat.def, tone: 'cw-bar-fill--cool' },
+      { label: 'SPD', value: companion.combat.spd, tone: 'cw-bar-fill--growth' },
+      { label: 'VIT', value: companion.combat.vit, tone: 'cw-bar-fill--alert' },
+    ] as const,
+    [companion.combat.def, companion.combat.spd, companion.combat.str, companion.combat.vit],
+  );
 
   const radarPoints = buildRadarPolygon(
     taskTraits.map((trait) => trait.value),
@@ -71,6 +79,37 @@ export function CompanionDetailsSheet({
     62,
   );
   const radarRings = buildRadarRing(0.25, 4, 84, 84, 62);
+
+  const monthlyGrowthQuery = useReadContracts({
+    contracts: companion.hasToken
+      ? taskTraits.map((trait) => ({
+          address: addresses.personalityEngine,
+          abi: PersonalityEngineABI,
+          functionName: 'personalityChangesThisMonth',
+          args: [companion.tokenId, trait.dimension],
+        }))
+      : [],
+    query: {
+      enabled: companion.hasToken && open,
+    },
+  });
+
+  const monthlyGrowth = useMemo(
+    () =>
+      taskTraits.map((trait, index) => {
+        const raw = monthlyGrowthQuery.data?.[index]?.result;
+        const numeric = typeof raw === 'number' ? raw : Number(raw ?? 0);
+        const positive = Math.max(0, numeric);
+        return {
+          ...trait,
+          monthValue: positive,
+          monthText: `${positive}/10`,
+        };
+      }),
+    [monthlyGrowthQuery.data, taskTraits],
+  );
+
+  if (!open) return null;
 
   return (
     <section className="cw-modal" aria-modal="true" role="dialog">
@@ -87,7 +126,7 @@ export function CompanionDetailsSheet({
             </button>
           </div>
 
-          <div className="cw-detail-hero-grid">
+          <div className="cw-detail-hero-grid cw-detail-hero-grid--compact">
             <div className="cw-detail-pill">
               <span className="cw-label">{pick('等级', 'Level')}</span>
               <strong>{`Lv.${companion.level}`}</strong>
@@ -102,11 +141,11 @@ export function CompanionDetailsSheet({
             </div>
           </div>
 
-          <section className="cw-companion-block">
+          <section className="cw-companion-block cw-companion-block--compact">
             <div className="cw-section-head cw-section-head--compact">
               <h4 className="cw-section-title">{pick('任务属性', 'Task traits')}</h4>
             </div>
-            <div className="cw-radar-layout">
+            <div className="cw-radar-layout cw-radar-layout--compact">
               <div className="cw-radar">
                 <svg viewBox="0 0 168 168" className="cw-radar-svg" aria-hidden="true">
                   {radarRings.map((ring, index) => (
@@ -131,9 +170,9 @@ export function CompanionDetailsSheet({
                   })}
                 </svg>
               </div>
-              <div className="cw-radar-legend">
+              <div className="cw-radar-legend cw-radar-legend--compact">
                 {taskTraits.map((trait) => (
-                  <div key={trait.label} className="cw-radar-legend-item">
+                  <div key={trait.label} className="cw-radar-legend-item cw-radar-legend-item--compact">
                     <span className="cw-radar-swatch" style={{ backgroundColor: trait.color }} />
                     <span>{trait.label}</span>
                     <strong>{trait.value}</strong>
@@ -141,15 +180,41 @@ export function CompanionDetailsSheet({
                 ))}
               </div>
             </div>
+
+            <div className="cw-section-head cw-section-head--compact">
+              <h4 className="cw-section-title">{pick('本月成长', 'Monthly growth')}</h4>
+            </div>
+            <div className="cw-growth-stack">
+              {monthlyGrowth.map((trait) => (
+                <div key={`${trait.label}-growth`} className="cw-growth-row">
+                  <div className="cw-growth-head">
+                    <span>{trait.label}</span>
+                    <strong>{trait.monthText}</strong>
+                  </div>
+                  <div className="cw-bar-track cw-bar-track--slim">
+                    <span
+                      className="cw-bar-fill"
+                      style={{
+                        width: `${clampPercent(trait.monthValue * 10)}%`,
+                        background: `linear-gradient(90deg, ${trait.color}, ${trait.color}cc)`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+              {monthlyGrowthQuery.isLoading ? (
+                <span className="cw-detail-note">{pick('正在读取本月成长…', 'Loading monthly growth…')}</span>
+              ) : null}
+            </div>
           </section>
 
-          <section className="cw-companion-block">
+          <section className="cw-companion-block cw-companion-block--compact">
             <div className="cw-section-head cw-section-head--compact">
-              <h4 className="cw-section-title">{pick('PK 基因属性', 'PK stats')}</h4>
+              <h4 className="cw-section-title">{pick('PK 属性', 'PK stats')}</h4>
             </div>
-            <div className="cw-bar-stack">
+            <div className="cw-bar-stack cw-bar-stack--compact">
               {pkStats.map((stat) => (
-                <div key={stat.label} className="cw-bar-card">
+                <div key={stat.label} className="cw-bar-card cw-bar-card--compact">
                   <div className="cw-bar-top">
                     <span>{stat.label}</span>
                     <strong>{stat.value}</strong>

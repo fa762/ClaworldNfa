@@ -1,6 +1,40 @@
 # Current Handoff
 
-Last updated: 2026-04-15 (session 41) Asia/Singapore
+Last updated: 2026-04-15 (session 42) Asia/Singapore
+
+## Companion detail compact pass - 2026-04-15 session 42
+
+This pass tightens the companion detail sheet so it fits the mobile shell better.
+
+What changed:
+
+1. The top summary is now much tighter
+- level / status / shelter stay on one compact row on mobile
+- pill padding and label size were reduced
+
+2. Task traits now use a shorter radar section
+- the radar canvas is smaller
+- the legend cards are tighter
+- the whole block uses less vertical space
+
+3. Monthly growth is now visible inside companion details
+- five growth rows are shown:
+  - courage
+  - wisdom
+  - social
+  - create
+  - grit
+- each row reads from `PersonalityEngine.personalityChangesThisMonth(...)`
+- progress is shown as `x / 10`
+
+4. PK stats were tightened to match the new sheet
+- smaller cards
+- less padding
+- same bar language, less dead space
+
+Validation:
+
+- `npx tsc --noEmit --project frontend/tsconfig.json`
 
 ## Mining attribute copy and companion detail refresh - 2026-04-15 session 41
 
