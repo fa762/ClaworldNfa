@@ -2679,3 +2679,4 @@ For this rewrite, every meaningful decision or completed step should be written 
 - deployment status:
   - `TaskSkill` mainnet proxy has already been upgraded to the version that matches this behavior
   - `previewTypedTaskOutcome(...)` is now callable on the live proxy again
+  - `PersonalityEngine` mainnet proxy has also been upgraded, so the live monthly cap now matches the new `10` rule

@@ -2775,3 +2775,25 @@ If you need a clean operational path again, create or reuse a clean worktree for
 - live chain recheck after upgrade:
   - `previewTypedTaskOutcome(112, 4, 20, 80e18)` now succeeds on the proxy
   - returned `matchScore=11400`, `worldMul=20000`, `cooldownReady=false`, `personalityDrift=true`
+
+## 2026-04-15 PersonalityEngine Mainnet Upgrade
+
+- root cause for `#112` still stopping at `+5` after the `TaskSkill` upgrade:
+  - `TaskSkill` had been upgraded
+  - mainnet `PersonalityEngine` was still enforcing the old `±5` monthly cap
+- mainnet `PersonalityEngine` proxy has now also been upgraded:
+  - proxy: `0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E`
+  - new implementation: `0x9b58225415B6Ec12D3A382c7EBF1765daFb4b23c`
+  - implementation deploy tx: `0x0de0593ad3998f1e45a0159aa215eabadac79104d7608dcd3465b7f05c44107e`
+  - upgrade tx: `0xf5132dfb618ffae53e790ea858d2bd2312041660e143a26f49555907caae4c83`
+- `#112` chain state when rechecked:
+  - courage: `67`
+  - grit: `57`
+  - monthly courage delta: `+5`
+  - monthly grit delta: `+5`
+  - monthly wisdom/social/create delta: `0`
+  - task cooldown was still active at the time of recheck
+- practical meaning:
+  - `#112` had already consumed `+5` under the old engine
+  - after this engine upgrade, courage and grit can continue growing up to `+10` for the current month
+  - the next matching task still has to wait for cooldown expiry before it can prove the new cap live on-chain
