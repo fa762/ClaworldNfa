@@ -50,6 +50,9 @@ type PendingAction =
   | { kind: 'settle'; matchId: number }
   | { kind: 'cancel'; matchId: number; phase: number };
 
+const COMMIT_TIMEOUT_SECONDS = 60 * 60;
+const REVEAL_TIMEOUT_SECONDS = 30 * 60;
+
 const STRATEGIES: Array<{ value: StrategyValue; label: string; note: string; tone: string }> = [
   { value: 0, label: '强攻', note: '赌爆发', tone: 'cw-card--warning' },
   { value: 1, label: '均衡', note: '稳一点', tone: 'cw-card--watch' },
@@ -70,6 +73,16 @@ function parseStakeInput(value: string) {
 
 function phaseLabel(phase: number) {
   return PHASE_LABELS[phase] ?? `阶段 ${phase}`;
+}
+
+function formatPkRemaining(seconds: number) {
+  const safe = Math.max(0, seconds);
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const secs = safe % 60;
+  if (hours > 0) return `${hours}小时${minutes}分`;
+  if (minutes > 0) return `${minutes}分${secs}秒`;
+  return `${secs}秒`;
 }
 
 function matchResultLabel(match: MatchWithResolution, tokenNumber: number) {
@@ -156,6 +169,7 @@ export function PKArenaPanel({
   const [resultText, setResultText] = useState<string | null>(null);
   const [resultPanel, setResultPanel] = useState<ResultPanelState | null>(null);
   const [saltVersion, setSaltVersion] = useState(0);
+  const [nowTs, setNowTs] = useState(() => Math.floor(Date.now() / 1000));
 
   const tokenNumber = tokenId ? Number(tokenId) : 0;
   const ownerConnected =
@@ -244,6 +258,37 @@ export function PKArenaPanel({
     () => (activeMatch ? loadPKSalt(activeMatch.matchId) : null),
     [activeMatch, saltVersion],
   );
+  const cancelState = useMemo(() => {
+    if (!activeMatch) return null;
+
+    if (activeMatch.phase === 0 && activeMatch.nfaA === tokenNumber && activeMatch.nfaB === 0) {
+      return {
+        canCancel: true,
+        label: '取消擂台',
+        detail: '这场擂台还没人应战，现在可以直接取消。',
+      };
+    }
+
+    if (activeMatch.phase === 1) {
+      const remaining = activeMatch.phaseTimestamp + COMMIT_TIMEOUT_SECONDS - nowTs;
+      return {
+        canCancel: remaining <= 0,
+        label: '超时清局',
+        detail: remaining > 0 ? `还要等 ${formatPkRemaining(remaining)} 才能取消。` : '对手超时未提交，你现在可以清局并拿回质押。',
+      };
+    }
+
+    if (activeMatch.phase === 2) {
+      const remaining = activeMatch.phaseTimestamp + REVEAL_TIMEOUT_SECONDS - nowTs;
+      return {
+        canCancel: remaining <= 0,
+        label: '超时清局',
+        detail: remaining > 0 ? `还要等 ${formatPkRemaining(remaining)} 才能取消。` : '对手超时未揭示，你现在可以清局并拿回质押。',
+      };
+    }
+
+    return null;
+  }, [activeMatch, nowTs, tokenNumber]);
 
   useEffect(() => {
     if (!selectedMatchId) return;
@@ -252,6 +297,14 @@ export function PKArenaPanel({
       setMode('browse');
     }
   }, [joinableMatches, selectedMatchId]);
+
+  useEffect(() => {
+    if (!activeMatch || activeMatch.phase > 2) return;
+    const timer = window.setInterval(() => {
+      setNowTs(Math.floor(Date.now() / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [activeMatch]);
 
   async function submitCreate() {
     if (!tokenId || !ownerConnected) return;
@@ -499,6 +552,13 @@ export function PKArenaPanel({
               </div>
             </div>
 
+            {cancelState ? (
+              <div className={`cw-list-item ${cancelState.canCancel ? 'cw-list-item--warm' : 'cw-list-item--cool'}`}>
+                <TimerReset size={16} />
+                <span>{cancelState.detail}</span>
+              </div>
+            ) : null}
+
             <div className="cw-button-row">
               {activeMatch.phase === 2 && savedReveal?.salt ? (
                 <button
@@ -527,16 +587,17 @@ export function PKArenaPanel({
                   结算
                 </button>
               ) : null}
-              {activeMatch.phase < 3 ? (
+              {cancelState ? (
                 <button
                   type="button"
                   className="cw-button cw-button--ghost"
+                  disabled={!cancelState.canCancel}
                   onClick={() =>
                     submitSimple({ kind: 'cancel', matchId: activeMatch.matchId, phase: activeMatch.phase })
                   }
                 >
                   <TimerReset size={16} />
-                  清局
+                  {cancelState.label}
                 </button>
               ) : null}
             </div>

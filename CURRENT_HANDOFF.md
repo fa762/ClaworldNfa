@@ -2831,3 +2831,16 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - `#112` had already consumed `+5` under the old engine
   - after this engine upgrade, courage and grit can continue growing up to `+10` for the current month
   - the next matching task still has to wait for cooldown expiry before it can prove the new cap live on-chain
+
+## 2026-04-15 PK Frontend Cancel Flow
+
+- the current PK frontend keeps submit and reveal inside one detail sheet, so the cancel path was moved into that same sheet instead of being treated as a separate contract-facing action
+- when the selected NFA opened a lobby and nobody joined yet, the PK detail sheet now shows:
+  - a direct `取消擂台` action
+  - a short explanation that nobody has answered yet
+- when a match is already in `已匹配` or `等待亮招`, the same spot now shows:
+  - whether cancel is available yet
+  - a countdown until the timeout-based cancel becomes available
+- the cancel button is now disabled until the timeout really matures, so the frontend no longer invites an action that will just revert
+- verification completed:
+  - `npx tsc --noEmit --project frontend/tsconfig.json`

@@ -2711,3 +2711,20 @@ For this rewrite, every meaningful decision or completed step should be written 
   - `TaskSkill` mainnet proxy has already been upgraded to the version that matches this behavior
   - `previewTypedTaskOutcome(...)` is now callable on the live proxy again
   - `PersonalityEngine` mainnet proxy has also been upgraded, so the live monthly cap now matches the new `10` rule
+
+## 2026-04-15 PK Sheet Follow-up
+
+- the PK product flow should keep one combined detail sheet for:
+  - submit
+  - reveal
+  - settle
+  - cancel
+- the player should not have to infer cancelability from contract phase names
+- current frontend rule after this pass:
+  - self-opened empty lobby: show `取消擂台`
+  - matched but opponent has not submitted: show timeout countdown, then allow cancel
+  - waiting for reveal: show timeout countdown, then allow cancel
+- this keeps the active PK sheet aligned with the current product direction:
+  - fewer hidden rules
+  - fewer dead-end actions
+  - one place to finish the whole PK flow
