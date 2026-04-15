@@ -2676,3 +2676,6 @@ For this rewrite, every meaningful decision or completed step should be written 
   - more obvious attribute feedback
   - less hidden math
   - five full growth lanes instead of the previous three-lane feel
+- deployment status:
+  - `TaskSkill` mainnet proxy has already been upgraded to the version that matches this behavior
+  - `previewTypedTaskOutcome(...)` is now callable on the live proxy again

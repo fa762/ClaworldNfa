@@ -2767,3 +2767,11 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - `npx hardhat test test\\PersonalityEngine.test.ts`
   - `npx hardhat test test\\ClawRouter.test.ts --grep "monthly cap|reset monthly counter"`
   - `npx tsc --noEmit --project frontend/tsconfig.json`
+- mainnet upgrade completed:
+  - proxy: `0xaed370784536e31BE4A5D0Dbb1bF275c98179D10`
+  - new implementation: `0x52C5AbD17767C4c60971f64a65001F2fb96CCd36`
+  - implementation deploy tx: `0x3a4d5b6d174742f59795d0b31b90ace205dbabf07195a9d0736d007a59d8ec76`
+  - upgrade tx: `0x261b5ef5df0c80079812fc5bee9ef296f147cf703643190e3bd748a38cbe38d5`
+- live chain recheck after upgrade:
+  - `previewTypedTaskOutcome(112, 4, 20, 80e18)` now succeeds on the proxy
+  - returned `matchScore=11400`, `worldMul=20000`, `cooldownReady=false`, `personalityDrift=true`
