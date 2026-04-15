@@ -55,6 +55,7 @@ type TaskPreview = {
 
 type TaskResult = {
   taskTitle: string;
+  taskType: number;
   requestedClw: bigint;
   actualClw: bigint;
   xpReward: number;
@@ -220,6 +221,14 @@ function clamp(value: number, min: number, max: number) {
 function pickSeededVariant<T>(items: readonly T[], seed: number) {
   if (items.length === 0) throw new Error('Task variant pool is empty.');
   return items[Math.abs(seed) % items.length];
+}
+
+function getTaskTraitLabel(taskType: number, pick: <T,>(zh: T, en: T) => T) {
+  if (taskType === 0) return pick('勇气', 'Courage');
+  if (taskType === 1) return pick('智慧', 'Wisdom');
+  if (taskType === 2) return pick('社交', 'Social');
+  if (taskType === 3) return pick('创造', 'Create');
+  return pick('韧性', 'Grit');
 }
 
 function getTaskMatchValue(
@@ -521,6 +530,7 @@ export default function PlayPage() {
   }, []);
 
   const selectedTask = rankedTaskTemplates.find((task) => task.key === selectedTaskKey) ?? topTask;
+  const selectedTaskTraitLabel = selectedTask ? getTaskTraitLabel(selectedTask.taskType, pick) : null;
   const rewardMultiplierQuery = useRewardMultiplier();
 
   const previewQuery = useReadContract({
@@ -725,6 +735,7 @@ export default function PlayPage() {
 
     setResult({
       taskTitle: submittedTask.title,
+      taskType: submittedTask.taskType,
       requestedClw: submittedTask.requestedClw,
       actualClw,
       xpReward: submittedTask.xpReward,
@@ -828,6 +839,16 @@ export default function PlayPage() {
         title={pick('先连接持有人钱包', 'Connect owner wallet first')}
         detail={pick('连接后才能开始挖矿。', 'Connect before mining.')}
       >
+        <div className="cw-button-row">
+          <button
+            type="button"
+            className="cw-button cw-button--secondary"
+            onClick={() => setTaskRollNonce((current) => current + 1)}
+          >
+            <TimerReset size={16} />
+            {pick('换一批任务', 'Refresh tasks')}
+          </button>
+        </div>
         <section className="cw-card-stack">
           {rankedTaskTemplates.map((task) => {
             const Icon = task.icon;
@@ -843,6 +864,7 @@ export default function PlayPage() {
                 </div>
                 <div className="cw-card-copy">
                   <p className="cw-label">{task.title}</p>
+                  <p className="cw-card-note">{pick(`成长 ${getTaskTraitLabel(task.taskType, pick)} +1`, `Growth ${getTaskTraitLabel(task.taskType, pick)} +1`)}</p>
                   <h3>{pick(`约 ${formatCLW(task.requestedClw)}`, `~${formatCLW(task.requestedClw)}`)}</h3>
                 </div>
                 <div className="cw-score">
@@ -985,10 +1007,14 @@ export default function PlayPage() {
                           <span>{pick(`还要等 ${formatRemaining(cooldownRemaining, pick)}`, `Wait ${formatRemaining(cooldownRemaining, pick)}`)}</span>
                         </div>
                       ) : null}
-                      {preview?.personalityDrift ? (
-                        <div className="cw-list-item cw-list-item--warm">
+                      {selectedTaskTraitLabel ? (
+                        <div className={`cw-list-item ${preview?.personalityDrift ? 'cw-list-item--growth' : 'cw-list-item--cool'}`}>
                           <Sparkles size={16} />
-                          <span>{pick('本次可能触发性格漂移。', 'This run may trigger personality drift.')}</span>
+                          <span>
+                            {preview?.personalityDrift
+                              ? pick(`本次成长：${selectedTaskTraitLabel} +1`, `Growth this run: ${selectedTaskTraitLabel} +1`)
+                              : pick(`本次不加点：${selectedTaskTraitLabel}`, `No growth this run: ${selectedTaskTraitLabel}`)}
+                          </span>
                         </div>
                       ) : null}
                       {previewFallbackNote ? (
@@ -1161,10 +1187,10 @@ export default function PlayPage() {
                 <Shield size={16} />
                 <span>
                   {result.driftState === 'applied'
-                    ? pick('已触发性格漂移。', 'Personality drift applied.')
+                    ? pick(`${getTaskTraitLabel(result.taskType, pick)} +1`, `${getTaskTraitLabel(result.taskType, pick)} +1`)
                     : result.driftState === 'skipped'
-                      ? pick(`性格漂移已跳过：${result.driftReason ?? '受上限约束'}`, `Personality drift skipped: ${result.driftReason ?? 'bounded by cap'}`)
-                      : pick('本次没有漂移。', 'No drift on this run.')}
+                      ? pick(`${getTaskTraitLabel(result.taskType, pick)} 本次未增长：${result.driftReason ?? '受上限约束'}`, `${getTaskTraitLabel(result.taskType, pick)} did not grow: ${result.driftReason ?? 'bounded by cap'}`)
+                      : pick(`${getTaskTraitLabel(result.taskType, pick)} 本次未增长`, `${getTaskTraitLabel(result.taskType, pick)} did not grow this run`)}
                 </span>
               </div>
             </div>

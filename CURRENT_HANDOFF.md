@@ -1,6 +1,47 @@
 # Current Handoff
 
-Last updated: 2026-04-14 (session 39) Asia/Singapore
+Last updated: 2026-04-15 (session 41) Asia/Singapore
+
+## Mining attribute copy and companion detail refresh - 2026-04-15 session 41
+
+This pass cleans up the player-facing mining copy and upgrades the companion detail sheet.
+
+What changed:
+
+1. Mining preview now shows concrete growth
+- the task modal no longer tells the player about generic "personality drift"
+- it now says which stat this run can grow, for example:
+  - `勇气 +1`
+  - `本次不加点：智慧`
+
+2. Mining result now shows the exact stat outcome
+- the result panel now uses the task type to render the actual stat label
+- skipped growth also stays concrete:
+  - `创造 本次未增长：受上限约束`
+
+3. The mining page now makes the growth target visible before execution
+- each rolled task card shows the expected growth lane
+- the task modal also shows the rolled task summary instead of only reward numbers
+
+4. Companion detail sheet was rebuilt for the current game UI direction
+- top area now keeps only:
+  - 等级
+  - 状态
+  - 避难所
+- task traits now render as a radar chart
+- PK stats now render as colored bar tracks
+
+5. Companion detail values are still live-chain values in normal use
+- the sheet reads from the same live companion source as the shell:
+  - lobster state
+  - task stats
+  - PK stats
+- when no owner wallet / no token is selected, the page still falls back to the existing demo path
+
+Validation:
+
+- `npx tsc --noEmit --project frontend/tsconfig.json`
+- `npm --prefix frontend run build` still stops in this environment because `next/font` cannot fetch Google Fonts
 
 ## Battle Royale router payout and sweep - 2026-04-14 session 40
 

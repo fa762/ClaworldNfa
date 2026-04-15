@@ -1,6 +1,45 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-14 (session 39) Asia/Singapore
+Last updated: 2026-04-15 (session 41) Asia/Singapore
+
+## Mining stat copy and companion-detail UI - 2026-04-15 session 41
+
+Accepted product rule:
+
+- mining should talk in player language
+- the task page should tell the player which stat can grow
+- companion details should feel like a game sheet, not a raw debug panel
+
+What is now implemented:
+
+1. Mining preview copy is concrete
+- preview shows the specific stat lane instead of generic drift wording
+- result keeps the same concrete stat language
+
+2. The mining loop now reads less static
+- the main `/play` shell keeps 3 entry slots
+- each slot rolls a concrete task variant from its pool
+- switching lobster or finishing a run advances the task set
+
+3. Companion detail sheet now follows the requested split
+- top summary:
+  - 等级
+  - 状态
+  - 避难所
+- task side:
+  - radar chart
+- PK side:
+  - bar tracks
+
+4. Mobile layout support was added for the new detail sheet
+- hero summary stacks on narrow screens
+- radar + legend collapse into one column on small viewports
+
+Follow-up after session 41:
+
+1. review the hosted companion sheet on a real phone and tune spacing if the radar still feels tight
+2. if mining needs more game feel, add a small "fresh tasks" pulse or cooldown ribbon without bringing back long explanation copy
+3. later, if desired, move task reward / growth history into a dedicated log instead of overloading the result card
 
 ## Battle Royale reward-path sync - 2026-04-14 session 40
 
