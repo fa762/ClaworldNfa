@@ -2746,3 +2746,24 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - mainline `/play` now keeps 3 mining entry slots but rolls concrete task variants behind them
   - switching lobster keeps the 3-slot layout and refreshes the task set
   - completing one mining run also advances the visible task roll
+
+## 2026-04-15 Task Growth Rule Update
+
+- the typed-task growth gate has been removed from [contracts/skills/TaskSkill.sol](D:\claworldNfa\clawworld\contracts\skills\TaskSkill.sol)
+- mining tasks now always attempt `+1` on the matching attribute after completion
+- if growth cannot be applied, the skip reason still comes from `PersonalityEngine` and is emitted as `TaskPersonalityDriftSkipped`
+- the monthly personality cap has been raised from `±5` to `±10` in [contracts/core/PersonalityEngine.sol](D:\claworldNfa\clawworld\contracts\core\PersonalityEngine.sol)
+- `/play` now rotates across all five growth lanes through three visible task slots:
+  - courage
+  - wisdom
+  - social
+  - create
+  - grit
+- low-stat lobsters can now grow the matching attribute; they are no longer blocked until that stat reaches `50`
+- the frontend preview now says `完成后尝试成长：属性 +1` so it matches the new on-chain behavior
+- verification completed:
+  - `npx hardhat compile`
+  - `npx hardhat test test\\TaskSkill.test.ts`
+  - `npx hardhat test test\\PersonalityEngine.test.ts`
+  - `npx hardhat test test\\ClawRouter.test.ts --grep "monthly cap|reset monthly counter"`
+  - `npx tsc --noEmit --project frontend/tsconfig.json`

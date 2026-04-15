@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -77,6 +77,8 @@ type TaskVariant = {
   rewardBias: number;
   xpBias: number;
 };
+
+type TaskPoolKey = 'adventure' | 'puzzle' | 'social' | 'crafting' | 'grit';
 
 const taskSkillContract = {
   address: addresses.taskSkill,
@@ -175,6 +177,36 @@ const TASK_VARIANTS = {
       xpBias: 4,
     },
   ] satisfies TaskVariant[],
+  social: [
+    {
+      title: { zh: '交易撮合', en: 'Trade broker' },
+      summary: { zh: '在几拨避难所住民之间撮合交易，赚中间那一层差价。', en: 'Broker a deal between shelter residents and keep the spread.' },
+      detail: { zh: '社交向', en: 'Social' },
+      rewardBias: 1,
+      xpBias: 1,
+    },
+    {
+      title: { zh: '关系疏通', en: 'Access favor' },
+      summary: { zh: '用人情和口风打通封锁线，换回一批急需物资。', en: 'Use favors and social leverage to open a blocked route.' },
+      detail: { zh: '看人脉', en: 'Influence' },
+      rewardBias: 1.04,
+      xpBias: 0,
+    },
+    {
+      title: { zh: '情报换手', en: 'Rumor swap' },
+      summary: { zh: '把手上的消息换成更值钱的线索，再转手给需要的人。', en: 'Trade rumors for better intel and sell it forward.' },
+      detail: { zh: '低风险', en: 'Low risk' },
+      rewardBias: 0.96,
+      xpBias: 2,
+    },
+    {
+      title: { zh: '避难所谈判', en: 'Shelter deal' },
+      summary: { zh: '压住对方价格，把一笔本来要黄的合作谈下来。', en: 'Salvage a deal and close terms before it falls apart.' },
+      detail: { zh: '稳赚', en: 'Reliable' },
+      rewardBias: 1.02,
+      xpBias: 1,
+    },
+  ] satisfies TaskVariant[],
   crafting: [
     {
       title: { zh: '终端改装', en: 'Terminal mod' },
@@ -209,6 +241,36 @@ const TASK_VARIANTS = {
       summary: { zh: '把散乱的探索记录画成地图，后面进出都能省成本。', en: 'Turn scattered exploration notes into a usable map.' },
       detail: { zh: '低风险', en: 'Low risk' },
       rewardBias: 0.97,
+      xpBias: 1,
+    },
+  ] satisfies TaskVariant[],
+  grit: [
+    {
+      title: { zh: '长线搬运', en: 'Long haul' },
+      summary: { zh: '把沉重物资一路拖回据点，靠耐力把钱挣到手。', en: 'Drag heavy supplies back to base and get paid for endurance.' },
+      detail: { zh: '韧性向', en: 'Endurance' },
+      rewardBias: 1.03,
+      xpBias: 1,
+    },
+    {
+      title: { zh: '废井深挖', en: 'Deep shaft' },
+      summary: { zh: '在废弃矿井里顶着压力往下掘，收益慢但够硬。', en: 'Push deeper into an abandoned shaft and grind out the payout.' },
+      detail: { zh: '耐刷', en: 'Grind' },
+      rewardBias: 1.05,
+      xpBias: 0,
+    },
+    {
+      title: { zh: '守夜巡逻', en: 'Night watch' },
+      summary: { zh: '熬过整夜巡逻，把危险挡在外面，换来稳定报酬。', en: 'Hold the line through the night and collect a steady reward.' },
+      detail: { zh: '稳', en: 'Steady' },
+      rewardBias: 0.98,
+      xpBias: 2,
+    },
+    {
+      title: { zh: '设备抢修', en: 'Emergency patch' },
+      summary: { zh: '在最糟的时候把坏掉的设备撑起来，靠硬扛吃饭。', en: 'Keep broken equipment alive under pressure and get paid for it.' },
+      detail: { zh: '抗压', en: 'Pressure' },
+      rewardBias: 1.01,
       xpBias: 1,
     },
   ] satisfies TaskVariant[],
@@ -382,81 +444,149 @@ function buildRolledTaskTemplates(
   rollNonce: number,
 ) {
   const levelLift = level * 2;
-  const adventureVariant = pickSeededVariant(TASK_VARIANTS.adventure, tokenNumber * 11 + rollNonce * 5 + 1);
-  const puzzleVariant = pickSeededVariant(TASK_VARIANTS.puzzle, tokenNumber * 13 + rollNonce * 7 + 2);
-  const craftingVariant = pickSeededVariant(TASK_VARIANTS.crafting, tokenNumber * 17 + rollNonce * 11 + 3);
+  const rolledPools = (
+    [
+      { pool: 'adventure', order: (tokenNumber * 11 + rollNonce * 5 + 1) % 97 },
+      { pool: 'puzzle', order: (tokenNumber * 13 + rollNonce * 7 + 2) % 97 },
+      { pool: 'social', order: (tokenNumber * 17 + rollNonce * 11 + 3) % 97 },
+      { pool: 'crafting', order: (tokenNumber * 19 + rollNonce * 13 + 4) % 97 },
+      { pool: 'grit', order: (tokenNumber * 23 + rollNonce * 17 + 5) % 97 },
+    ] as Array<{ pool: TaskPoolKey; order: number }>
+  )
+    .sort((left, right) => left.order - right.order)
+    .slice(0, 3)
+    .map(({ pool }) => pool);
 
-  const adventureReward = clamp(
-    Math.round((34 + traits.courage * 0.32 + traits.grit * 0.14 + level * 1.8) * adventureVariant.rewardBias),
-    55,
-    90,
-  );
-  const puzzleReward = clamp(
-    Math.round((30 + traits.wisdom * 0.26 + traits.create * 0.12 + level * 1.6) * puzzleVariant.rewardBias),
-    45,
-    75,
-  );
-  const craftingReward = clamp(
-    Math.round((32 + traits.create * 0.28 + traits.social * 0.14 + level * 1.6) * craftingVariant.rewardBias),
-    50,
-    80,
-  );
+  const buildTask = (pool: TaskPoolKey): TaskTemplate => {
+    if (pool === 'adventure') {
+      const variant = pickSeededVariant(TASK_VARIANTS.adventure, tokenNumber * 11 + rollNonce * 5 + 1);
+      const reward = clamp(
+        Math.round((34 + traits.courage * 0.32 + traits.grit * 0.14 + level * 1.8) * variant.rewardBias),
+        55,
+        90,
+      );
+      return {
+        key: 'adventure',
+        title: pick(variant.title.zh, variant.title.en),
+        summary: pick(variant.summary.zh, variant.summary.en),
+        taskType: 0,
+        xpReward: clamp(16 + level * 2 + variant.xpBias, 12, 32),
+        requestedClw: parseEther(String(reward)),
+        score: clamp(
+          Math.round(traits.courage * 0.62 + traits.grit * 0.36 + levelLift - upkeepPressure * 0.25),
+          8,
+          99,
+        ),
+        detail: pick(variant.detail.zh, variant.detail.en),
+        icon: Swords,
+        tone: active ? 'cw-card--ready' : 'cw-card--warning',
+      };
+    }
 
-  return [
-    {
-      key: 'adventure',
-      title: pick(adventureVariant.title.zh, adventureVariant.title.en),
-      summary: pick(adventureVariant.summary.zh, adventureVariant.summary.en),
-      taskType: 0,
-      xpReward: clamp(16 + level * 2 + adventureVariant.xpBias, 12, 32),
-      requestedClw: parseEther(String(adventureReward)),
+    if (pool === 'puzzle') {
+      const variant = pickSeededVariant(TASK_VARIANTS.puzzle, tokenNumber * 13 + rollNonce * 7 + 2);
+      const reward = clamp(
+        Math.round((30 + traits.wisdom * 0.26 + traits.create * 0.12 + level * 1.6) * variant.rewardBias),
+        45,
+        75,
+      );
+      return {
+        key: 'puzzle',
+        title: pick(variant.title.zh, variant.title.en),
+        summary: pick(variant.summary.zh, variant.summary.en),
+        taskType: 1,
+        xpReward: clamp(14 + level * 2 + variant.xpBias, 12, 30),
+        requestedClw: parseEther(String(reward)),
+        score: clamp(
+          Math.round(traits.wisdom * 0.7 + traits.create * 0.18 + levelLift - upkeepPressure * 0.16),
+          8,
+          99,
+        ),
+        detail: pick(variant.detail.zh, variant.detail.en),
+        icon: Sparkles,
+        tone: 'cw-card--watch',
+      };
+    }
+
+    if (pool === 'social') {
+      const variant = pickSeededVariant(TASK_VARIANTS.social, tokenNumber * 17 + rollNonce * 11 + 3);
+      const reward = clamp(
+        Math.round((31 + traits.social * 0.28 + traits.wisdom * 0.16 + level * 1.5) * variant.rewardBias),
+        48,
+        78,
+      );
+      return {
+        key: 'social',
+        title: pick(variant.title.zh, variant.title.en),
+        summary: pick(variant.summary.zh, variant.summary.en),
+        taskType: 2,
+        xpReward: clamp(13 + level * 2 + variant.xpBias, 11, 29),
+        requestedClw: parseEther(String(reward)),
+        score: clamp(
+          Math.round(traits.social * 0.62 + traits.wisdom * 0.22 + traits.create * 0.1 + levelLift - upkeepPressure * 0.12),
+          8,
+          99,
+        ),
+        detail: pick(variant.detail.zh, variant.detail.en),
+        icon: ArrowUpRight,
+        tone: 'cw-card--safe',
+      };
+    }
+
+    if (pool === 'crafting') {
+      const variant = pickSeededVariant(TASK_VARIANTS.crafting, tokenNumber * 19 + rollNonce * 13 + 4);
+      const reward = clamp(
+        Math.round((32 + traits.create * 0.28 + traits.social * 0.14 + level * 1.6) * variant.rewardBias),
+        50,
+        80,
+      );
+      return {
+        key: 'crafting',
+        title: pick(variant.title.zh, variant.title.en),
+        summary: pick(variant.summary.zh, variant.summary.en),
+        taskType: 3,
+        xpReward: clamp(12 + level * 2 + variant.xpBias, 10, 28),
+        requestedClw: parseEther(String(reward)),
+        score: clamp(
+          Math.round(traits.create * 0.58 + traits.social * 0.22 + levelLift - upkeepPressure * 0.1),
+          8,
+          99,
+        ),
+        detail:
+          upkeepDays !== null && upkeepDays <= 2
+            ? pick('低风险', 'Low risk')
+            : pick(variant.detail.zh, variant.detail.en),
+        icon: Hammer,
+        tone: upkeepDays !== null && upkeepDays <= 2 ? 'cw-card--warning' : 'cw-card--safe',
+      };
+    }
+
+    const variant = pickSeededVariant(TASK_VARIANTS.grit, tokenNumber * 23 + rollNonce * 17 + 5);
+    const reward = clamp(
+      Math.round((33 + traits.grit * 0.3 + traits.courage * 0.16 + level * 1.7) * variant.rewardBias),
+      52,
+      84,
+    );
+    return {
+      key: 'grit',
+      title: pick(variant.title.zh, variant.title.en),
+      summary: pick(variant.summary.zh, variant.summary.en),
+      taskType: 4,
+      xpReward: clamp(14 + level * 2 + variant.xpBias, 11, 30),
+      requestedClw: parseEther(String(reward)),
       score: clamp(
-        Math.round(traits.courage * 0.62 + traits.grit * 0.36 + levelLift - upkeepPressure * 0.25),
+        Math.round(traits.grit * 0.64 + traits.courage * 0.24 + levelLift - upkeepPressure * 0.18),
         8,
         99,
       ),
-      detail: pick(adventureVariant.detail.zh, adventureVariant.detail.en),
-      icon: Swords,
-      tone: active ? 'cw-card--ready' : 'cw-card--warning',
-    },
-    {
-      key: 'puzzle',
-      title: pick(puzzleVariant.title.zh, puzzleVariant.title.en),
-      summary: pick(puzzleVariant.summary.zh, puzzleVariant.summary.en),
-      taskType: 1,
-      xpReward: clamp(14 + level * 2 + puzzleVariant.xpBias, 12, 30),
-      requestedClw: parseEther(String(puzzleReward)),
-      score: clamp(
-        Math.round(traits.wisdom * 0.7 + traits.create * 0.18 + levelLift - upkeepPressure * 0.16),
-        8,
-        99,
-      ),
-      detail: pick(puzzleVariant.detail.zh, puzzleVariant.detail.en),
+      detail: pick(variant.detail.zh, variant.detail.en),
       icon: Shield,
-      tone: 'cw-card--watch',
-    },
-    {
-      key: 'crafting',
-      title: pick(craftingVariant.title.zh, craftingVariant.title.en),
-      summary: pick(craftingVariant.summary.zh, craftingVariant.summary.en),
-      taskType: 3,
-      xpReward: clamp(12 + level * 2 + craftingVariant.xpBias, 10, 28),
-      requestedClw: parseEther(String(craftingReward)),
-      score: clamp(
-        Math.round(traits.create * 0.58 + traits.social * 0.22 + levelLift - upkeepPressure * 0.1),
-        8,
-        99,
-      ),
-      detail:
-        upkeepDays !== null && upkeepDays <= 2
-          ? pick('保储备', 'Low risk')
-          : pick(craftingVariant.detail.zh, craftingVariant.detail.en),
-      icon: Hammer,
-      tone: upkeepDays !== null && upkeepDays <= 2 ? 'cw-card--warning' : 'cw-card--safe',
-    },
-  ] satisfies TaskTemplate[];
-}
+      tone: active ? 'cw-card--ready' : 'cw-card--warning',
+    };
+  };
 
+  return rolledPools.map(buildTask) satisfies TaskTemplate[];
+}
 export default function PlayPage() {
   const { pick } = useI18n();
   const companion = useActiveCompanion();
@@ -614,7 +744,7 @@ export default function PlayPage() {
       streakMul,
       worldMul: rewardMultiplier,
       cooldownReady: cooldownRemaining === 0,
-      personalityDrift: matchScore >= 10000,
+      personalityDrift: true,
     } satisfies TaskPreview;
   }, [selectedTask, companion.traits, sameTypeStreak, lastTaskType, rewardMultiplier, cooldownRemaining]);
 
@@ -1008,13 +1138,9 @@ export default function PlayPage() {
                         </div>
                       ) : null}
                       {selectedTaskTraitLabel ? (
-                        <div className={`cw-list-item ${preview?.personalityDrift ? 'cw-list-item--growth' : 'cw-list-item--cool'}`}>
+                        <div className="cw-list-item cw-list-item--growth">
                           <Sparkles size={16} />
-                          <span>
-                            {preview?.personalityDrift
-                              ? pick(`本次成长：${selectedTaskTraitLabel} +1`, `Growth this run: ${selectedTaskTraitLabel} +1`)
-                              : pick(`本次不加点：${selectedTaskTraitLabel}`, `No growth this run: ${selectedTaskTraitLabel}`)}
-                          </span>
+                          <span>{pick(`完成后尝试成长：${selectedTaskTraitLabel} +1`, `Growth attempt after completion: ${selectedTaskTraitLabel} +1`)}</span>
                         </div>
                       ) : null}
                       {previewFallbackNote ? (

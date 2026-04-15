@@ -155,9 +155,7 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
 
         // Personality drift: +1 to matching dimension when matchScore >= 1.0x (10000)
         // This allows gradual specialization through consistent task completion
-        if (matchScore >= 10000) {
-            _tryEvolvePersonality(nfaId, taskType);
-        }
+        _tryEvolvePersonality(nfaId, taskType);
 
         _trackTaskStats(nfaId, taskType, actualClw);
         emit TaskCompleted(nfaId, xpReward, clwReward, actualClw, matchScore);
@@ -182,17 +180,7 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
         require(block.timestamp >= lastTaskTime[nfaId] + 4 hours, "Cooldown active");
 
         // Calculate matchScore from on-chain personality — player can't fake it
-        uint16 matchScore;
-        {
-            (,,uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit,,,,,,,,,) = router.lobsters(nfaId);
-            uint8 pVal;
-            if (taskType == 0) pVal = courage;
-            else if (taskType == 1) pVal = wisdom;
-            else if (taskType == 2) pVal = social;
-            else if (taskType == 3) pVal = create;
-            else pVal = grit;
-            matchScore = uint16(pVal) * 200; // 0-20000
-        }
+        uint16 matchScore = _computeMatchScore(nfaId, taskType);
 
         lastTaskTime[nfaId] = block.timestamp;
 
@@ -219,9 +207,7 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
         if (xpReward > 0) {
             router.addXP(nfaId, xpReward);
         }
-        if (matchScore >= 10000) {
-            _tryEvolvePersonality(nfaId, taskType);
-        }
+        _tryEvolvePersonality(nfaId, taskType);
 
         _trackTaskStats(nfaId, taskType, actualClw);
         emit TaskCompleted(nfaId, xpReward, clwReward, actualClw, matchScore);
@@ -244,8 +230,53 @@ contract TaskSkill is OwnableUpgradeable, UUPSUpgradeable {
         }
     }
 
+    function previewTypedTaskOutcome(
+        uint256 nfaId,
+        uint8 taskType,
+        uint32 xpReward,
+        uint256 clwReward
+    ) external view returns (
+        uint16 matchScore,
+        uint256 actualClw,
+        uint256 streakMul,
+        uint256 worldMul,
+        bool cooldownReady,
+        bool personalityDrift
+    ) {
+        require(taskType <= 4, "Invalid task type");
+        xpReward;
+
+        matchScore = _computeMatchScore(nfaId, taskType);
+        uint8 nextStreak = sameTypeStreak[nfaId] > 0 && lastTaskType[nfaId] == taskType
+            ? sameTypeStreak[nfaId] + 1
+            : 1;
+        streakMul = _getStreakMultiplier(nextStreak);
+        worldMul = worldState.rewardMultiplier();
+        cooldownReady = block.timestamp >= lastTaskTime[nfaId] + 4 hours;
+        personalityDrift = true;
+        actualClw = (clwReward * uint256(matchScore) * worldMul * streakMul) / (10000 * 10000 * 10000);
+    }
+
     function _isMonthlyCapReason(string memory reason) internal pure returns (bool) {
         return keccak256(bytes(reason)) == keccak256(bytes("Monthly cap exceeded"));
+    }
+
+    function _computeMatchScore(uint256 nfaId, uint8 taskType) internal view returns (uint16 matchScore) {
+        (,,uint8 courage, uint8 wisdom, uint8 social, uint8 create, uint8 grit,,,,,,,,,) = router.lobsters(nfaId);
+        uint8 pVal;
+        if (taskType == 0) pVal = courage;
+        else if (taskType == 1) pVal = wisdom;
+        else if (taskType == 2) pVal = social;
+        else if (taskType == 3) pVal = create;
+        else pVal = grit;
+        matchScore = uint16(pVal) * 200;
+    }
+
+    function _getStreakMultiplier(uint8 streak) internal pure returns (uint256 streakMul) {
+        streakMul = 10000;
+        if (streak == 2) streakMul = 8000;
+        else if (streak == 3) streakMul = 6000;
+        else if (streak >= 4) streakMul = 5000;
     }
 
     /**

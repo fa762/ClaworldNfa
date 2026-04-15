@@ -45,7 +45,7 @@ contract PersonalityEngine is OwnableUpgradeable, UUPSUpgradeable {
     // Authorized callers (skills or ClawRouter facade)
     mapping(address => bool) public authorizedCallers;
 
-    // Personality evolution tracking (monthly cap ±5 per dimension)
+    // Personality evolution tracking (monthly cap ±10 per dimension)
     mapping(uint256 => mapping(uint8 => int8)) public personalityChangesThisMonth;
     mapping(uint256 => uint64) public personalityMonthStart;
 
@@ -74,7 +74,7 @@ contract PersonalityEngine is OwnableUpgradeable, UUPSUpgradeable {
     // ============================================
 
     /**
-     * @dev Evolve a personality dimension by delta (-5 to +5 per month cap).
+     * @dev Evolve a personality dimension by delta (-10 to +10 per month cap).
      * @param nfaId The lobster NFA ID
      * @param dimension 0=courage, 1=wisdom, 2=social, 3=create, 4=grit
      * @param delta Signed change amount (positive or negative)
@@ -91,10 +91,10 @@ contract PersonalityEngine is OwnableUpgradeable, UUPSUpgradeable {
         // Reset monthly counter if new month
         _resetMonthlyCounterIfNeeded(nfaId);
 
-        // Check monthly cap (±5 per dimension per month)
+        // Check monthly cap (±10 per dimension per month)
         int8 currentChange = personalityChangesThisMonth[nfaId][dimension];
         int8 newChange = currentChange + delta;
-        require(newChange >= -5 && newChange <= 5, "Monthly cap exceeded");
+        require(newChange >= -10 && newChange <= 10, "Monthly cap exceeded");
         personalityChangesThisMonth[nfaId][dimension] = newChange;
 
         // Get current state and compute new value

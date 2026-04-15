@@ -1,4 +1,4 @@
-import { expect } from "chai";
+﻿import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ClawNFA, ClawRouter, MockCLW, MockPancakeRouter, MockFlapPortal, PersonalityEngine } from "../typechain-types";
@@ -529,29 +529,29 @@ describe("ClawRouter", function () {
       expect(state.grit).to.equal(100);
     });
 
-    it("should enforce monthly cap of ±5 per dimension", async function () {
-      await router.connect(skill).evolvePersonality(tokenId, 0, 5); // courage +5 (at cap)
+    it("should enforce monthly cap of ±10 per dimension", async function () {
+      await router.connect(skill).evolvePersonality(tokenId, 0, 10); // courage +10 (at cap)
       await expect(
-        router.connect(skill).evolvePersonality(tokenId, 0, 1) // would exceed +5
+        router.connect(skill).evolvePersonality(tokenId, 0, 1) // would exceed +10
       ).to.be.revertedWith("Monthly cap exceeded");
     });
 
     it("should allow opposite direction within monthly cap", async function () {
       await router.connect(skill).evolvePersonality(tokenId, 0, 3); // +3
       await router.connect(skill).evolvePersonality(tokenId, 0, -2); // net +1
-      // Total change = +1, should be fine to go +4 more
-      await router.connect(skill).evolvePersonality(tokenId, 0, 4); // net +5
+      // Total change = +1, should be fine to go +9 more
+      await router.connect(skill).evolvePersonality(tokenId, 0, 9); // net +10
       const state = await router.getLobsterState(tokenId);
-      expect(state.courage).to.equal(55);
+      expect(state.courage).to.equal(60);
     });
 
     it("should reset monthly counter after 30 days", async function () {
-      await router.connect(skill).evolvePersonality(tokenId, 0, 5); // at cap
+      await router.connect(skill).evolvePersonality(tokenId, 0, 10); // at cap
       await increaseTime(30 * 86400 + 1); // 30 days
       // Should work now
       await router.connect(skill).evolvePersonality(tokenId, 0, 5);
       const state = await router.getLobsterState(tokenId);
-      expect(state.courage).to.equal(60);
+      expect(state.courage).to.equal(65);
     });
 
     it("should reject non-skill caller", async function () {

@@ -1,4 +1,4 @@
-import { expect } from "chai";
+﻿import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ClawNFA, ClawRouter, MockCLW, TaskSkill, WorldState } from "../typechain-types";
@@ -173,23 +173,30 @@ describe("TaskSkill", function () {
       expect(await router.clwBalances(tokenId)).to.equal(ethers.utils.parseEther("1100"));
     });
 
-    it("should trigger personality evolution on high match", async function () {
+    it("should trigger personality evolution even for low stats", async function () {
       const clwReward = ethers.utils.parseEther("50");
-      // social=50 → matchScore=10000 (1.0x) → triggers personality drift
-      await expect(
-        taskSkill.connect(user1).ownerCompleteTypedTask(tokenId, 2, 30, clwReward, 0) // param ignored, on-chain calc
-      ).to.emit(taskSkill, "TaskPersonalityDrift").withArgs(tokenId, 2, 1);
+      await nfa.connect(minter).mintTo(user1.address, router.address, "", defaultMetadata);
+      const tokenId2 = await nfa.getTotalSupply();
+      await router.connect(minter).initializeLobster(tokenId2, {
+        ...defaultLobster, courage: 10,
+      });
+      await clw.mint(user1.address, ethers.utils.parseEther("1000"));
+      await router.connect(user1).depositCLW(tokenId2, ethers.utils.parseEther("1000"));
 
-      const state = await router.getLobsterState(tokenId);
-      expect(state.social).to.equal(51); // was 50, +1
+      await expect(
+        taskSkill.connect(user1).ownerCompleteTypedTask(tokenId2, 0, 30, clwReward, 0)
+      ).to.emit(taskSkill, "TaskPersonalityDrift").withArgs(tokenId2, 0, 1);
+
+      const state = await router.getLobsterState(tokenId2);
+      expect(state.courage).to.equal(11);
     });
 
     it("should still complete task when the monthly personality cap is reached", async function () {
       await router.authorizeSkill(operator.address, true);
-      await router.connect(operator).evolvePersonality(tokenId, 0, 5);
+      await router.connect(operator).evolvePersonality(tokenId, 0, 10);
 
       const stateBefore = await router.getLobsterState(tokenId);
-      expect(stateBefore.courage).to.equal(55);
+      expect(stateBefore.courage).to.equal(60);
       const balanceBefore = await router.clwBalances(tokenId);
 
       const clwReward = ethers.utils.parseEther("50");
@@ -198,7 +205,7 @@ describe("TaskSkill", function () {
       ).to.emit(taskSkill, "TaskPersonalityDriftSkipped").withArgs(tokenId, 0, "Monthly cap exceeded");
 
       const stateAfter = await router.getLobsterState(tokenId);
-      expect(stateAfter.courage).to.equal(55);
+      expect(stateAfter.courage).to.equal(60);
       expect(await router.clwBalances(tokenId)).to.be.gt(balanceBefore);
 
       const stats = await taskSkill.getTaskStats(tokenId);
@@ -207,49 +214,36 @@ describe("TaskSkill", function () {
     });
 
     it("should calculate matchScore on-chain, ignore player input", async function () {
-      // Lobster has courage=50, so courage matchScore = 50*200 = 10000 = 1.0x
-      // clwReward=100 CLW * 1.0x * worldMul(1.0x) = 100 CLW
       const clwReward = ethers.utils.parseEther("100");
-
-      // Player tries to pass matchScore=20000 (2.0x) — should be ignored
       await taskSkill.connect(user1).ownerCompleteTypedTask(tokenId, 0, 30, clwReward, 20000);
-
-      // Should get 100 CLW (1.0x from courage=50), NOT 200 CLW (2.0x)
       const bal = await router.clwBalances(tokenId);
-      expect(bal).to.equal(ethers.utils.parseEther("1100")); // 1000 + 100
+      expect(bal).to.equal(ethers.utils.parseEther("1100"));
     });
 
     it("should give less reward for low personality dimension", async function () {
-      // Create lobster with courage=10, wisdom=90
       await nfa.connect(minter).mintTo(user1.address, router.address, "", defaultMetadata);
       const tokenId2 = await nfa.getTotalSupply();
       await router.connect(minter).initializeLobster(tokenId2, {
         ...defaultLobster, courage: 10, wisdom: 90,
       });
-      // Fund user1 with more CLW for deposit
       await clw.mint(user1.address, ethers.utils.parseEther("1000"));
       await router.connect(user1).depositCLW(tokenId2, ethers.utils.parseEther("1000"));
 
       const clwReward = ethers.utils.parseEther("100");
 
-      // Do courage task (courage=10, matchScore=2000=0.2x) → expect 20 CLW
       await taskSkill.connect(user1).ownerCompleteTypedTask(tokenId2, 0, 10, clwReward, 0);
       const bal1 = await router.clwBalances(tokenId2);
-      expect(bal1).to.equal(ethers.utils.parseEther("1020")); // 1000 + 20
+      expect(bal1).to.equal(ethers.utils.parseEther("1020"));
 
-      // Wait cooldown
       await ethers.provider.send("evm_increaseTime", [4 * 3600 + 1]);
       await ethers.provider.send("evm_mine", []);
 
-      // Do wisdom task (wisdom=90, matchScore=18000=1.8x) → expect 180 CLW
       await taskSkill.connect(user1).ownerCompleteTypedTask(tokenId2, 1, 10, clwReward, 0);
       const bal2 = await router.clwBalances(tokenId2);
-      expect(bal2).to.equal(ethers.utils.parseEther("1200")); // 1020 + 180
+      expect(bal2).to.equal(ethers.utils.parseEther("1200"));
     });
 
     it("should apply diminishing returns for consecutive same-type tasks", async function () {
-      // Use a lobster with courage=40 so matchScore=8000 (below 10000 drift threshold)
-      // This prevents personality drift from changing matchScore between tasks
       await nfa.connect(minter).mintTo(user1.address, router.address, "", defaultMetadata);
       const tokenId3 = await nfa.getTotalSupply();
       await router.connect(minter).initializeLobster(tokenId3, {
@@ -259,39 +253,51 @@ describe("TaskSkill", function () {
       await router.connect(user1).depositCLW(tokenId3, ethers.utils.parseEther("2000"));
 
       const clwReward = ethers.utils.parseEther("100");
-      // courage=40 → matchScore=8000=0.8x → base reward = 80 CLW
 
-      // Task 1: courage, streak=1, 100% → 80 CLW
       await taskSkill.connect(user1).ownerCompleteTypedTask(tokenId3, 0, 10, clwReward, 0);
       expect(await router.clwBalances(tokenId3)).to.equal(ethers.utils.parseEther("2080"));
 
       await ethers.provider.send("evm_increaseTime", [4 * 3600 + 1]);
       await ethers.provider.send("evm_mine", []);
 
-      // Task 2: courage, streak=2, 80% → 80*0.8 = 64 CLW
       await taskSkill.connect(user1).ownerCompleteTypedTask(tokenId3, 0, 10, clwReward, 0);
-      expect(await router.clwBalances(tokenId3)).to.equal(ethers.utils.parseEther("2144"));
+      expect(await router.clwBalances(tokenId3)).to.equal(ethers.utils.parseEther("2145.6"));
 
       await ethers.provider.send("evm_increaseTime", [4 * 3600 + 1]);
       await ethers.provider.send("evm_mine", []);
 
-      // Task 3: courage, streak=3, 60% → 80*0.6 = 48 CLW
       await taskSkill.connect(user1).ownerCompleteTypedTask(tokenId3, 0, 10, clwReward, 0);
-      expect(await router.clwBalances(tokenId3)).to.equal(ethers.utils.parseEther("2192"));
+      expect(await router.clwBalances(tokenId3)).to.equal(ethers.utils.parseEther("2196"));
 
       await ethers.provider.send("evm_increaseTime", [4 * 3600 + 1]);
       await ethers.provider.send("evm_mine", []);
 
-      // Task 4: courage, streak=4, 50% → 80*0.5 = 40 CLW
       await taskSkill.connect(user1).ownerCompleteTypedTask(tokenId3, 0, 10, clwReward, 0);
-      expect(await router.clwBalances(tokenId3)).to.equal(ethers.utils.parseEther("2232"));
+      expect(await router.clwBalances(tokenId3)).to.equal(ethers.utils.parseEther("2239"));
 
       await ethers.provider.send("evm_increaseTime", [4 * 3600 + 1]);
       await ethers.provider.send("evm_mine", []);
 
-      // Task 5: switch to WISDOM → streak resets! wisdom=40, 0.8x, 100% → 80 CLW
       await taskSkill.connect(user1).ownerCompleteTypedTask(tokenId3, 1, 10, clwReward, 0);
-      expect(await router.clwBalances(tokenId3)).to.equal(ethers.utils.parseEther("2312"));
+      expect(await router.clwBalances(tokenId3)).to.equal(ethers.utils.parseEther("2319"));
+    });
+
+    it("should preview typed task outcome for low-stat growth", async function () {
+      await nfa.connect(minter).mintTo(user1.address, router.address, "", defaultMetadata);
+      const tokenId4 = await nfa.getTotalSupply();
+      await router.connect(minter).initializeLobster(tokenId4, {
+        ...defaultLobster, grit: 12,
+      });
+
+      const clwReward = ethers.utils.parseEther("80");
+      const preview = await taskSkill.previewTypedTaskOutcome(tokenId4, 4, 20, clwReward);
+
+      expect(preview.matchScore).to.equal(2400);
+      expect(preview.actualClw).to.equal(ethers.utils.parseEther("19.2"));
+      expect(preview.streakMul).to.equal(10000);
+      expect(preview.worldMul).to.equal(10000);
+      expect(preview.cooldownReady).to.equal(true);
+      expect(preview.personalityDrift).to.equal(true);
     });
   });
 });

@@ -2657,3 +2657,22 @@ For this rewrite, every meaningful decision or completed step should be written 
     - puzzle `45-75`
     - crafting `50-80`
   - mainline `/play` now uses a 3-slot shell with rolled task variants under each slot, so the task titles and flavor rotate without changing the basic flow
+
+## 2026-04-15 Mining Growth Follow-up
+
+- `/play` now keeps the 3-card mining layout but rotates the visible cards across all five attribute lanes
+- the active mining pool now includes:
+  - courage
+  - wisdom
+  - social
+  - create
+  - grit
+- growth copy has been simplified for players:
+  - preview: `完成后尝试成长：属性 +1`
+  - result: concrete attribute gain or concrete skip reason
+- the old `stat must reach 50 before it can grow` rule has been removed on-chain
+- monthly personality cap is now `10`, so the UI should treat `TaskPersonalityDriftSkipped("Monthly cap exceeded")` as the new once-per-month stop condition for each attribute
+- this keeps the shell aligned with the current product direction:
+  - more obvious attribute feedback
+  - less hidden math
+  - five full growth lanes instead of the previous three-lane feel

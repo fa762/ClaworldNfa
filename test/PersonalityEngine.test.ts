@@ -1,4 +1,4 @@
-import { expect } from "chai";
+﻿import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ClawNFA, ClawRouter, MockCLW, PersonalityEngine } from "../typechain-types";
@@ -83,19 +83,19 @@ describe("PersonalityEngine", function () {
         .withArgs(tokenId, 1, 60, 58); // wisdom: 60 → 58
     });
 
-    it("should enforce monthly cap (±5)", async function () {
-      await engine.connect(skill).evolvePersonality(tokenId, 0, 5); // +5 → at cap
+    it("should enforce monthly cap (±10)", async function () {
+      await engine.connect(skill).evolvePersonality(tokenId, 0, 10); // +10 → at cap
       await expect(
         engine.connect(skill).evolvePersonality(tokenId, 0, 1) // +1 → exceeds
       ).to.be.revertedWith("Monthly cap exceeded");
     });
 
     it("should reset monthly cap after 30 days", async function () {
-      await engine.connect(skill).evolvePersonality(tokenId, 0, 5); // at cap
+      await engine.connect(skill).evolvePersonality(tokenId, 0, 10); // at cap
       await increaseTime(30 * 86400 + 1); // 30 days
       await engine.connect(skill).evolvePersonality(tokenId, 0, 3); // should work
       const state = await router.getLobsterState(tokenId);
-      expect(state.courage).to.equal(58); // 50 + 5 + 3
+      expect(state.courage).to.equal(63); // 50 + 10 + 3
     });
 
     it("should clamp to 0 on negative overflow", async function () {
