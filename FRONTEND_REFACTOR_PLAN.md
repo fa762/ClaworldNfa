@@ -2728,3 +2728,12 @@ For this rewrite, every meaningful decision or completed step should be written 
   - fewer hidden rules
   - fewer dead-end actions
   - one place to finish the whole PK flow
+
+## 2026-04-17 Treasury Ops Note
+
+- the router treasury now has a controlled owner-only sweep path for excess `Clawworld`
+- the rule is simple:
+  - owner chooses a keep amount
+  - the sweep cannot reduce router holdings below `totalGameCLW`
+- this is an operational vault change only
+- no player-facing frontend behavior was changed in this pass

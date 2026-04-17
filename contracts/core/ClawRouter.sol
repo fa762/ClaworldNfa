@@ -174,6 +174,7 @@ contract ClawRouter is
     event VaultDeposit(address indexed depositor, uint256 amount);
     event CLWWithdrawn(uint256 indexed nfaId, uint256 gameAmount, uint256 realAmount, uint256 rate);
     event CLWPaidOut(address indexed recipient, uint256 amount, address indexed skill);
+    event CLWExcessSwept(address indexed to, uint256 amount, uint256 keepAmount);
 
     // ============================================
     // MODIFIERS
@@ -655,6 +656,26 @@ contract ClawRouter is
     function rescueERC20(address token, uint256 amount) external onlyOwner {
         require(token != address(clwToken), "Cannot rescue CLW");
         IERC20(token).safeTransfer(owner(), amount);
+    }
+
+    /// @notice Owner-only sweep of excess CLW above the configured keep amount.
+    /// @dev Never allows the vault to drop below totalGameCLW.
+    function sweepExcessCLW(address to, uint256 keepAmount) external onlyOwner {
+        require(to != address(0), "Zero address");
+        require(address(clwToken) != address(0), "CLW not set");
+
+        uint256 requiredKeep = keepAmount;
+        if (requiredKeep < totalGameCLW) {
+            requiredKeep = totalGameCLW;
+        }
+
+        uint256 vaultBalance = IERC20(clwToken).balanceOf(address(this));
+        require(vaultBalance > requiredKeep, "No excess CLW");
+
+        uint256 amount = vaultBalance - requiredKeep;
+        clwToken.safeTransfer(to, amount);
+
+        emit CLWExcessSwept(to, amount, requiredKeep);
     }
 
     // ============================================

@@ -2844,3 +2844,17 @@ If you need a clean operational path again, create or reuse a clean worktree for
 - the cancel button is now disabled until the timeout really matures, so the frontend no longer invites an action that will just revert
 - verification completed:
   - `npx tsc --noEmit --project frontend/tsconfig.json`
+
+## 2026-04-17 Router Excess CLW Sweep
+
+- `ClawRouter` now includes an owner-only `sweepExcessCLW(to, keepAmount)` path
+- the new sweep path never allows the router vault to drop below `totalGameCLW`
+- targeted tests added and passed in `test/ClawRouter.test.ts`
+- mainnet execution completed:
+  - router proxy: `0x60C0D5276c007Fd151f2A615c315cb364EF81BD5`
+  - target address: `0xEb15Bc34A66395751c518031Aeba79e6bA7285b5`
+  - keep amount: `500000 Claworld`
+  - sweep tx: `0x33555c1fd04b041bbdd13322e0e53074099a8a4fa604014623704b9657699e00`
+- after execution:
+  - router balance: `500000 Claworld`
+  - target address received: `9525818.074329203826133177 Claworld`

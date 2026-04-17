@@ -243,6 +243,46 @@ describe("ClawRouter", function () {
     });
   });
 
+  describe("Sweep excess CLW", function () {
+    it("should let owner sweep CLW above an explicit keep amount", async function () {
+      const tokenId = await setupLobster(user1);
+      await router.connect(user1).depositCLW(tokenId, ethers.utils.parseEther("100"));
+
+      await clw.mint(owner.address, ethers.utils.parseEther("1000"));
+      await clw.connect(owner).approve(router.address, ethers.constants.MaxUint256);
+      await router.connect(owner).depositVault(ethers.utils.parseEther("1000"));
+
+      const beforeVault = await clw.balanceOf(router.address);
+      expect(beforeVault).to.equal(ethers.utils.parseEther("1100"));
+
+      await expect(
+        router.connect(owner).sweepExcessCLW(user2.address, ethers.utils.parseEther("500"))
+      )
+        .to.emit(router, "CLWExcessSwept")
+        .withArgs(user2.address, ethers.utils.parseEther("600"), ethers.utils.parseEther("500"));
+
+      expect(await clw.balanceOf(router.address)).to.equal(ethers.utils.parseEther("500"));
+      expect(await clw.balanceOf(user2.address)).to.equal(ethers.utils.parseEther("10600"));
+    });
+
+    it("should never sweep below totalGameCLW", async function () {
+      const tokenId = await setupLobster(user1);
+      await router.connect(user1).depositCLW(tokenId, ethers.utils.parseEther("200"));
+
+      await clw.mint(owner.address, ethers.utils.parseEther("1000"));
+      await clw.connect(owner).approve(router.address, ethers.constants.MaxUint256);
+      await router.connect(owner).depositVault(ethers.utils.parseEther("1000"));
+
+      await expect(
+        router.connect(owner).sweepExcessCLW(user2.address, ethers.utils.parseEther("50"))
+      )
+        .to.emit(router, "CLWExcessSwept")
+        .withArgs(user2.address, ethers.utils.parseEther("1000"), ethers.utils.parseEther("200"));
+
+      expect(await clw.balanceOf(router.address)).to.equal(ethers.utils.parseEther("200"));
+    });
+  });
+
   describe("Daily Upkeep", function () {
     let tokenId: any;
 
