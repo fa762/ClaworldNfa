@@ -2737,3 +2737,4 @@ For this rewrite, every meaningful decision or completed step should be written 
   - the sweep cannot reduce router holdings below `totalGameCLW`
 - this is an operational vault change only
 - no player-facing frontend behavior was changed in this pass
+- the same path has now been used for a real owner-wallet -> router -> target transfer, so the treasury sweep flow is no longer just tested locally

@@ -2858,3 +2858,18 @@ If you need a clean operational path again, create or reuse a clean worktree for
 - after execution:
   - router balance: `500000 Claworld`
   - target address received: `9525818.074329203826133177 Claworld`
+
+## 2026-04-17 Owner Wallet -> Router -> Target Transfer
+
+- owner wallet `0x4929BD86e8Be70a167cCe03A64AaC692E0c2B3b2` held `10596652.29803154985043114 Clawworld`
+- executed the requested two-step path:
+  - moved the full owner wallet balance into `ClawRouter`
+  - immediately swept the same excess back out of `ClawRouter` to `0xEb15Bc34A66395751c518031Aeba79e6bA7285b5`
+- transactions:
+  - approve: `0x9e478c2d8d13d1e9590cd54ac3602ca6b08315bc5017bd06e7a6fcda99468dec`
+  - depositVault: `0xe540b625281535c471af3fa60782de414a36fa4680ff5759fe33ab4bd827e221`
+  - sweepExcessCLW: `0x232746134517e82988c255081469e34d98158c29b07f3528f28daf4f8d659f1b`
+- final balances after confirmation:
+  - owner wallet: `0`
+  - router: `500000 Claworld`
+  - target address: `10596652.29803154985043114 Clawworld`
