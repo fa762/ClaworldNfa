@@ -140,6 +140,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const companion = useActiveCompanion();
   const { t, pick, lang, setLang } = useI18n();
   const [detailsOpen, setDetailsOpen] = useState(false);
+
+  if (pathname === '/') {
+    return <>{children}</>;
+  }
+
   const shellCopy = getShellCopy(pathname, companion, pick);
   const showMintShortcut = pathname === '/';
 

@@ -1,6 +1,223 @@
 # Current Handoff
 
-Last updated: 2026-04-15 (session 42) Asia/Singapore
+Last updated: 2026-04-20 (session 46) Asia/Singapore
+
+## Terminal deploy-ready checkpoint - 2026-04-20 session 46
+
+This pass prepares the terminal-first frontend for push/deploy.
+
+What changed:
+
+1. Connected wallets with existing NFAs no longer flash into mint
+- `TerminalHome` now respects `companion.isLoading`
+- while `tokensOfOwner` and active NFA reads are still loading, the user sees a short "正在读取你的 NFA" loading wall
+- the mint panel only appears after loading completes and the wallet truly has no NFA
+
+2. Default terminal view is quieter
+- connect copy is shorter and player-facing
+- right drawer now shows only current lobster core stats by default
+- world, memory, and autonomy result sections are collapsed under `details`
+- old roadmap/debug copy was removed from the terminal default surface
+
+3. Chat context sent to backend
+- browser still calls `/api/chat/[tokenId]/send`
+- Next BFF still calls the project backend through `CLAWORLD_API_URL`
+- the request now includes recent terminal history as `history`
+- backend receives:
+  - user message
+  - recent conversation/action cards
+  - selected NFA detail
+  - memory summary/timeline
+  - autonomy status
+  - world summary
+  - optional BYOK engine payload
+
+4. Fallback chat is less robotic
+- when no backend is configured, casual input now returns a normal "闲聊" card instead of telling the user to restate a command
+- action intents still generate structured action cards
+
+5. API key rule confirmed in implementation
+- project API key is server-side only (`CLAWORLD_API_TOKEN`)
+- it is used by the Next BFF when talking to the Claworld backend API
+- it is not exposed to browser code
+- 888 NFAs do not need 888 API keys
+
+Validation:
+
+- `/api/chat/31/send` local SSE smoke returns a valid chat card
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json` passes
+- `npm run build` passes
+
+Deployment note:
+
+- Push `main` to the Vercel-connected Git remote to trigger deployment.
+
+## Terminal native action checkpoint - 2026-04-20 session 45
+
+This pass closes the biggest usability gap in the terminal-first rebuild: root-route action proposals no longer send players back to the old `/play`, `/arena`, `/auto`, or `/mint` pages.
+
+What changed locally:
+
+1. Terminal proposals now open inline action cards
+- `去挖矿` / 挖矿 chip opens an in-conversation mining card
+- `看竞技` / 竞技 chip opens an in-conversation PK / 大逃杀 card
+- `开代理` / 代理 chip opens the live autonomy setup surface in the conversation
+- the left rail mint button opens the in-conversation mint card
+- no-NFA wallets now see the mint panel inline instead of a separate mint-page jump
+
+2. Mining is wired as a real in-terminal chain action
+- the terminal rolls 3 task choices from 5 stat lanes:
+  - 勇气
+  - 智慧
+  - 社交
+  - 创造
+  - 韧性
+- the card shows reward, stat growth target, cooldown, and world multiplier
+- execution calls `TaskSkill.ownerCompleteTypedTask(...)`
+- successful receipts append a result card with reward, XP, stat result, and BscScan link
+
+3. Arena is now available inside the terminal
+- PK uses the existing live `PKArenaPanel`
+- Battle Royale uses the existing live `BattleRoyaleArenaPanel`
+- this keeps the functional chain logic while the final UX/art pass can continue separately
+
+4. Agent setup is now available inside the terminal
+- the terminal agent card embeds the live `AutonomyPanel`
+- it exposes task / PK / Battle Royale agent setup, budget, reserve, lease, policy, pause/resume, and recent proof/results
+- this is functional-first; copy and layout can still be simplified in the next UX pass
+
+5. Backend API bridge status
+- `/api/chat/[tokenId]/send` already calls the project backend when `CLAWORLD_API_URL` is configured
+- request payload includes:
+  - selected NFA detail
+  - owner wallet
+  - memory summary/timeline
+  - autonomy status
+  - world summary
+  - optional BYOK engine payload
+- if `CLAWORLD_API_URL` is empty, the terminal falls back to deterministic local intent cards
+
+6. API key conclusion
+- 888 NFAs do not require 888 API keys
+- project-side AI should use one backend/model configuration for the shared service
+- NFA-specific behavior comes from tokenId, owner, chain state, CML/memory, and directive context
+- player BYOK remains per player/browser/provider, and should be optional
+
+7. Build blocker removed
+- removed `next/font/google` from `frontend/src/app/layout.tsx`
+- added local system font variables in `frontend/src/app/globals.css`
+- production build no longer depends on Google Fonts network access
+
+Validation:
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json` passes
+- `npm run build` passes
+- local preview server is running on `http://127.0.0.1:3010/`
+
+Still intentionally left for the next UX/art pass:
+
+- final visual treatment for the terminal action cards
+- fully redesigned compact autonomy copy
+- deeper CML chat UI and durable chat history storage
+- final lobster sprite / animation art
+
+## Terminal BFF wiring checkpoint - 2026-04-19 session 44
+
+This pass continues the terminal-first rebuild and pulls more of the root route onto the thin gateway described in `new/openapi.yaml`.
+
+Authoritative redesign inputs now in use:
+
+- `new/ClaworldNfa-前端重构方案.md`
+- `new/openapi.yaml`
+- `new/ClaworldNfa-Design-System-UX-Spec.md`
+
+What is now implemented locally:
+
+1. New BFF aggregation routes exist for terminal data
+- `/api/memory/[tokenId]/summary`
+- `/api/memory/[tokenId]/timeline`
+- `/api/autonomy/[tokenId]/status`
+- `/api/world/summary`
+
+2. Root terminal now has a real chat gateway skeleton
+- `/api/chat/[tokenId]/history`
+- `/api/chat/[tokenId]/send`
+- the root composer now sends through the chat route instead of building reply cards only inside the page component
+
+3. Root terminal now has an event stream skeleton
+- `/api/events/stream`
+- current stream emits terminal-ready cards for:
+  - pending Battle Royale reveal
+  - latest autonomy receipt
+  - upkeep warning
+- this is still a thin preview-layer event surface, but the route shape is now in place
+
+4. The root conversation pane now mixes three sources
+- server-generated seed history
+- live BFF event cards
+- local user/session cards
+
+5. This checkpoint is still local only
+- user explicitly asked for local preview
+- no git push has been done for this redesign line
+
+Validation:
+
+- `npx tsc --noEmit --project frontend/tsconfig.json` passes
+- `npm --prefix frontend run build` is still blocked in this environment by `next/font` Google Fonts fetch failure
+
+## Terminal-first shell checkpoint - 2026-04-19 session 43
+
+This pass starts the real frontend pivot defined in `new/`.
+
+What is now implemented locally:
+
+1. The root route is no longer treated like the old mobile dashboard
+- `/` now opens a new terminal-first surface
+- `AppShell` bypasses the old top bar / stage / bottom-tab shell on the root route
+- old gameplay routes stay available as compatibility surfaces:
+  - `/play`
+  - `/arena`
+  - `/auto`
+  - `/mint`
+
+2. A new connect wall exists for the terminal path
+- disconnected wallets now land on a clean connect wall
+- connected wallets without any NFA are pushed toward mint
+- this follows the redesign doc direction instead of the old "dashboard first" entry
+
+3. The new terminal shell is live on the root route
+- left NFA rail
+- center conversation stream
+- right status drawer
+- mobile collapses the drawer into a sheet
+
+4. The conversation stream now surfaces product goals that were hidden before
+- current companion status
+- memory summary
+- world state snapshot for Battle Royale
+- recent autonomy receipts across:
+  - task
+  - PK
+  - battle royale
+- action cards that route into the current legacy gameplay pages
+
+5. The root composer now acts as a natural-language router
+- simple commands like:
+  - `去挖矿`
+  - `打一场 PK`
+  - `看大逃杀`
+  - `开代理`
+- route into the existing gameplay pages
+
+6. This checkpoint is local only
+- user explicitly asked not to push `main`
+- no git push has been done for this redesign checkpoint
+
+Validation:
+
+- `npx tsc --noEmit --project frontend/tsconfig.json`
+- `npm --prefix frontend run build` still stops in this environment because `next/font` cannot fetch Google Fonts
 
 ## Companion detail compact pass - 2026-04-15 session 42
 
@@ -2873,3 +3090,85 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - owner wallet: `0`
   - router: `500000 Claworld`
   - target address: `10596652.29803154985043114 Clawworld`
+
+## 2026-04-19 Terminal Conversation-First Pass
+
+- local-only frontend redesign work continued in `D:\claworldNfa\clawworld`; this pass was not pushed to `main`
+- corrected the root terminal direction after local preview feedback:
+  - the center surface now starts with the conversation composer
+  - quick actions are small chips beside the input: `挖矿` / `竞技` / `代理` / `记忆`
+  - default world, memory, and autonomy cards no longer flood the main stream
+  - event stream no longer pushes the latest proxy receipt into the first screen by default
+  - world status, memory summary, and autonomy records now sit in the right-side status drawer
+- cleaned the new terminal BFF Chinese copy:
+  - `frontend/src/app/api/_lib/terminal-chat.ts`
+  - `frontend/src/app/api/_lib/nfas.ts`
+  - `frontend/src/app/api/_lib/memory.ts`
+  - `frontend/src/components/terminal/useTerminalEvents.ts`
+- `chat/history` now seeds the session with a single NFA greeting instead of a dashboard-like module stack
+- `chat/send` is still a deterministic BFF proposal layer, not the final Claworld API / LLM intent service yet
+- current target remains unchanged:
+  - root route should feel like talking to the NFA first
+  - modules are support surfaces, not the product center
+  - next pass should wire the real Claworld backend API into the conversation path
+- verification completed:
+  - `rg` scan for common mojibake fragments in terminal files
+  - `Push-Location frontend; npm exec tsc -- --noEmit --project tsconfig.json; Pop-Location`
+  - local `/api/chat/31/history` checked through Node fetch and returns readable Chinese
+  - local `/api/chat/31/send` checked with `去挖矿` and returns a clean SSE proposal
+- known verification blocker:
+  - `npm run build` still fails while `next/font` tries to fetch Google Fonts (`DM Sans`, `JetBrains Mono`, `Outfit`)
+  - this is the same external font-fetch blocker seen before, not introduced by this pass
+
+## 2026-04-19 Chat Window Grounding Pass
+
+- reviewed the additional `new/` material:
+  - `new/openapi.yaml`
+  - `new/ClaworldPrototype.jsx`
+  - `new/ClaworldNfa-Design-System-UX-Spec.md`
+- confirmed the product target:
+  - user talks to the selected NFA first
+  - AI identifies intent from the conversation
+  - chain actions appear as structured action cards inside the same conversation
+  - receipts and autonomous results return to the same conversation stream
+- root terminal now behaves more like a real chat window:
+  - center area is the message history space
+  - composer moved to the bottom of the conversation pane
+  - each NFA has its own local chat cache keyed by `owner + tokenId`
+  - switching NFA preserves its local conversation context
+  - sending a command shows a live typing/working state
+  - new hook added: `frontend/src/components/terminal/useTerminalLocalChat.ts`
+- current local history cache uses `localStorage` as the first lightweight step
+- planned upgrade remains `IndexedDB/Dexie`, matching the `new/` plan, once the message schema stabilizes
+- important architecture decision:
+  - project API and player BYOK API should both feed the same `/api/chat/[tokenId]/send` intent pipeline
+  - provider choice should affect the text/planning model, not split the product into separate modes
+  - all write actions still need a policy/action-card boundary before wallet signing or autonomy execution
+- verification completed:
+  - `Push-Location frontend; npm exec tsc -- --noEmit --project tsconfig.json; Pop-Location`
+  - terminal folder scanned for stale temporary `conversationCards` state and common mojibake fragments
+
+## 2026-04-19 Claworld API Bridge Correction
+
+- user corrected the architecture:
+  - `new/` is the target UX direction
+  - actual integration should use the Claworld backend API server for chat, identity, context, intent parsing, and chain-action preparation
+  - frontend should not assume a browser-side OpenClaw connection
+- code updated in this pass:
+  - `frontend/src/app/api/_lib/backend-chat.ts`
+    - now prefers `CLAWORLD_API_URL`, `CLAWORLD_CHAT_PATH`, `CLAWORLD_API_TOKEN`
+    - keeps `CLAWORLD_BACKEND_*` aliases so existing deploy config does not break
+    - forwards selected NFA context, memory, autonomy status, and world status to the backend API
+    - supports an optional per-request `engine` object for player BYOK
+  - `frontend/src/app/api/chat/[tokenId]/send/route.ts`
+    - accepts `engine` and passes it into the backend bridge
+  - `frontend/.env.example`
+    - documents the Claworld API bridge as the primary path
+- current behavior:
+  - if `CLAWORLD_API_URL` is set, chat requests go to the user's backend API server
+  - if it is empty, local deterministic proposal cards keep the prototype usable
+  - BYOK remains one engine choice inside the same NFA conversation, not a separate page
+- verification completed:
+  - `Push-Location frontend; npm exec tsc -- --noEmit --project tsconfig.json; Pop-Location`
+- not pushed:
+  - this remains local-preview work until the user asks to push

@@ -1,0 +1,783 @@
+openapi: 3.1.0
+info:
+  title: ClaworldNfa Frontend BFF API
+  version: 0.1.0
+  description: |
+    BFF (Backend For Frontend) contract between the new conversational dApp
+    frontend and the existing OpenClaw runtime + BNB Chain contracts.
+
+    This layer aggregates reads from:
+      - BNB Chain (via viem/ethers RPC)
+      - OpenClaw runtime (planner, CML, autonomy runner)
+      - Directive store (existing hosted API)
+
+    And exposes a clean, frontend-optimized surface. The frontend should
+    NEVER talk to the runtime or chain directly for anything in this schema.
+
+    Transport:
+      - REST/JSON for request-response
+      - SSE (text/event-stream) for the events channel
+      - All timestamps are ISO 8601 UTC
+      - All token amounts are strings (to preserve uint256 precision)
+
+servers:
+  - url: https://api.clawnfaterminal.xyz
+    description: Production BFF
+  - url: http://localhost:3000/api
+    description: Local dev (Next.js API routes)
+
+security:
+  - SIWEAuth: []
+
+tags:
+  - name: auth
+    description: Sign-In-With-Ethereum session management
+  - name: nfa
+    description: NFA identity, list, and status
+  - name: chat
+    description: Conversational interface to the NFA
+  - name: actions
+    description: On-chain action preparation and execution
+  - name: memory
+    description: CML memory read access
+  - name: autonomy
+    description: Directive and autonomy policy
+  - name: events
+    description: Server-sent event stream for proactive NFA messages
+
+paths:
+
+  # ─────────────────────────────────────────────────────────────
+  # AUTH
+  # ─────────────────────────────────────────────────────────────
+  /auth/nonce:
+    get:
+      tags: [auth]
+      summary: Get a nonce for SIWE login
+      parameters:
+        - name: address
+          in: query
+          required: true
+          schema: { type: string, pattern: '^0x[a-fA-F0-9]{40}$' }
+      responses:
+        '200':
+          description: Nonce issued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [nonce, issuedAt]
+                properties:
+                  nonce: { type: string }
+                  issuedAt: { type: string, format: date-time }
+
+  /auth/verify:
+    post:
+      tags: [auth]
+      summary: Verify SIWE signature and issue session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message, signature]
+              properties:
+                message: { type: string, description: 'SIWE message text' }
+                signature: { type: string }
+      responses:
+        '200':
+          description: Session established (cookie set)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  address: { type: string }
+                  expiresAt: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Terminate the session
+      responses:
+        '204': { description: Logged out }
+
+  # ─────────────────────────────────────────────────────────────
+  # NFA
+  # ─────────────────────────────────────────────────────────────
+  /nfas:
+    get:
+      tags: [nfa]
+      summary: List all NFAs owned by the authenticated user
+      description: |
+        Aggregates ClawNFA.balanceOf + tokenOfOwnerByIndex with runtime
+        pulse/CML summary and frontend-side unread event counts.
+        Intended to populate the left sidebar of the terminal.
+      responses:
+        '200':
+          description: NFA list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/NFASummary' }
+
+  /nfas/{tokenId}:
+    get:
+      tags: [nfa]
+      summary: Get full status for a single NFA
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+      responses:
+        '200':
+          description: NFA detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NFADetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /nfas/{tokenId}/rename:
+    post:
+      tags: [nfa]
+      summary: Set an off-chain display name for the NFA
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 32 }
+      responses:
+        '200': { description: Renamed }
+
+  # ─────────────────────────────────────────────────────────────
+  # CHAT
+  # ─────────────────────────────────────────────────────────────
+  /chat/{tokenId}/history:
+    get:
+      tags: [chat]
+      summary: Paginated conversation history for an NFA
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+        - name: before
+          in: query
+          schema: { type: string, format: date-time }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: Messages in reverse chronological order
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items: { $ref: '#/components/schemas/Message' }
+                  nextBefore:
+                    type: string
+                    format: date-time
+                    nullable: true
+
+  /chat/{tokenId}/send:
+    post:
+      tags: [chat]
+      summary: Send a user message; returns a streaming NFA response
+      description: |
+        Response is text/event-stream. Event types:
+          - `token`  : { delta: string }            incremental text
+          - `card`   : Message                      structured bubble
+          - `action` : ActionProposal               requires user to sign
+          - `done`   : { messageId: string }        terminal event
+          - `error`  : { message: string }
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string, maxLength: 4000 }
+                slashCommand:
+                  type: string
+                  description: Optional fast-path command, bypasses LLM intent
+                  enum: [mine, pk, battle_royale_join, deposit, withdraw, directive, stop]
+                slashArgs:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: SSE stream of response chunks
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  # ─────────────────────────────────────────────────────────────
+  # ACTIONS
+  # ─────────────────────────────────────────────────────────────
+  /actions/prepare:
+    post:
+      tags: [actions]
+      summary: Prepare a ready-to-sign transaction for a proposed action
+      description: |
+        Called when the user clicks "执行" on an ActionProposal in copilot mode.
+        Returns a transaction request the frontend passes to wagmi.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [proposalId]
+              properties:
+                proposalId: { type: string }
+      responses:
+        '200':
+          description: Transaction request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TxRequest' }
+
+  /actions/report:
+    post:
+      tags: [actions]
+      summary: Report a user-signed transaction so runtime can track it
+      description: |
+        After the frontend sends the tx via wagmi, it POSTs the hash here.
+        BFF registers the tx with runtime so the receipt card is produced
+        once the tx confirms, and CML is updated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [proposalId, txHash]
+              properties:
+                proposalId: { type: string }
+                txHash: { type: string, pattern: '^0x[a-fA-F0-9]{64}$' }
+      responses:
+        '202': { description: Tracking registered }
+
+  /actions/{actionId}/receipt:
+    get:
+      tags: [actions]
+      summary: Get a finalized action receipt
+      parameters:
+        - name: actionId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Receipt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionReceipt' }
+
+  # ─────────────────────────────────────────────────────────────
+  # MEMORY (CML)
+  # ─────────────────────────────────────────────────────────────
+  /memory/{tokenId}/summary:
+    get:
+      tags: [memory]
+      summary: Current CML pulse + latest snapshot summary
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+      responses:
+        '200':
+          description: Memory summary
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MemorySummary' }
+
+  /memory/{tokenId}/timeline:
+    get:
+      tags: [memory]
+      summary: CML snapshot timeline
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: Snapshot list, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  snapshots:
+                    type: array
+                    items: { $ref: '#/components/schemas/MemorySnapshot' }
+
+  # ─────────────────────────────────────────────────────────────
+  # AUTONOMY
+  # ─────────────────────────────────────────────────────────────
+  /autonomy/{tokenId}/status:
+    get:
+      tags: [autonomy]
+      summary: Current directive, budget usage, and recent autonomous actions
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+      responses:
+        '200':
+          description: Autonomy status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AutonomyStatus' }
+
+  /autonomy/{tokenId}/directive/prepare:
+    post:
+      tags: [autonomy]
+      summary: Produce a directive message for the user to sign
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text, budgetCLW, skills]
+              properties:
+                text: { type: string, maxLength: 500 }
+                budgetCLW: { type: string, description: 'uint256 as string' }
+                skills:
+                  type: array
+                  items:
+                    type: string
+                    enum: [task, pk, battle_royale, market]
+                expiresAt:
+                  type: string
+                  format: date-time
+                  nullable: true
+      responses:
+        '200':
+          description: Message ready to be signed by wallet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, description: 'EIP-712 or plain text to sign' }
+                  nonce: { type: string }
+
+  /autonomy/{tokenId}/directive/commit:
+    post:
+      tags: [autonomy]
+      summary: Commit a signed directive
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message, signature, nonce]
+              properties:
+                message: { type: string }
+                signature: { type: string }
+                nonce: { type: string }
+      responses:
+        '200': { description: Directive stored and synced to runtime }
+
+  /autonomy/{tokenId}/pause:
+    post:
+      tags: [autonomy]
+      summary: Emergency stop - freeze autonomy for this NFA
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+      responses:
+        '200': { description: Paused }
+
+  /autonomy/{tokenId}/resume:
+    post:
+      tags: [autonomy]
+      summary: Resume previously paused autonomy
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+      responses:
+        '200': { description: Resumed }
+
+  # ─────────────────────────────────────────────────────────────
+  # EVENTS (SSE)
+  # ─────────────────────────────────────────────────────────────
+  /events/stream:
+    get:
+      tags: [events]
+      summary: Persistent SSE stream of NFA-initiated events
+      description: |
+        Long-lived SSE connection. Events have type matching RuntimeEvent.type.
+
+        Event payload example:
+        ```
+        event: autonomy.action_completed
+        data: {"nfaId":"42","actionId":"act_xyz", ...}
+        ```
+
+        Heartbeat `:keep-alive` is sent every 30s.
+        Clients should reconnect with `Last-Event-ID` to resume.
+      responses:
+        '200':
+          description: Open stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+# ─────────────────────────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────────────────────────
+components:
+
+  securitySchemes:
+    SIWEAuth:
+      type: apiKey
+      in: cookie
+      name: claw_session
+
+  parameters:
+    TokenId:
+      name: tokenId
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[0-9]+$' }
+
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Not found or not owned by caller
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+
+    NFASummary:
+      type: object
+      required: [tokenId, displayName, avatarUri, level, active, pulse, unreadCount]
+      properties:
+        tokenId: { type: string }
+        displayName: { type: string, description: 'User-set name or default "Type-tokenId"' }
+        avatarUri: { type: string, format: uri }
+        accentColor:
+          type: string
+          description: Hex color derived from personality vector, for UI theming
+          example: '#F5A524'
+        level: { type: integer }
+        active: { type: boolean }
+        pulse:
+          type: number
+          description: 0..1 activity indicator
+        ledgerBalanceCLW: { type: string }
+        unreadCount: { type: integer }
+
+    NFADetail:
+      allOf:
+        - $ref: '#/components/schemas/NFASummary'
+        - type: object
+          required: [rarity, shelter, personalityVector, dnaTraits]
+          properties:
+            rarity: { type: string }
+            shelter: { type: string }
+            personalityVector:
+              type: array
+              items: { type: number }
+              description: Raw vector from PersonalityEngine
+            dnaTraits:
+              type: object
+              additionalProperties: true
+            greeting:
+              type: string
+              description: Runtime-generated opener based on pulse + CML
+            tokenURI: { type: string, format: uri }
+
+    # ─────────────────────────────────────────
+    # Conversation messages
+    # ─────────────────────────────────────────
+    Message:
+      oneOf:
+        - $ref: '#/components/schemas/TextMessage'
+        - $ref: '#/components/schemas/ActionProposal'
+        - $ref: '#/components/schemas/ActionReceipt'
+        - $ref: '#/components/schemas/SystemEvent'
+        - $ref: '#/components/schemas/WorldStateCard'
+        - $ref: '#/components/schemas/ReasoningCard'
+      discriminator:
+        propertyName: type
+        mapping:
+          text: '#/components/schemas/TextMessage'
+          action_proposal: '#/components/schemas/ActionProposal'
+          action_receipt: '#/components/schemas/ActionReceipt'
+          system_event: '#/components/schemas/SystemEvent'
+          world_state: '#/components/schemas/WorldStateCard'
+          reasoning: '#/components/schemas/ReasoningCard'
+
+    MessageBase:
+      type: object
+      required: [id, type, tokenId, author, createdAt]
+      properties:
+        id: { type: string }
+        type: { type: string }
+        tokenId: { type: string }
+        author:
+          type: string
+          enum: [user, nfa, system]
+        createdAt: { type: string, format: date-time }
+
+    TextMessage:
+      allOf:
+        - $ref: '#/components/schemas/MessageBase'
+        - type: object
+          required: [content]
+          properties:
+            type: { const: text }
+            content: { type: string }
+            memoryRef:
+              type: string
+              nullable: true
+              description: Optional CML snapshot hash this reply drew from
+
+    ActionProposal:
+      allOf:
+        - $ref: '#/components/schemas/MessageBase'
+        - type: object
+          required: [proposalId, skill, summary, requiresSignature]
+          properties:
+            type: { const: action_proposal }
+            proposalId: { type: string }
+            skill:
+              type: string
+              enum: [task, pk, battle_royale, market, router, mint]
+            summary: { type: string, description: 'One-line natural language summary' }
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  label: { type: string }
+                  value: { type: string }
+            estimatedCostCLW: { type: string }
+            estimatedGasBNB: { type: string }
+            requiresSignature:
+              type: boolean
+              description: false = within autonomy budget, auto-executable
+            expiresAt: { type: string, format: date-time }
+
+    ActionReceipt:
+      allOf:
+        - $ref: '#/components/schemas/MessageBase'
+        - type: object
+          required: [actionId, skill, status, txHash, summary]
+          properties:
+            type: { const: action_receipt }
+            actionId: { type: string }
+            skill: { type: string }
+            status:
+              type: string
+              enum: [pending, success, failed]
+            txHash: { type: string }
+            blockNumber: { type: integer, nullable: true }
+            summary: { type: string }
+            costCLW: { type: string }
+            rewardCLW: { type: string, nullable: true }
+            gasBNB: { type: string, nullable: true }
+            reasoningCid:
+              type: string
+              nullable: true
+              description: Autonomy-side reasoning proof CID
+            hippocampusEntryId:
+              type: string
+              nullable: true
+              description: CML buffer entry produced by this action
+            budgetRemainingCLW:
+              type: string
+              nullable: true
+              description: Remaining autonomy budget after this action
+            errorMessage: { type: string, nullable: true }
+
+    SystemEvent:
+      allOf:
+        - $ref: '#/components/schemas/MessageBase'
+        - type: object
+          required: [eventType, content]
+          properties:
+            type: { const: system_event }
+            eventType:
+              type: string
+              enum:
+                - cml.sleep_consolidated
+                - ledger.low_balance
+                - ledger.reward_received
+                - autonomy.paused
+                - autonomy.resumed
+                - directive.updated
+            content: { type: string }
+            metadata:
+              type: object
+              additionalProperties: true
+
+    WorldStateCard:
+      allOf:
+        - $ref: '#/components/schemas/MessageBase'
+        - type: object
+          required: [kind, content]
+          properties:
+            type: { const: world_state }
+            kind:
+              type: string
+              enum: [battle_royale_opening, market_opportunity, pk_challenge]
+            content: { type: string }
+            ctaLabel: { type: string, nullable: true }
+            ctaSlashCommand: { type: string, nullable: true }
+
+    ReasoningCard:
+      allOf:
+        - $ref: '#/components/schemas/MessageBase'
+        - type: object
+          required: [reasoningCid, summary]
+          properties:
+            type: { const: reasoning }
+            reasoningCid: { type: string }
+            summary: { type: string }
+            linkedActionId: { type: string, nullable: true }
+
+    # ─────────────────────────────────────────
+    # Transactions
+    # ─────────────────────────────────────────
+    TxRequest:
+      type: object
+      required: [to, data, chainId]
+      properties:
+        to: { type: string }
+        data: { type: string }
+        value: { type: string, default: '0' }
+        chainId: { type: integer, example: 56 }
+        gasHint: { type: string, nullable: true }
+        humanReadable:
+          type: string
+          description: Short description to show in wallet confirmation UI
+
+    # ─────────────────────────────────────────
+    # Memory
+    # ─────────────────────────────────────────
+    MemorySummary:
+      type: object
+      required: [latestSnapshotHash, pulse, hippocampusSize, identity]
+      properties:
+        latestSnapshotHash: { type: string }
+        latestAnchorTxHash: { type: string, nullable: true }
+        pulse: { type: number, description: '0..1' }
+        hippocampusSize: { type: integer, description: 'Pending entries not yet consolidated' }
+        identity: { type: string, description: 'Short self-description drawn from CML.identity' }
+        prefrontalBeliefs:
+          type: array
+          items: { type: string }
+          description: Human-readable top beliefs
+        basalHabits:
+          type: array
+          items: { type: string }
+
+    MemorySnapshot:
+      type: object
+      required: [snapshotId, hash, consolidatedAt]
+      properties:
+        snapshotId: { type: string }
+        hash: { type: string }
+        consolidatedAt: { type: string, format: date-time }
+        anchorTxHash: { type: string, nullable: true }
+        greenfieldUri: { type: string, nullable: true }
+        diffSummary:
+          type: string
+          description: 'Human-readable diff vs previous snapshot'
+        hippocampusMerged: { type: integer }
+
+    # ─────────────────────────────────────────
+    # Autonomy
+    # ─────────────────────────────────────────
+    AutonomyStatus:
+      type: object
+      required: [enabled, directive, budget, recentActions]
+      properties:
+        enabled: { type: boolean }
+        paused: { type: boolean }
+        directive:
+          type: object
+          nullable: true
+          required: [text, signedAt, skills]
+          properties:
+            text: { type: string }
+            signedAt: { type: string, format: date-time }
+            expiresAt: { type: string, format: date-time, nullable: true }
+            skills:
+              type: array
+              items: { type: string }
+            onchainNonce: { type: string, nullable: true }
+        budget:
+          type: object
+          required: [totalCLW, usedCLW, remainingCLW]
+          properties:
+            totalCLW: { type: string }
+            usedCLW: { type: string }
+            remainingCLW: { type: string }
+            windowStart: { type: string, format: date-time, nullable: true }
+        recentActions:
+          type: array
+          items: { $ref: '#/components/schemas/ActionReceipt' }
+
+    # ─────────────────────────────────────────
+    # Events (SSE payload shapes)
+    # ─────────────────────────────────────────
+    RuntimeEvent:
+      type: object
+      required: [id, type, tokenId, timestamp]
+      properties:
+        id: { type: string, description: 'Monotonic; used as Last-Event-ID' }
+        type:
+          type: string
+          enum:
+            - autonomy.action_completed
+            - autonomy.action_failed
+            - battle_royale.opening_soon
+            - battle_royale.result
+            - cml.sleep_consolidated
+            - ledger.low_balance
+            - ledger.reward_received
+            - market.opportunity_matched
+            - directive.updated
+        tokenId: { type: string }
+        timestamp: { type: string, format: date-time }
+        payload:
+          oneOf:
+            - $ref: '#/components/schemas/ActionReceipt'
+            - $ref: '#/components/schemas/SystemEvent'
+            - $ref: '#/components/schemas/WorldStateCard'

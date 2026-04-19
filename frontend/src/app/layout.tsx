@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, JetBrains_Mono, Outfit } from "next/font/google";
 
 import "./globals.css";
 
@@ -7,24 +6,6 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ActiveCompanionProvider } from "@/components/lobster/useActiveCompanion";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
 import { I18nProvider } from "@/lib/i18n";
-
-const headingFont = Outfit({
-  subsets: ["latin"],
-  variable: "--font-heading",
-  weight: ["500", "600", "700"],
-});
-
-const bodyFont = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-body",
-  weight: ["400", "500", "700"],
-});
-
-const monoFont = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["500", "700"],
-});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -62,7 +43,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className={`${headingFont.variable} ${bodyFont.variable} ${monoFont.variable}`}>
+      <body>
         <WalletProvider>
           <I18nProvider>
             <ActiveCompanionProvider>

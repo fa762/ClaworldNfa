@@ -50,6 +50,10 @@
       "address": "0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E",
       "txHash": "0xa76ce1ebfdd476a7f71072cd601117c43a14689040756abe48cc7a12f610deac",
       "kind": "uups"
+    },
+    {
+      "address": "0x2B2182326Fd659156B2B119034A72D1C2cC9758D",
+      "kind": "uups"
     }
   ],
   "impls": {
@@ -4626,6 +4630,997 @@
           "t_uint256": {
             "label": "uint256",
             "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {}
+      }
+    },
+    "436bb8c37a4e358389967435f328c7d0ea6bfb236cb31e69ab0cd571eccac11e": {
+      "address": "0x21B6AC70736D8D9Bd75D0b5da144C81B003b0B77",
+      "layout": {
+        "solcVersion": "0.8.26",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:68"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:40"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\ERC1967\\ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "_status",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "202",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:88"
+          },
+          {
+            "label": "clwToken",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_contract(IERC20)5140",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:67"
+          },
+          {
+            "label": "treasury",
+            "offset": 0,
+            "slot": "252",
+            "type": "t_address",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:68"
+          },
+          {
+            "label": "matchCount",
+            "offset": 0,
+            "slot": "253",
+            "type": "t_uint256",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:70"
+          },
+          {
+            "label": "roundIdCounter",
+            "offset": 0,
+            "slot": "254",
+            "type": "t_uint256",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:71"
+          },
+          {
+            "label": "matches",
+            "offset": 0,
+            "slot": "255",
+            "type": "t_mapping(t_uint256,t_struct(BRMatch)12138_storage)",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:73"
+          },
+          {
+            "label": "roomPlayers",
+            "offset": 0,
+            "slot": "256",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint8,t_array(t_address)dyn_storage))",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:74"
+          },
+          {
+            "label": "roomTotal",
+            "offset": 0,
+            "slot": "257",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint8,t_uint256))",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:75"
+          },
+          {
+            "label": "playerRoom",
+            "offset": 0,
+            "slot": "258",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint8))",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:76"
+          },
+          {
+            "label": "playerStake",
+            "offset": 0,
+            "slot": "259",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:77"
+          },
+          {
+            "label": "roomOccupied",
+            "offset": 0,
+            "slot": "260",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint8,t_bool))",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:78"
+          },
+          {
+            "label": "matchTotal",
+            "offset": 0,
+            "slot": "261",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:79"
+          },
+          {
+            "label": "minStake",
+            "offset": 0,
+            "slot": "262",
+            "type": "t_uint256",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:81"
+          },
+          {
+            "label": "treasuryBps",
+            "offset": 0,
+            "slot": "263",
+            "type": "t_uint256",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:82"
+          },
+          {
+            "label": "speedBonusBps",
+            "offset": 0,
+            "slot": "264",
+            "type": "t_uint256",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:83"
+          },
+          {
+            "label": "router",
+            "offset": 0,
+            "slot": "265",
+            "type": "t_address",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:84"
+          },
+          {
+            "label": "nfa",
+            "offset": 0,
+            "slot": "266",
+            "type": "t_address",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:85"
+          },
+          {
+            "label": "triggerCount",
+            "offset": 20,
+            "slot": "266",
+            "type": "t_uint8",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:86"
+          },
+          {
+            "label": "revealDelay",
+            "offset": 21,
+            "slot": "266",
+            "type": "t_uint8",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:87"
+          },
+          {
+            "label": "claimed",
+            "offset": 0,
+            "slot": "267",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:89"
+          },
+          {
+            "label": "roomChangeCount",
+            "offset": 0,
+            "slot": "268",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint8))",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:90"
+          },
+          {
+            "label": "matchConfigs",
+            "offset": 0,
+            "slot": "269",
+            "type": "t_mapping(t_uint256,t_struct(MatchConfig)12149_storage)",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:91"
+          },
+          {
+            "label": "matchSettlements",
+            "offset": 0,
+            "slot": "270",
+            "type": "t_mapping(t_uint256,t_struct(MatchSettlement)12162_storage)",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:92"
+          },
+          {
+            "label": "survivorWeight",
+            "offset": 0,
+            "slot": "271",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:93"
+          },
+          {
+            "label": "playerNfa",
+            "offset": 0,
+            "slot": "272",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:94"
+          },
+          {
+            "label": "autonomousResolvers",
+            "offset": 0,
+            "slot": "273",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:95"
+          },
+          {
+            "label": "autonomousPlayerNfa",
+            "offset": 0,
+            "slot": "274",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:96"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "275",
+            "type": "t_array(t_uint256)27_storage",
+            "contract": "BattleRoyale",
+            "src": "contracts\\skills\\BattleRoyale.sol:1055"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)27_storage": {
+            "label": "uint256[27]",
+            "numberOfBytes": "864"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(IERC20)5140": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_enum(MatchStatus)12126": {
+            "label": "enum BattleRoyale.MatchStatus",
+            "members": [
+              "OPEN",
+              "PENDING_REVEAL",
+              "SETTLED"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint8)": {
+            "label": "mapping(address => uint8)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_bool))": {
+            "label": "mapping(uint256 => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(uint256 => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_uint8))": {
+            "label": "mapping(uint256 => mapping(address => uint8))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint8,t_array(t_address)dyn_storage))": {
+            "label": "mapping(uint256 => mapping(uint8 => address[]))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint8,t_bool))": {
+            "label": "mapping(uint256 => mapping(uint8 => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint8,t_uint256))": {
+            "label": "mapping(uint256 => mapping(uint8 => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(BRMatch)12138_storage)": {
+            "label": "mapping(uint256 => struct BattleRoyale.BRMatch)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(MatchConfig)12149_storage)": {
+            "label": "mapping(uint256 => struct BattleRoyale.MatchConfig)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(MatchSettlement)12162_storage)": {
+            "label": "mapping(uint256 => struct BattleRoyale.MatchSettlement)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_array(t_address)dyn_storage)": {
+            "label": "mapping(uint8 => address[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_bool)": {
+            "label": "mapping(uint8 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_uint256)": {
+            "label": "mapping(uint8 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(BRMatch)12138_storage": {
+            "label": "struct BattleRoyale.BRMatch",
+            "members": [
+              {
+                "label": "status",
+                "type": "t_enum(MatchStatus)12126",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "totalPlayers",
+                "type": "t_uint8",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "revealBlock",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "losingRoom",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "roundId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(MatchConfig)12149_storage": {
+            "label": "struct BattleRoyale.MatchConfig",
+            "members": [
+              {
+                "label": "minStake",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "treasuryBps",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "triggerCount",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "revealDelay",
+                "type": "t_uint8",
+                "offset": 1,
+                "slot": "2"
+              },
+              {
+                "label": "initialized",
+                "type": "t_bool",
+                "offset": 2,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_struct(MatchSettlement)12162_storage": {
+            "label": "struct BattleRoyale.MatchSettlement",
+            "members": [
+              {
+                "label": "loserTotal",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "survivorBaseTotal",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "treasuryFee",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "survivorPrize",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "totalSurvivorWeight",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "fallbackEntropyUsed",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {}
+      },
+      "allAddresses": [
+        "0x21B6AC70736D8D9Bd75D0b5da144C81B003b0B77"
+      ]
+    },
+    "11b5c4730df1c4ec9c77d69f9a409e25ac7eee0d6c0c2e81a4714e665f4edc53": {
+      "address": "0xaCAfe5E43A405F1bE7c58B234caf1167455DE07C",
+      "txHash": "0xd5e52a86194c993bbdc7695ef6cdf4b1eae1344acd2ed76602cebf50180d97b0",
+      "layout": {
+        "solcVersion": "0.8.26",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:68"
+          },
+          {
+            "label": "_status",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:88"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:40"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\ERC1967\\ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "DAILY_COSTS",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_array(t_uint256)10_storage",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:104"
+          },
+          {
+            "label": "clwToken",
+            "offset": 0,
+            "slot": "261",
+            "type": "t_contract(IERC20)1458",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:113"
+          },
+          {
+            "label": "nfa",
+            "offset": 0,
+            "slot": "262",
+            "type": "t_contract(IClawNFA)2300",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:114"
+          },
+          {
+            "label": "treasury",
+            "offset": 0,
+            "slot": "263",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:115"
+          },
+          {
+            "label": "lobsters",
+            "offset": 0,
+            "slot": "264",
+            "type": "t_mapping(t_uint256,t_struct(LobsterState)2369_storage)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:118"
+          },
+          {
+            "label": "clwBalances",
+            "offset": 0,
+            "slot": "265",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:119"
+          },
+          {
+            "label": "initialized",
+            "offset": 0,
+            "slot": "266",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:120"
+          },
+          {
+            "label": "withdrawRequests",
+            "offset": 0,
+            "slot": "267",
+            "type": "t_mapping(t_uint256,t_struct(WithdrawRequest)2374_storage)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:123"
+          },
+          {
+            "label": "authorizedSkills",
+            "offset": 0,
+            "slot": "268",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:126"
+          },
+          {
+            "label": "minter",
+            "offset": 0,
+            "slot": "269",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:129"
+          },
+          {
+            "label": "zeroBalanceTimestamp",
+            "offset": 0,
+            "slot": "270",
+            "type": "t_mapping(t_uint256,t_uint64)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:132"
+          },
+          {
+            "label": "personalityChangesThisMonth",
+            "offset": 0,
+            "slot": "271",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint8,t_int8))",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:135"
+          },
+          {
+            "label": "personalityMonthStart",
+            "offset": 0,
+            "slot": "272",
+            "type": "t_mapping(t_uint256,t_uint64)",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:136"
+          },
+          {
+            "label": "pancakeRouter",
+            "offset": 0,
+            "slot": "273",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:139"
+          },
+          {
+            "label": "flapPortal",
+            "offset": 0,
+            "slot": "274",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:140"
+          },
+          {
+            "label": "graduated",
+            "offset": 20,
+            "slot": "274",
+            "type": "t_bool",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:141"
+          },
+          {
+            "label": "worldState",
+            "offset": 0,
+            "slot": "275",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:144"
+          },
+          {
+            "label": "geneBoostNonce",
+            "offset": 0,
+            "slot": "276",
+            "type": "t_uint256",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:147"
+          },
+          {
+            "label": "personalityEngine",
+            "offset": 0,
+            "slot": "277",
+            "type": "t_address",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:150"
+          },
+          {
+            "label": "totalGameCLW",
+            "offset": 0,
+            "slot": "278",
+            "type": "t_uint256",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:153"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "279",
+            "type": "t_array(t_uint256)39_storage",
+            "contract": "ClawRouter",
+            "src": "contracts\\core\\ClawRouter.sol:730"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)10_storage": {
+            "label": "uint256[10]",
+            "numberOfBytes": "320"
+          },
+          "t_array(t_uint256)39_storage": {
+            "label": "uint256[39]",
+            "numberOfBytes": "1248"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IClawNFA)2300": {
+            "label": "contract IClawNFA",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IERC20)1458": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_int8": {
+            "label": "int8",
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint8,t_int8))": {
+            "label": "mapping(uint256 => mapping(uint8 => int8))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(LobsterState)2369_storage)": {
+            "label": "mapping(uint256 => struct ClawRouter.LobsterState)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(WithdrawRequest)2374_storage)": {
+            "label": "mapping(uint256 => struct ClawRouter.WithdrawRequest)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint64)": {
+            "label": "mapping(uint256 => uint64)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_int8)": {
+            "label": "mapping(uint8 => int8)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(LobsterState)2369_storage": {
+            "label": "struct ClawRouter.LobsterState",
+            "members": [
+              {
+                "label": "rarity",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "shelter",
+                "type": "t_uint8",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "courage",
+                "type": "t_uint8",
+                "offset": 2,
+                "slot": "0"
+              },
+              {
+                "label": "wisdom",
+                "type": "t_uint8",
+                "offset": 3,
+                "slot": "0"
+              },
+              {
+                "label": "social",
+                "type": "t_uint8",
+                "offset": 4,
+                "slot": "0"
+              },
+              {
+                "label": "create",
+                "type": "t_uint8",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "grit",
+                "type": "t_uint8",
+                "offset": 6,
+                "slot": "0"
+              },
+              {
+                "label": "str",
+                "type": "t_uint8",
+                "offset": 7,
+                "slot": "0"
+              },
+              {
+                "label": "def",
+                "type": "t_uint8",
+                "offset": 8,
+                "slot": "0"
+              },
+              {
+                "label": "spd",
+                "type": "t_uint8",
+                "offset": 9,
+                "slot": "0"
+              },
+              {
+                "label": "vit",
+                "type": "t_uint8",
+                "offset": 10,
+                "slot": "0"
+              },
+              {
+                "label": "mutation1",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "mutation2",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "level",
+                "type": "t_uint16",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "xp",
+                "type": "t_uint32",
+                "offset": 2,
+                "slot": "3"
+              },
+              {
+                "label": "lastUpkeepTime",
+                "type": "t_uint64",
+                "offset": 6,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(WithdrawRequest)2374_storage": {
+            "label": "struct ClawRouter.WithdrawRequest",
+            "members": [
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "requestTime",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
           },
           "t_uint64": {
             "label": "uint64",

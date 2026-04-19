@@ -1,0 +1,21 @@
+import { NextResponse } from 'next/server';
+
+import { getMemorySummary } from '@/app/api/_lib/memory';
+
+export const runtime = 'nodejs';
+
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ tokenId: string }> },
+) {
+  try {
+    const { tokenId } = await context.params;
+    const parsed = Number(tokenId);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      return NextResponse.json({ error: 'Invalid tokenId' }, { status: 400 });
+    }
+    return NextResponse.json(getMemorySummary(parsed));
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 404 });
+  }
+}
