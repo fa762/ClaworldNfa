@@ -1,5 +1,6 @@
 import { getAutonomyStatus } from '@/app/api/_lib/autonomy';
 import { requestBackendChat } from '@/app/api/_lib/backend-chat';
+import { requestDirectLlm } from '@/app/api/_lib/direct-llm';
 import { getMemorySummary, getMemoryTimeline } from '@/app/api/_lib/memory';
 import { getNfaDetail } from '@/app/api/_lib/nfas';
 import { buildIntentCards, inferTerminalIntent } from '@/app/api/_lib/terminal-chat';
@@ -70,12 +71,14 @@ export async function POST(
       memoryTimeline,
     };
 
+    const history = Array.isArray(body.history) ? (body.history as any) : [];
+
     const backendCards = await requestBackendChat({
       tokenId,
       owner: body.owner,
       content,
       slashCommand,
-      history: Array.isArray(body.history) ? body.history as any : [],
+      history,
       snapshot,
       engine: body.engine,
     }).catch((error) => {
@@ -83,13 +86,28 @@ export async function POST(
       return null;
     });
 
-    const cards = backendCards?.length
-      ? backendCards
-      : buildIntentCards(
-          inferTerminalIntent(content, slashCommand),
-          content,
-          snapshot,
-        );
+    let cards = backendCards?.length ? backendCards : null;
+
+    if (!cards) {
+      const llmCards = await requestDirectLlm({
+        tokenId,
+        content,
+        history,
+        snapshot,
+      }).catch((error) => {
+        console.warn('[terminal-chat] direct-llm fallback:', error);
+        return null;
+      });
+      if (llmCards?.length) cards = llmCards;
+    }
+
+    if (!cards) {
+      cards = buildIntentCards(
+        inferTerminalIntent(content, slashCommand),
+        content,
+        snapshot,
+      );
+    }
 
     const stream = new ReadableStream({
       start(controller) {
