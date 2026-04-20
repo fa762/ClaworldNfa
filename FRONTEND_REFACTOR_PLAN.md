@@ -22,6 +22,8 @@ What is now implemented:
 - composer copy is shorter
 - right-side drawer defaults to current lobster essentials
 - world/memory/agent results are available but collapsed
+- mobile layout keeps NFA switching in a top strip and moves status into a drawer
+- PWA safe-area bottom padding is applied to the terminal composer
 
 3. Backend chat context
 - `/api/chat/[tokenId]/send` forwards recent terminal history to the Claworld backend API bridge
@@ -40,6 +42,7 @@ Validation:
 - local SSE smoke for `/api/chat/31/send`: passed
 - TypeScript: passed
 - production build: passed
+- mobile breakpoint review: passed at code level for root terminal shell
 
 Deployment status:
 

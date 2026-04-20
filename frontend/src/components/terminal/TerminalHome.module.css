@@ -310,7 +310,7 @@
 }
 
 .heroComposer {
-  padding: 18px 22px;
+  padding: 18px 22px calc(env(safe-area-inset-bottom, 0px) + 18px);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   background:
     radial-gradient(circle at 20% 0%, rgba(245, 165, 36, 0.12), transparent 28%),
@@ -1057,6 +1057,7 @@
   .shell {
     height: 100dvh;
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .rail {
@@ -1130,7 +1131,7 @@
   }
 
   .heroComposer {
-    padding: 14px;
+    padding: 14px 14px calc(env(safe-area-inset-bottom, 0px) + 14px);
   }
 
   .composerInputRow {

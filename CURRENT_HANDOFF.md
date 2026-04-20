@@ -18,6 +18,8 @@ What changed:
 - right drawer now shows only current lobster core stats by default
 - world, memory, and autonomy result sections are collapsed under `details`
 - old roadmap/debug copy was removed from the terminal default surface
+- mobile terminal layout keeps the NFA switch rail as a top horizontal strip
+- composer padding now includes `safe-area-inset-bottom` for PWA/mobile browsers
 
 3. Chat context sent to backend
 - browser still calls `/api/chat/[tokenId]/send`
@@ -47,6 +49,7 @@ Validation:
 - `/api/chat/31/send` local SSE smoke returns a valid chat card
 - `npm exec tsc -- --noEmit --project frontend/tsconfig.json` passes
 - `npm run build` passes
+- mobile CSS breakpoint reviewed for the root terminal shell (`max-width: 860px`)
 
 Deployment note:
 
