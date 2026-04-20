@@ -3845,3 +3845,23 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
   - `npm run build`
   - `git diff --check`
+
+## 2026-04-20 Terminal mobile header polish
+
+- top header pills in the terminal are now Chinese:
+  - `PULSE` -> `心跳`
+  - `PROJECT` / `BYOK` top pill -> `项目模型` / `自带模型`
+- unified the header pill styling with the lower action chips
+  - tighter height
+  - same rounded pill feel
+  - no uppercase / mono treatment
+  - mobile row kept tighter to stay on one line more often
+- removed the bright left accent treatment from the right drawer memory box
+  - memory summary now uses a flatter card surface instead of a highlighted quote stripe
+- files updated:
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+- verification completed:
+  - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+  - `npm run build`
+  - `git diff --check`

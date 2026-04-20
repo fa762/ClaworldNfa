@@ -612,11 +612,11 @@ export function TerminalHome() {
               <div className={styles.headerActions}>
                 <div className={styles.pulsePill}>
                   <span className={styles.pulseDot} />
-                  <span>PULSE {pulsePercent}%</span>
+                  <span>心跳 {pulsePercent}%</span>
                 </div>
                 <div className={styles.pulsePill}>
                   <span className={styles.pulseDot} />
-                  <span>{chatEngine.activeMode === 'byok' ? 'BYOK' : 'PROJECT'}</span>
+                  <span>{chatEngine.activeMode === 'byok' ? '自带模型' : '项目模型'}</span>
                 </div>
                 <div className={styles.walletMenuWrap}>
                   <button type="button" className={styles.walletPill} onClick={() => setWalletMenuOpen((open) => !open)}>

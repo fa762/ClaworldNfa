@@ -3752,3 +3752,26 @@ For this rewrite, every meaningful decision or completed step should be written 
 - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
 - `npm run build`
 - `git diff --check`
+
+## 2026-04-20 Terminal header localization and drawer flattening
+
+### What closed in this pass
+
+- terminal top status pills are now Chinese
+  - `心跳 xx%`
+  - `项目模型` / `自带模型`
+- pill styling is now closer to the lower action chips for better UI consistency
+- mobile spacing in the top action row is tighter so the controls stay on one line more often
+- the right drawer memory summary no longer uses a bright left highlight stripe
+  - it now sits in a flatter, more neutral card
+
+### Files updated
+
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- `frontend/src/components/terminal/TerminalHome.module.css`
+
+### Verification
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`
