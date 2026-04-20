@@ -1504,6 +1504,11 @@
   color: #ff8a73;
 }
 
+.panelSuccess {
+  margin: 10px 0 0;
+  color: #8fe0b8;
+}
+
 .panelLink {
   display: inline-flex;
   margin-top: 10px;

@@ -3,6 +3,7 @@ import { ClawRouterABI } from '@/contracts/abis/ClawRouter';
 import { ClawAutonomyRegistryABI } from '@/contracts/abis/ClawAutonomyRegistry';
 import { addresses } from '@/contracts/addresses';
 import { getStoredAutonomyDirective } from '@/lib/server/autonomyDirectiveStore';
+import { formatEther } from 'viem';
 
 import { ensureConfigured, publicClient } from './chain';
 
@@ -89,27 +90,49 @@ function labelForAgent(agent: AgentKey) {
   return '大逃杀';
 }
 
+function shortError(value: string | undefined) {
+  if (!value) return '';
+  const text = value
+    .replace(/^execution reverted:?\s*/i, '')
+    .replace(/^Error:\s*/i, '')
+    .replace(/Contract Call:[\s\S]*$/i, '')
+    .replace(/Docs:\s*https?:\/\/\S+/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.includes('Already entered this match')) return '这只龙虾已经在当前大逃杀里';
+  if (text.includes('Insufficient CLW')) return 'NFA 记账余额不够';
+  if (text.includes('Not NFA owner')) return '当前钱包不是持有人';
+  if (text.includes('Cooldown active')) return '任务还在冷却';
+  if (text.includes('AdapterNotApproved')) return '代理适配器未授权';
+  return text.length > 80 ? `${text.slice(0, 79)}…` : text;
+}
+
 function summarizeReceipt(agent: AgentKey, receipt: RawReceipt) {
   const spend = BigInt(receipt.actualSpend ?? 0n);
   const reward = BigInt(receipt.clwCredit ?? 0n);
   if (receipt.status === 5) {
-    return `${labelForAgent(agent)} 失败${receipt.lastError ? `：${receipt.lastError}` : ''}`;
+    const error = shortError(receipt.lastError);
+    return `${labelForAgent(agent)} 没做成${error ? `：${error}` : ''}`;
   }
   if (reward > 0n && spend > 0n) {
-    return `${labelForAgent(agent)} 完成，花费 ${formatClw(spend)}，回款 ${formatClw(reward)}`;
+    return `${labelForAgent(agent)} 完成：花费 ${formatClw(spend)}，获得 ${formatClw(reward)}`;
   }
   if (reward > 0n) {
-    return `${labelForAgent(agent)} 完成，回款 ${formatClw(reward)}`;
+    return `${labelForAgent(agent)} 完成：获得 ${formatClw(reward)}`;
   }
   if (spend > 0n) {
-    return `${labelForAgent(agent)} 已执行，花费 ${formatClw(spend)}`;
+    return `${labelForAgent(agent)} 已执行：花费 ${formatClw(spend)}`;
   }
+  if (receiptState(receipt.status) === 'pending') return `${labelForAgent(agent)} 等待执行`;
   return `${labelForAgent(agent)} 已执行`;
 }
 
 function formatClw(value: bigint) {
-  const whole = Number(value / 10n ** 18n);
-  return `${whole.toLocaleString('en-US')} Claworld`;
+  const numeric = Number(formatEther(value));
+  if (!Number.isFinite(numeric)) return `${value.toString()} wei`;
+  return `${numeric.toLocaleString('en-US', {
+    maximumFractionDigits: numeric >= 100 ? 0 : 2,
+  })} Claworld`;
 }
 
 async function readPolicy(tokenId: bigint, actionKind: number) {

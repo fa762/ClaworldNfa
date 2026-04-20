@@ -33,6 +33,7 @@ import {
 } from '@/game/chain/contracts';
 import { loadMatchResolution, loadRecentMatches, type PKMatch } from '@/game/chain/wallet';
 import { formatCLW } from '@/lib/format';
+import type { TerminalCard } from '@/lib/terminal-cards';
 
 type StrategyValue = 0 | 1 | 2;
 type MatchWithResolution = PKMatch & { resolution: CachedPKResolution | null };
@@ -140,6 +141,7 @@ export function PKArenaPanel({
   pkWinRate,
   level,
   traits,
+  onTerminalReceipt,
 }: {
   tokenId?: bigint;
   ownerAddress?: Address;
@@ -151,6 +153,7 @@ export function PKArenaPanel({
   pkWinRate: number;
   level: number;
   traits: { courage: number; wisdom: number; social: number; create: number; grit: number };
+  onTerminalReceipt?: (card: TerminalCard) => void;
 }) {
   const { address } = useAccount();
   const { data: hash, error, isPending, writeContractAsync } = useWriteContract();
@@ -381,6 +384,14 @@ export function PKArenaPanel({
     async function onReceipt() {
       if (!receiptQuery.data || !pendingAction) return;
       const txHash = receiptQuery.data.transactionHash;
+      const emitReceipt = (card: Omit<Extract<TerminalCard, { type: 'receipt' }>, 'id' | 'type' | 'cta'>) => {
+        onTerminalReceipt?.({
+          ...card,
+          id: `pk-receipt-${pendingAction.kind}-${txHash}`,
+          type: 'receipt',
+          cta: { label: '查看交易', href: getBscScanTxUrl(txHash) },
+        });
+      };
 
       if (pendingAction.kind === 'create') {
         const created = decodePkEvent(receiptQuery.data, 'MatchCreated');
@@ -405,6 +416,17 @@ export function PKArenaPanel({
               reward: formatCLW(pendingAction.stake),
               tone: 'warm',
             });
+            emitReceipt({
+              label: 'PK 回执',
+              title: `PK #${matchId} 已开擂`,
+              body: `质押 ${formatCLW(pendingAction.stake)} Claworld，策略 ${STRATEGIES.find((item) => item.value === pendingAction.strategy)?.label ?? '已锁定'}。`,
+              details: [
+                { label: '动作', value: '开擂', tone: 'warm' },
+                { label: '质押', value: `${formatCLW(pendingAction.stake)} Claworld`, tone: 'growth' },
+                { label: '策略', value: STRATEGIES.find((item) => item.value === pendingAction.strategy)?.label ?? '已锁定' },
+                { label: '交易', value: `${txHash.slice(0, 10)}...`, tone: 'cool' },
+              ],
+            });
           }
         }
       } else if (pendingAction.kind === 'join') {
@@ -427,6 +449,17 @@ export function PKArenaPanel({
             reward: formatCLW(pendingAction.stake),
             tone: 'warm',
           });
+          emitReceipt({
+            label: 'PK 回执',
+            title: `已加入 PK #${pendingAction.matchId}`,
+            body: `质押 ${formatCLW(pendingAction.stake)} Claworld，策略 ${STRATEGIES.find((item) => item.value === pendingAction.strategy)?.label ?? '已锁定'}。`,
+            details: [
+              { label: '动作', value: '应战', tone: 'warm' },
+              { label: '质押', value: `${formatCLW(pendingAction.stake)} Claworld`, tone: 'growth' },
+              { label: '策略', value: STRATEGIES.find((item) => item.value === pendingAction.strategy)?.label ?? '已锁定' },
+              { label: '交易', value: `${txHash.slice(0, 10)}...`, tone: 'cool' },
+            ],
+          });
         }
       } else if (pendingAction.kind === 'reveal') {
         if (!cancelled) {
@@ -435,6 +468,17 @@ export function PKArenaPanel({
             title: `PK #${pendingAction.matchId} 已亮招`,
             detail: '你的出招已经上链，接下来只等结算结果。',
             tone: 'cool',
+          });
+          emitReceipt({
+            label: 'PK 回执',
+            title: `PK #${pendingAction.matchId} 已亮招`,
+            body: `亮出策略 ${STRATEGIES.find((item) => item.value === pendingAction.strategy)?.label ?? '已提交'}，等待结算。`,
+            details: [
+              { label: '动作', value: '亮招', tone: 'cool' },
+              { label: '策略', value: STRATEGIES.find((item) => item.value === pendingAction.strategy)?.label ?? '已提交' },
+              { label: '状态', value: '等结算' },
+              { label: '交易', value: `${txHash.slice(0, 10)}...`, tone: 'warm' },
+            ],
           });
         }
       } else if (pendingAction.kind === 'settle') {
@@ -464,6 +508,20 @@ export function PKArenaPanel({
             reward: rewardText,
             tone: winnerNfaId === tokenNumber ? 'growth' : 'cool',
           });
+          emitReceipt({
+            label: 'PK 回执',
+            title: winnerNfaId === tokenNumber ? `PK #${pendingAction.matchId} 胜利` : `PK #${pendingAction.matchId} 已结算`,
+            body:
+              winnerNfaId === tokenNumber
+                ? `赢了，奖励 ${rewardText ?? '--'} Claworld 已回到记账账户。`
+                : `这一局结算完成，赢家是 #${winnerNfaId || '--'}。`,
+            details: [
+              { label: '动作', value: '结算', tone: 'cool' },
+              { label: '赢家', value: winnerNfaId ? `#${winnerNfaId}` : '--', tone: winnerNfaId === tokenNumber ? 'growth' : 'warm' },
+              { label: '奖励', value: rewardText ? `${rewardText} Claworld` : '--', tone: rewardText ? 'growth' : 'cool' },
+              { label: '交易', value: `${txHash.slice(0, 10)}...`, tone: 'warm' },
+            ],
+          });
         }
       } else if (pendingAction.kind === 'cancel') {
         savePKResolutionCache({
@@ -479,6 +537,16 @@ export function PKArenaPanel({
             detail: '这一局已经结束，质押会按规则退回。',
             tone: 'cool',
           });
+          emitReceipt({
+            label: 'PK 回执',
+            title: `PK #${pendingAction.matchId} 已清局`,
+            body: '对局已取消或超时清局，质押按合约规则退回。',
+            details: [
+              { label: '动作', value: '清局', tone: 'cool' },
+              { label: '状态', value: '已结束' },
+              { label: '交易', value: `${txHash.slice(0, 10)}...`, tone: 'warm' },
+            ],
+          });
         }
       }
 
@@ -492,7 +560,7 @@ export function PKArenaPanel({
     return () => {
       cancelled = true;
     };
-  }, [address, pendingAction, receiptQuery.data, refreshMatches, tokenNumber]);
+  }, [address, onTerminalReceipt, pendingAction, receiptQuery.data, refreshMatches, tokenNumber]);
 
   return (
     <div className="cw-page">

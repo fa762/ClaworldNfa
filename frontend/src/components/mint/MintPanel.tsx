@@ -38,6 +38,7 @@ import {
 } from '@/contracts/hooks/useGenesisVault';
 import { useI18n } from '@/lib/i18n';
 import { getRarityName, getRarityStars } from '@/lib/rarity';
+import type { TerminalCard } from '@/lib/terminal-cards';
 
 const TOTAL_GENESIS = 888;
 const REVEAL_DELAY = 60;
@@ -71,7 +72,7 @@ function mintError(error: unknown) {
   return message;
 }
 
-export function MintPanel() {
+export function MintPanel({ onTerminalReceipt }: { onTerminalReceipt?: (card: TerminalCard) => void }) {
   const { address, isConnected } = useAccount();
   const { lang } = useI18n();
   const isCN = lang === 'zh';
@@ -80,6 +81,9 @@ export function MintPanel() {
   const [countdown, setCountdown] = useState(0);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
+  const [handledCommitHash, setHandledCommitHash] = useState<string | null>(null);
+  const [handledRevealHash, setHandledRevealHash] = useState<string | null>(null);
+  const [handledRefundHash, setHandledRefundHash] = useState<string | null>(null);
 
   const { data: mintingActive } = useMintingActive();
   const { data: mintedCount } = useMintedCount();
@@ -142,10 +146,66 @@ export function MintPanel() {
   }, [address, revealMint.isSuccess]);
 
   useEffect(() => {
+    if (!commitMint.isSuccess || !commitMint.hash || handledCommitHash === commitMint.hash) return;
+    setHandledCommitHash(commitMint.hash);
+    onTerminalReceipt?.({
+      id: `mint-commit-${commitMint.hash}`,
+      type: 'receipt',
+      label: '铸造回执',
+      title: '付款已确认',
+      body: '铸造承诺已经上链，倒计时结束后可以揭示。',
+      details: [
+        { label: '稀有度', value: getRarityName(selectedRarity, isCN), tone: 'warm' },
+        { label: '价格', value: `${RARITY_PRICES[selectedRarity]} BNB` },
+        { label: '下一步', value: '揭示', tone: 'growth' },
+        { label: '交易', value: `${commitMint.hash.slice(0, 10)}...`, tone: 'cool' },
+      ],
+      cta: { label: '查看交易', href: getBscScanTxUrl(commitMint.hash) },
+    });
+  }, [commitMint.hash, commitMint.isSuccess, handledCommitHash, isCN, onTerminalReceipt, selectedRarity]);
+
+  useEffect(() => {
+    if (!revealMint.isSuccess || !revealMint.hash || handledRevealHash === revealMint.hash) return;
+    setHandledRevealHash(revealMint.hash);
+    onTerminalReceipt?.({
+      id: `mint-reveal-${revealMint.hash}`,
+      type: 'receipt',
+      label: '铸造回执',
+      title: '新龙虾已揭示',
+      body: `获得 ${getRarityName(selectedRarity, isCN)}，空投 ${RARITY_AIRDROPS[selectedRarity]} Claworld。`,
+      details: [
+        { label: '稀有度', value: getRarityName(selectedRarity, isCN), tone: 'warm' },
+        { label: '空投', value: `${RARITY_AIRDROPS[selectedRarity]} Claworld`, tone: 'growth' },
+        { label: '状态', value: '已加入编组' },
+        { label: '交易', value: `${revealMint.hash.slice(0, 10)}...`, tone: 'cool' },
+      ],
+      cta: { label: '查看交易', href: getBscScanTxUrl(revealMint.hash) },
+    });
+  }, [handledRevealHash, isCN, onTerminalReceipt, revealMint.hash, revealMint.isSuccess, selectedRarity]);
+
+  useEffect(() => {
     if (refundHook.isSuccess && address) {
       clearSalt(address);
     }
   }, [address, refundHook.isSuccess]);
+
+  useEffect(() => {
+    if (!refundHook.isSuccess || !refundHook.hash || handledRefundHash === refundHook.hash) return;
+    setHandledRefundHash(refundHook.hash);
+    onTerminalReceipt?.({
+      id: `mint-refund-${refundHook.hash}`,
+      type: 'receipt',
+      label: '铸造回执',
+      title: '退款已提交',
+      body: '过期铸造已经申请退款，等待钱包余额刷新。',
+      details: [
+        { label: '动作', value: '退款', tone: 'cool' },
+        { label: '状态', value: '已提交' },
+        { label: '交易', value: `${refundHook.hash.slice(0, 10)}...`, tone: 'warm' },
+      ],
+      cta: { label: '查看交易', href: getBscScanTxUrl(refundHook.hash) },
+    });
+  }, [handledRefundHash, onTerminalReceipt, refundHook.hash, refundHook.isSuccess]);
 
   const mintBlockedReason = !isConnected
     ? '先连接钱包。'

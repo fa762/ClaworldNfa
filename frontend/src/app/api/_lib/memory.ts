@@ -51,9 +51,10 @@ export type MemorySnapshotPayload = {
 };
 
 const CML_ROOT =
-  process.env.OPENCLAW_CML_DIR ||
+  process.env.CLAWORLD_CML_DIR ||
+  process.env.CLAWORLD_LOCAL_CML_DIR ||
   process.env.AUTONOMY_CML_DIR ||
-  path.join(os.homedir(), '.openclaw', 'claw-world');
+  path.join(os.homedir(), '.claworld', 'cml');
 
 function localCmlFallbackEnabled() {
   const value = process.env.CLAWORLD_ENABLE_LOCAL_CML_FALLBACK || '';

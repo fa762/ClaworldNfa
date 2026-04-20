@@ -1,6 +1,64 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-20 (session 54) Asia/Singapore
+Last updated: 2026-04-20 (session 55) Asia/Singapore
+
+## Terminal action receipt closure - 2026-04-20 session 55
+
+Accepted product rule:
+
+- every successful chain action opened from the terminal should leave a visible result in the same conversation
+- results should read like product feedback, with raw hashes and advanced proof behind links
+- proxy / autonomy summaries should say what happened, what it cost, and what came back
+- CML in production should be described as Claworld backend memory, not browser-side OpenClaw runtime
+
+What is now implemented:
+
+1. PK terminal receipts
+- create match
+- join match
+- reveal strategy
+- settle
+- cancel / timeout clear
+- each success now appends a terminal receipt card with transaction link
+
+2. Battle Royale terminal receipts
+- NFA reserve entry
+- room change
+- reveal
+- claim to NFA bookkeeping account or owner wallet
+- each success now appends a terminal receipt card with transaction link
+
+3. Mint terminal receipts
+- commit/payment
+- reveal
+- refund
+- terminal receipts appear when the mint flow is opened from the terminal action panel
+
+4. Autonomy directive receipt
+- saving a prompt now confirms in the terminal stream
+- task / PK / Battle Royale directive saves use the same receipt card language
+
+5. Human-readable autonomy summaries
+- recent proxy actions are now summarized with short Chinese copy
+- common contract errors are normalized
+- large raw RPC text is removed from the default result surface
+
+6. CML naming cleanup
+- memory APIs still prefer the configured Claworld backend API
+- local file fallback is disabled by default
+- the optional local fallback path now uses `.claworld/cml`
+
+Validation:
+
+- TypeScript: passed
+- Production build: passed
+- Diff whitespace check: passed
+
+Remaining after this pass:
+
+1. Full CML plaintext persistence and SLEEP consolidation still belongs to backend/runtime work
+2. Legacy child panels still need final visual polish from the design pass
+3. Mobile real-device QA should still be done after Vercel deployment because wallet webviews can resize the viewport differently
 
 ## Terminal blank-message regression fix - 2026-04-20 session 54
 

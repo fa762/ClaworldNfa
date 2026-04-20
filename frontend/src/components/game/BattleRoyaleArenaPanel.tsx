@@ -19,6 +19,7 @@ import { type ParticipantPath } from '@/components/lobster/useBattleRoyalePartic
 import { BattleRoyaleABI } from '@/contracts/abis/BattleRoyale';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { formatCLW } from '@/lib/format';
+import type { TerminalCard } from '@/lib/terminal-cards';
 
 const ROOMS = Array.from({ length: 10 }, (_, index) => index + 1);
 const BSC_BLOCK_SECONDS = 3;
@@ -79,6 +80,7 @@ export function BattleRoyaleArenaPanel({
   participant,
   onRefresh,
   isRefreshing,
+  onTerminalReceipt,
 }: {
   matchId?: bigint;
   status: number;
@@ -99,12 +101,14 @@ export function BattleRoyaleArenaPanel({
   };
   onRefresh: () => void;
   isRefreshing?: boolean;
+  onTerminalReceipt?: (card: TerminalCard) => void;
 }) {
   const [selectedRoom, setSelectedRoom] = useState(1);
   const [amountInput, setAmountInput] = useState('');
   const [pendingAction, setPendingAction] = useState<'enter' | 'change' | 'claim' | 'reveal' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [resultText, setResultText] = useState<string | null>(null);
+  const [handledHash, setHandledHash] = useState<string | null>(null);
 
   const { data: hash, error, isPending, writeContractAsync } = useWriteContract();
   const receiptQuery = useWaitForTransactionReceipt({ hash });
@@ -254,15 +258,81 @@ export function BattleRoyaleArenaPanel({
 
   useEffect(() => {
     if (!receiptQuery.isSuccess || !pendingAction) return;
-    if (pendingAction === 'enter') setResultText(`已加入 ${selectedRoom} 号房。`);
-    if (pendingAction === 'change') setResultText(`已换到 ${selectedRoom} 号房。`);
-    if (pendingAction === 'reveal') setResultText('这一局已经结算，合约会自动开下一局。');
+    if (!matchId) return;
+    const txHash = receiptQuery.data?.transactionHash ?? hash;
+    if (!txHash || handledHash === txHash) return;
+    setHandledHash(txHash);
+
+    const emitReceipt = (card: Omit<Extract<TerminalCard, { type: 'receipt' }>, 'id' | 'type' | 'cta'>) => {
+      onTerminalReceipt?.({
+        ...card,
+        id: `br-receipt-${pendingAction}-${txHash}`,
+        type: 'receipt',
+        cta: { label: '查看交易', href: getBscScanTxUrl(txHash) },
+      });
+    };
+
+    if (pendingAction === 'enter') {
+      const stakeText = amount ? `${formatCLW(amount)} Claworld` : '--';
+      setResultText(`已加入 ${selectedRoom} 号房。`);
+      emitReceipt({
+        label: '大逃杀回执',
+        title: `已加入 ${selectedRoom} 号房`,
+        body: `从 NFA 记账账户质押 ${stakeText}，等待满员揭示。`,
+        details: [
+          { label: '动作', value: '入场', tone: 'warm' },
+          { label: '房间', value: `${selectedRoom} 号房`, tone: 'growth' },
+          { label: '质押', value: stakeText },
+          { label: '交易', value: `${txHash.slice(0, 10)}...`, tone: 'cool' },
+        ],
+      });
+    }
+    if (pendingAction === 'change') {
+      setResultText(`已换到 ${selectedRoom} 号房。`);
+      emitReceipt({
+        label: '大逃杀回执',
+        title: `已换到 ${selectedRoom} 号房`,
+        body: '这局的换房机会已经用掉，后面等揭示和结算。',
+        details: [
+          { label: '动作', value: '换房', tone: 'cool' },
+          { label: '新房间', value: `${selectedRoom} 号房`, tone: 'growth' },
+          { label: '剩余次数', value: '0/1' },
+          { label: '交易', value: `${txHash.slice(0, 10)}...`, tone: 'warm' },
+        ],
+      });
+    }
+    if (pendingAction === 'reveal') {
+      setResultText('这一局已经结算，合约会自动开下一局。');
+      emitReceipt({
+        label: '大逃杀回执',
+        title: `大逃杀 #${matchId.toString()} 已揭示`,
+        body: losingRoom > 0 ? `${losingRoom} 号房被淘汰，幸存房按质押瓜分奖励。` : '揭示已触发，结果正在刷新。',
+        details: [
+          { label: '动作', value: '揭示', tone: 'cool' },
+          { label: '淘汰房', value: losingRoom > 0 ? `${losingRoom} 号房` : '刷新中', tone: 'alert' },
+          { label: '奖池', value: `${formatCLW(pot)} Claworld`, tone: 'growth' },
+          { label: '交易', value: `${txHash.slice(0, 10)}...`, tone: 'warm' },
+        ],
+      });
+    }
     if (pendingAction === 'claim') {
+      const rewardText = `${formatCLW(participant.claimable)} Claworld`;
       setResultText(
         activePath?.key === 'autonomy'
           ? `奖励已回到 NFA 记账账户 ${formatCLW(participant.claimable)}。`
           : `已领取 ${formatCLW(participant.claimable)}。`,
       );
+      emitReceipt({
+        label: '大逃杀回执',
+        title: '奖励已领取',
+        body: activePath?.key === 'autonomy' ? `奖励 ${rewardText} 已回到这只 NFA 的记账账户。` : `奖励 ${rewardText} 已领取到钱包。`,
+        details: [
+          { label: '动作', value: '领奖', tone: 'growth' },
+          { label: '奖励', value: rewardText, tone: 'growth' },
+          { label: '路径', value: activePath?.key === 'autonomy' ? 'NFA 记账账户' : '持有人钱包' },
+          { label: '交易', value: `${txHash.slice(0, 10)}...`, tone: 'warm' },
+        ],
+      });
     }
     setPendingAction(null);
     void refreshAll();
@@ -271,7 +341,7 @@ export function BattleRoyaleArenaPanel({
         void refreshAll();
       }, 2500);
     }
-  }, [activePath?.key, onRefresh, participant.claimable, pendingAction, receiptQuery.isSuccess, roomChangeCountQuery, selectedRoom, snapshotQuery]);
+  }, [activePath?.key, amount, handledHash, hash, losingRoom, matchId, onTerminalReceipt, participant.claimable, pendingAction, pot, receiptQuery.data?.transactionHash, receiptQuery.isSuccess, selectedRoom]);
 
   if (!matchId) {
     return (

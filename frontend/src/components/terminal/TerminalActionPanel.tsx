@@ -471,7 +471,15 @@ function TerminalMiningPanel({
   );
 }
 
-function TerminalArenaPanel({ companion, onClose }: { companion: ActiveCompanionValue; onClose: () => void }) {
+function TerminalArenaPanel({
+  companion,
+  onClose,
+  onReceipt,
+}: {
+  companion: ActiveCompanionValue;
+  onClose: () => void;
+  onReceipt: (card: TerminalCard) => void;
+}) {
   const [mode, setMode] = useState<'pk' | 'br'>('pk');
   const [expanded, setExpanded] = useState(false);
   const battleRoyale = useBattleRoyaleOverview();
@@ -646,6 +654,7 @@ function TerminalArenaPanel({ companion, onClose }: { companion: ActiveCompanion
               pkWinRate={companion.pkWinRate}
               level={companion.level}
               traits={companion.traits}
+              onTerminalReceipt={onReceipt}
             />
           ) : (
             <BattleRoyaleArenaPanel
@@ -662,6 +671,7 @@ function TerminalArenaPanel({ companion, onClose }: { companion: ActiveCompanion
               participant={participant}
               onRefresh={battleRoyale.refresh}
               isRefreshing={battleRoyale.isRefreshing}
+              onTerminalReceipt={onReceipt}
             />
           )}
             </div>
@@ -676,10 +686,14 @@ function TerminalDirectiveEditor({
   tokenId,
   ownerAddress,
   actionKind,
+  modeLabel,
+  onReceipt,
 }: {
   tokenId: bigint;
   ownerAddress?: string;
   actionKind: number;
+  modeLabel: string;
+  onReceipt: (card: TerminalCard) => void;
 }) {
   const { address } = useAccount();
   const { signMessageAsync, isPending: isSigning } = useSignMessage();
@@ -744,6 +758,19 @@ function TerminalDirectiveEditor({
       setStyle(data.style);
       setText(data.text);
       setMessage('已保存。');
+      onReceipt({
+        id: `directive-receipt-${tokenId.toString()}-${actionKind}-${issuedAt}`,
+        type: 'receipt',
+        label: '代理回执',
+        title: `${modeLabel} 提示已保存`,
+        body: data.text ? `新的口径：${data.text}` : '已清空提示，代理会按默认策略执行。',
+        details: [
+          { label: '模式', value: modeLabel, tone: 'cool' },
+          { label: '风格', value: DIRECTIVE_STYLES.find((item) => item.value === data.style)?.label ?? data.style, tone: 'growth' },
+          { label: '长度', value: `${data.text.length}/220` },
+          { label: '签名', value: `${signature.slice(0, 10)}...`, tone: 'warm' },
+        ],
+      });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '保存失败');
     } finally {
@@ -785,12 +812,20 @@ function TerminalDirectiveEditor({
         </button>
         <span className={styles.actionHint}>{text.length}/220</span>
       </div>
-      {message ? <p className={styles.panelError}>{message}</p> : null}
+      {message ? <p className={message === '已保存。' ? styles.panelSuccess : styles.panelError}>{message}</p> : null}
     </div>
   );
 }
 
-function TerminalAutonomyPanel({ companion, onClose }: { companion: ActiveCompanionValue; onClose: () => void }) {
+function TerminalAutonomyPanel({
+  companion,
+  onClose,
+  onReceipt,
+}: {
+  companion: ActiveCompanionValue;
+  onClose: () => void;
+  onReceipt: (card: TerminalCard) => void;
+}) {
   const [modeKey, setModeKey] = useState<(typeof AUTONOMY_ACTION_MODES)[number]['key']>('task');
   const [expanded, setExpanded] = useState(false);
   const autonomy = useTerminalAutonomy(companion.hasToken ? companion.tokenId : undefined);
@@ -863,7 +898,13 @@ function TerminalAutonomyPanel({ companion, onClose }: { companion: ActiveCompan
         <div className={styles.inlineNote}>还没有保存提示。可以先写一句你的偏好，再去开通预算和授权。</div>
       )}
 
-      <TerminalDirectiveEditor tokenId={companion.tokenId} ownerAddress={companion.ownerAddress} actionKind={mode.actionKind} />
+      <TerminalDirectiveEditor
+        tokenId={companion.tokenId}
+        ownerAddress={companion.ownerAddress}
+        actionKind={mode.actionKind}
+        modeLabel={mode.label}
+        onReceipt={onReceipt}
+      />
 
       <div className={styles.resultList}>
         <span>最近结果</span>
@@ -1049,7 +1090,13 @@ function TerminalMemoryPanel({
   );
 }
 
-function TerminalMintPanel({ onClose }: { onClose: () => void }) {
+function TerminalMintPanel({
+  onClose,
+  onReceipt,
+}: {
+  onClose: () => void;
+  onReceipt: (card: TerminalCard) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -1095,7 +1142,7 @@ function TerminalMintPanel({ onClose }: { onClose: () => void }) {
               </button>
             </div>
             <div className={styles.actionModalBody}>
-              <MintPanel />
+              <MintPanel onTerminalReceipt={onReceipt} />
             </div>
           </div>
         </div>
@@ -1127,21 +1174,21 @@ export function TerminalActionPanel({
   if (action === 'arena') {
     return (
       <div className={styles.actionPanelWrap}>
-        <TerminalArenaPanel companion={companion} onClose={onClose} />
+        <TerminalArenaPanel companion={companion} onClose={onClose} onReceipt={onReceipt} />
       </div>
     );
   }
   if (action === 'auto') {
     return (
       <div className={styles.actionPanelWrap}>
-        <TerminalAutonomyPanel companion={companion} onClose={onClose} />
+        <TerminalAutonomyPanel companion={companion} onClose={onClose} onReceipt={onReceipt} />
       </div>
     );
   }
   if (action === 'mint') {
     return (
       <div className={styles.actionPanelWrap}>
-        <TerminalMintPanel onClose={onClose} />
+        <TerminalMintPanel onClose={onClose} onReceipt={onReceipt} />
       </div>
     );
   }

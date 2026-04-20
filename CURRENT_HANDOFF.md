@@ -1,6 +1,68 @@
 # Current Handoff
 
-Last updated: 2026-04-20 (session 54) Asia/Singapore
+Last updated: 2026-04-20 (session 55) Asia/Singapore
+
+## Terminal action receipt closure - 2026-04-20 session 55
+
+User asked to stop leaving small tails and close the remaining terminal/action gaps in one batch.
+
+Completed in this pass:
+
+1. PK actions now return first-class terminal receipt cards
+- file: `frontend/src/components/game/PKArenaPanel.tsx`
+- successful create / join / reveal / settle / cancel actions now append a terminal `receipt` card
+- each receipt shows:
+  - action
+  - stake or reward when available
+  - strategy or winner when available
+  - BscScan link
+- this keeps PK results inside the same conversation flow instead of only inside the legacy panel
+
+2. Battle Royale actions now return first-class terminal receipt cards
+- file: `frontend/src/components/game/BattleRoyaleArenaPanel.tsx`
+- successful enter / change room / reveal / claim actions now append a terminal `receipt` card
+- receipts use player-facing language:
+  - NFA reserve entry
+  - selected room
+  - eliminated room after reveal when known
+  - reward path: NFA bookkeeping account or owner wallet
+- claim results now stay visible in the terminal stream after the modal closes
+
+3. Genesis mint can now report back to the terminal stream
+- files:
+  - `frontend/src/components/mint/MintPanel.tsx`
+  - `frontend/src/components/terminal/TerminalActionPanel.tsx`
+- commit, reveal, and refund success states now emit terminal receipt cards when mint is opened from the terminal action panel
+- standalone `/mint` still works without requiring terminal props
+
+4. Autonomy directive saves now produce a readable receipt
+- file: `frontend/src/components/terminal/TerminalActionPanel.tsx`
+- saving a task / PK / Battle Royale directive now appends a terminal receipt with:
+  - mode
+  - style
+  - prompt length
+  - signature preview
+- success copy now uses a green success state instead of the error style
+
+5. Autonomy status summaries are now shorter and readable
+- file: `frontend/src/app/api/_lib/autonomy.ts`
+- recent action summaries now say things like:
+  - `任务挖矿 完成：花费 X，获得 Y`
+  - `大逃杀 没做成：NFA 记账余额不够`
+- raw RPC / viem / contract-call text is stripped from common failure summaries before it reaches the terminal drawer
+- Claworld amounts now keep useful decimals instead of truncating everything to whole numbers
+
+6. CML local fallback no longer points at OpenClaw naming
+- file: `frontend/src/app/api/_lib/memory.ts`
+- production still reads memory from the configured Claworld backend first
+- local fallback remains disabled unless `CLAWORLD_ENABLE_LOCAL_CML_FALLBACK=true`
+- if local fallback is explicitly enabled, the default path is now `.claworld/cml`
+
+Validation completed:
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`
 
 ## Terminal blank-message regression fix - 2026-04-20 session 54
 
