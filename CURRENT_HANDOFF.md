@@ -3865,3 +3865,24 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
   - `npm run build`
   - `git diff --check`
+
+## 2026-04-20 Terminal mobile scroll lock
+
+- root cause found:
+  - CSS `overflow: hidden` was already present, but some mobile browsers still let bottom-edge gestures pull the viewport when the touch started outside the real scroll container
+  - the bottom composer used `position: sticky`, so once the wrong outer scroll engaged, the input bar visibly jumped before settling back
+- fix applied:
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+    - terminal root now installs a touchmove guard
+    - only explicit terminal scroll containers are allowed to scroll:
+      - rail
+      - chat stream
+      - right drawer
+    - non-scroll surfaces now prevent default touchmove
+    - body is also locked harder with `position: fixed` during terminal mount
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+    - composer changed from `sticky` to `relative` to stop bottom-bar jitter
+- verification completed:
+  - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+  - `npm run build`
+  - `git diff --check`

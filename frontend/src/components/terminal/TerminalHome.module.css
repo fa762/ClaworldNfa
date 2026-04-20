@@ -555,8 +555,7 @@
 }
 
 .heroComposer {
-  position: sticky;
-  bottom: 0;
+  position: relative;
   z-index: 6;
   flex: 0 0 auto;
   padding: 18px 22px calc(env(safe-area-inset-bottom, 0px) + 18px);

@@ -3775,3 +3775,27 @@ For this rewrite, every meaningful decision or completed step should be written 
 - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
 - `npm run build`
 - `git diff --check`
+
+## 2026-04-20 Terminal mobile scroll lock and composer stabilization
+
+### What closed in this pass
+
+- mobile bottom-edge gestures no longer rely on CSS alone
+- terminal now has a scroll whitelist:
+  - rail
+  - chat stream
+  - right drawer
+- touches that start outside those scroll containers are prevented from dragging the full page
+- terminal composer no longer uses `position: sticky`
+  - this removes the visible jump when the browser briefly engages the wrong outer scroll path
+
+### Files updated
+
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- `frontend/src/components/terminal/TerminalHome.module.css`
+
+### Verification
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`

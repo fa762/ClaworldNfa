@@ -202,6 +202,7 @@ export function TerminalHome() {
   const [isSending, setIsSending] = useState(false);
   const [activeAction, setActiveAction] = useState<TerminalActionIntent | null>(null);
   const [memoryCandidate, setMemoryCandidate] = useState('');
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const streamRef = useRef<HTMLDivElement | null>(null);
   const streamEndRef = useRef<HTMLDivElement | null>(null);
   const routeActionRef = useRef<string | null>(null);
@@ -219,15 +220,80 @@ export function TerminalHome() {
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const htmlOverflow = document.documentElement.style.overflow;
+    const htmlOverscroll = document.documentElement.style.overscrollBehavior;
     const bodyOverflow = document.body.style.overflow;
     const bodyOverscroll = document.body.style.overscrollBehavior;
+    const bodyPosition = document.body.style.position;
+    const bodyInset = document.body.style.inset;
+    const bodyWidth = document.body.style.width;
     document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.overscrollBehavior = 'none';
     document.body.style.overflow = 'hidden';
     document.body.style.overscrollBehavior = 'none';
+    document.body.style.position = 'fixed';
+    document.body.style.inset = '0';
+    document.body.style.width = '100%';
     return () => {
       document.documentElement.style.overflow = htmlOverflow;
+      document.documentElement.style.overscrollBehavior = htmlOverscroll;
       document.body.style.overflow = bodyOverflow;
       document.body.style.overscrollBehavior = bodyOverscroll;
+      document.body.style.position = bodyPosition;
+      document.body.style.inset = bodyInset;
+      document.body.style.width = bodyWidth;
+    };
+  }, []);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const touchState = { startY: 0 };
+
+    const findScrollable = (target: EventTarget | null) => {
+      if (!(target instanceof Node)) return null;
+      let element = target instanceof HTMLElement ? target : target.parentElement;
+      while (element && element !== root) {
+        if (element.dataset.terminalScroll === 'true') return element;
+        element = element.parentElement;
+      }
+      return null;
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      touchState.startY = event.touches[0]?.clientY ?? 0;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      const currentY = event.touches[0]?.clientY ?? touchState.startY;
+      const deltaY = currentY - touchState.startY;
+      const scrollable = findScrollable(event.target);
+
+      if (!scrollable) {
+        event.preventDefault();
+        return;
+      }
+
+      const canScroll = scrollable.scrollHeight > scrollable.clientHeight + 1;
+      if (!canScroll) {
+        event.preventDefault();
+        return;
+      }
+
+      const atTop = scrollable.scrollTop <= 0;
+      const atBottom = scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight - 1;
+
+      if ((deltaY > 0 && atTop) || (deltaY < 0 && atBottom)) {
+        event.preventDefault();
+      }
+    };
+
+    root.addEventListener('touchstart', handleTouchStart, { passive: true });
+    root.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+    return () => {
+      root.removeEventListener('touchstart', handleTouchStart);
+      root.removeEventListener('touchmove', handleTouchMove);
     };
   }, []);
 
@@ -525,14 +591,14 @@ export function TerminalHome() {
   ] as const;
 
   return (
-    <div className={styles.root} style={{ ['--accent-color' as any]: accentColor }}>
+    <div ref={rootRef} className={styles.root} style={{ ['--accent-color' as any]: accentColor }}>
       <div className={styles.ambient} aria-hidden="true">
         <div className={styles.ambientGrid} />
         <div className={styles.ambientOrbOne} />
         <div className={styles.ambientOrbTwo} />
       </div>
       <div className={styles.shell}>
-        <aside className={`${styles.rail} ${railOpen ? styles.railOpen : ''}`}>
+        <aside data-terminal-scroll="true" className={`${styles.rail} ${railOpen ? styles.railOpen : ''}`}>
           <div className={styles.railHead}>
             <div className={styles.railBrand}>CLAWORLD · NFA</div>
             <button type="button" className={`${styles.drawerToggle} ${styles.mobileOnly}`} onClick={() => setRailOpen(false)}>
@@ -665,7 +731,7 @@ export function TerminalHome() {
               </div>
             </header>
 
-            <div className={styles.stream} ref={streamRef}>
+            <div data-terminal-scroll="true" className={styles.stream} ref={streamRef}>
               {cards.map((card) => {
                 if (card.type === 'message') {
                   const displayText = [card.title, card.body].filter((value) => value && value.trim().length > 0).join('\n').trim();
@@ -890,7 +956,7 @@ export function TerminalHome() {
             />
           ) : null}
 
-          <aside className={`${styles.drawer} ${drawerOpen ? styles.drawerOpen : ''}`}>
+          <aside data-terminal-scroll="true" className={`${styles.drawer} ${drawerOpen ? styles.drawerOpen : ''}`}>
             <div className={styles.drawerBody}>
               <section className={styles.drawerHero}>
                 <div className={styles.cardHead}>
