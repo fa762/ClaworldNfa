@@ -55,6 +55,11 @@ const CML_ROOT =
   process.env.AUTONOMY_CML_DIR ||
   path.join(os.homedir(), '.openclaw', 'claw-world');
 
+function localCmlFallbackEnabled() {
+  const value = process.env.CLAWORLD_ENABLE_LOCAL_CML_FALLBACK || '';
+  return value === '1' || value.toLowerCase() === 'true' || value.toLowerCase() === 'yes';
+}
+
 function remoteBaseUrl() {
   const value =
     process.env.CLAWORLD_API_URL ||
@@ -248,6 +253,8 @@ export async function getMemorySummaryRuntime(tokenId: number): Promise<MemorySu
   );
   if (remote) return remote;
 
+  if (!localCmlFallbackEnabled()) return null;
+
   try {
     return getMemorySummary(tokenId);
   } catch {
@@ -264,6 +271,8 @@ export async function getMemoryTimelineRuntime(tokenId: number, limit: number): 
   );
   if (Array.isArray(remote)) return remote.slice(0, limit);
   if (Array.isArray(remote?.snapshots)) return remote.snapshots.slice(0, limit);
+
+  if (!localCmlFallbackEnabled()) return [];
 
   try {
     return getMemoryTimeline(tokenId, limit);

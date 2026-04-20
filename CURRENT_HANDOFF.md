@@ -3648,7 +3648,7 @@ If you need a clean operational path again, create or reuse a clean worktree for
 - production direction from `new/` was rechecked:
   - Terminal must be the primary surface
   - chain actions should open as current-conversation action cards, not route users into old page stacks
-  - CML context should be loaded through backend/API when available, with local OpenClaw files only as fallback
+  - CML context should be loaded through the configured Claworld backend API in production
 - completed:
   - added Next redirects for `/play`, `/arena`, `/auto`, and `/mint` into `/?action=...`
   - added terminal URL action parsing so `/?action=mining|arena|auto|mint|memory|status` opens the correct card after wallet/NFA context loads
@@ -3657,7 +3657,8 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - hardened backend chat parsing for JSON and SSE payload variants
   - increased direct model output budget default to `1800` tokens with `CLAWORLD_CHAT_MAX_OUTPUT_TOKENS` override
   - direct Responses API now reads top-level `output_text` and includes web-search source metadata when web tools are enabled
-  - memory routes now prefer the configured Claworld backend API before falling back to local `OPENCLAW_CML_DIR` / `AUTONOMY_CML_DIR`
+  - memory routes now prefer the configured Claworld backend API
+  - local CML file reads are now disabled by default and require `CLAWORLD_ENABLE_LOCAL_CML_FALLBACK=true`
 - updated files:
   - `frontend/next.config.ts`
   - `frontend/src/components/terminal/TerminalHome.tsx`

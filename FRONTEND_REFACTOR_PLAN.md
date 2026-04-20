@@ -3561,7 +3561,8 @@ For this rewrite, every meaningful decision or completed step should be written 
   - direct model fallback now supports larger replies by default
 - CML memory read path now has the right production order:
   - configured Claworld backend API first
-  - local OpenClaw CML files second
+  - local CML file reads are disabled by default
+  - local CML fallback is only allowed when `CLAWORLD_ENABLE_LOCAL_CML_FALLBACK=true`
 
 ### New validation baseline
 
