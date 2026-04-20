@@ -1,6 +1,52 @@
 # Current Handoff
 
-Last updated: 2026-04-20 (session 50) Asia/Singapore
+Last updated: 2026-04-20 (session 51) Asia/Singapore
+
+## Identity-first chat and CML memory card - 2026-04-20 session 51
+
+Goal:
+- make the terminal chat feel like the selected NFA is speaking, not like a generic assistant
+- remove repeated name/title prefixes in the chat stream
+- let a user say "记住这个 / 以后你叫..." and turn that into a clear memory confirmation card
+
+What changed:
+
+1. Direct model persona tightened
+- file: `frontend/src/app/api/_lib/direct-llm.ts`
+- the system prompt now anchors the reply to the selected NFA identity, current chain state, memory summary, traits, PK record, task count, and autonomy state
+- the prompt tells the model not to repeat the NFA name before each reply
+- robotic phrases such as `作为 AI`, `我这边`, and repeated "稳" style phrasing are stripped or discouraged
+- direct model cards now return with an empty title, so the UI does not show the NFA name twice
+
+2. Backend reply cleanup
+- file: `frontend/src/app/api/_lib/backend-chat.ts`
+- backend plain replies and SSE message cards now get normalized before rendering
+- speaker prefixes like `SHELTER...:`, `NFA #3:`, `龙虾:`, or short `名字:` prefixes are removed
+- backend message titles are cleared to avoid the extra name/title line above every reply
+
+3. Memory intent now opens a real action card
+- files:
+  - `frontend/src/app/api/_lib/terminal-chat.ts`
+  - `frontend/src/lib/terminal-cards.ts`
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - `frontend/src/components/terminal/TerminalActionPanel.tsx`
+- memory/persona phrases now produce a `记忆卡`
+- examples: `记住这个`, `以后你叫小灰`, `你的性格是...`, `说话方式...`
+- the card carries the candidate text into the action panel through `memoryText`
+
+4. CML learning-root write sheet added
+- file: `frontend/src/components/terminal/TerminalActionPanel.tsx`
+- the memory panel shows the candidate text, the derived hash preview, and one `写入记忆` button
+- it writes `keccak256("claworld-cml:{tokenId}:{text}")` through `ClawNFA.updateLearningTreeByOwner(tokenId, root)`
+- the original text is not written on-chain in this pass
+- after confirmation, a receipt card is appended with the learning root and BscScan link
+
+Validation so far:
+- TypeScript passed
+
+Remaining memory work:
+- durable plaintext CML storage still needs the final backend/Greenfield path
+- this pass safely wires the on-chain learning-root update and keeps chat intent/action flow usable
 
 ## Direct chat native web-search fix - 2026-04-20 session 50
 

@@ -182,6 +182,7 @@ export function TerminalHome() {
   const [draft, setDraft] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [activeAction, setActiveAction] = useState<TerminalActionIntent | null>(null);
+  const [memoryCandidate, setMemoryCandidate] = useState('');
   const streamRef = useRef<HTMLDivElement | null>(null);
 
   const baseCards = useMemo(
@@ -265,8 +266,8 @@ export function TerminalHome() {
           const payload = JSON.parse(item.data) as TerminalChatStreamEvent;
           if (item.event === 'card' && payload.type === 'card') {
             localChat.appendCards([payload.card]);
-            const intent = resolveCardActionIntent(payload.card);
-            if (intent) openAction(intent, { silent: true });
+            const action = resolveCardAction(payload.card);
+            if (action) openAction(action, { silent: true });
           }
           if (item.event === 'error' && payload.type === 'error') {
             localChat.appendCards([
@@ -309,11 +310,11 @@ export function TerminalHome() {
     return null;
   }
 
-  function resolveCardActionIntent(card: TerminalCard): TerminalActionIntent | null {
+  function resolveCardAction(card: TerminalCard): TerminalProposalAction | null {
     if (card.type !== 'proposal') return null;
     for (const action of card.actions) {
       const intent = resolveActionIntent(action);
-      if (intent) return intent;
+      if (intent) return action;
     }
     return null;
   }
@@ -321,6 +322,9 @@ export function TerminalHome() {
   function openAction(action: TerminalProposalAction | TerminalActionIntent, options?: { silent?: boolean }) {
     const intent = typeof action === 'string' ? action : resolveActionIntent(action);
     if (!intent) return;
+    if (typeof action !== 'string' && action.memoryText) {
+      setMemoryCandidate(action.memoryText);
+    }
     setActiveAction(intent);
     if (options?.silent) return;
     const title =
@@ -440,7 +444,7 @@ export function TerminalHome() {
                         {card.meta ? <span className={styles.messageTime}>{card.meta}</span> : null}
                       </div>
                       <div className={styles.messageBody}>
-                        <p className={styles.messageBodyStrong}>{card.title}</p>
+                        {card.title ? <p className={styles.messageBodyStrong}>{card.title}</p> : null}
                         <p>{card.body}</p>
                       </div>
                     </article>
@@ -560,6 +564,7 @@ export function TerminalHome() {
                 <TerminalActionPanel
                   action={activeAction}
                   companion={companion}
+                  memoryCandidate={memoryCandidate}
                   onClose={() => setActiveAction(null)}
                   onReceipt={(card) => localChat.appendCards([card])}
                 />

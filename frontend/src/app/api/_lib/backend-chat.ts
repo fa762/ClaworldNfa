@@ -92,13 +92,31 @@ function toolCapabilities(): BackendToolCapabilities {
   };
 }
 
+function polishBackendText(text: string) {
+  return text
+    .replace(/^\s*(?:SHELTER[-\w]*|NFA\s*#?\d+|#\d+|龙虾|伙伴|助手|AI)\s*[：:]\s*/i, '')
+    .replace(/^\s*[\w\u4e00-\u9fa5]{1,16}\s*[：:]\s*/u, '')
+    .replace(/作为(?:一个)?AI(?:助手|模型)?[，,]?\s*/g, '')
+    .replace(/我这边/g, '我')
+    .trim();
+}
+
+function normalizeBackendCard(card: TerminalCard): TerminalCard {
+  if (card.type !== 'message') return card;
+  return {
+    ...card,
+    title: '',
+    body: polishBackendText(card.body),
+  };
+}
+
 function normalizeBackendCards(payload: BackendChatResponse, tokenId: string): TerminalCard[] {
   const cards = payload.cards || payload.messages;
   if (Array.isArray(cards)) {
-    return cards;
+    return cards.map(normalizeBackendCard);
   }
 
-  const text = payload.reply || payload.text;
+  const text = polishBackendText(payload.reply || payload.text || '');
   if (!text) {
     return [];
   }
@@ -109,7 +127,7 @@ function normalizeBackendCards(payload: BackendChatResponse, tokenId: string): T
       type: 'message',
       role: 'nfa',
       label: '回复',
-      title: '我听到了',
+      title: '',
       body: text,
       tone: 'warm',
     },
@@ -131,7 +149,7 @@ function parseSseCards(raw: string): TerminalCard[] {
       const payload = JSON.parse(dataLines.join('\n')) as unknown;
       const value = payload as { type?: string; card?: TerminalCard };
       if (value.type === 'card' && value.card) {
-        cards.push(value.card);
+        cards.push(normalizeBackendCard(value.card));
       }
     } catch {
       // Ignore malformed backend event blocks and keep parsing the rest.

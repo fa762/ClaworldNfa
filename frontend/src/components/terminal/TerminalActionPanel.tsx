@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Bot, CheckCircle2, Pickaxe, RefreshCw, Shield, Swords, Trophy, X } from 'lucide-react';
-import { decodeEventLog, parseEther } from 'viem';
+import { Bot, Brain, CheckCircle2, Pickaxe, RefreshCw, Shield, Swords, Trophy, X } from 'lucide-react';
+import { decodeEventLog, keccak256, parseEther, toBytes } from 'viem';
 import { useAccount, useReadContract, useSignMessage, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 
 import { BattleRoyaleArenaPanel } from '@/components/game/BattleRoyaleArenaPanel';
@@ -12,6 +12,7 @@ import { useBattleRoyaleParticipantState } from '@/components/lobster/useBattleR
 import type { ActiveCompanionValue } from '@/components/lobster/useActiveCompanion';
 import { MintPanel } from '@/components/mint/MintPanel';
 import { AutonomyPanel } from '@/components/nfa/AutonomyPanel';
+import { ClawNFAABI } from '@/contracts/abis/ClawNFA';
 import { TaskSkillABI } from '@/contracts/abis/TaskSkill';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { useRewardMultiplier } from '@/contracts/hooks/useWorldState';
@@ -821,6 +822,124 @@ function TerminalAutonomyPanel({ companion }: { companion: ActiveCompanionValue 
   );
 }
 
+function TerminalMemoryPanel({
+  companion,
+  memoryCandidate,
+  onReceipt,
+}: {
+  companion: ActiveCompanionValue;
+  memoryCandidate?: string;
+  onReceipt: (card: TerminalCard) => void;
+}) {
+  const { data: hash, error, isPending, writeContractAsync } = useWriteContract();
+  const receiptQuery = useWaitForTransactionReceipt({ hash });
+  const [text, setText] = useState(memoryCandidate ?? '');
+  const [awaitingWallet, setAwaitingWallet] = useState(false);
+  const [handledHash, setHandledHash] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (memoryCandidate) setText(memoryCandidate);
+  }, [memoryCandidate]);
+
+  const trimmed = text.trim().slice(0, 500);
+  const memoryRoot = trimmed ? keccak256(toBytes(`claworld-cml:${companion.tokenId.toString()}:${trimmed}`)) : null;
+
+  async function writeMemoryRoot() {
+    if (!memoryRoot || isPending || receiptQuery.isLoading) return;
+    setAwaitingWallet(true);
+    try {
+      await writeContractAsync({
+        address: addresses.clawNFA,
+        abi: ClawNFAABI,
+        functionName: 'updateLearningTreeByOwner',
+        args: [companion.tokenId, memoryRoot],
+      });
+    } finally {
+      setAwaitingWallet(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!hash || handledHash === hash || !receiptQuery.data || !memoryRoot) return;
+    setHandledHash(hash);
+    onReceipt({
+      id: `memory-receipt-${hash}`,
+      type: 'receipt',
+      label: '记忆已写入',
+      title: '长期记忆已更新',
+      body: '这段身份记忆已经压成 hash 写入学习树。原文不上链。',
+      details: [
+        { label: 'NFA', value: `#${companion.tokenNumber}` },
+        { label: '记忆根', value: `${memoryRoot.slice(0, 10)}...${memoryRoot.slice(-6)}`, tone: 'growth' },
+        { label: '交易', value: `${hash.slice(0, 10)}...`, tone: 'warm' },
+      ],
+      cta: { label: '查看交易', href: getBscScanTxUrl(hash) },
+    });
+  }, [companion.tokenNumber, handledHash, hash, memoryRoot, onReceipt, receiptQuery.data]);
+
+  return (
+    <section className={styles.inlinePanel}>
+      <div className={styles.inlineHead}>
+        <div>
+          <span>长期记忆</span>
+          <strong>确认一句话，写进学习树</strong>
+        </div>
+        <Brain size={18} />
+      </div>
+
+      <label className={styles.compactField}>
+        <span>记忆内容</span>
+        <textarea
+          value={text}
+          onChange={(event) => setText(event.target.value.slice(0, 500))}
+          rows={4}
+          className={styles.compactTextarea}
+          placeholder="例如：以后叫我船长。你说话短一点，像真的在旁边陪我。"
+        />
+      </label>
+
+      <div className={styles.inlineSummary}>
+        <div>
+          <span>写入方式</span>
+          <strong>CML hash</strong>
+        </div>
+        <div>
+          <span>原文</span>
+          <strong>不上链</strong>
+        </div>
+        <div>
+          <span>长度</span>
+          <strong>{trimmed.length}/500</strong>
+        </div>
+        <div>
+          <span>记忆根</span>
+          <strong>{memoryRoot ? `${memoryRoot.slice(0, 8)}...` : '--'}</strong>
+        </div>
+      </div>
+
+      <div className={styles.inlineActions}>
+        <button
+          type="button"
+          className={styles.primaryPanelButton}
+          onClick={() => void writeMemoryRoot()}
+          disabled={!memoryRoot || isPending || receiptQuery.isLoading}
+        >
+          <Brain size={16} />
+          {awaitingWallet ? '等待钱包确认' : receiptQuery.isLoading ? '链上确认中' : '写入记忆'}
+        </button>
+        <span className={styles.actionHint}>确认后才上链</span>
+      </div>
+
+      {error ? <p className={styles.panelError}>{error instanceof Error ? error.message : '写入失败'}</p> : null}
+      {hash ? (
+        <a className={styles.panelLink} href={getBscScanTxUrl(hash)} target="_blank" rel="noreferrer">
+          查看交易 {hash.slice(0, 10)}...
+        </a>
+      ) : null}
+    </section>
+  );
+}
+
 function TerminalMintPanel({ onClose }: { onClose: () => void }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -875,11 +994,13 @@ function TerminalMintPanel({ onClose }: { onClose: () => void }) {
 export function TerminalActionPanel({
   action,
   companion,
+  memoryCandidate,
   onClose,
   onReceipt,
 }: {
   action: TerminalActionIntent;
   companion: ActiveCompanionValue;
+  memoryCandidate?: string;
   onClose: () => void;
   onReceipt: (card: TerminalCard) => void;
 }) {
@@ -908,6 +1029,13 @@ export function TerminalActionPanel({
     return (
       <div className={styles.actionPanelWrap}>
         <TerminalMintPanel onClose={onClose} />
+      </div>
+    );
+  }
+  if (action === 'memory') {
+    return (
+      <div className={styles.actionPanelWrap}>
+        <TerminalMemoryPanel companion={companion} memoryCandidate={memoryCandidate} onReceipt={onReceipt} />
       </div>
     );
   }

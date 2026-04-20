@@ -11,6 +11,7 @@ export type TerminalProposalAction = {
   label: string;
   intent?: TerminalActionIntent;
   href?: string;
+  memoryText?: string;
 };
 
 export type TerminalCard =

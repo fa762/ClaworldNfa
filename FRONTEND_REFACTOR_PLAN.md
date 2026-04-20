@@ -1,6 +1,60 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-20 (session 50) Asia/Singapore
+Last updated: 2026-04-20 (session 51) Asia/Singapore
+
+## Identity Chat + Memory Action Pass - 2026-04-20 session 51
+
+Accepted product rule:
+
+- the main surface is a conversation with the selected NFA
+- replies should not look like support copy or model output
+- the UI already shows the NFA name, so message cards should not repeat the name/title on every line
+- user identity/personality instructions should become memory candidates with explicit confirmation before any chain write
+
+What is now implemented:
+
+1. NFA voice pass
+- direct model replies are grounded in:
+  - selected NFA name and token id
+  - level, shelter, state, Claworld reserve, upkeep, traits, PK record, task count
+  - memory summary and recent memory timeline
+  - autonomy status and current world/Battle Royale state
+- direct replies are short and character-led
+- common assistant phrases are filtered after generation
+
+2. Message UI cleanup
+- direct model cards use no title
+- backend plain reply cards use no title
+- backend SSE message cards are normalized before rendering
+- short speaker prefixes are stripped before the card reaches the chat stream
+
+3. Memory intent bridge
+- memory-like input now creates a `记忆卡`
+- the proposal carries `memoryText` into the terminal action panel
+- the terminal opens the memory panel automatically when the proposal card arrives
+
+4. Learning-root write panel
+- the memory sheet derives a CML-style root:
+  - `keccak256("claworld-cml:{tokenId}:{text}")`
+- the write path calls:
+  - `ClawNFA.updateLearningTreeByOwner(tokenId, root)`
+- the user signs the transaction
+- success appends a receipt card with the root preview and explorer link
+
+Validation:
+
+- TypeScript: passed
+
+Next product work:
+
+1. Durable CML body storage
+- store the plaintext memory body in the project backend or Greenfield
+- keep the on-chain learning root as the verification pointer
+
+2. Final chat/action polish
+- improve final custom PK / Battle Royale sheets
+- make action result cards feel more like game feedback
+- keep copy short and Chinese-first
 
 ## Direct Vercel Chat Native Responses Pass - 2026-04-20 session 50
 
