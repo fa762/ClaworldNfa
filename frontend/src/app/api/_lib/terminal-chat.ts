@@ -5,7 +5,7 @@ import type { WorldSummaryPayload } from '@/app/api/_lib/world';
 import { formatCLW } from '@/lib/format';
 import type { TerminalCard } from '@/lib/terminal-cards';
 
-type CommandIntent = 'mining' | 'arena' | 'auto' | 'mint' | 'memory' | 'status' | 'unknown';
+export type CommandIntent = 'mining' | 'arena' | 'auto' | 'mint' | 'memory' | 'status' | 'unknown';
 
 export type TerminalChatSnapshot = {
   detail: TerminalNFADetail;

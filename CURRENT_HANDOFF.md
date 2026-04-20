@@ -1,6 +1,49 @@
 # Current Handoff
 
-Last updated: 2026-04-20 (session 46) Asia/Singapore
+Last updated: 2026-04-20 (session 47) Asia/Singapore
+
+## Terminal intent action-card checkpoint - 2026-04-20 session 47
+
+This pass connects chat intent to visible action cards and reduces the default card noise.
+
+What changed:
+
+1. Chat intent now opens action cards automatically
+- `/api/chat/[tokenId]/send` now infers action intent before fallback selection
+- action commands such as `去挖矿`, `看竞技`, `开代理`, and `铸造` always get a structured proposal card
+- if the backend returns only a plain chat reply for an action command, the BFF appends the local proposal card
+- the terminal UI listens for proposal cards and opens the matching action panel silently
+- users no longer need to click the proposal again just to see the action surface
+
+2. Action cards are now lighter by default
+- mining stays directly executable inside the conversation
+- arena default view now shows only mode, current status, reserve / win rate / room summary, and the next button
+- PK and Battle Royale live transaction panels are no longer rendered by default
+- those full panels now load only after clicking `打开 PK 列表` or `打开房间操作`
+- mint default view is now a compact result card; the full mint flow opens only after clicking `打开铸造流程`
+
+3. Agent card now has a user-facing top layer
+- default agent card supports three modes:
+  - 任务代理
+  - PK 代理
+  - 大逃杀代理
+- the user can pick conservative / balanced / aggressive style
+- the user can save a short directive prompt with the existing wallet-signature directive API
+- recent autonomy results are summarized in plain Chinese
+- the full authorization / budget / lease panel is behind `开通 / 预算 / 授权`
+
+4. Mobile/card layout tightened
+- new action-card CSS uses compact hero blocks, mode chips, concise summary boxes, and fold-out advanced areas
+- mobile breakpoint collapses action hero, mode cards, summary grid, and result rows to one column
+
+Validation:
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json` passes
+- `npm run build` passes
+
+Deployment note:
+
+- This checkpoint should be pushed to private `main` for Vercel testing.
 
 ## Terminal deploy-ready checkpoint - 2026-04-20 session 46
 

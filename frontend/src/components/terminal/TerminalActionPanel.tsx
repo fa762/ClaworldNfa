@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Pickaxe, RefreshCw, X } from 'lucide-react';
+import { Bot, CheckCircle2, Pickaxe, RefreshCw, Shield, Swords, Trophy, X } from 'lucide-react';
 import { decodeEventLog, parseEther } from 'viem';
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useAccount, useReadContract, useSignMessage, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 
 import { BattleRoyaleArenaPanel } from '@/components/game/BattleRoyaleArenaPanel';
 import { PKArenaPanel } from '@/components/game/PKArenaPanel';
@@ -19,6 +19,7 @@ import { formatCLW } from '@/lib/format';
 import type { TerminalActionIntent, TerminalCard } from '@/lib/terminal-cards';
 
 import styles from './TerminalHome.module.css';
+import { useTerminalAutonomy } from './useTerminalAutonomy';
 
 type TaskTemplate = {
   key: string;
@@ -38,6 +39,30 @@ type TaskPreview = {
   worldMul: bigint;
   cooldownReady: boolean;
 };
+
+type DirectiveStyle = 'tight' | 'balanced' | 'expressive';
+
+type DirectiveApiResponse = {
+  tokenId: number;
+  actionKind: number;
+  style: DirectiveStyle;
+  text: string;
+  updatedAt: number | null;
+  updatedBy: string | null;
+  error?: string;
+};
+
+const AUTONOMY_ACTION_MODES = [
+  { key: 'task', label: '任务代理', actionKind: 0, oneLine: '自动挑任务，优先稳收益。' },
+  { key: 'pk', label: 'PK 代理', actionKind: 1, oneLine: '只接胜率舒服的局。' },
+  { key: 'br', label: '大逃杀代理', actionKind: 3, oneLine: '选房间，控质押，等结算。' },
+] as const;
+
+const DIRECTIVE_STYLES: Array<{ value: DirectiveStyle; label: string; text: string }> = [
+  { value: 'tight', label: '保守', text: '先保底，少冒险。' },
+  { value: 'balanced', label: '平衡', text: '收益和风险一起看。' },
+  { value: 'expressive', label: '激进', text: '机会明显时更主动。' },
+];
 
 const taskPreviewStateAbi = [
   {
@@ -164,6 +189,46 @@ function formatRemaining(seconds: number) {
   if (hours > 0) return `${hours}小时${minutes}分`;
   if (minutes > 0) return `${minutes}分${secs}秒`;
   return `${secs}秒`;
+}
+
+function formatRawClw(raw: string | bigint | null | undefined) {
+  if (raw === null || raw === undefined) return '--';
+  try {
+    return `${formatCLW(typeof raw === 'bigint' ? raw : BigInt(raw))} Claworld`;
+  } catch {
+    return '--';
+  }
+}
+
+function matchStatusLabel(status: number) {
+  if (status === 0) return '开放中';
+  if (status === 1) return '待揭示';
+  if (status === 2) return '已结算';
+  return '--';
+}
+
+function skillLabel(skill: string) {
+  if (skill === 'task') return '任务';
+  if (skill === 'pk') return 'PK';
+  if (skill === 'battle_royale') return '大逃杀';
+  return skill;
+}
+
+function buildDirectiveMessage(
+  tokenId: bigint,
+  actionKind: number,
+  style: DirectiveStyle,
+  text: string,
+  issuedAt: number,
+) {
+  return [
+    'Clawworld Autonomy Directive',
+    `tokenId:${tokenId.toString()}`,
+    `actionKind:${actionKind}`,
+    `style:${style}`,
+    `text:${text.trim().slice(0, 220)}`,
+    `issuedAt:${issuedAt}`,
+  ].join('\n');
 }
 
 function TerminalMiningPanel({
@@ -380,96 +445,387 @@ function TerminalMiningPanel({
 
 function TerminalArenaPanel({ companion }: { companion: ActiveCompanionValue }) {
   const [mode, setMode] = useState<'pk' | 'br'>('pk');
+  const [expanded, setExpanded] = useState(false);
   const battleRoyale = useBattleRoyaleOverview();
   const participant = useBattleRoyaleParticipantState(
     battleRoyale.matchId,
     companion.hasToken ? companion.tokenId : undefined,
     companion.ownerAddress,
   );
+  const brPlayers = `${battleRoyale.totalPlayers}/${battleRoyale.triggerCount || 10}`;
+  const brPot = `${formatCLW(battleRoyale.pot)} Claworld`;
+  const brClaim = participant.claimable > 0n ? `${formatCLW(participant.claimable)} Claworld` : '--';
 
   return (
     <section className={styles.inlinePanel}>
       <div className={styles.inlineHead}>
         <div>
           <span>竞技</span>
-          <strong>{mode === 'pk' ? 'PK 对局' : '大逃杀房间'}</strong>
+          <strong>{mode === 'pk' ? 'PK：挑对手再出招' : '大逃杀：选房间躲淘汰'}</strong>
         </div>
         <div className={styles.segmented}>
-          <button type="button" className={mode === 'pk' ? styles.segmentActive : ''} onClick={() => setMode('pk')}>
+          <button
+            type="button"
+            className={mode === 'pk' ? styles.segmentActive : ''}
+            onClick={() => {
+              setMode('pk');
+              setExpanded(false);
+            }}
+          >
             PK
           </button>
-          <button type="button" className={mode === 'br' ? styles.segmentActive : ''} onClick={() => setMode('br')}>
+          <button
+            type="button"
+            className={mode === 'br' ? styles.segmentActive : ''}
+            onClick={() => {
+              setMode('br');
+              setExpanded(false);
+            }}
+          >
             大逃杀
           </button>
         </div>
       </div>
-      {mode === 'pk' ? (
-        <PKArenaPanel
-          tokenId={companion.hasToken ? companion.tokenId : undefined}
-          ownerAddress={companion.ownerAddress}
-          companionName={companion.name}
-          reserve={companion.routerClaworld}
-          reserveText={companion.routerClaworldText}
-          pkWins={companion.pkWins}
-          pkLosses={companion.pkLosses}
-          pkWinRate={companion.pkWinRate}
-          level={companion.level}
-          traits={companion.traits}
-        />
-      ) : (
-        <BattleRoyaleArenaPanel
-          matchId={battleRoyale.matchId}
-          status={battleRoyale.status}
-          revealBlock={battleRoyale.revealBlock}
-          losingRoom={battleRoyale.losingRoom}
-          totalPlayers={battleRoyale.totalPlayers}
-          triggerCount={battleRoyale.triggerCount}
-          pot={battleRoyale.pot}
-          minStake={battleRoyale.minStake}
-          tokenId={companion.hasToken ? companion.tokenId : undefined}
-          reserve={companion.routerClaworld}
-          participant={participant}
-          onRefresh={battleRoyale.refresh}
-          isRefreshing={battleRoyale.isRefreshing}
-        />
-      )}
+
+      <div className={styles.actionHero}>
+        <div>
+          <span>{mode === 'pk' ? '当前状态' : `当前局 #${battleRoyale.matchId?.toString() ?? '--'}`}</span>
+          <strong>{mode === 'pk' ? `${companion.pkWins}胜 / ${companion.pkLosses}败` : matchStatusLabel(battleRoyale.status)}</strong>
+        </div>
+        <p>
+          {mode === 'pk'
+            ? '看对手，选策略，提交后自动走揭示和结算。'
+            : '任选五个房间之一质押，满 10 人后随机淘汰一个房间，幸存者按质押瓜分奖励。'}
+        </p>
+      </div>
+
+      <div className={styles.inlineSummary}>
+        {mode === 'pk' ? (
+          <>
+            <div>
+              <span>储备</span>
+              <strong>{companion.routerClaworldText}</strong>
+            </div>
+            <div>
+              <span>胜率</span>
+              <strong>{companion.pkWinRate}%</strong>
+            </div>
+            <div>
+              <span>等级</span>
+              <strong>Lv.{companion.level}</strong>
+            </div>
+            <div>
+              <span>下一步</span>
+              <strong>选擂台</strong>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <span>人数</span>
+              <strong>{brPlayers}</strong>
+            </div>
+            <div>
+              <span>奖池</span>
+              <strong>{brPot}</strong>
+            </div>
+            <div>
+              <span>我的奖励</span>
+              <strong>{brClaim}</strong>
+            </div>
+            <div>
+              <span>路径</span>
+              <strong>{participant.claimPathLabel ?? 'NFA 入场'}</strong>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className={styles.inlineActions}>
+        <button type="button" className={styles.primaryPanelButton} onClick={() => setExpanded((current) => !current)}>
+          <Swords size={16} />
+          {expanded ? '收起操作区' : mode === 'pk' ? '打开 PK 列表' : '打开房间操作'}
+        </button>
+        <button type="button" className={styles.panelButton} onClick={() => void battleRoyale.refresh()}>
+          <RefreshCw size={14} />
+          刷新
+        </button>
+      </div>
+
+      {expanded ? (
+        <div className={styles.advancedPanel}>
+          {mode === 'pk' ? (
+            <PKArenaPanel
+              tokenId={companion.hasToken ? companion.tokenId : undefined}
+              ownerAddress={companion.ownerAddress}
+              companionName={companion.name}
+              reserve={companion.routerClaworld}
+              reserveText={companion.routerClaworldText}
+              pkWins={companion.pkWins}
+              pkLosses={companion.pkLosses}
+              pkWinRate={companion.pkWinRate}
+              level={companion.level}
+              traits={companion.traits}
+            />
+          ) : (
+            <BattleRoyaleArenaPanel
+              matchId={battleRoyale.matchId}
+              status={battleRoyale.status}
+              revealBlock={battleRoyale.revealBlock}
+              losingRoom={battleRoyale.losingRoom}
+              totalPlayers={battleRoyale.totalPlayers}
+              triggerCount={battleRoyale.triggerCount}
+              pot={battleRoyale.pot}
+              minStake={battleRoyale.minStake}
+              tokenId={companion.hasToken ? companion.tokenId : undefined}
+              reserve={companion.routerClaworld}
+              participant={participant}
+              onRefresh={battleRoyale.refresh}
+              isRefreshing={battleRoyale.isRefreshing}
+            />
+          )}
+        </div>
+      ) : null}
     </section>
   );
 }
 
+function TerminalDirectiveEditor({
+  tokenId,
+  ownerAddress,
+  actionKind,
+}: {
+  tokenId: bigint;
+  ownerAddress?: string;
+  actionKind: number;
+}) {
+  const { address } = useAccount();
+  const { signMessageAsync, isPending: isSigning } = useSignMessage();
+  const isOwner = Boolean(address && ownerAddress) && address!.toLowerCase() === ownerAddress!.toLowerCase();
+  const [style, setStyle] = useState<DirectiveStyle>('balanced');
+  const [text, setText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setMessage(null);
+    fetch(`/api/autonomy/directive?tokenId=${tokenId.toString()}&actionKind=${actionKind}`, { cache: 'no-store' })
+      .then(async (response) => {
+        const data = (await response.json()) as DirectiveApiResponse;
+        if (!response.ok) throw new Error(data.error || '读取设定失败');
+        if (cancelled) return;
+        setStyle(data.style || 'balanced');
+        setText(data.text || '');
+      })
+      .catch((error) => {
+        if (!cancelled) setMessage(error instanceof Error ? error.message : '读取设定失败');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [actionKind, tokenId]);
+
+  async function saveDirective() {
+    if (!isOwner || saving || isSigning || !address) {
+      setMessage('只有持有人钱包可以保存。');
+      return;
+    }
+    setSaving(true);
+    setMessage(null);
+    try {
+      const issuedAt = Date.now();
+      const trimmed = text.trim().slice(0, 220);
+      const signature = await signMessageAsync({
+        message: buildDirectiveMessage(tokenId, actionKind, style, trimmed, issuedAt),
+      });
+      const response = await fetch('/api/autonomy/directive', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          tokenId: Number(tokenId),
+          actionKind,
+          style,
+          text: trimmed,
+          issuedAt,
+          signer: address,
+          signature,
+        }),
+      });
+      const data = (await response.json()) as DirectiveApiResponse;
+      if (!response.ok) throw new Error(data.error || '保存失败');
+      setStyle(data.style);
+      setText(data.text);
+      setMessage('已保存。');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className={styles.directiveEditor}>
+      <div className={styles.actionModes}>
+        {DIRECTIVE_STYLES.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            className={`${styles.actionModeButton} ${style === item.value ? styles.actionModeButtonActive : ''}`}
+            onClick={() => setStyle(item.value)}
+            disabled={loading || saving || isSigning}
+          >
+            <strong>{item.label}</strong>
+            <span>{item.text}</span>
+          </button>
+        ))}
+      </div>
+      <label className={styles.compactField}>
+        <span>一句提示</span>
+        <textarea
+          value={text}
+          onChange={(event) => setText(event.target.value.slice(0, 220))}
+          rows={3}
+          disabled={!isOwner || loading || saving || isSigning}
+          className={styles.compactTextarea}
+          placeholder="例如：先领已结算奖励，再进新一局。"
+        />
+      </label>
+      <div className={styles.inlineActions}>
+        <button type="button" className={styles.primaryPanelButton} onClick={() => void saveDirective()} disabled={!isOwner || loading || saving || isSigning}>
+          <Bot size={16} />
+          {saving || isSigning ? '保存中' : '保存提示'}
+        </button>
+        <span className={styles.actionHint}>{text.length}/220</span>
+      </div>
+      {message ? <p className={styles.panelError}>{message}</p> : null}
+    </div>
+  );
+}
+
 function TerminalAutonomyPanel({ companion }: { companion: ActiveCompanionValue }) {
+  const [modeKey, setModeKey] = useState<(typeof AUTONOMY_ACTION_MODES)[number]['key']>('task');
+  const [expanded, setExpanded] = useState(false);
+  const autonomy = useTerminalAutonomy(companion.hasToken ? companion.tokenId : undefined);
+  const mode = AUTONOMY_ACTION_MODES.find((item) => item.key === modeKey) ?? AUTONOMY_ACTION_MODES[0];
+  const recent = autonomy.status?.recentActions.slice(0, 3) ?? [];
+
   return (
     <section className={styles.inlinePanel}>
       <div className={styles.inlineHead}>
         <div>
           <span>代理</span>
-          <strong>开通、预算、策略、结果都在这里</strong>
+          <strong>{autonomy.status?.enabled ? '代理已开启' : '设置自动代理'}</strong>
+        </div>
+        <Shield size={18} />
+      </div>
+
+      <div className={styles.actionModes}>
+        {AUTONOMY_ACTION_MODES.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            className={`${styles.actionModeButton} ${modeKey === item.key ? styles.actionModeButtonActive : ''}`}
+            onClick={() => setModeKey(item.key)}
+          >
+            <strong>{item.label}</strong>
+            <span>{item.oneLine}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.inlineSummary}>
+        <div>
+          <span>储备</span>
+          <strong>{companion.routerClaworldText}</strong>
+        </div>
+        <div>
+          <span>剩余额度</span>
+          <strong>{formatRawClw(autonomy.status?.budget.remainingCLW)}</strong>
+        </div>
+        <div>
+          <span>状态</span>
+          <strong>{autonomy.status?.enabled ? (autonomy.status.paused ? '暂停' : '运行') : '未开'}</strong>
+        </div>
+        <div>
+          <span>当前策略</span>
+          <strong>{mode.label}</strong>
         </div>
       </div>
-      <AutonomyPanel
-        tokenId={companion.tokenId}
-        ownerAddress={companion.ownerAddress}
-        clwBalance={companion.routerClaworld}
-        dailyCost={companion.dailyCost}
-      />
+
+      <TerminalDirectiveEditor tokenId={companion.tokenId} ownerAddress={companion.ownerAddress} actionKind={mode.actionKind} />
+
+      <div className={styles.resultList}>
+        <span>最近结果</span>
+        {autonomy.isLoading ? <p>读取中...</p> : null}
+        {!autonomy.isLoading && recent.length === 0 ? <p>暂无执行记录。</p> : null}
+        {recent.map((item) => (
+          <div key={item.id} className={styles.resultRow}>
+            <strong>{skillLabel(item.skill)}</strong>
+            <span>{item.summary}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className={styles.inlineActions}>
+        <button type="button" className={styles.panelButton} onClick={() => setExpanded((current) => !current)}>
+          <Bot size={16} />
+          {expanded ? '收起开通设置' : '开通 / 预算 / 授权'}
+        </button>
+      </div>
+
+      {expanded ? (
+        <div className={styles.advancedPanel}>
+          <AutonomyPanel
+            tokenId={companion.tokenId}
+            ownerAddress={companion.ownerAddress}
+            clwBalance={companion.routerClaworld}
+            dailyCost={companion.dailyCost}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }
 
 function TerminalMintPanel({ onClose }: { onClose: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <section className={styles.inlinePanel}>
       <div className={styles.inlineHead}>
         <div>
           <span>铸造</span>
-          <strong>铸造新 NFA</strong>
+          <strong>生成新的龙虾伙伴</strong>
         </div>
         <button type="button" className={styles.panelButton} onClick={onClose}>
           <X size={14} />
           收起
         </button>
       </div>
-      <MintPanel />
+      <div className={styles.actionHero}>
+        <div>
+          <span>结果</span>
+          <strong>获得新 NFA</strong>
+        </div>
+        <p>支付后等待揭示，完成后会出现在左侧列表。</p>
+      </div>
+      <div className={styles.inlineActions}>
+        <button type="button" className={styles.primaryPanelButton} onClick={() => setExpanded((current) => !current)}>
+          <Trophy size={16} />
+          {expanded ? '收起铸造流程' : '打开铸造流程'}
+        </button>
+      </div>
+      {expanded ? (
+        <div className={styles.advancedPanel}>
+          <MintPanel />
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -265,6 +265,8 @@ export function TerminalHome() {
           const payload = JSON.parse(item.data) as TerminalChatStreamEvent;
           if (item.event === 'card' && payload.type === 'card') {
             localChat.appendCards([payload.card]);
+            const intent = resolveCardActionIntent(payload.card);
+            if (intent) openAction(intent, { silent: true });
           }
           if (item.event === 'error' && payload.type === 'error') {
             localChat.appendCards([
@@ -307,10 +309,20 @@ export function TerminalHome() {
     return null;
   }
 
-  function openAction(action: TerminalProposalAction | TerminalActionIntent) {
+  function resolveCardActionIntent(card: TerminalCard): TerminalActionIntent | null {
+    if (card.type !== 'proposal') return null;
+    for (const action of card.actions) {
+      const intent = resolveActionIntent(action);
+      if (intent) return intent;
+    }
+    return null;
+  }
+
+  function openAction(action: TerminalProposalAction | TerminalActionIntent, options?: { silent?: boolean }) {
     const intent = typeof action === 'string' ? action : resolveActionIntent(action);
     if (!intent) return;
     setActiveAction(intent);
+    if (options?.silent) return;
     const title =
       intent === 'mining'
         ? '挖矿卡已打开'

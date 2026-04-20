@@ -3,14 +3,26 @@ import { requestBackendChat } from '@/app/api/_lib/backend-chat';
 import { requestDirectLlm } from '@/app/api/_lib/direct-llm';
 import { getMemorySummary, getMemoryTimeline } from '@/app/api/_lib/memory';
 import { getNfaDetail } from '@/app/api/_lib/nfas';
-import { buildIntentCards, inferTerminalIntent } from '@/app/api/_lib/terminal-chat';
+import { buildIntentCards, inferTerminalIntent, type CommandIntent } from '@/app/api/_lib/terminal-chat';
 import { getWorldSummary } from '@/app/api/_lib/world';
-import type { TerminalChatStreamEvent } from '@/lib/terminal-cards';
+import type { TerminalCard, TerminalChatStreamEvent } from '@/lib/terminal-cards';
 
 export const runtime = 'nodejs';
 
 function writeEvent(event: string, payload: unknown) {
   return `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
+}
+
+function isActionIntent(intent: CommandIntent) {
+  return intent === 'mining' || intent === 'arena' || intent === 'auto' || intent === 'mint';
+}
+
+function hasActionProposal(cards: TerminalCard[]) {
+  return cards.some((card) => card.type === 'proposal' && card.actions.some((action) => action.intent));
+}
+
+function proposalCards(cards: TerminalCard[]) {
+  return cards.filter((card) => card.type === 'proposal');
 }
 
 export async function POST(
@@ -73,6 +85,9 @@ export async function POST(
 
     const history = Array.isArray(body.history) ? (body.history as any) : [];
 
+    const intent = inferTerminalIntent(content, slashCommand);
+    const shouldOpenAction = isActionIntent(intent);
+
     const backendCards = await requestBackendChat({
       tokenId,
       owner: body.owner,
@@ -88,7 +103,11 @@ export async function POST(
 
     let cards = backendCards?.length ? backendCards : null;
 
-    if (!cards) {
+    if (cards && shouldOpenAction && !hasActionProposal(cards)) {
+      cards = [...cards, ...proposalCards(buildIntentCards(intent, content, snapshot))];
+    }
+
+    if (!cards && !shouldOpenAction) {
       const llmCards = await requestDirectLlm({
         tokenId,
         content,
@@ -101,12 +120,12 @@ export async function POST(
       if (llmCards?.length) cards = llmCards;
     }
 
+    if (cards && shouldOpenAction && !hasActionProposal(cards)) {
+      cards = [...cards, ...proposalCards(buildIntentCards(intent, content, snapshot))];
+    }
+
     if (!cards) {
-      cards = buildIntentCards(
-        inferTerminalIntent(content, slashCommand),
-        content,
-        snapshot,
-      );
+      cards = buildIntentCards(intent, content, snapshot);
     }
 
     const stream = new ReadableStream({

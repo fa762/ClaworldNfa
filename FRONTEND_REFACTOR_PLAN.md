@@ -1,6 +1,72 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-20 (session 46) Asia/Singapore
+Last updated: 2026-04-20 (session 47) Asia/Singapore
+
+## Terminal intent action-card pass - 2026-04-20 session 47
+
+Accepted product rule:
+
+- chat should be the primary entry point
+- when a user states an intent, the matching action card should appear automatically
+- default action cards should be short, readable, and player-facing
+- full legacy transaction panels can remain as fallback operation areas, but they should not fill the first view
+
+What is now implemented:
+
+1. Intent-to-card bridge
+- the chat BFF now classifies action intent before choosing backend/direct/fallback cards
+- action intents always include a proposal with an executable `intent`
+- the terminal automatically opens the matching action panel when that proposal arrives
+- backend or direct LLM replies can still provide natural chat, while local cards preserve product actionability
+
+2. Mining card
+- still executes the live `TaskSkill.ownerCompleteTypedTask(...)` path
+- still rolls 3 tasks from the 5 stat lanes
+- remains the most complete terminal-native action loop in this pass
+
+3. Arena card
+- default layer now shows:
+  - PK or 大逃杀 mode
+  - current status
+  - reserve / win rate / level for PK
+  - players / pot / claimable / path for Battle Royale
+  - refresh and open-operation buttons
+- full PK and Battle Royale panels are now loaded on demand
+
+4. Agent card
+- default layer now shows:
+  - task / PK / Battle Royale agent selection
+  - reserve
+  - remaining budget
+  - running state
+  - latest results
+  - short directive editor
+- the directive editor uses the existing `/api/autonomy/directive` GET/POST flow and wallet signature
+- full policy, adapter, operator, lease, and risk controls are now in an explicit advanced section
+
+5. Mint card
+- default layer now states the result and keeps the full mint panel folded until the user asks for it
+
+Validation:
+
+- TypeScript: passed
+- Production build: passed
+
+Remaining product gap after this pass:
+
+1. Replace the fold-out legacy PK / Battle Royale panels with final custom terminal sheets
+- PK: compact match list -> stake/strategy sheet -> submit/reveal/result card
+- Battle Royale: room board -> stake/join/change/reveal/claim card
+
+2. Make chat memory durable
+- current terminal session works
+- server-backed conversation history and CML writeback still need a final implementation pass
+
+3. Final UX/art pass
+- lobster sprite/GIF
+- stronger reward animation
+- final motion language
+- richer but still quiet companion presence
 
 ## Deploy-ready terminal pass - 2026-04-20 session 46
 

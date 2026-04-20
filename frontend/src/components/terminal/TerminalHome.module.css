@@ -984,6 +984,171 @@
   color: #f5c16b;
 }
 
+.actionHero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
+  gap: 12px;
+  align-items: stretch;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 165, 36, 0.14);
+  background:
+    radial-gradient(circle at 8% 10%, rgba(245, 165, 36, 0.14), transparent 34%),
+    rgba(255, 255, 255, 0.035);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.actionHero div {
+  display: flex;
+  min-height: 74px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 12px;
+}
+
+.actionHero span,
+.compactField span,
+.resultList > span {
+  color: rgba(246, 231, 191, 0.52);
+  font-size: 0.72rem;
+}
+
+.actionHero strong {
+  color: #fff4da;
+  font-size: 1.18rem;
+}
+
+.actionHero p {
+  margin: 0;
+  align-self: center;
+  color: rgba(246, 231, 191, 0.72);
+  line-height: 1.55;
+}
+
+.actionModes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin: 12px 0;
+}
+
+.actionModeButton {
+  display: flex;
+  min-height: 76px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+  color: #f6e7bf;
+  padding: 11px;
+  text-align: left;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.actionModeButton:active {
+  transform: scale(0.97);
+}
+
+.actionModeButton strong {
+  color: #fff4da;
+  font-size: 0.94rem;
+}
+
+.actionModeButton span {
+  color: rgba(246, 231, 191, 0.56);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.actionModeButtonActive {
+  border-color: rgba(245, 165, 36, 0.5);
+  background: rgba(245, 165, 36, 0.13);
+  box-shadow: 0 0 0 1px rgba(245, 165, 36, 0.15) inset;
+}
+
+.directiveEditor {
+  margin-top: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+}
+
+.compactField {
+  display: grid;
+  gap: 7px;
+}
+
+.compactTextarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 82px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(0, 0, 0, 0.24);
+  color: #fff4da;
+  padding: 10px 12px;
+  line-height: 1.5;
+  outline: none;
+}
+
+.compactTextarea:focus {
+  border-color: rgba(245, 165, 36, 0.45);
+  box-shadow: 0 0 0 3px rgba(245, 165, 36, 0.12);
+}
+
+.actionHint {
+  align-self: center;
+  color: rgba(246, 231, 191, 0.48);
+  font-size: 0.8rem;
+}
+
+.resultList {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.resultList p {
+  margin: 0;
+  color: rgba(246, 231, 191, 0.55);
+}
+
+.resultRow {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.18);
+  padding: 10px;
+}
+
+.resultRow strong {
+  color: #f5c16b;
+}
+
+.resultRow span {
+  min-width: 0;
+  color: rgba(246, 231, 191, 0.7);
+  overflow-wrap: anywhere;
+}
+
+.advancedPanel {
+  margin-top: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(124, 183, 209, 0.15);
+  background: rgba(10, 13, 18, 0.64);
+  padding: 12px;
+}
+
 .quickActionsGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1122,7 +1287,10 @@
   .kvGrid,
   .quickActionsGrid,
   .taskDeck,
-  .inlineSummary {
+  .inlineSummary,
+  .actionHero,
+  .actionModes,
+  .resultRow {
     grid-template-columns: 1fr;
   }
 
