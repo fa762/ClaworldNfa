@@ -66,8 +66,8 @@ function buildBaseFeed(
       id: 'intro',
       type: 'message',
       role: 'nfa',
-      label: '龙虾已上线',
-      title: `${companion.name} 在等你的指令`,
+      label: '已接入',
+      title: '',
       body: detailMemorySummary ?? describeCompanion(companion),
       tone: 'warm',
       meta: `#${companion.tokenNumber} · Lv.${companion.level}`,
@@ -224,8 +224,8 @@ export function TerminalHome() {
         type: 'message',
         role: 'user',
         label: '你',
-        title: content,
-        body: '已发送给当前 NFA。',
+        title: '',
+        body: content,
         tone: 'warm',
         meta: '刚刚',
       },
@@ -343,8 +343,8 @@ export function TerminalHome() {
         type: 'message',
         role: 'system',
         label: '动作卡',
-        title,
-        body: '就在当前对话里处理，不再跳到老页面。',
+        title: '',
+        body: `${title}，就在当前对话里处理。`,
         tone: 'warm',
         meta: '刚刚',
       },
@@ -352,6 +352,38 @@ export function TerminalHome() {
   }
 
   const recentSummary = terminalAutonomy.status?.recentActions?.[0];
+  const battleRoyaleSummary = terminalWorld.summary?.battleRoyale;
+  const railItems =
+    terminalNfas.rail.length > 0
+      ? terminalNfas.rail.map((item) => ({
+          tokenId: BigInt(item.tokenId),
+          pulse: item.pulse,
+          unreadCount: item.unreadCount,
+          label: item.displayName,
+          accentColor: item.accentColor,
+          avatarUri: item.avatarUri,
+          level: item.level,
+          active: item.active,
+        }))
+      : companion.ownedTokens.map((tokenId) => ({
+          tokenId,
+          pulse: 0,
+          unreadCount: 0,
+          label: `#${tokenId.toString()}`,
+          accentColor: '#F5A524',
+          avatarUri: '',
+          level: companion.level,
+          active: true,
+        }));
+  const activeSummary = railItems.find((item) => item.tokenId === companion.tokenId);
+  const accentColor = terminalNfas.detail?.accentColor ?? activeSummary?.accentColor ?? '#F5A524';
+  const displayName = terminalNfas.detail?.displayName ?? companion.name;
+  const avatarSrc = terminalNfas.detail?.avatarUri || activeSummary?.avatarUri || companion.imageSrc;
+  const pulsePercent = Math.round((terminalNfas.detail?.pulse ?? activeSummary?.pulse ?? 0) * 100);
+  const drawerMemoryText = terminalMemory.summary?.identity ?? terminalNfas.detail?.memorySummary ?? describeCompanion(companion);
+  const totalBudget = terminalAutonomy.status?.budget.totalCLW ? BigInt(terminalAutonomy.status.budget.totalCLW) : 0n;
+  const usedBudget = terminalAutonomy.status?.budget.usedCLW ? BigInt(terminalAutonomy.status.budget.usedCLW) : 0n;
+  const budgetPercent = totalBudget > 0n ? Number((usedBudget * 100n) / totalBudget) : 0;
   const quickPrompts = [
     { label: '挖矿', value: '去挖矿', icon: Pickaxe, tone: styles.growth },
     { label: '竞技', value: '看竞技', icon: Swords, tone: styles.warm },
@@ -360,29 +392,19 @@ export function TerminalHome() {
   ] as const;
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} style={{ ['--accent-color' as any]: accentColor }}>
+      <div className={styles.ambient} aria-hidden="true">
+        <div className={styles.ambientGrid} />
+        <div className={styles.ambientOrbOne} />
+        <div className={styles.ambientOrbTwo} />
+      </div>
       <div className={styles.shell}>
         <aside className={styles.rail}>
           <div className={styles.railHead}>
-            <button type="button" className={styles.mintButton} aria-label="打开铸造" onClick={() => openAction('mint')}>
-              <Compass size={18} />
-            </button>
-            <span className={styles.railTitle}>NFA</span>
+            <div className={styles.railBrand}>CLAWORLD · NFA</div>
           </div>
           <div className={styles.railList}>
-            {(terminalNfas.rail.length > 0
-              ? terminalNfas.rail.map((item) => ({
-                  tokenId: BigInt(item.tokenId),
-                  pulse: item.pulse,
-                  unreadCount: item.unreadCount,
-                  label: item.displayName,
-                }))
-              : companion.ownedTokens.map((tokenId) => ({
-                  tokenId,
-                  pulse: 0,
-                  unreadCount: 0,
-                  label: `#${tokenId.toString()}`,
-                }))).map((item) => {
+            {railItems.map((item) => {
               const active = item.tokenId === companion.tokenId;
               return (
                 <button
@@ -392,14 +414,21 @@ export function TerminalHome() {
                   onClick={() => companion.selectCompanion(item.tokenId)}
                   aria-label={`切换到 ${item.label}`}
                   title={`${item.label} · pulse ${Math.round(item.pulse * 100)}%`}
+                  style={{ ['--rail-accent' as any]: item.accentColor }}
                 >
-                  <RailGlyph tokenId={item.tokenId} />
-                  {active ? <span className={styles.railBadge}>•</span> : null}
+                  <span className={styles.railItemBar} />
+                  <span className={styles.railItemInner}>
+                    {item.avatarUri ? <img className={styles.railImage} src={item.avatarUri} alt={item.label} /> : <RailGlyph tokenId={item.tokenId} />}
+                  </span>
+                  <span className={styles.railMiniMeta}>L{item.level}</span>
                   {!active && item.unreadCount > 0 ? <span className={styles.railBadge}>{item.unreadCount}</span> : null}
                 </button>
               );
             })}
           </div>
+          <button type="button" className={styles.mintButton} aria-label="打开铸造" onClick={() => openAction('mint')}>
+            <Compass size={18} />
+          </button>
           <div className={styles.railMeta}>
             <div>#{companion.tokenNumber}</div>
             <div>{terminalNfas.rail.length || companion.ownedCount} 只在线</div>
@@ -409,14 +438,23 @@ export function TerminalHome() {
         <div className={styles.main}>
           <section className={styles.conversation}>
             <header className={styles.conversationHead}>
-              <div className={styles.titleBlock}>
-                <p className={styles.eyebrow}>对话入口</p>
-                <h2>{terminalNfas.detail?.displayName ?? companion.name}</h2>
-                <p className={styles.subline}>
-                  #{companion.tokenNumber} · {terminalNfas.detail?.shelter ?? companion.shelterName} · Lv.{terminalNfas.detail?.level ?? companion.level}
-                </p>
+              <div className={styles.headerIdentity}>
+                <div className={styles.heroAvatar}>
+                  {avatarSrc ? <img src={avatarSrc} alt={displayName} /> : <RailGlyph tokenId={companion.tokenId} />}
+                </div>
+                <div className={styles.titleBlock}>
+                  <p className={styles.eyebrow}>对话入口</p>
+                  <h2>{displayName}</h2>
+                  <p className={`${styles.subline} ${styles.mono}`}>
+                    #{companion.tokenNumber} · {terminalNfas.detail?.rarity ?? companion.shelterName} · Lv.{terminalNfas.detail?.level ?? companion.level} · {companion.statusLabel}
+                  </p>
+                </div>
               </div>
               <div className={styles.headerActions}>
+                <div className={styles.pulsePill}>
+                  <span className={styles.pulseDot} />
+                  <span>PULSE {pulsePercent}%</span>
+                </div>
                 <div className={styles.walletPill}>
                   <Shield size={14} />
                   {truncateAddress(address)}
@@ -431,10 +469,31 @@ export function TerminalHome() {
             <div className={styles.stream} ref={streamRef}>
               {cards.map((card) => {
                 if (card.type === 'message') {
+                  if (card.role === 'user') {
+                    return (
+                      <article key={card.id} className={styles.messageUser}>
+                        <div className={styles.messageBody}>
+                          <p>{card.body || card.title}</p>
+                        </div>
+                      </article>
+                    );
+                  }
+
+                  if (card.role === 'system' && card.tone !== 'alert' && !card.title) {
+                    return (
+                      <div key={card.id} className={styles.systemEvent}>
+                        <span className={styles.systemEventSpark}>
+                          <Sparkles size={10} />
+                        </span>
+                        <span>{card.body}</span>
+                      </div>
+                    );
+                  }
+
                   return (
                     <article
                       key={card.id}
-                      className={`${styles.message} ${card.role === 'user' ? styles.messageUser : ''} ${card.role === 'system' ? styles.systemCard : ''}`}
+                      className={`${styles.message} ${card.role === 'system' ? styles.systemCard : styles.nfaMessage}`}
                     >
                       <div className={styles.messageHead}>
                         <div className={styles.messageLabel}>
@@ -454,6 +513,7 @@ export function TerminalHome() {
                 if (card.type === 'proposal') {
                   return (
                     <article key={card.id} className={styles.proposal}>
+                      <span className={styles.cardWatermark}>ACT</span>
                       <div className={styles.cardHead}>
                         <div className={styles.cardLabel}>
                           <Sparkles size={16} className={styles.warm} />
@@ -487,6 +547,7 @@ export function TerminalHome() {
                 if (card.type === 'world') {
                   return (
                     <article key={card.id} className={styles.worldCard}>
+                      <span className={styles.cardWatermark}>世</span>
                       <div className={styles.cardHead}>
                         <div className={styles.cardLabel}>
                           <Zap size={16} className={styles.cool} />
@@ -517,6 +578,7 @@ export function TerminalHome() {
 
                 return (
                   <article key={card.id} className={styles.receipt}>
+                    <span className={styles.cardWatermark}>ACT</span>
                     <div className={styles.cardHead}>
                       <div className={styles.cardLabel}>
                         <Bot size={16} className={styles.growth} />
@@ -545,7 +607,7 @@ export function TerminalHome() {
                 );
               })}
               {isSending ? (
-                <article className={`${styles.message} ${styles.typingMessage}`}>
+                <article className={`${styles.message} ${styles.typingMessage} ${styles.nfaMessage}`}>
                   <div className={styles.messageHead}>
                     <div className={styles.messageLabel}>
                       <MessageSquareText size={16} className={styles.warm} />
@@ -625,125 +687,189 @@ export function TerminalHome() {
           {drawerOpen ? <div className={styles.drawerOverlay} onClick={() => setDrawerOpen(false)} /> : null}
 
           <aside className={`${styles.drawer} ${drawerOpen ? styles.drawerOpen : ''}`}>
-            <div className={styles.drawerSection}>
-              <div className={styles.cardHead}>
-                <div className={styles.cardLabel}>
-                  <CircleDot size={16} className={toneClass(companion.statusTone)} />
-                  当前龙虾
+            <div className={styles.drawerBody}>
+              <section className={styles.drawerHero}>
+                <div className={styles.cardHead}>
+                  <div className={styles.cardLabel}>
+                    <CircleDot size={16} className={toneClass(companion.statusTone)} />
+                    当前 NFA
+                  </div>
+                  <button type="button" className={`${styles.drawerToggle} ${styles.hiddenDesktop}`} onClick={() => setDrawerOpen(false)}>
+                    <X size={16} />
+                    关闭
+                  </button>
                 </div>
-                <button type="button" className={`${styles.drawerToggle} ${styles.hiddenDesktop}`} onClick={() => setDrawerOpen(false)}>
-                  <X size={16} />
-                  关闭
-                </button>
-              </div>
-              <div className={styles.compactStatusGrid}>
-                <div className={styles.statusCard}>
-                  <span>状态</span>
-                  <strong className={toneClass(companion.statusTone)}>{companion.statusLabel}</strong>
+                <div className={styles.drawerHeroTop}>
+                  <div className={styles.drawerAvatar}>
+                    {avatarSrc ? <img className={styles.drawerAvatarImage} src={avatarSrc} alt={displayName} /> : <RailGlyph tokenId={companion.tokenId} />}
+                  </div>
+                  <div>
+                    <div className={`${styles.drawerLineOne} ${styles.mono}`}>#{companion.tokenNumber} · {terminalNfas.detail?.rarity ?? 'NFA'}</div>
+                    <div className={styles.drawerLineTwo}>{displayName}</div>
+                    <div className={`${styles.drawerLineThree} ${styles.mono}`}>
+                      Lv.{terminalNfas.detail?.level ?? companion.level} · {terminalNfas.detail?.shelter ?? companion.shelterName}
+                    </div>
+                  </div>
                 </div>
-                <div className={styles.statusCard}>
-                  <span>储备</span>
-                  <strong className={styles.warm}>{companion.routerClaworldText}</strong>
+                <div className={styles.quoteBlock}>{drawerMemoryText}</div>
+                <div className={styles.drawerButtonPair}>
+                  <button type="button" className={styles.drawerButton} onClick={() => openAction('auto')}>
+                    编辑指令
+                  </button>
+                  <button type="button" className={styles.drawerButton} onClick={() => openAction('memory')}>
+                    记忆图谱
+                  </button>
                 </div>
-                <div className={styles.statusCard}>
-                  <span>维护</span>
-                  <strong>{companion.dailyCostText}</strong>
+              </section>
+
+              <section className={styles.drawerSection}>
+                <div className={styles.drawerSectionHead}>
+                  <Zap size={12} />
+                  能量
                 </div>
-                <div className={styles.statusCard}>
-                  <span>续航</span>
-                  <strong className={toneClass(companion.statusTone)}>
+                <div className={styles.drawerRow}>
+                  <span className={styles.drawerKey}>心跳</span>
+                  <div className={styles.pulseBar}>
+                    <div className={styles.pulseFill} style={{ width: `${pulsePercent}%` }} />
+                  </div>
+                  <span className={`${styles.drawerValue} ${styles.warm}`}>{pulsePercent}%</span>
+                </div>
+                <div className={styles.drawerRow}>
+                  <span className={styles.drawerKey}>日维护</span>
+                  <span className={styles.drawerValue}>{companion.dailyCostText}</span>
+                </div>
+                <div className={styles.drawerRow}>
+                  <span className={styles.drawerKey}>续航</span>
+                  <span className={`${styles.drawerValue} ${toneClass(companion.statusTone)}`}>
                     {companion.upkeepDays === null ? 'n/a' : `${companion.upkeepDays} 天`}
-                  </strong>
+                  </span>
                 </div>
-              </div>
-            </div>
+              </section>
 
-            <details className={styles.drawerDetails}>
-              <summary>世界</summary>
-              <div className={styles.compactStatusGrid}>
-                <div className={styles.statusCard}>
-                  <span>大逃杀</span>
-                  <strong>{terminalWorld.summary?.battleRoyale?.matchId ? `#${terminalWorld.summary.battleRoyale.matchId}` : '--'}</strong>
+              <section className={styles.drawerSection}>
+                <div className={styles.drawerSectionHead}>
+                  <Shield size={12} />
+                  账本
                 </div>
-                <div className={styles.statusCard}>
-                  <span>人数</span>
-                  <strong>
-                    {terminalWorld.summary?.battleRoyale
-                      ? `${terminalWorld.summary.battleRoyale.players}/${terminalWorld.summary.battleRoyale.triggerCount || 10}`
-                      : '--'}
-                  </strong>
+                <div className={styles.drawerRow}>
+                  <span className={styles.drawerKey}>储备</span>
+                  <span className={`${styles.drawerValue} ${styles.warm}`}>{companion.routerClaworldText}</span>
                 </div>
-                <div className={styles.statusCard}>
-                  <span>状态</span>
-                  <strong className={terminalWorld.summary?.battleRoyale?.status === 'pending_reveal' ? styles.alert : styles.cool}>
-                    {terminalWorld.summary?.battleRoyale?.status === 'open'
-                      ? '开放'
-                      : terminalWorld.summary?.battleRoyale?.status === 'pending_reveal'
-                        ? '待揭示'
-                        : terminalWorld.summary?.battleRoyale?.status === 'settled'
-                          ? '已结算'
-                          : '--'}
-                  </strong>
+                <div className={styles.drawerRow}>
+                  <span className={styles.drawerKey}>胜败</span>
+                  <span className={styles.drawerValue}>
+                    {companion.pkWins}胜 / {companion.pkLosses}败
+                  </span>
                 </div>
-                <div className={styles.statusCard}>
-                  <span>奖池</span>
-                  <strong className={styles.warm}>
-                    {terminalWorld.summary?.battleRoyale ? formatCLW(BigInt(terminalWorld.summary.battleRoyale.potCLW)) : '--'}
-                  </strong>
+                <div className={styles.drawerRow}>
+                  <span className={styles.drawerKey}>胜率</span>
+                  <span className={`${styles.drawerValue} ${styles.growth}`}>{companion.pkWinRate}%</span>
                 </div>
-              </div>
-            </details>
+              </section>
 
-            <details className={styles.drawerDetails}>
-              <summary>记忆</summary>
-              <div className={styles.miniList}>
-                <div className={styles.miniItem}>
-                  <strong>{terminalMemory.summary ? '已加载' : '暂无摘要'}</strong>
-                  <p>{terminalMemory.summary?.identity ?? terminalNfas.detail?.memorySummary ?? terminalMemory.error ?? '可以先聊天，新的记忆会在后端写回链路接通后进入这里。'}</p>
+              <section className={styles.drawerSection}>
+                <div className={styles.drawerSectionHead}>
+                  <Bot size={12} />
+                  自治
                 </div>
-                {terminalMemory.timeline.slice(0, 2).map((snapshot) => (
-                  <div key={snapshot.snapshotId} className={styles.miniItem}>
-                    <strong>{new Date(snapshot.consolidatedAt).toLocaleDateString('zh-CN')}</strong>
-                    <p>{snapshot.diffSummary}</p>
+                <div className={styles.drawerRow}>
+                  <span className={styles.drawerKey}>状态</span>
+                  <span className={styles.drawerValue}>
+                    {terminalAutonomy.status?.enabled ? (terminalAutonomy.status.paused ? '暂停' : '运行') : '未开'}
+                  </span>
+                </div>
+                <div className={styles.drawerRow}>
+                  <span className={styles.drawerKey}>预算</span>
+                  <span className={styles.drawerValue}>
+                    {totalBudget > 0n ? `${formatCLW(usedBudget)} / ${formatCLW(totalBudget)}` : '未设置'}
+                  </span>
+                </div>
+                <div className={styles.budgetBar}>
+                  <div className={`${styles.budgetFill} ${budgetPercent > 80 ? styles.budgetFillWarn : ''}`} style={{ width: `${budgetPercent}%` }} />
+                </div>
+              </section>
+
+              <details className={styles.drawerDetails}>
+                <summary>世界</summary>
+                <div className={styles.compactStatusGrid}>
+                  <div className={styles.statusCard}>
+                    <span>大逃杀</span>
+                    <strong>{battleRoyaleSummary?.matchId ? `#${battleRoyaleSummary.matchId}` : '--'}</strong>
                   </div>
-                ))}
-              </div>
-            </details>
+                  <div className={styles.statusCard}>
+                    <span>人数</span>
+                    <strong>{battleRoyaleSummary ? `${battleRoyaleSummary.players}/${battleRoyaleSummary.triggerCount || 10}` : '--'}</strong>
+                  </div>
+                  <div className={styles.statusCard}>
+                    <span>状态</span>
+                    <strong className={battleRoyaleSummary?.status === 'pending_reveal' ? styles.alert : styles.cool}>
+                      {battleRoyaleSummary?.status === 'open'
+                        ? '开放'
+                        : battleRoyaleSummary?.status === 'pending_reveal'
+                          ? '待揭示'
+                          : battleRoyaleSummary?.status === 'settled'
+                            ? '已结算'
+                            : '--'}
+                    </strong>
+                  </div>
+                  <div className={styles.statusCard}>
+                    <span>奖池</span>
+                    <strong className={styles.warm}>{battleRoyaleSummary ? formatCLW(BigInt(battleRoyaleSummary.potCLW)) : '--'}</strong>
+                  </div>
+                </div>
+              </details>
 
-            <details className={styles.drawerDetails}>
-              <summary>代理结果</summary>
-              <div className={styles.compactStatusGrid}>
-                <div className={styles.statusCard}>
-                  <span>任务</span>
-                  <strong>{terminalAutonomy.status?.recentActions.filter((item) => item.skill === 'task').length ?? 0}</strong>
-                </div>
-                <div className={styles.statusCard}>
-                  <span>PK</span>
-                  <strong>{terminalAutonomy.status?.recentActions.filter((item) => item.skill === 'pk').length ?? 0}</strong>
-                </div>
-                <div className={styles.statusCard}>
-                  <span>大逃杀</span>
-                  <strong>{terminalAutonomy.status?.recentActions.filter((item) => item.skill === 'battle_royale').length ?? 0}</strong>
-                </div>
-                <div className={styles.statusCard}>
-                  <span>对话</span>
-                  <strong>{localChat.count}</strong>
-                </div>
-              </div>
-              <div className={styles.miniList}>
-                {recentSummary ? (
+              <details className={styles.drawerDetails}>
+                <summary>记忆</summary>
+                <div className={styles.miniList}>
                   <div className={styles.miniItem}>
-                    <strong>最近动作</strong>
-                    <p>{recentSummary.summary}</p>
+                    <strong>{terminalMemory.summary ? '已加载' : '暂无摘要'}</strong>
+                    <p>{terminalMemory.summary?.identity ?? terminalNfas.detail?.memorySummary ?? terminalMemory.error ?? '新的记忆会在链下正文存储和学习树写回打通后继续变厚。'}</p>
                   </div>
-                ) : (
-                  <div className={styles.emptyState}>暂无代理动作。</div>
-                )}
-                <button type="button" className={styles.statusLink} onClick={localChat.clearCards} disabled={localChat.count === 0}>
-                  清空本地对话
-                </button>
-              </div>
-            </details>
+                  {terminalMemory.timeline.slice(0, 2).map((snapshot) => (
+                    <div key={snapshot.snapshotId} className={styles.miniItem}>
+                      <strong>{new Date(snapshot.consolidatedAt).toLocaleDateString('zh-CN')}</strong>
+                      <p>{snapshot.diffSummary}</p>
+                    </div>
+                  ))}
+                </div>
+              </details>
+
+              <details className={styles.drawerDetails}>
+                <summary>最近结果</summary>
+                <div className={styles.compactStatusGrid}>
+                  <div className={styles.statusCard}>
+                    <span>任务</span>
+                    <strong>{terminalAutonomy.status?.recentActions.filter((item) => item.skill === 'task').length ?? 0}</strong>
+                  </div>
+                  <div className={styles.statusCard}>
+                    <span>PK</span>
+                    <strong>{terminalAutonomy.status?.recentActions.filter((item) => item.skill === 'pk').length ?? 0}</strong>
+                  </div>
+                  <div className={styles.statusCard}>
+                    <span>大逃杀</span>
+                    <strong>{terminalAutonomy.status?.recentActions.filter((item) => item.skill === 'battle_royale').length ?? 0}</strong>
+                  </div>
+                  <div className={styles.statusCard}>
+                    <span>对话</span>
+                    <strong>{localChat.count}</strong>
+                  </div>
+                </div>
+                <div className={styles.miniList}>
+                  {recentSummary ? (
+                    <div className={styles.miniItem}>
+                      <strong>最近动作</strong>
+                      <p>{recentSummary.summary}</p>
+                    </div>
+                  ) : (
+                    <div className={styles.emptyState}>暂无代理动作。</div>
+                  )}
+                  <button type="button" className={styles.statusLink} onClick={localChat.clearCards} disabled={localChat.count === 0}>
+                    清空本地对话
+                  </button>
+                </div>
+              </details>
+            </div>
           </aside>
         </div>
       </div>

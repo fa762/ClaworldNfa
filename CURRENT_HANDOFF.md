@@ -1,6 +1,116 @@
 # Current Handoff
 
-Last updated: 2026-04-20 (session 51) Asia/Singapore
+Last updated: 2026-04-20 (session 53) Asia/Singapore
+
+## Terminal action-panel migration pass - 2026-04-20 session 53
+
+This pass continues the production migration of the static `Terminal Home` prototype, but moves the same language into the live action layer.
+
+What changed:
+
+1. Terminal action panels now match the new shell better
+- file: `frontend/src/components/terminal/TerminalActionPanel.tsx`
+- mining, arena, autonomy, memory, and mint panels now all use:
+  - a tighter terminal header
+  - short hero copy
+  - compact status cards
+  - one short note block instead of paragraph-heavy instructions
+- the goal was to make each panel feel like "current state + next step", not a mini dashboard
+
+2. Every inline action panel can now be closed directly
+- files:
+  - `frontend/src/components/terminal/TerminalActionPanel.tsx`
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+- mining / arena / autonomy / memory / mint now all expose a direct `收起` action
+- this avoids trapping the user inside the current action card
+
+3. Arena and autonomy got clearer pre-operation surfaces
+- arena now starts with two mode cards:
+  - PK 对局
+  - 大逃杀
+- the heavy live panels still open in modal sheets only when needed
+- autonomy now starts with:
+  - mode selection
+  - current budget/runtime state
+  - current saved directive text if any
+- the full `AutonomyPanel` remains in the advanced modal so live contract setup is preserved
+
+4. Mining and memory got more explicit player-facing context
+- mining now shows:
+  - current NFA
+  - reserve
+  - reward / XP / cooldown / world multiplier / streak multiplier
+  - a short explanation of how the estimate is formed
+- memory now shows:
+  - target NFA
+  - what gets written on-chain
+  - what stays off-chain
+  - what kinds of memory are appropriate for this write path
+
+Validation:
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+
+Result:
+
+- both passed
+- current terminal shell + action layer compile together
+- live transaction-capable child panels (`PKArenaPanel`, `BattleRoyaleArenaPanel`, `AutonomyPanel`, `MintPanel`) remain intact
+
+## Terminal Home prototype migration pass - 2026-04-20 session 52
+
+User asked to migrate the new static `new/新前端，用Terminal Home/` prototype into the live terminal, but only where it stays production-safe.
+
+What changed:
+
+1. Production terminal now uses the new prototype's visual hierarchy
+- files:
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+- left rail now reads more like the prototype:
+  - vertical `CLAWORLD · NFA` mark
+  - stronger active indicator bar
+  - avatar/image-first token buttons
+  - mint action pinned to the rail footer
+- conversation header now follows the prototype structure:
+  - companion avatar
+  - name / rarity / shelter / level line
+  - pulse pill
+- right drawer now uses a proper hero + compact sections layout instead of stacked generic cards
+
+2. Message stream was reshaped without changing the data model
+- user messages are now simple right-side speech bubbles
+- low-priority system notices render as centered event lines
+- NFA/system/action/world/receipt cards keep the real existing card types and real data, but now inherit the prototype-style spacing and emphasis
+- action cards, world cards, and receipts keep their live chain/BFF payloads; only the presentation layer changed
+
+3. Real functionality was preserved on purpose
+- chat still goes through `/api/chat/[tokenId]/send`
+- action panels still use the live terminal action surfaces
+- chain hooks, autonomy state, memory state, and world state were not replaced with mock data
+- this was a visual/layout migration from the prototype, not a replacement with the prototype's static React demo
+
+4. New computed terminal view state added
+- active NFA accent color now drives the terminal chrome
+- drawer summary now uses real:
+  - pulse
+  - reserve
+  - PK record
+  - autonomy budget
+  - Battle Royale world snapshot
+  - memory identity summary
+
+Validation:
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+
+Result:
+
+- both passed
+- current migration is safe to continue from
+- the static `new/新前端，用Terminal Home/` folder remains a reference source, not a deployed runtime
 
 ## Identity-first chat and CML memory card - 2026-04-20 session 51
 

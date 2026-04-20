@@ -234,9 +234,11 @@ function buildDirectiveMessage(
 
 function TerminalMiningPanel({
   companion,
+  onClose,
   onReceipt,
 }: {
   companion: ActiveCompanionValue;
+  onClose: () => void;
   onReceipt: (card: TerminalCard) => void;
 }) {
   const { address } = useAccount();
@@ -377,12 +379,27 @@ function TerminalMiningPanel({
       <div className={styles.inlineHead}>
         <div>
           <span>任务挖矿</span>
-          <strong>选任务，确认后直接上链</strong>
+          <strong>先选任务，再确认上链</strong>
         </div>
-        <button type="button" className={styles.panelButton} onClick={() => setRoll((current) => current + 1)}>
-          <RefreshCw size={14} />
-          换一批
-        </button>
+        <div className={styles.inlineHeadActions}>
+          <button type="button" className={styles.panelButton} onClick={() => setRoll((current) => current + 1)}>
+            <RefreshCw size={14} />
+            换一批
+          </button>
+          <button type="button" className={styles.panelButton} onClick={onClose}>
+            <X size={14} />
+            收起
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.actionHero}>
+        <div>
+          <span>当前 NFA</span>
+          <strong>{companion.name}</strong>
+          <small className={styles.heroMetaLine}>储备 {companion.routerClaworldText}</small>
+        </div>
+        <p>默认给你三张任务卡。看奖励、属性和冷却，选一张确认就行，真正结果以上链回执为准。</p>
       </div>
 
       <div className={styles.taskDeck}>
@@ -419,8 +436,18 @@ function TerminalMiningPanel({
             <span>世界倍率</span>
             <strong>{(Number(preview.worldMul) / 10000).toFixed(2)}x</strong>
           </div>
+          <div>
+            <span>连胜倍率</span>
+            <strong>{(Number(preview.streakMul) / 10000).toFixed(2)}x</strong>
+          </div>
         </div>
       ) : null}
+
+      <div className={styles.inlineNote}>
+        {preview?.cooldownReady
+          ? '本次预估按当前属性匹配、世界倍率和连胜倍率计算。'
+          : `还在冷却，${formatRemaining(cooldownRemaining)} 后才能继续。`}
+      </div>
 
       <div className={styles.inlineActions}>
         <button
@@ -444,7 +471,7 @@ function TerminalMiningPanel({
   );
 }
 
-function TerminalArenaPanel({ companion }: { companion: ActiveCompanionValue }) {
+function TerminalArenaPanel({ companion, onClose }: { companion: ActiveCompanionValue; onClose: () => void }) {
   const [mode, setMode] = useState<'pk' | 'br'>('pk');
   const [expanded, setExpanded] = useState(false);
   const battleRoyale = useBattleRoyaleOverview();
@@ -462,36 +489,70 @@ function TerminalArenaPanel({ companion }: { companion: ActiveCompanionValue }) 
       <div className={styles.inlineHead}>
         <div>
           <span>竞技</span>
-          <strong>{mode === 'pk' ? 'PK：挑对手再出招' : '大逃杀：选房间躲淘汰'}</strong>
+          <strong>{mode === 'pk' ? 'PK：挑对手再出招' : '大逃杀：选房间再入场'}</strong>
         </div>
-        <div className={styles.segmented}>
-          <button
-            type="button"
-            className={mode === 'pk' ? styles.segmentActive : ''}
-            onClick={() => {
-              setMode('pk');
-              setExpanded(false);
-            }}
-          >
-            PK
-          </button>
-          <button
-            type="button"
-            className={mode === 'br' ? styles.segmentActive : ''}
-            onClick={() => {
-              setMode('br');
-              setExpanded(false);
-            }}
-          >
-            大逃杀
+        <div className={styles.inlineHeadActions}>
+          <div className={styles.segmented}>
+            <button
+              type="button"
+              className={mode === 'pk' ? styles.segmentActive : ''}
+              onClick={() => {
+                setMode('pk');
+                setExpanded(false);
+              }}
+            >
+              PK
+            </button>
+            <button
+              type="button"
+              className={mode === 'br' ? styles.segmentActive : ''}
+              onClick={() => {
+                setMode('br');
+                setExpanded(false);
+              }}
+            >
+              大逃杀
+            </button>
+          </div>
+          <button type="button" className={styles.panelButton} onClick={onClose}>
+            <X size={14} />
+            收起
           </button>
         </div>
+      </div>
+
+      <div className={styles.quickActionsGrid}>
+        <button
+          type="button"
+          className={`${styles.quickActionCard} ${mode === 'pk' ? styles.quickActionCardActive : ''}`}
+          onClick={() => {
+            setMode('pk');
+            setExpanded(false);
+          }}
+        >
+          <strong>PK 对局</strong>
+          <span>看擂台、挑对手、选策略，提交后直接进结算流程。</span>
+          <span className={styles.quickActionMeta}>当前 {companion.pkWins}胜 / {companion.pkLosses}败</span>
+        </button>
+        <button
+          type="button"
+          className={`${styles.quickActionCard} ${mode === 'br' ? styles.quickActionCardActive : ''}`}
+          onClick={() => {
+            setMode('br');
+            setExpanded(false);
+          }}
+        >
+          <strong>大逃杀</strong>
+          <span>选房、用 NFA 储备入场，满员后进入揭示和领奖。</span>
+          <span className={styles.quickActionMeta}>当前局 {battleRoyale.matchId ? `#${battleRoyale.matchId}` : '--'} · {brPlayers}</span>
+        </button>
       </div>
 
       <div className={styles.actionHero}>
         <div>
           <span>{mode === 'pk' ? '当前状态' : `当前局 #${battleRoyale.matchId?.toString() ?? '--'}`}</span>
           <strong>{mode === 'pk' ? `${companion.pkWins}胜 / ${companion.pkLosses}败` : matchStatusLabel(battleRoyale.status)}</strong>
+          <small className={styles.heroMetaLine}>{mode === 'pk' ? `等级 Lv.${companion.level}` : `奖池 ${brPot}`}</small>
         </div>
         <p>
           {mode === 'pk'
@@ -540,6 +601,12 @@ function TerminalArenaPanel({ companion }: { companion: ActiveCompanionValue }) 
             </div>
           </>
         )}
+      </div>
+
+      <div className={styles.inlineNote}>
+        {mode === 'pk'
+          ? '先打开对局列表，再决定应战还是开擂。提交后结果会回到当前终端。'
+          : '使用当前 NFA 储备入场。待揭示和可领奖状态都在房间操作里继续完成。'}
       </div>
 
       <div className={styles.inlineActions}>
@@ -723,7 +790,7 @@ function TerminalDirectiveEditor({
   );
 }
 
-function TerminalAutonomyPanel({ companion }: { companion: ActiveCompanionValue }) {
+function TerminalAutonomyPanel({ companion, onClose }: { companion: ActiveCompanionValue; onClose: () => void }) {
   const [modeKey, setModeKey] = useState<(typeof AUTONOMY_ACTION_MODES)[number]['key']>('task');
   const [expanded, setExpanded] = useState(false);
   const autonomy = useTerminalAutonomy(companion.hasToken ? companion.tokenId : undefined);
@@ -737,7 +804,24 @@ function TerminalAutonomyPanel({ companion }: { companion: ActiveCompanionValue 
           <span>代理</span>
           <strong>{autonomy.status?.enabled ? '代理已开启' : '设置自动代理'}</strong>
         </div>
-        <Shield size={18} />
+        <div className={styles.inlineHeadActions}>
+          <Shield size={18} />
+          <button type="button" className={styles.panelButton} onClick={onClose}>
+            <X size={14} />
+            收起
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.actionHero}>
+        <div>
+          <span>当前策略</span>
+          <strong>{mode.label}</strong>
+          <small className={styles.heroMetaLine}>
+            {autonomy.status?.enabled ? (autonomy.status.paused ? '当前暂停' : '当前运行中') : '还没开通'}
+          </small>
+        </div>
+        <p>只做三件事：选模式、写一句提示、开通预算和授权。细节放到高级区，不默认打扰你。</p>
       </div>
 
       <div className={styles.actionModes}>
@@ -772,6 +856,12 @@ function TerminalAutonomyPanel({ companion }: { companion: ActiveCompanionValue 
           <strong>{mode.label}</strong>
         </div>
       </div>
+
+      {autonomy.status?.directive?.text ? (
+        <div className={styles.inlineNote}>当前提示：{autonomy.status.directive.text}</div>
+      ) : (
+        <div className={styles.inlineNote}>还没有保存提示。可以先写一句你的偏好，再去开通预算和授权。</div>
+      )}
 
       <TerminalDirectiveEditor tokenId={companion.tokenId} ownerAddress={companion.ownerAddress} actionKind={mode.actionKind} />
 
@@ -825,10 +915,12 @@ function TerminalAutonomyPanel({ companion }: { companion: ActiveCompanionValue 
 function TerminalMemoryPanel({
   companion,
   memoryCandidate,
+  onClose,
   onReceipt,
 }: {
   companion: ActiveCompanionValue;
   memoryCandidate?: string;
+  onClose: () => void;
   onReceipt: (card: TerminalCard) => void;
 }) {
   const { data: hash, error, isPending, writeContractAsync } = useWriteContract();
@@ -884,7 +976,22 @@ function TerminalMemoryPanel({
           <span>长期记忆</span>
           <strong>确认一句话，写进学习树</strong>
         </div>
-        <Brain size={18} />
+        <div className={styles.inlineHeadActions}>
+          <Brain size={18} />
+          <button type="button" className={styles.panelButton} onClick={onClose}>
+            <X size={14} />
+            收起
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.actionHero}>
+        <div>
+          <span>写入对象</span>
+          <strong>#{companion.tokenNumber}</strong>
+          <small className={styles.heroMetaLine}>{companion.name}</small>
+        </div>
+        <p>这里写的是长期记忆锚点。原文不直接上链，只把学习树根写进去，用来证明这段记忆被确认过。</p>
       </div>
 
       <label className={styles.compactField}>
@@ -916,6 +1023,8 @@ function TerminalMemoryPanel({
           <strong>{memoryRoot ? `${memoryRoot.slice(0, 8)}...` : '--'}</strong>
         </div>
       </div>
+
+      <div className={styles.inlineNote}>适合记名字、说话风格、偏好和长期规则。不适合塞很长的聊天记录。</div>
 
       <div className={styles.inlineActions}>
         <button
@@ -950,18 +1059,22 @@ function TerminalMintPanel({ onClose }: { onClose: () => void }) {
           <span>铸造</span>
           <strong>生成新的龙虾伙伴</strong>
         </div>
-        <button type="button" className={styles.panelButton} onClick={onClose}>
-          <X size={14} />
-          收起
-        </button>
+        <div className={styles.inlineHeadActions}>
+          <button type="button" className={styles.panelButton} onClick={onClose}>
+            <X size={14} />
+            收起
+          </button>
+        </div>
       </div>
       <div className={styles.actionHero}>
         <div>
           <span>结果</span>
           <strong>获得新 NFA</strong>
+          <small className={styles.heroMetaLine}>付款后进入揭示</small>
         </div>
-        <p>支付后等待揭示，完成后会出现在左侧列表。</p>
+        <p>付款、等待揭示、接入终端。完成后会直接出现在左侧 NFA 列表里。</p>
       </div>
+      <div className={styles.inlineNote}>先看结果，再决定是否展开完整铸造流程。</div>
       <div className={styles.inlineActions}>
         <button type="button" className={styles.primaryPanelButton} onClick={() => setExpanded((current) => !current)}>
           <Trophy size={16} />
@@ -1007,21 +1120,21 @@ export function TerminalActionPanel({
   if (action === 'mining') {
     return (
       <div className={styles.actionPanelWrap}>
-        <TerminalMiningPanel companion={companion} onReceipt={onReceipt} />
+        <TerminalMiningPanel companion={companion} onClose={onClose} onReceipt={onReceipt} />
       </div>
     );
   }
   if (action === 'arena') {
     return (
       <div className={styles.actionPanelWrap}>
-        <TerminalArenaPanel companion={companion} />
+        <TerminalArenaPanel companion={companion} onClose={onClose} />
       </div>
     );
   }
   if (action === 'auto') {
     return (
       <div className={styles.actionPanelWrap}>
-        <TerminalAutonomyPanel companion={companion} />
+        <TerminalAutonomyPanel companion={companion} onClose={onClose} />
       </div>
     );
   }
@@ -1035,7 +1148,7 @@ export function TerminalActionPanel({
   if (action === 'memory') {
     return (
       <div className={styles.actionPanelWrap}>
-        <TerminalMemoryPanel companion={companion} memoryCandidate={memoryCandidate} onReceipt={onReceipt} />
+        <TerminalMemoryPanel companion={companion} memoryCandidate={memoryCandidate} onClose={onClose} onReceipt={onReceipt} />
       </div>
     );
   }

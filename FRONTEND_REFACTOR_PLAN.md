@@ -1,6 +1,124 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-20 (session 51) Asia/Singapore
+Last updated: 2026-04-20 (session 53) Asia/Singapore
+
+## Terminal action layer migration pass - 2026-04-20 session 53
+
+Accepted product rule:
+
+- the shell and the action layer must feel like one product
+- the user should first see:
+  - current state
+  - next step
+  - short rule / condition
+- heavy live transaction controls should stay behind focused modals
+- inline panels must always be easy to dismiss
+
+What is now implemented:
+
+1. Mining panel updated to the new terminal language
+- current NFA + reserve hero block
+- clearer reward / XP / cooldown / world multiplier / streak multiplier summary
+- short estimate explanation
+- direct close control
+
+2. Arena panel updated
+- PK and Battle Royale now start from two clear mode cards
+- summary stays short before the user opens the full live operation sheet
+- live `PKArenaPanel` and `BattleRoyaleArenaPanel` are still used in the modal layer
+- direct close control added
+
+3. Autonomy panel updated
+- mode and runtime state now show in a compact hero block
+- current directive text appears before the editor when available
+- default view is now:
+  - mode
+  - reserve
+  - remaining budget
+  - current state
+  - short prompt editor
+  - recent results
+- full `AutonomyPanel` remains available behind the advanced modal
+
+4. Memory and mint panels updated
+- memory explains the write path in player language and can be dismissed directly
+- mint now reads like a short onboarding result card before expanding to the full mint flow
+
+Validation:
+
+- TypeScript: passed
+- Production build: passed
+
+What still remains after this pass:
+
+1. Final deep terminalization of the child live panels
+- `PKArenaPanel`
+- `BattleRoyaleArenaPanel`
+- `AutonomyPanel`
+- `MintPanel`
+- these still work, but their internal layouts are not yet fully rebuilt into the new terminal visual grammar
+
+2. Final motion / reward-feedback pass
+- action results still need the stronger emotional feedback layer
+- that work should happen after the UX/design pass lands
+
+## Terminal Home production migration pass - 2026-04-20 session 52
+
+Accepted product rule:
+
+- the new `new/新前端，用Terminal Home/` prototype is now the visual reference for the terminal-first experience
+- migration must happen into the live Next terminal, not by swapping in the prototype's static React/CDN demo
+- real chat, action cards, chain hooks, and mobile behavior must keep working while the UI shifts
+
+What is now implemented:
+
+1. Prototype layout language moved into production terminal
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- `frontend/src/components/terminal/TerminalHome.module.css`
+- migrated pieces:
+  - ambient terminal background
+  - stronger NFA rail identity
+  - avatar-led conversation header
+  - pulse emphasis
+  - centered system-event lines
+  - cleaner user bubble vs NFA bubble separation
+  - compact right-side drawer hero and status sections
+
+2. Production-safe mapping instead of mock replacement
+- prototype-only fake send / fake task / fake arena logic was not imported
+- all message/card rendering still uses live terminal card types:
+  - `message`
+  - `proposal`
+  - `world`
+  - `receipt`
+- terminal action panels still open the live transaction-capable surfaces
+
+3. Better NFA identity anchoring
+- active token accent color now themes the terminal shell
+- current NFA image or avatar is used in:
+  - rail
+  - header
+  - drawer
+- memory summary and real world/autonomy values now sit in a tighter, more readable drawer structure
+
+Validation:
+
+- TypeScript: passed
+- Production build: passed
+
+What still remains after this migration:
+
+1. Port more of the prototype interaction grammar into the live action sheets
+- current `TerminalHome` shell is much closer to the target
+- `TerminalActionPanel` still needs another pass to feel fully native to the new terminal language
+
+2. Finish the final conversation-first lifecycle
+- natural-language intent -> action card already exists
+- action card -> transaction state -> receipt still needs more final UX polish and stronger feedback
+
+3. Keep mobile-first tightening
+- current shell compiles and stays functional
+- a later pass should trim remaining density on smaller phone widths after real-device review
 
 ## Identity Chat + Memory Action Pass - 2026-04-20 session 51
 
