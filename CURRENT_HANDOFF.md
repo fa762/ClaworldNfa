@@ -3561,3 +3561,50 @@ If you need a clean operational path again, create or reuse a clean worktree for
 - verification completed:
   - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
   - `npm run build`
+
+## 2026-04-20 Mobile NFA Drawer And Terminal Typography Review
+
+- user requested one more structural correction on the terminal shell:
+  - mobile should not pin the NFA list across the top
+  - the selected avatar on the left side of the header should reopen the NFA list as a slide-out panel
+- completed in:
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+- behavior changes:
+  - added a dedicated mobile `railOpen` state
+  - tapping the current avatar on mobile opens the NFA rail from the left
+  - opening the right status drawer now closes the left NFA rail, and vice versa
+  - tapping outside closes either overlay panel cleanly
+  - selecting another NFA or opening mint from the rail closes the rail immediately
+- UI review pass included:
+  - unified label/meta typography toward mono utility styling
+  - unified button/chip typography toward the heading font used across the terminal shell
+  - kept wallet/address display mono and truncated to avoid horizontal drift
+- verification completed:
+  - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+  - `npm run build`
+
+## 2026-04-20 Terminal Composer And Scroll Recovery
+
+- user reported a new set of terminal regressions after the shell refactor:
+  - wallet pill had no direct way to disconnect or switch wallets
+  - the conversation composer still carried redundant prompt copy above the input
+  - the send action should live inside the input shell, not as a detached side button
+  - mobile/input interactions could hide the composer behind the keyboard
+  - message flow on mobile had drifted into full-width slabs instead of bounded chat bubbles
+  - latest replies could appear clipped near the composer edge
+- completed in:
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+  - `frontend/src/app/api/_lib/direct-llm.ts`
+- changes:
+  - added wallet popover actions for `切换钱包` and `断开连接`
+  - removed the redundant two-line prompt block above the composer
+  - moved the send action into the input shell so the composer reads like a real chat box
+  - added a bottom anchor plus repeated auto-scroll pass so the newest reply lands fully above the composer
+  - made the composer sticky and keyboard-aware on mobile with `env(keyboard-inset-height, 0px)`
+  - restored bounded mobile bubble widths instead of forcing every card to 100% width
+  - increased direct-model response budget from `360` to `900` tokens to reduce needless short replies
+- verification completed:
+  - `npm run build`
+  - local request check against `http://127.0.0.1:3013/api/chat/12/send` returned a full SSE card payload without frontend-side truncation

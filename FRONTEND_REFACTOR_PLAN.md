@@ -3478,3 +3478,39 @@ For this rewrite, every meaningful decision or completed step should be written 
   - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
   - `npm run build`
 - remaining design work is now back in the visual/system layer, not this immediate layout fault
+
+## 2026-04-20 Mobile Rail Interaction Correction
+
+- corrected the mobile terminal interaction model so the NFA rail no longer occupies the top of the screen
+- new behavior:
+  - current avatar in the conversation header opens the NFA rail as a left-side slide-out drawer
+  - right-side status drawer and left-side NFA drawer now close each other instead of stacking
+  - overlay tap closes both states safely
+- added a small terminal UI consistency pass at the same time:
+  - action/chip/button typography now follows one family
+  - label/meta typography now follows one family
+  - wallet pill remains mono and truncates safely
+- updated files:
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+- verification completed:
+  - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+  - `npm run build`
+
+## 2026-04-20 Composer And Bubble Structure Recovery
+
+- corrected the terminal chat surface to move back toward a real messenger layout
+- completed:
+  - wallet pill now opens a small control surface with disconnect/reconnect actions
+  - composer prompt copy above the input removed
+  - send action moved inside the input shell
+  - latest-message scrolling reinforced with a bottom anchor and repeated scroll pass
+  - mobile bubble widths restored from full-width slabs to bounded chat cards
+  - direct fallback model output budget increased to reduce clipped short-form replies
+- updated files:
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+  - `frontend/src/app/api/_lib/direct-llm.ts`
+- verification completed:
+  - `npm run build`
+  - local `/api/chat/12/send` SSE check returned a complete card payload

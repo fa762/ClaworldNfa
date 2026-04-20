@@ -213,7 +213,7 @@ async function requestResponsesWithTools(input: DirectLlmInput, config: ReturnTy
       tools,
       tool_choice: 'auto',
       temperature: 0.8,
-      max_output_tokens: 360,
+      max_output_tokens: 900,
     }),
     cache: 'no-store',
   });
@@ -262,7 +262,7 @@ export async function requestDirectLlm(input: DirectLlmInput): Promise<TerminalC
     body: JSON.stringify({
       model,
       temperature: 0.8,
-      max_tokens: 360,
+      max_tokens: 900,
       messages: [
         { role: 'system', content: buildSystemPrompt(input.snapshot) },
         ...buildHistoryMessages(input.history),

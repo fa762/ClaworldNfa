@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -18,7 +18,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { useAccount } from 'wagmi';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
 
 import styles from './TerminalHome.module.css';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
@@ -169,6 +169,8 @@ function CompanionLoadingState() {
 
 export function TerminalHome() {
   const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
   const companion = useActiveCompanion();
   const terminalNfas = useTerminalNfas(companion.ownerAddress, companion.hasToken ? companion.tokenId : undefined);
   const terminalWorld = useTerminalWorld();
@@ -179,11 +181,14 @@ export function TerminalHome() {
   const localChat = useTerminalLocalChat(companion.hasToken ? companion.tokenId : undefined, companion.ownerAddress);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [railOpen, setRailOpen] = useState(false);
+  const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [activeAction, setActiveAction] = useState<TerminalActionIntent | null>(null);
   const [memoryCandidate, setMemoryCandidate] = useState('');
   const streamRef = useRef<HTMLDivElement | null>(null);
+  const streamEndRef = useRef<HTMLDivElement | null>(null);
 
   const baseCards = useMemo(
     () => buildBaseFeed(companion, terminalNfas.detail, terminalMemory),
@@ -195,11 +200,28 @@ export function TerminalHome() {
     [localChat.cards, seedCards, terminalEvents.cards],
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const node = streamRef.current;
-    if (!node) return;
-    node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' });
+    const end = streamEndRef.current;
+    if (!node || !end) return;
+
+    const scrollToBottom = () => {
+      end.scrollIntoView({ block: 'end', behavior: 'smooth' });
+      node.scrollTop = node.scrollHeight;
+    };
+
+    scrollToBottom();
+    const raf = window.requestAnimationFrame(scrollToBottom);
+    const timeout = window.setTimeout(scrollToBottom, 80);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.clearTimeout(timeout);
+    };
   }, [activeAction, cards.length, isSending]);
+
+  useEffect(() => {
+    setWalletMenuOpen(false);
+  }, [address]);
 
   if (!isConnected || !address) {
     return <ConnectWall />;
@@ -211,6 +233,24 @@ export function TerminalHome() {
 
   if (!companion.hasToken) {
     return <NoCompanionState />;
+  }
+
+  function requestWalletConnect() {
+    const inj = connectors.find((connector) => connector.type === 'injected');
+    const wc = connectors.find((connector) => connector.name === 'WalletConnect');
+    const connector =
+      inj && typeof window !== 'undefined' && (window as Window & { ethereum?: unknown }).ethereum
+        ? inj
+        : wc ?? connectors[0];
+    if (connector) connect({ connector });
+  }
+
+  function requestWalletReconnect() {
+    setWalletMenuOpen(false);
+    disconnect();
+    setTimeout(() => {
+      requestWalletConnect();
+    }, 100);
   }
 
   async function handleCommandSubmit(event: FormEvent<HTMLFormElement>) {
@@ -325,6 +365,8 @@ export function TerminalHome() {
     if (typeof action !== 'string' && action.memoryText) {
       setMemoryCandidate(action.memoryText);
     }
+    setRailOpen(false);
+    setDrawerOpen(false);
     setActiveAction(intent);
     if (options?.silent) return;
     const title =
@@ -399,9 +441,13 @@ export function TerminalHome() {
         <div className={styles.ambientOrbTwo} />
       </div>
       <div className={styles.shell}>
-        <aside className={styles.rail}>
+        <aside className={`${styles.rail} ${railOpen ? styles.railOpen : ''}`}>
           <div className={styles.railHead}>
             <div className={styles.railBrand}>CLAWORLD · NFA</div>
+            <button type="button" className={`${styles.drawerToggle} ${styles.mobileOnly}`} onClick={() => setRailOpen(false)}>
+              <X size={16} />
+              关闭
+            </button>
           </div>
           <div className={styles.railList}>
             {railItems.map((item) => {
@@ -411,7 +457,10 @@ export function TerminalHome() {
                   key={item.tokenId.toString()}
                   type="button"
                   className={`${styles.railItem} ${active ? styles.railItemActive : ''}`}
-                  onClick={() => companion.selectCompanion(item.tokenId)}
+                  onClick={() => {
+                    companion.selectCompanion(item.tokenId);
+                    setRailOpen(false);
+                  }}
                   aria-label={`切换到 ${item.label}`}
                   title={`${item.label} · pulse ${Math.round(item.pulse * 100)}%`}
                   style={{ ['--rail-accent' as any]: item.accentColor }}
@@ -426,7 +475,15 @@ export function TerminalHome() {
               );
             })}
           </div>
-          <button type="button" className={styles.mintButton} aria-label="打开铸造" onClick={() => openAction('mint')}>
+          <button
+            type="button"
+            className={styles.mintButton}
+            aria-label="打开铸造"
+            onClick={() => {
+              setRailOpen(false);
+              openAction('mint');
+            }}
+          >
             <Compass size={18} />
           </button>
           <div className={styles.railMeta}>
@@ -439,7 +496,18 @@ export function TerminalHome() {
           <section className={styles.conversation}>
             <header className={styles.conversationHead}>
               <div className={styles.headerIdentity}>
-                <div className={styles.heroAvatar}>
+                <button
+                  type="button"
+                  className={`${styles.heroAvatarButton} ${styles.mobileOnly}`}
+                  onClick={() => {
+                    setDrawerOpen(false);
+                    setRailOpen(true);
+                  }}
+                  aria-label="打开 NFA 列表"
+                >
+                  {avatarSrc ? <img src={avatarSrc} alt={displayName} /> : <RailGlyph tokenId={companion.tokenId} />}
+                </button>
+                <div className={`${styles.heroAvatar} ${styles.hiddenMobile}`}>
                   {avatarSrc ? <img src={avatarSrc} alt={displayName} /> : <RailGlyph tokenId={companion.tokenId} />}
                 </div>
                 <div className={styles.titleBlock}>
@@ -455,11 +523,37 @@ export function TerminalHome() {
                   <span className={styles.pulseDot} />
                   <span>PULSE {pulsePercent}%</span>
                 </div>
-                <div className={styles.walletPill}>
-                  <Shield size={14} />
-                  {truncateAddress(address)}
+                <div className={styles.walletMenuWrap}>
+                  <button type="button" className={styles.walletPill} onClick={() => setWalletMenuOpen((open) => !open)}>
+                    <Shield size={14} />
+                    {truncateAddress(address)}
+                  </button>
+                  {walletMenuOpen ? (
+                    <div className={styles.walletMenu}>
+                      <button type="button" className={styles.walletMenuButton} onClick={requestWalletReconnect}>
+                        切换钱包
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.walletMenuButton} ${styles.walletMenuButtonDanger}`}
+                        onClick={() => {
+                          setWalletMenuOpen(false);
+                          disconnect();
+                        }}
+                      >
+                        断开连接
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
-                <button type="button" className={`${styles.drawerToggle} ${styles.hiddenDesktop}`} onClick={() => setDrawerOpen(true)}>
+                <button
+                  type="button"
+                  className={`${styles.drawerToggle} ${styles.hiddenDesktop}`}
+                  onClick={() => {
+                    setRailOpen(false);
+                    setDrawerOpen(true);
+                  }}
+                >
                   <Menu size={16} />
                   状态
                 </button>
@@ -634,17 +728,10 @@ export function TerminalHome() {
                   onReceipt={(card) => localChat.appendCards([card])}
                 />
               ) : null}
+              <div ref={streamEndRef} />
             </div>
 
             <form className={styles.heroComposer} onSubmit={handleCommandSubmit}>
-              <div className={styles.dialogueFocus}>
-                <div className={styles.dialogueGlyph}>#{companion.tokenNumber}</div>
-                <div className={styles.dialogueCopy}>
-                  <span>和它说一句话</span>
-                  <strong>聊天，或直接说你想做什么。</strong>
-                </div>
-              </div>
-
               <div className={styles.suggestionChips}>
                 {quickPrompts.map(({ label, value, icon: Icon, tone }) => (
                   <button
@@ -665,7 +752,7 @@ export function TerminalHome() {
                 ))}
               </div>
 
-              <div className={styles.composerInputRow}>
+              <div className={styles.composerInputShell}>
                 <input
                   className={styles.composerInput}
                   value={draft}
@@ -673,7 +760,7 @@ export function TerminalHome() {
                   placeholder="例如：去挖矿 / 打一场 PK / 看大逃杀 / 开代理"
                   disabled={isSending}
                 />
-                <button type="submit" className={styles.commandButton} disabled={isSending}>
+                <button type="submit" className={styles.composerSendButton} disabled={isSending}>
                   <ArrowRight size={16} />
                   {isSending ? '整理中' : '发送'}
                 </button>
@@ -687,7 +774,15 @@ export function TerminalHome() {
             </form>
           </section>
 
-          {drawerOpen ? <div className={styles.drawerOverlay} onClick={() => setDrawerOpen(false)} /> : null}
+          {(drawerOpen || railOpen) ? (
+            <div
+              className={styles.drawerOverlay}
+              onClick={() => {
+                setDrawerOpen(false);
+                setRailOpen(false);
+              }}
+            />
+          ) : null}
 
           <aside className={`${styles.drawer} ${drawerOpen ? styles.drawerOpen : ''}`}>
             <div className={styles.drawerBody}>
