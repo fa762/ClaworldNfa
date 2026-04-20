@@ -294,6 +294,27 @@ export function TerminalHome() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      const handleParsedEvent = (item: { event: string; data: string }) => {
+        const payload = JSON.parse(item.data) as TerminalChatStreamEvent;
+        if (item.event === 'card' && payload.type === 'card') {
+          localChat.appendCards([payload.card]);
+          const action = resolveCardAction(payload.card);
+          if (action) openAction(action, { silent: true });
+        }
+        if (item.event === 'error' && payload.type === 'error') {
+          localChat.appendCards([
+            {
+              id: `terminal-error-${Date.now()}`,
+              type: 'message',
+              role: 'system',
+              label: '终端错误',
+              title: '这次整理动作失败了',
+              body: payload.message,
+              tone: 'alert',
+            },
+          ]);
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -303,25 +324,14 @@ export function TerminalHome() {
         buffer = parsed.remainder;
 
         for (const item of parsed.events) {
-          const payload = JSON.parse(item.data) as TerminalChatStreamEvent;
-          if (item.event === 'card' && payload.type === 'card') {
-            localChat.appendCards([payload.card]);
-            const action = resolveCardAction(payload.card);
-            if (action) openAction(action, { silent: true });
-          }
-          if (item.event === 'error' && payload.type === 'error') {
-            localChat.appendCards([
-              {
-                id: `terminal-error-${Date.now()}`,
-                type: 'message',
-                role: 'system',
-                label: '终端错误',
-                title: '这次整理动作失败了',
-                body: payload.message,
-                tone: 'alert',
-              },
-            ]);
-          }
+          handleParsedEvent(item);
+        }
+      }
+
+      if (buffer.trim()) {
+        const parsed = parseSseChunk(`${buffer}\n\n`);
+        for (const item of parsed.events) {
+          handleParsedEvent(item);
         }
       }
     } catch (error) {

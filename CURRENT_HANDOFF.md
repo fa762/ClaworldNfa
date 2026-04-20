@@ -3608,3 +3608,32 @@ If you need a clean operational path again, create or reuse a clean worktree for
 - verification completed:
   - `npm run build`
   - local request check against `http://127.0.0.1:3013/api/chat/12/send` returned a full SSE card payload without frontend-side truncation
+
+## 2026-04-20 Terminal Scroll Lock And Message Clipping Root Fix
+
+- user confirmed the previous pass still did not solve two visible faults:
+  - replies were still visually clipped inside message cards
+  - mobile drag gestures could move the whole page instead of only the conversation stream
+- root cause:
+  - the message stream is a column flex container, and cards were allowed to `flex-shrink`
+  - because message cards also use `overflow: hidden` for rounded card visuals, long replies were compressed and clipped
+  - the root terminal surface was still relatively positioned, so mobile browsers could still treat the document as scrollable
+- fixed in `frontend/src/components/terminal/TerminalHome.module.css`:
+  - `.root` is now fixed to the viewport with `position: fixed; inset: 0`
+  - `.root` now locks overscroll and width to the viewport
+  - `.stream > *` now has `flex-shrink: 0`
+  - message cards, user bubbles, and system events now explicitly use `flex: 0 0 auto`
+- verification completed:
+  - `npm run build`
+
+## 2026-04-20 Frontend Review Follow-up
+
+- reviewed the terminal frontend after the scroll/clipping fix
+- additional issues found and fixed:
+  - SSE parsing only handled complete `\n\n` blocks during streaming; a backend/proxy that ends without a final blank line could drop the final card
+  - the terminal shell had root-level locking, but the main/conversation/stream stack still needed stronger `height/max-height/min-height` guarantees so only the stream scrolls
+- completed:
+  - added final-buffer SSE parsing after stream completion
+  - strengthened `.shell`, `.main`, `.conversation`, `.conversationHead`, `.heroComposer`, and `.stream` sizing/flex behavior
+- verification completed:
+  - `npm run build`

@@ -3514,3 +3514,31 @@ For this rewrite, every meaningful decision or completed step should be written 
 - verification completed:
   - `npm run build`
   - local `/api/chat/12/send` SSE check returned a complete card payload
+
+## 2026-04-20 Scroll Lock And Clipping Fix
+
+- corrected the actual cause of clipped terminal replies:
+  - message cards inside the flex-column stream were shrinking vertically
+  - `overflow: hidden` then clipped the compressed card body
+- corrected the actual cause of mobile page drag:
+  - the terminal root was not fixed to the viewport
+- completed:
+  - terminal root fixed to viewport with overscroll locked
+  - stream children set to no-shrink
+  - message/user/system cards set to `flex: 0 0 auto`
+- updated file:
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+- verification completed:
+  - `npm run build`
+
+## 2026-04-20 Frontend Review Follow-up
+
+- reviewed the current terminal frontend patch before pushing
+- added two hardening fixes:
+  - flush incomplete final SSE buffers so a final card is not lost if the stream lacks a trailing blank line
+  - reinforce the terminal layout stack so the page itself stays locked and the stream remains the only scroll surface
+- updated files:
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+- verification completed:
+  - `npm run build`
