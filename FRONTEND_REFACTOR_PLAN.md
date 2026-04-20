@@ -1,6 +1,43 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-20 (session 49) Asia/Singapore
+Last updated: 2026-04-20 (session 50) Asia/Singapore
+
+## Direct Vercel Chat Native Responses Pass - 2026-04-20 session 50
+
+Accepted production reality:
+
+- current Vercel env uses `CLAWORLD_CHAT_MODEL_*`
+- `CLAWORLD_API_URL` is not required for the current deployed chat path
+- the Vultr machine is an autonomy runner, not a public HTTP chat backend
+- web/search support therefore needs to work inside the Next API route as well
+
+What is now implemented:
+
+1. Direct chat now prefers the model API's native Responses path
+- `frontend/src/app/api/_lib/direct-llm.ts`
+- normal chat and live/search chat try `/responses` first
+- if the Responses API fails, chat falls back to `/chat/completions`
+
+2. Native model web search is enabled as a tool
+- `frontend/src/app/api/_lib/direct-llm.ts`
+- when web tools are enabled, the route sends `tools: [{ type: "web_search" }]`
+- `tool_choice: "auto"` lets the model decide when search is needed
+- if no web result is available, the model must not invent live data
+
+3. Deployment behavior
+- `CLAWORLD_ENABLE_WEB_TOOLS=1` is supported
+- web tools and Responses API are on by default for the server route unless explicitly disabled with `0/false/no`
+- future dedicated backend API can still be attached through `CLAWORLD_API_URL`
+
+Validation:
+
+- TypeScript: passed
+- Production build: passed
+- SSH check: `139.180.215.3` has runner only, no HTTP API listener
+- direct model API test accepted `/responses` with `tools: [{ type: "web_search" }]`
+- direct test produced a `web_search_call` for `finance: BNB`
+- local `/api/chat/3/send` smoke returned `llm-responses-reply-*`
+- local smoke returned a live BNB quote with source
 
 ## Backend web-search enablement pass - 2026-04-20 session 49
 

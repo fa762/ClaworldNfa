@@ -1,6 +1,47 @@
 # Current Handoff
 
-Last updated: 2026-04-20 (session 49) Asia/Singapore
+Last updated: 2026-04-20 (session 50) Asia/Singapore
+
+## Direct chat native web-search fix - 2026-04-20 session 50
+
+User tested the Vercel deployment and confirmed the environment uses:
+- `CLAWORLD_CHAT_MODEL_BASE_URL`
+- `CLAWORLD_CHAT_MODEL_API_KEY`
+- `CLAWORLD_CHAT_MODEL_NAME`
+- `CLAWORLD_ENABLE_WEB_TOOLS`
+
+Important finding:
+- the Vultr host at `139.180.215.3` is currently the autonomy runner machine only
+- it runs `claw-autonomy-runner`
+- it does not expose an HTTP chat API port
+- therefore the live frontend path is currently `Vercel /api/chat/[tokenId]/send -> direct OpenAI-compatible model`, unless `CLAWORLD_API_URL` is added later
+
+Root cause fixed:
+- the direct model fallback still had a system rule saying it had no live web tool
+- `CLAWORLD_ENABLE_WEB_TOOLS` was only used for the external backend bridge, not the direct Vercel chat path
+- the configured `gpt-5.4` API supports native `/responses` web search, but the frontend was only calling `/chat/completions`
+
+What changed:
+1. Direct model now prefers the native Responses API
+- file: `frontend/src/app/api/_lib/direct-llm.ts`
+- normal chat and live/search chat now try `/responses` first
+- the `/responses` request includes `tools: [{ type: "web_search" }]` when web tools are enabled
+- the model can decide when to search instead of the frontend keyword-gating every query
+- if `/responses` fails or returns no answer, the route falls back to `/chat/completions`
+
+2. Web tools default on unless explicitly disabled
+- `CLAWORLD_ENABLE_WEB_TOOLS=0`
+- `CLAWORLD_CHAT_WEB_SEARCH=0`
+- `CLAWORLD_AI_WEB_TOOLS=0`
+- `CLAWORLD_USE_RESPONSES_API=0` can force the old chat-completions path if needed
+
+Validation:
+- TypeScript passed
+- production build passed
+- direct model API test against `/responses` accepted `tools: [{ type: "web_search" }]`
+- test response produced a `web_search_call` for `finance: BNB`
+- local `/api/chat/3/send` smoke returned `llm-responses-reply-*`
+- local smoke answer included a live BNB quote and source
 
 ## Backend web-search enablement checkpoint - 2026-04-20 session 49
 
