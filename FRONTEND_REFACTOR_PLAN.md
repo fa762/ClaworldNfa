@@ -1,6 +1,37 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-20 (session 48) Asia/Singapore
+Last updated: 2026-04-20 (session 49) Asia/Singapore
+
+## Backend web-search enablement pass - 2026-04-20 session 49
+
+Accepted product rule:
+
+- the project backend API is allowed to use web/search tools
+- the frontend should pass that permission clearly
+- the browser should still avoid direct unrestricted web tooling
+
+What is now implemented:
+
+1. Search permission defaults on for backend chat
+- if the frontend BFF is calling the project backend through `CLAWORLD_API_URL`, web search permission is sent as enabled
+- operators can disable it with `CLAWORLD_ENABLE_WEB_TOOLS=0`
+
+2. Compatibility fields added for the backend
+- `capabilities.webSearch`
+- `tools.webSearch`
+- `tools.web_search`
+- `tools.search`
+- `allowedTools`
+- `toolPermissions`
+
+3. Tool policy remains explicit
+- web search: backend-only
+- chain writes: intent/action-card only
+- memory writes: backend-validated
+
+Validation target:
+
+- the next Vercel deploy should let the backend receive search-enabled chat requests without needing another frontend change
 
 ## Terminal modal action and AI tool-permission pass - 2026-04-20 session 48
 

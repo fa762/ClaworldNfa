@@ -1,6 +1,36 @@
 # Current Handoff
 
-Last updated: 2026-04-20 (session 48) Asia/Singapore
+Last updated: 2026-04-20 (session 49) Asia/Singapore
+
+## Backend web-search enablement checkpoint - 2026-04-20 session 49
+
+User clarified that the project backend API already supports web search.
+
+What changed:
+
+1. Backend web search is now enabled by default for project-backend chat
+- when `CLAWORLD_API_URL` is configured, the BFF now sends `webSearch: true` by default
+- explicit opt-out is still supported with:
+  - `CLAWORLD_ENABLE_WEB_TOOLS=0`
+  - or `CLAWORLD_CHAT_WEB_SEARCH=0`
+  - or `CLAWORLD_AI_WEB_TOOLS=0`
+
+2. Request payload now supports multiple backend conventions
+- `capabilities.webSearch`
+- `tools.webSearch`
+- `tools.web_search`
+- `tools.search`
+- `allowedTools: ["web_search", ...]`
+- `toolPermissions.web_search = "allowed"`
+
+3. Safety boundary stays intact
+- the browser still does not perform direct unrestricted browsing
+- the project backend receives permission and performs search/tool work server-side
+- chain writes remain action-card driven so the user still signs transactions
+
+4. `.env.example` updated
+- `CLAWORLD_ENABLE_WEB_TOOLS=1`
+- comment now says backend search is enabled by default when the backend API is configured
 
 ## Terminal modal action and AI tool-permission checkpoint - 2026-04-20 session 48
 

@@ -64,9 +64,26 @@ function enabledFlag(...names: string[]) {
   });
 }
 
+function disabledFlag(...names: string[]) {
+  return names.some((name) => {
+    const value = process.env[name];
+    return value === '0' || value?.toLowerCase() === 'false' || value?.toLowerCase() === 'no';
+  });
+}
+
+function webSearchEnabled() {
+  if (disabledFlag('CLAWORLD_ENABLE_WEB_TOOLS', 'CLAWORLD_CHAT_WEB_SEARCH', 'CLAWORLD_AI_WEB_TOOLS')) {
+    return false;
+  }
+  if (enabledFlag('CLAWORLD_ENABLE_WEB_TOOLS', 'CLAWORLD_CHAT_WEB_SEARCH', 'CLAWORLD_AI_WEB_TOOLS')) {
+    return true;
+  }
+  return true;
+}
+
 function toolCapabilities(): BackendToolCapabilities {
   return {
-    webSearch: enabledFlag('CLAWORLD_ENABLE_WEB_TOOLS', 'CLAWORLD_CHAT_WEB_SEARCH', 'CLAWORLD_AI_WEB_TOOLS'),
+    webSearch: webSearchEnabled(),
     chainRead: true,
     chainActionCards: true,
     memoryRead: true,
@@ -127,6 +144,15 @@ function parseSseCards(raw: string): TerminalCard[] {
 export async function requestBackendChat(input: BackendChatRequest): Promise<TerminalCard[] | null> {
   const url = buildUrl(input.tokenId);
   if (!url) return null;
+  const capabilities = toolCapabilities();
+  const allowedTools = [
+    capabilities.webSearch ? 'web_search' : null,
+    'chain_read',
+    'action_cards',
+    'memory_read',
+    'memory_write_intent',
+    'autonomy_directives',
+  ].filter((item): item is string => Boolean(item));
 
   const headers: Record<string, string> = {
     'content-type': 'application/json',
@@ -157,7 +183,26 @@ export async function requestBackendChat(input: BackendChatRequest): Promise<Ter
         autonomy: input.snapshot.autonomy,
         world: input.snapshot.world,
       },
-      capabilities: toolCapabilities(),
+      capabilities,
+      tools: {
+        webSearch: capabilities.webSearch,
+        web_search: capabilities.webSearch,
+        search: capabilities.webSearch,
+        chainRead: capabilities.chainRead,
+        actionCards: capabilities.chainActionCards,
+        memoryRead: capabilities.memoryRead,
+        memoryWriteIntent: capabilities.memoryWriteIntent,
+        autonomyDirectives: capabilities.autonomyDirectives,
+      },
+      allowedTools,
+      toolPermissions: {
+        web_search: capabilities.webSearch ? 'allowed' : 'disabled',
+        chain_read: 'allowed',
+        action_cards: 'allowed',
+        memory_read: 'allowed',
+        memory_write_intent: 'allowed',
+        autonomy_directives: 'allowed',
+      },
       toolPolicy: {
         webSearch: 'backend_only',
         chainWrite: 'intent_card_only',
