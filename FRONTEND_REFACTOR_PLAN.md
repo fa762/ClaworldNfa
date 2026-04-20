@@ -3706,3 +3706,49 @@ For this rewrite, every meaningful decision or completed step should be written 
 - full backend CML plaintext persistence and SLEEP consolidation still remain backend/runtime work
 - BYOK currently assumes an OpenAI-compatible endpoint shape for direct fallback
 - PK / Battle Royale / mint still function through embedded legacy panels inside the terminal surface, so the last UX polish pass is still separate from this closure pass
+
+## 2026-04-20 Terminal settings and old-shell route cutoff
+
+### What closed in this pass
+
+- terminal wallet menu no longer drops the user into the old settings shell
+- terminal now has a native settings action panel with:
+  - back button
+  - project / BYOK switch
+  - BYOK provider / baseUrl / model / apiKey controls
+  - unlock / save / clear actions
+  - receipt cards for state changes
+- the mobile wallet dropdown is now visually stable:
+  - solid background
+  - clearer alignment
+  - better touch size and width
+
+### Old routes now cut back into terminal
+
+- `/play` -> `/?action=mining`
+- `/arena` -> `/?action=arena`
+- `/auto` -> `/?action=auto`
+- `/mint` -> `/?action=mint`
+- `/settings` -> `/?action=settings`
+
+### Files added
+
+- `frontend/src/components/terminal/TerminalSettingsPanel.tsx`
+
+### Files updated
+
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- `frontend/src/components/terminal/TerminalActionPanel.tsx`
+- `frontend/src/components/terminal/TerminalHome.module.css`
+- `frontend/src/lib/terminal-cards.ts`
+- `frontend/src/app/play/page.tsx`
+- `frontend/src/app/arena/page.tsx`
+- `frontend/src/app/auto/page.tsx`
+- `frontend/src/app/mint/page.tsx`
+- `frontend/src/app/settings/page.tsx`
+
+### Verification
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`

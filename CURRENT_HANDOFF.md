@@ -3807,3 +3807,41 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - full server-side plaintext CML storage and SLEEP consolidation still depend on the final backend memory service
   - terminal action cards still embed legacy PK/BR/mint panels internally; functionality is there, but the last visual/interaction polish pass is still open
   - mobile real-device QA on Vercel still needs a wallet/browser sweep after deploy
+
+## 2026-04-20 Terminal settings and old-shell cutoff pass
+
+- fixed the mobile wallet dropdown in the terminal shell
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+  - stronger solid background
+  - clearer alignment
+  - better mobile width and tap area
+- removed the wallet menu jump into the old `/settings` shell
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - `模型设置` now opens a terminal-native action panel instead
+- added a real terminal settings panel
+  - `frontend/src/components/terminal/TerminalSettingsPanel.tsx`
+  - contains:
+    - project / BYOK mode switch
+    - provider / baseUrl / model / apiKey form
+    - unlock / save / clear actions
+    - terminal receipt cards after save / unlock / clear
+- extended terminal action routing with `settings`
+  - `frontend/src/lib/terminal-cards.ts`
+  - `frontend/src/components/terminal/TerminalActionPanel.tsx`
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+- cut the main old shell routes back into the terminal:
+  - `/play` -> `/?action=mining`
+  - `/arena` -> `/?action=arena`
+  - `/auto` -> `/?action=auto`
+  - `/mint` -> `/?action=mint`
+  - `/settings` -> `/?action=settings`
+  - files updated:
+    - `frontend/src/app/play/page.tsx`
+    - `frontend/src/app/arena/page.tsx`
+    - `frontend/src/app/auto/page.tsx`
+    - `frontend/src/app/mint/page.tsx`
+    - `frontend/src/app/settings/page.tsx`
+- verification completed:
+  - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+  - `npm run build`
+  - `git diff --check`

@@ -1,5 +1,5 @@
 export type TerminalTone = 'warm' | 'cool' | 'growth' | 'alert';
-export type TerminalActionIntent = 'mining' | 'arena' | 'auto' | 'mint' | 'memory' | 'status';
+export type TerminalActionIntent = 'mining' | 'arena' | 'auto' | 'mint' | 'memory' | 'status' | 'settings';
 
 export type TerminalDetailRow = {
   label: string;
@@ -67,7 +67,7 @@ function isTone(value: unknown): value is TerminalTone {
 }
 
 function isIntent(value: unknown): value is TerminalActionIntent {
-  return value === 'mining' || value === 'arena' || value === 'auto' || value === 'mint' || value === 'memory' || value === 'status';
+  return value === 'mining' || value === 'arena' || value === 'auto' || value === 'mint' || value === 'memory' || value === 'status' || value === 'settings';
 }
 
 function coerceDetailRow(value: unknown): TerminalDetailRow | null {

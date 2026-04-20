@@ -13,6 +13,7 @@ import type { ActiveCompanionValue } from '@/components/lobster/useActiveCompani
 import { MintPanel } from '@/components/mint/MintPanel';
 import { AutonomyPanel } from '@/components/nfa/AutonomyPanel';
 import { TerminalMemoryPanel as TerminalMemoryPanelCard, type TerminalMemoryController } from '@/components/terminal/TerminalMemoryPanel';
+import { TerminalSettingsPanel } from '@/components/terminal/TerminalSettingsPanel';
 import { ClawNFAABI } from '@/contracts/abis/ClawNFA';
 import { TaskSkillABI } from '@/contracts/abis/TaskSkill';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
@@ -1199,6 +1200,13 @@ export function TerminalActionPanel({
     return (
       <div className={styles.actionPanelWrap}>
         <TerminalMemoryPanelCard companion={companion} memory={memory} memoryCandidate={memoryCandidate} onClose={onClose} onReceipt={onReceipt} />
+      </div>
+    );
+  }
+  if (action === 'settings') {
+    return (
+      <div className={styles.actionPanelWrap}>
+        <TerminalSettingsPanel onClose={onClose} onReceipt={onReceipt} />
       </div>
     );
   }

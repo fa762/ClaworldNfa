@@ -509,6 +509,7 @@
 
 .walletMenuWrap {
   position: relative;
+  flex: 0 0 auto;
 }
 
 .walletMenu {
@@ -516,26 +517,32 @@
   top: calc(100% + 10px);
   right: 0;
   z-index: 36;
-  min-width: 160px;
+  min-width: 184px;
   display: grid;
   gap: 6px;
   padding: 8px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(14, 12, 10, 0.96);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(245, 165, 36, 0.18);
+  background: #15100d;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.48);
 }
 
 .walletMenuButton {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
   min-height: 38px;
   padding: 0 12px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
   color: #fff4da;
   font-family: var(--font-heading);
   font-size: 0.88rem;
   text-align: left;
+  line-height: 1.2;
 }
 
 .walletMenuButtonDanger {
@@ -1667,6 +1674,22 @@
   box-shadow: 0 0 0 3px rgba(245, 165, 36, 0.12);
 }
 
+.compactInput {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(0, 0, 0, 0.24);
+  color: #fff4da;
+  padding: 0 12px;
+  outline: none;
+}
+
+.compactInput:focus {
+  border-color: rgba(245, 165, 36, 0.45);
+  box-shadow: 0 0 0 3px rgba(245, 165, 36, 0.12);
+}
+
 .actionHint {
   align-self: center;
   color: rgba(246, 231, 191, 0.48);
@@ -2018,6 +2041,20 @@
 
   .walletPill {
     max-width: 148px;
+  }
+
+  .walletMenu {
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 172px;
+    max-width: min(78vw, 220px);
+    padding: 8px;
+  }
+
+  .walletMenuButton {
+    min-height: 42px;
+    padding: 0 12px;
+    font-size: 0.9rem;
   }
 
   .hiddenMobile {

@@ -125,6 +125,7 @@ function normalizeRouteAction(value: string | null): TerminalActionIntent | null
   if (key === 'auto' || key === 'autonomy' || key === 'proxy') return 'auto';
   if (key === 'mint') return 'mint';
   if (key === 'memory' || key === 'cml') return 'memory';
+  if (key === 'settings' || key === 'model' || key === 'byok') return 'settings';
   if (key === 'status') return 'status';
   return null;
 }
@@ -434,6 +435,7 @@ export function TerminalHome() {
     if (action.href === '/arena') return 'arena';
     if (action.href === '/auto') return 'auto';
     if (action.href === '/mint') return 'mint';
+    if (action.href === '/settings') return 'settings';
     return null;
   }
 
@@ -461,10 +463,12 @@ export function TerminalHome() {
         ? '挖矿卡已打开'
         : intent === 'arena'
           ? '竞技卡已打开'
-          : intent === 'auto'
-            ? '代理卡已打开'
-            : intent === 'mint'
-              ? '铸造卡已打开'
+            : intent === 'auto'
+              ? '代理卡已打开'
+              : intent === 'mint'
+                ? '铸造卡已打开'
+                : intent === 'settings'
+                  ? '模型设置已打开'
               : '状态卡已打开';
     localChat.appendCards([
       {
@@ -621,9 +625,16 @@ export function TerminalHome() {
                   </button>
                   {walletMenuOpen ? (
                     <div className={styles.walletMenu}>
-                      <Link href="/settings" className={styles.walletMenuButton} onClick={() => setWalletMenuOpen(false)}>
+                      <button
+                        type="button"
+                        className={styles.walletMenuButton}
+                        onClick={() => {
+                          setWalletMenuOpen(false);
+                          openAction('settings');
+                        }}
+                      >
                         模型设置
-                      </Link>
+                      </button>
                       <button type="button" className={styles.walletMenuButton} onClick={requestWalletReconnect}>
                         切换钱包
                       </button>
