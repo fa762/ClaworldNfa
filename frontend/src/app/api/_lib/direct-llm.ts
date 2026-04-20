@@ -190,7 +190,7 @@ function polishReply(text: string, displayName: string) {
   next = next.replace(/作为AI|作为 AI|我是一个AI|我是一个 AI/g, '');
   next = next.replace(/我这边/g, '我');
   next = next.replace(/状态很稳|状态挺稳|挺稳的|很稳/g, '还在');
-  return next.trim();
+  return next.trim() || text.trim();
 }
 
 async function requestResponsesWithTools(input: DirectLlmInput, config: ReturnType<typeof modelConfig>) {

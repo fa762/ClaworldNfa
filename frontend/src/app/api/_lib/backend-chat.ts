@@ -93,20 +93,22 @@ function toolCapabilities(): BackendToolCapabilities {
 }
 
 function polishBackendText(text: string) {
-  return text
+  const polished = text
     .replace(/^\s*(?:SHELTER[-\w]*|NFA\s*#?\d+|#\d+|龙虾|伙伴|助手|AI)\s*[：:]\s*/i, '')
     .replace(/^\s*[\w\u4e00-\u9fa5]{1,16}\s*[：:]\s*/u, '')
     .replace(/作为(?:一个)?AI(?:助手|模型)?[，,]?\s*/g, '')
     .replace(/我这边/g, '我')
     .trim();
+  return polished || text.trim();
 }
 
 function normalizeBackendCard(card: TerminalCard): TerminalCard {
   if (card.type !== 'message') return card;
+  const sourceText = [card.body, card.title].filter((value) => typeof value === 'string' && value.trim().length > 0).join('\n').trim();
   return {
     ...card,
     title: '',
-    body: polishBackendText(card.body),
+    body: polishBackendText(sourceText),
   };
 }
 

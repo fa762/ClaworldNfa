@@ -60,7 +60,11 @@ export function inferTerminalIntent(input: string, slashCommand?: string): Comma
 
 export function buildSeedCards(snapshot: TerminalChatSnapshot): TerminalCard[] {
   const { detail, memorySummary } = snapshot;
-  const body = memorySummary?.identity || detail.greeting || detail.memorySummary;
+  const body =
+    memorySummary?.identity ||
+    detail.greeting ||
+    detail.memorySummary ||
+    `${detail.displayName} 在等你开口。你可以直接说去挖矿、看竞技、开代理，或者先聊两句。`;
 
   return [
     {

@@ -1,6 +1,47 @@
 # Current Handoff
 
-Last updated: 2026-04-20 (session 53) Asia/Singapore
+Last updated: 2026-04-20 (session 54) Asia/Singapore
+
+## Terminal blank-message regression fix - 2026-04-20 session 54
+
+Regression reported after the terminal prototype migration:
+
+- some left-side message cards rendered as empty bars
+- some right-side user messages still showed the old placeholder text `已发送给当前 NFA。`
+
+Root cause:
+
+1. old local terminal chat cache was still being read from browser storage
+- previous versions had stored placeholder user cards
+- after the UI migration, those stale records were still rendered
+
+2. backend message normalization was too aggressive
+- `backend-chat.ts` was clearing `title`
+- but it only kept `card.body`
+- if a backend message came with text in `title` and an empty `body`, the card became visually blank
+
+What changed:
+
+- `frontend/src/components/terminal/useTerminalLocalChat.ts`
+  - local terminal storage key is now versioned
+  - old cached cards are no longer reused
+  - blank cards and the stale placeholder text are filtered out
+- `frontend/src/app/api/_lib/backend-chat.ts`
+  - message normalization now uses `body || title`
+  - reply cleanup now falls back to the original text if the polish step strips too much
+- `frontend/src/app/api/_lib/direct-llm.ts`
+  - direct-model reply cleanup now also falls back to the original text instead of returning an empty body
+- `frontend/src/app/api/_lib/terminal-chat.ts`
+  - seed intro card now always has a real fallback sentence
+- `frontend/src/components/terminal/TerminalHome.tsx`
+  - terminal render path now skips empty message cards defensively
+
+Validation:
+
+- local `/api/chat/3/history` returned a non-empty intro body
+- local `/api/chat/3/send` returned a non-empty reply body
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
 
 ## Terminal action-panel migration pass - 2026-04-20 session 53
 

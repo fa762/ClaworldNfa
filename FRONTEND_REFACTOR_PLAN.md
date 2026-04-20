@@ -1,6 +1,34 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-20 (session 53) Asia/Singapore
+Last updated: 2026-04-20 (session 54) Asia/Singapore
+
+## Terminal blank-message regression fix - 2026-04-20 session 54
+
+Accepted rule after regression review:
+
+- terminal chat cannot trust old browser cache blindly
+- backend message cards must survive mixed `title/body` payload shapes
+- the UI should never render a message card with no visible text
+
+What is now implemented:
+
+1. Versioned local terminal chat storage
+- stale browser-side terminal cards from older builds are ignored
+- placeholder user bubbles from older builds are filtered out
+
+2. Safer backend/direct reply normalization
+- message text now comes from `body || title`
+- cleanup/polish functions fall back to the original reply if normalization would empty the text
+
+3. Defensive UI render guard
+- `TerminalHome` skips empty message cards even if malformed payloads slip through
+
+Validation:
+
+- local `/api/chat/[tokenId]/history`: non-empty intro body confirmed
+- local `/api/chat/[tokenId]/send`: non-empty reply body confirmed
+- TypeScript: passed
+- Production build: passed
 
 ## Terminal action layer migration pass - 2026-04-20 session 53
 

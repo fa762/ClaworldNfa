@@ -469,11 +469,14 @@ export function TerminalHome() {
             <div className={styles.stream} ref={streamRef}>
               {cards.map((card) => {
                 if (card.type === 'message') {
+                  const displayText = [card.title, card.body].filter((value) => value && value.trim().length > 0).join('\n').trim();
+                  if (!displayText) return null;
+
                   if (card.role === 'user') {
                     return (
                       <article key={card.id} className={styles.messageUser}>
                         <div className={styles.messageBody}>
-                          <p>{card.body || card.title}</p>
+                          <p>{displayText}</p>
                         </div>
                       </article>
                     );
@@ -485,7 +488,7 @@ export function TerminalHome() {
                         <span className={styles.systemEventSpark}>
                           <Sparkles size={10} />
                         </span>
-                        <span>{card.body}</span>
+                        <span>{displayText}</span>
                       </div>
                     );
                   }
@@ -504,7 +507,7 @@ export function TerminalHome() {
                       </div>
                       <div className={styles.messageBody}>
                         {card.title ? <p className={styles.messageBodyStrong}>{card.title}</p> : null}
-                        <p>{card.body}</p>
+                        {card.body ? <p>{card.body}</p> : null}
                       </div>
                     </article>
                   );
