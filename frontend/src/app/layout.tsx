@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { ActiveCompanionProvider } from "@/components/lobster/useActiveCompanion";
+import { ChatEngineProvider } from "@/lib/chat-engine";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
 import { I18nProvider } from "@/lib/i18n";
 
@@ -46,9 +47,11 @@ export default function RootLayout({
       <body>
         <WalletProvider>
           <I18nProvider>
-            <ActiveCompanionProvider>
-              <AppShell>{children}</AppShell>
-            </ActiveCompanionProvider>
+            <ChatEngineProvider>
+              <ActiveCompanionProvider>
+                <AppShell>{children}</AppShell>
+              </ActiveCompanionProvider>
+            </ChatEngineProvider>
           </I18nProvider>
         </WalletProvider>
       </body>

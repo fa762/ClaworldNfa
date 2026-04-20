@@ -1,5 +1,5 @@
 import type { TerminalChatSnapshot } from '@/app/api/_lib/terminal-chat';
-import type { TerminalCard } from '@/lib/terminal-cards';
+import { coerceTerminalCard, coerceTerminalCards, type TerminalCard } from '@/lib/terminal-cards';
 
 type BackendChatRequest = {
   tokenId: string;
@@ -116,8 +116,8 @@ function normalizeBackendCard(card: TerminalCard): TerminalCard {
 }
 
 function normalizeBackendCards(payload: BackendChatResponse, tokenId: string): TerminalCard[] {
-  const cards = payload.cards || payload.messages;
-  if (Array.isArray(cards)) {
+  const cards = coerceTerminalCards(payload.cards || payload.messages);
+  if (cards.length) {
     return cards.map(normalizeBackendCard);
   }
 
@@ -154,7 +154,8 @@ function parseSseCards(raw: string): TerminalCard[] {
       const payload = JSON.parse(dataLines.join('\n')) as unknown;
       const value = payload as { type?: string; card?: TerminalCard };
       if ((value.type === 'card' || value.card) && value.card) {
-        cards.push(normalizeBackendCard(value.card));
+        const normalized = coerceTerminalCard(value.card);
+        if (normalized) cards.push(normalizeBackendCard(normalized));
       }
     } catch {
       // Ignore malformed backend event blocks and keep parsing the rest.

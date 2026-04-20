@@ -5,7 +5,7 @@ import { getMemorySummaryRuntime, getMemoryTimelineRuntime } from '@/app/api/_li
 import { getNfaDetail } from '@/app/api/_lib/nfas';
 import { buildIntentCards, inferTerminalIntent, type CommandIntent } from '@/app/api/_lib/terminal-chat';
 import { getWorldSummary } from '@/app/api/_lib/world';
-import type { TerminalCard, TerminalChatStreamEvent } from '@/lib/terminal-cards';
+import { coerceTerminalCards, type TerminalCard, type TerminalChatStreamEvent } from '@/lib/terminal-cards';
 
 export const runtime = 'nodejs';
 
@@ -44,6 +44,10 @@ export async function POST(
         baseUrl?: string;
         model?: string;
       };
+      memoryOverride?: {
+        summary?: unknown;
+        timeline?: unknown;
+      };
     };
 
     const content = body.content?.trim() || '';
@@ -71,7 +75,14 @@ export async function POST(
       memoryTimeline,
     };
 
-    const history = Array.isArray(body.history) ? (body.history as any) : [];
+    if (body.memoryOverride?.summary && typeof body.memoryOverride.summary === 'object') {
+      snapshot.memorySummary = body.memoryOverride.summary as typeof snapshot.memorySummary;
+    }
+    if (Array.isArray(body.memoryOverride?.timeline)) {
+      snapshot.memoryTimeline = body.memoryOverride.timeline as typeof snapshot.memoryTimeline;
+    }
+
+    const history = coerceTerminalCards(body.history);
 
     const intent = inferTerminalIntent(content, slashCommand);
     const shouldOpenAction = isActionIntent(intent);
@@ -101,6 +112,7 @@ export async function POST(
         content,
         history,
         snapshot,
+        engine: body.engine,
       }).catch((error) => {
         console.warn('[terminal-chat] direct-llm fallback:', error);
         return null;

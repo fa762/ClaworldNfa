@@ -3743,3 +3743,67 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - PK/BR receipts are not yet normalized into first-class terminal receipt cards for every legacy sub-action
   - full CML plaintext persistence/SLEEP consolidation remains backend/runtime work
   - Genesis mint still embeds the existing `MintPanel`; the full ritual animation from the design spec is not implemented
+
+## 2026-04-20 BYOK + Memory Writeback Closure Pass
+
+- goal of this pass:
+  - stop leaving chat/settings/memory in placeholder state
+  - make the same terminal conversation support both project API and player BYOK
+  - let long-term identity memory affect chat immediately, even before the backend memory service is fully finished
+- completed:
+  - added a real browser-side chat engine layer in `frontend/src/lib/chat-engine.tsx`
+    - mode switch: `project` / `byok`
+    - BYOK is encrypted locally with a wallet-signature-derived AES-GCM key
+    - unlock is explicit; if BYOK is selected but locked, terminal chat now blocks and tells the user to unlock first
+  - `frontend/src/app/settings/page.tsx` is no longer a placeholder
+    - wallet-aware model settings page
+    - provider/baseUrl/model/apiKey form
+    - save / unlock / clear flow
+  - `TerminalHome` now sends:
+    - optional per-request `engine`
+    - merged memory override from the current terminal memory state
+  - `/api/chat/[tokenId]/send` now:
+    - sanitizes incoming chat history with runtime card coercion
+    - accepts `memoryOverride`
+    - passes per-request engine into direct LLM fallback too
+  - added terminal card runtime coercion in `frontend/src/lib/terminal-cards.ts`
+    - backend JSON/SSE cards are normalized before rendering
+    - malformed card payloads are dropped instead of breaking the stream
+  - added `frontend/src/lib/terminal-memory-local.ts`
+    - browser-local memory entries per owner/token
+    - merged summary/timeline view so local identity writes show up immediately
+  - upgraded `useTerminalMemory`
+    - now merges backend summary/timeline with browser-local memory
+    - exposes `refresh`, `appendLocalEntry`, and `patchLocalEntry`
+  - added `/api/memory/[tokenId]/write`
+    - forwards plaintext memory writes to the configured backend when available
+    - optional local filesystem fallback only when `CLAWORLD_ENABLE_LOCAL_CML_FALLBACK=1`
+    - returns a normalized writeback result
+  - added `frontend/src/components/terminal/TerminalMemoryPanel.tsx`
+    - memory text is saved into browser-local memory first
+    - then optional backend/plaintext write path is attempted
+    - then `updateLearningTreeByOwner` writes the memory root on-chain
+    - success receipt now says where the plaintext actually lives: backend / local file / current browser
+- updated files:
+  - `.env.example`
+  - `frontend/src/app/layout.tsx`
+  - `frontend/src/app/settings/page.tsx`
+  - `frontend/src/app/api/_lib/backend-chat.ts`
+  - `frontend/src/app/api/_lib/direct-llm.ts`
+  - `frontend/src/app/api/_lib/memory.ts`
+  - `frontend/src/app/api/chat/[tokenId]/send/route.ts`
+  - `frontend/src/app/api/memory/[tokenId]/write/route.ts`
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - `frontend/src/components/terminal/TerminalActionPanel.tsx`
+  - `frontend/src/components/terminal/TerminalMemoryPanel.tsx`
+  - `frontend/src/components/terminal/useTerminalMemory.ts`
+  - `frontend/src/lib/chat-engine.tsx`
+  - `frontend/src/lib/terminal-cards.ts`
+  - `frontend/src/lib/terminal-memory-local.ts`
+- verification completed:
+  - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+  - `npm run build`
+- remaining real gaps after this pass:
+  - full server-side plaintext CML storage and SLEEP consolidation still depend on the final backend memory service
+  - terminal action cards still embed legacy PK/BR/mint panels internally; functionality is there, but the last visual/interaction polish pass is still open
+  - mobile real-device QA on Vercel still needs a wallet/browser sweep after deploy

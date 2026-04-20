@@ -3645,3 +3645,64 @@ For this rewrite, every meaningful decision or completed step should be written 
 - visual/product polish:
   - Claude Design handoff remains a design-only package and is not part of production code
   - final art, motion, and mobile detail pass should happen after the above action/result wiring is stable
+
+## 2026-04-20 BYOK And Memory Writeback Pass
+
+### What closed in this pass
+
+- the terminal now supports one conversation surface with two engine modes:
+  - project API
+  - player BYOK
+- BYOK is no longer a placeholder concept
+  - the settings page is now a real control surface
+  - BYOK config is encrypted in-browser with a wallet-signature-derived key
+  - the user can save, unlock, switch back to project mode, or clear BYOK
+- terminal chat request pipeline now accepts both:
+  - `engine`
+  - `memoryOverride`
+- direct LLM fallback now honors the per-request engine too, so BYOK does not disappear when the backend chat bridge is unavailable
+
+### Memory behavior now
+
+- long-term memory writes are no longer only a raw hash prompt
+- terminal memory flow now does three things in order:
+  1. save plaintext memory into browser-local memory immediately
+  2. attempt backend/plaintext write through `/api/memory/[tokenId]/write`
+  3. write the memory root on-chain through `updateLearningTreeByOwner`
+- terminal memory summary/timeline now merges:
+  - backend summary/timeline
+  - browser-local pending memory entries
+- this means identity changes can affect the next reply immediately, even if the backend memory service is still incomplete
+
+### Protocol hardening now
+
+- terminal cards now have runtime coercion/validation
+- backend JSON and SSE payloads are normalized before render
+- malformed cards are dropped instead of poisoning the stream or the local chat cache
+
+### New files
+
+- `frontend/src/lib/chat-engine.tsx`
+- `frontend/src/lib/terminal-memory-local.ts`
+- `frontend/src/components/terminal/TerminalMemoryPanel.tsx`
+- `frontend/src/app/api/memory/[tokenId]/write/route.ts`
+
+### Updated files
+
+- `frontend/src/app/layout.tsx`
+- `frontend/src/app/settings/page.tsx`
+- `frontend/src/app/api/_lib/backend-chat.ts`
+- `frontend/src/app/api/_lib/direct-llm.ts`
+- `frontend/src/app/api/_lib/memory.ts`
+- `frontend/src/app/api/chat/[tokenId]/send/route.ts`
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- `frontend/src/components/terminal/TerminalActionPanel.tsx`
+- `frontend/src/components/terminal/useTerminalMemory.ts`
+- `frontend/src/lib/terminal-cards.ts`
+- `.env.example`
+
+### Remaining gaps after this pass
+
+- full backend CML plaintext persistence and SLEEP consolidation still remain backend/runtime work
+- BYOK currently assumes an OpenAI-compatible endpoint shape for direct fallback
+- PK / Battle Royale / mint still function through embedded legacy panels inside the terminal surface, so the last UX polish pass is still separate from this closure pass

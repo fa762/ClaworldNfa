@@ -12,6 +12,7 @@ import { useBattleRoyaleParticipantState } from '@/components/lobster/useBattleR
 import type { ActiveCompanionValue } from '@/components/lobster/useActiveCompanion';
 import { MintPanel } from '@/components/mint/MintPanel';
 import { AutonomyPanel } from '@/components/nfa/AutonomyPanel';
+import { TerminalMemoryPanel as TerminalMemoryPanelCard, type TerminalMemoryController } from '@/components/terminal/TerminalMemoryPanel';
 import { ClawNFAABI } from '@/contracts/abis/ClawNFA';
 import { TaskSkillABI } from '@/contracts/abis/TaskSkill';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
@@ -1154,12 +1155,14 @@ function TerminalMintPanel({
 export function TerminalActionPanel({
   action,
   companion,
+  memory,
   memoryCandidate,
   onClose,
   onReceipt,
 }: {
   action: TerminalActionIntent;
   companion: ActiveCompanionValue;
+  memory: TerminalMemoryController;
   memoryCandidate?: string;
   onClose: () => void;
   onReceipt: (card: TerminalCard) => void;
@@ -1195,7 +1198,7 @@ export function TerminalActionPanel({
   if (action === 'memory') {
     return (
       <div className={styles.actionPanelWrap}>
-        <TerminalMemoryPanel companion={companion} memoryCandidate={memoryCandidate} onClose={onClose} onReceipt={onReceipt} />
+        <TerminalMemoryPanelCard companion={companion} memory={memory} memoryCandidate={memoryCandidate} onClose={onClose} onReceipt={onReceipt} />
       </div>
     );
   }

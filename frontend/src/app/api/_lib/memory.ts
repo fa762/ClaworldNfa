@@ -50,6 +50,15 @@ export type MemorySnapshotPayload = {
   hippocampusMerged: number;
 };
 
+export type MemoryWriteResult = {
+  acceptedAt: string;
+  contentHash: string;
+  persisted: boolean;
+  storage: 'backend' | 'local' | 'none';
+  summary: MemorySummaryPayload | null;
+  snapshot: MemorySnapshotPayload | null;
+};
+
 const CML_ROOT =
   process.env.CLAWORLD_CML_DIR ||
   process.env.CLAWORLD_LOCAL_CML_DIR ||
@@ -100,12 +109,52 @@ async function readRemoteJson<T>(pathTemplate: string | undefined, fallback: str
   }
 }
 
+async function postRemoteJson<T>(
+  pathTemplate: string | undefined,
+  fallback: string,
+  tokenId: number,
+  body: Record<string, unknown>,
+): Promise<T | null> {
+  const baseUrl = remoteBaseUrl();
+  if (!baseUrl) return null;
+
+  const pathValue = remotePath(pathTemplate, fallback, tokenId);
+  const url = `${baseUrl}${pathValue.startsWith('/') ? pathValue : `/${pathValue}`}`;
+  const headers: Record<string, string> = {
+    accept: 'application/json',
+    'content-type': 'application/json; charset=utf-8',
+  };
+  const token =
+    process.env.CLAWORLD_API_TOKEN ||
+    process.env.CLAWORLD_BACKEND_API_TOKEN ||
+    process.env.CLAWORLD_AI_BACKEND_TOKEN ||
+    '';
+  if (token) headers.authorization = `Bearer ${token}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
 function currentCmlPath(tokenId: number) {
   return path.join(CML_ROOT, `nfa-${tokenId}.cml`);
 }
 
 function archiveDir(tokenId: number) {
   return path.join(CML_ROOT, 'archive', `nfa-${tokenId}`);
+}
+
+function memoryInboxPath(tokenId: number) {
+  return path.join(CML_ROOT, 'pending-memory', `nfa-${tokenId}.json`);
 }
 
 function normalizeText(value: string) {
@@ -280,4 +329,106 @@ export async function getMemoryTimelineRuntime(tokenId: number, limit: number): 
   } catch {
     return [];
   }
+}
+
+function normalizeRemoteWriteResult(raw: unknown, contentHash: string): MemoryWriteResult | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const payload = raw as {
+    acceptedAt?: string;
+    contentHash?: string;
+    persisted?: boolean;
+    storage?: string;
+    summary?: MemorySummaryPayload | null;
+    snapshot?: MemorySnapshotPayload | null;
+  };
+  return {
+    acceptedAt: payload.acceptedAt || new Date().toISOString(),
+    contentHash: payload.contentHash || contentHash,
+    persisted: Boolean(payload.persisted),
+    storage: payload.storage === 'backend' ? 'backend' : payload.storage === 'local' ? 'local' : 'backend',
+    summary: payload.summary ?? null,
+    snapshot: payload.snapshot ?? null,
+  };
+}
+
+function writeLocalMemoryFallback(tokenId: number, content: string, contentHash: string, memoryRoot?: string | null): MemoryWriteResult {
+  const acceptedAt = new Date().toISOString();
+  const targetPath = memoryInboxPath(tokenId);
+  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+
+  const existing = readJsonFile<{ entries?: Array<Record<string, unknown>> }>(targetPath) || { entries: [] };
+  const nextEntry = {
+    id: `pending-${Date.now().toString(36)}`,
+    content,
+    contentHash,
+    memoryRoot: memoryRoot || null,
+    acceptedAt,
+  };
+  const entries = Array.isArray(existing.entries) ? [...existing.entries, nextEntry].slice(-50) : [nextEntry];
+  fs.writeFileSync(targetPath, JSON.stringify({ version: 1, entries }, null, 2));
+
+  return {
+    acceptedAt,
+    contentHash,
+    persisted: true,
+    storage: 'local',
+    summary: {
+      latestSnapshotHash: memoryRoot || contentHash,
+      latestAnchorTxHash: null,
+      pulse: 0,
+      hippocampusSize: 0,
+      identity: content,
+      prefrontalBeliefs: [],
+      basalHabits: [],
+    },
+    snapshot: {
+      snapshotId: nextEntry.id,
+      hash: memoryRoot || contentHash,
+      consolidatedAt: acceptedAt,
+      anchorTxHash: null,
+      greenfieldUri: null,
+      diffSummary: `本地正文：${normalizeText(content).slice(0, 120)}`,
+      hippocampusMerged: 0,
+    },
+  };
+}
+
+export async function writeMemoryRuntime(input: {
+  tokenId: number;
+  content: string;
+  owner?: string | null;
+  memoryRoot?: string | null;
+}): Promise<MemoryWriteResult> {
+  const acceptedAt = new Date().toISOString();
+  const content = normalizeText(input.content).slice(0, 500);
+  const contentHash = sha256(content);
+
+  const remote = await postRemoteJson(
+    process.env.CLAWORLD_MEMORY_WRITE_PATH,
+    '/memory/{tokenId}/write',
+    input.tokenId,
+    {
+      tokenId: input.tokenId,
+      owner: input.owner || null,
+      content,
+      contentHash,
+      memoryRoot: input.memoryRoot || null,
+      acceptedAt,
+    },
+  );
+  const normalizedRemote = normalizeRemoteWriteResult(remote, contentHash);
+  if (normalizedRemote) return normalizedRemote;
+
+  if (localCmlFallbackEnabled()) {
+    return writeLocalMemoryFallback(input.tokenId, content, contentHash, input.memoryRoot);
+  }
+
+  return {
+    acceptedAt,
+    contentHash,
+    persisted: false,
+    storage: 'none',
+    summary: null,
+    snapshot: null,
+  };
 }

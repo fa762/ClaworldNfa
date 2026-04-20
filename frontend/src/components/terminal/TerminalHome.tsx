@@ -22,6 +22,7 @@ import { useAccount, useConnect, useDisconnect } from 'wagmi';
 
 import styles from './TerminalHome.module.css';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
+import { useChatEngine } from '@/lib/chat-engine';
 import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
 import { MintPanel } from '@/components/mint/MintPanel';
 import { formatCLW, truncateAddress } from '@/lib/format';
@@ -186,11 +187,12 @@ export function TerminalHome() {
   const companion = useActiveCompanion();
   const terminalNfas = useTerminalNfas(companion.ownerAddress, companion.hasToken ? companion.tokenId : undefined);
   const terminalWorld = useTerminalWorld();
-  const terminalMemory = useTerminalMemory(companion.hasToken ? companion.tokenId : undefined);
+  const terminalMemory = useTerminalMemory(companion.hasToken ? companion.tokenId : undefined, companion.ownerAddress);
   const terminalAutonomy = useTerminalAutonomy(companion.hasToken ? companion.tokenId : undefined);
   const terminalHistory = useTerminalChatHistory(companion.hasToken ? companion.tokenId : undefined, companion.ownerAddress);
   const terminalEvents = useTerminalEvents(companion.hasToken ? companion.tokenId : undefined, companion.ownerAddress);
   const localChat = useTerminalLocalChat(companion.hasToken ? companion.tokenId : undefined, companion.ownerAddress);
+  const chatEngine = useChatEngine();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [railOpen, setRailOpen] = useState(false);
@@ -326,6 +328,22 @@ export function TerminalHome() {
     ]);
     setDraft('');
 
+    if (chatEngine.preferredMode === 'byok' && !chatEngine.engine) {
+      localChat.appendCards([
+        {
+          id: `engine-locked-${Date.now()}`,
+          type: 'message',
+          role: 'system',
+          label: '模型设置',
+          title: '',
+          body: '你选的是 BYOK，但当前还没解锁。先去设置页解锁你的模型 Key。',
+          tone: 'alert',
+          meta: '刚刚',
+        },
+      ]);
+      return;
+    }
+
     setIsSending(true);
 
     try {
@@ -338,6 +356,11 @@ export function TerminalHome() {
           content,
           owner: companion.ownerAddress,
           history: cards.slice(-12),
+          engine: chatEngine.engine ?? undefined,
+          memoryOverride: {
+            summary: terminalMemory.summary,
+            timeline: terminalMemory.timeline.slice(0, 6),
+          },
         }),
       });
 
@@ -587,6 +610,10 @@ export function TerminalHome() {
                   <span className={styles.pulseDot} />
                   <span>PULSE {pulsePercent}%</span>
                 </div>
+                <div className={styles.pulsePill}>
+                  <span className={styles.pulseDot} />
+                  <span>{chatEngine.activeMode === 'byok' ? 'BYOK' : 'PROJECT'}</span>
+                </div>
                 <div className={styles.walletMenuWrap}>
                   <button type="button" className={styles.walletPill} onClick={() => setWalletMenuOpen((open) => !open)}>
                     <Shield size={14} />
@@ -594,6 +621,9 @@ export function TerminalHome() {
                   </button>
                   {walletMenuOpen ? (
                     <div className={styles.walletMenu}>
+                      <Link href="/settings" className={styles.walletMenuButton} onClick={() => setWalletMenuOpen(false)}>
+                        模型设置
+                      </Link>
                       <button type="button" className={styles.walletMenuButton} onClick={requestWalletReconnect}>
                         切换钱包
                       </button>
@@ -787,6 +817,7 @@ export function TerminalHome() {
                 <TerminalActionPanel
                   action={activeAction}
                   companion={companion}
+                  memory={terminalMemory}
                   memoryCandidate={memoryCandidate}
                   onClose={() => setActiveAction(null)}
                   onReceipt={(card) => localChat.appendCards([card])}

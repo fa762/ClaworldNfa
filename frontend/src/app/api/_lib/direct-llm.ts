@@ -7,9 +7,26 @@ type DirectLlmInput = {
   content: string;
   history?: TerminalCard[];
   snapshot: TerminalChatSnapshot;
+  engine?: {
+    provider?: string;
+    apiKey?: string;
+    baseUrl?: string;
+    model?: string;
+  };
 };
 
-function modelConfig() {
+function modelConfig(engine?: DirectLlmInput['engine']) {
+  const directBaseUrl = engine?.baseUrl?.trim().replace(/\/+$/, '') || '';
+  const directApiKey = engine?.apiKey?.trim() || '';
+  const directModel = engine?.model?.trim() || '';
+  if (directBaseUrl && directApiKey) {
+    return {
+      baseUrl: directBaseUrl,
+      apiKey: directApiKey,
+      model: directModel || 'gpt-4o-mini',
+    };
+  }
+
   const baseUrl = (
     process.env.CLAWORLD_CHAT_MODEL_BASE_URL ||
     process.env.AUTONOMY_MODEL_BASE_URL ||
@@ -255,7 +272,7 @@ function nfaReplyCard(input: DirectLlmInput, prefix: string, text: string): Term
 }
 
 export async function requestDirectLlm(input: DirectLlmInput): Promise<TerminalCard[] | null> {
-  const config = modelConfig();
+  const config = modelConfig(input.engine);
   const { baseUrl, apiKey, model } = config;
   if (!baseUrl || !apiKey) return null;
 
