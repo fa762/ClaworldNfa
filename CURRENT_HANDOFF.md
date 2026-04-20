@@ -3545,3 +3545,19 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - `Push-Location frontend; npm exec tsc -- --noEmit --project tsconfig.json; Pop-Location`
 - not pushed:
   - this remains local-preview work until the user asks to push
+
+## 2026-04-20 Terminal Scrollbar And Mobile Layout Fix
+
+- user reported two concrete regressions on the new terminal shell:
+  - desktop/web scrollbars were still visible on the internal terminal panes and looked unfinished
+  - mobile layout was still misaligned, especially in the top rail, header actions, and composer area
+- fixed in `frontend/src/components/terminal/TerminalHome.module.css`:
+  - hid internal scrollbars for the rail, message stream, right drawer, inline mint wrapper, and action modal body
+  - kept scrolling behavior intact with `scrollbar-width: none` and `::-webkit-scrollbar { display: none }`
+  - tightened terminal viewport sizing with `100svh/100dvh`, explicit width constraints, and `overflow: hidden` on shell containers
+  - prevented mobile overflow by making header actions wrap safely and truncating the wallet pill instead of letting it push the layout
+  - reduced mobile rail height and chip sizes, hid nonessential rail meta on small screens, and compressed the composer/header spacing
+  - added `overflow-wrap` protection so long text no longer forces horizontal drift in chat cards and sublines
+- verification completed:
+  - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+  - `npm run build`

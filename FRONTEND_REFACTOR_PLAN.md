@@ -3462,3 +3462,19 @@ For this rewrite, every meaningful decision or completed step should be written 
   - they should not become separate pages or separate product modes
 - verification completed:
   - `Push-Location frontend; npm exec tsc -- --noEmit --project tsconfig.json; Pop-Location`
+
+## 2026-04-20 Terminal Stability Pass
+
+- completed a focused polish pass on the production terminal shell before any further design work
+- fixed:
+  - hidden internal scrollbars on desktop/web terminal panes
+  - mobile top rail density and overflow
+  - mobile header action wrapping and wallet pill overflow
+  - composer spacing and dialogue block density on small screens
+  - long-text wrapping inside terminal cards and sublines
+- updated file:
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+- verification completed:
+  - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+  - `npm run build`
+- remaining design work is now back in the visual/system layer, not this immediate layout fault

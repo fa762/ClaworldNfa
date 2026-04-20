@@ -1,7 +1,10 @@
 .root {
   position: relative;
+  height: 100svh;
   height: 100dvh;
+  min-height: 100svh;
   min-height: 100dvh;
+  width: 100%;
   overflow: hidden;
   background: #0a0807;
   color: #f6e7bf;
@@ -60,7 +63,9 @@
 
 .connectShell {
   position: relative;
+  min-height: 100svh;
   min-height: 100dvh;
+  width: 100%;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -131,6 +136,7 @@
   overflow-y: auto;
   border-radius: 18px;
   border: 1px solid rgba(245, 165, 36, 0.14);
+  overscroll-behavior: contain;
 }
 
 .inlineMintWrap :global(.cw-page) {
@@ -180,10 +186,12 @@
 .shell {
   position: relative;
   z-index: 1;
-  height: 100dvh;
+  height: 100%;
   min-height: 0;
+  width: 100%;
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
+  overflow: hidden;
 }
 
 .rail {
@@ -197,6 +205,7 @@
   border-right: 1px solid var(--border-soft);
   background: rgba(13, 10, 8, 0.92);
   backdrop-filter: blur(20px);
+  overscroll-behavior: contain;
 }
 
 .railHead {
@@ -349,16 +358,20 @@
 
 .main {
   min-height: 0;
+  width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .conversation {
+  width: 100%;
   min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .conversationHead {
@@ -375,6 +388,7 @@
 }
 
 .headerIdentity {
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -410,18 +424,23 @@
   font-family: var(--font-heading);
   font-size: clamp(1.55rem, 3vw, 2.2rem);
   line-height: 1.02;
+  overflow-wrap: anywhere;
 }
 
 .subline {
   margin: 0;
   color: rgba(246, 231, 191, 0.54);
   font-size: 0.88rem;
+  overflow-wrap: anywhere;
 }
 
 .headerActions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
+  min-width: 0;
 }
 
 .pulsePill,
@@ -436,6 +455,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
   color: #f6e7bf;
+  min-width: 0;
 }
 
 .pulsePill {
@@ -459,6 +479,13 @@
 
 .drawerToggle {
   color: #f5a524;
+}
+
+.walletPill {
+  max-width: 188px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .heroComposer {
@@ -547,6 +574,7 @@
   flex-direction: column;
   gap: 12px;
   scroll-behavior: smooth;
+  overscroll-behavior: contain;
 }
 
 .message,
@@ -692,6 +720,8 @@
   color: rgba(246, 231, 191, 0.86);
   line-height: 1.72;
   font-size: 0.98rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .messageBody p {
@@ -848,6 +878,7 @@
 .composerInput {
   flex: 1;
   min-height: 48px;
+  min-width: 0;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
@@ -869,6 +900,7 @@
   background: rgba(9, 9, 9, 0.76);
   backdrop-filter: blur(16px);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .drawerBody {
@@ -1170,6 +1202,7 @@
 .actionPanelWrap {
   width: min(820px, 96%);
   align-self: flex-start;
+  min-width: 0;
 }
 
 .inlinePanel {
@@ -1296,6 +1329,25 @@
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 12px;
+}
+
+.inlineMintWrap,
+.rail,
+.stream,
+.drawer,
+.actionModalBody {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.inlineMintWrap::-webkit-scrollbar,
+.rail::-webkit-scrollbar,
+.stream::-webkit-scrollbar,
+.drawer::-webkit-scrollbar,
+.actionModalBody::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .panelButton,
@@ -1710,19 +1762,19 @@
 
 @media (max-width: 860px) {
   .shell {
-    height: 100dvh;
+    height: 100%;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
   }
 
   .rail {
-    max-height: 84px;
+    max-height: 76px;
     min-height: 0;
     order: 0;
     flex-direction: row;
     align-items: center;
-    gap: 10px;
-    padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px 10px;
+    gap: 8px;
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) 10px 8px;
     border-right: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     overflow-x: auto;
@@ -1730,8 +1782,7 @@
   }
 
   .railHead {
-    flex-direction: row;
-    flex-shrink: 0;
+    display: none;
   }
 
   .railBrand {
@@ -1744,20 +1795,21 @@
   .railList {
     flex-direction: row;
     align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
   }
 
   .railMeta {
-    margin-top: 0;
-    margin-left: auto;
-    text-align: right;
-    flex-shrink: 0;
+    display: none;
   }
 
   .mintButton,
   .railItem {
-    width: 52px;
-    min-height: 52px;
+    width: 48px;
+    min-height: 48px;
     border-radius: 14px;
+    flex: 0 0 auto;
   }
 
   .railItemBar {
@@ -1771,21 +1823,53 @@
 
   .headerIdentity {
     gap: 10px;
+    width: 100%;
   }
 
   .heroAvatar {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 
   .conversationHead {
-    padding: 14px;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 12px;
+  }
+
+  .titleBlock h2 {
+    font-size: clamp(1.22rem, 7vw, 1.68rem);
+  }
+
+  .subline {
+    font-size: 0.76rem;
+    line-height: 1.45;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .pulsePill,
+  .walletPill,
+  .drawerToggle {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 0.76rem;
+  }
+
+  .walletPill {
+    max-width: 148px;
   }
 
   .stream {
     flex: 1;
     min-height: 0;
-    padding: 12px 14px 14px;
+    padding: 10px 12px 12px;
+    gap: 10px;
   }
 
   .message,
@@ -1836,20 +1920,56 @@
   }
 
   .heroComposer {
-    padding: 14px 14px calc(env(safe-area-inset-bottom, 0px) + 14px);
+    padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
   }
 
   .drawerBody {
-    padding: calc(env(safe-area-inset-top, 0px) + 18px) 14px calc(env(safe-area-inset-bottom, 0px) + 18px);
+    gap: 12px;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 12px calc(env(safe-area-inset-bottom, 0px) + 14px);
   }
 
   .composerInputRow {
     flex-direction: column;
   }
 
+  .dialogueFocus {
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
   .dialogueGlyph {
-    width: 46px;
-    height: 46px;
+    width: 42px;
+    height: 42px;
     border-radius: 14px;
+  }
+
+  .dialogueCopy span {
+    font-size: 0.76rem;
+  }
+
+  .dialogueCopy strong {
+    font-size: 1rem;
+    line-height: 1.24;
+  }
+
+  .suggestionChips {
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .suggestionChip {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 0.82rem;
+  }
+
+  .composerInput {
+    min-height: 44px;
+  }
+
+  .commandButton {
+    width: 100%;
+    justify-content: center;
   }
 }
