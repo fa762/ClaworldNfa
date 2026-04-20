@@ -150,7 +150,7 @@ export function buildIntentCards(intent: CommandIntent, input: string, snapshot:
           role: 'nfa',
           label: '回复',
           title: '',
-          body: autonomy?.enabled ? '代理已经开着。你改一下边界，我就按新的口径行动。' : '可以开。先把预算、保底和动作范围说清楚。',
+          body: autonomy?.enabled ? '代理开着。你改边界，我按新的口径行动。' : '可以开。先定预算、保底和动作范围。',
           tone: 'cool',
         },
         {
@@ -246,7 +246,7 @@ export function buildIntentCards(intent: CommandIntent, input: string, snapshot:
         role: 'nfa',
         label: '回复',
         title: '',
-        body: '我听见了。你直接说想做什么就行，挖矿、竞技、代理、记忆，都可以从这里走。',
+        body: '我听见了。直接说你想做什么：挖矿、竞技、代理、记忆。',
         tone: 'warm',
       });
       break;

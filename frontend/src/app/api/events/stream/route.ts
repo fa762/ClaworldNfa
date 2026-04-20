@@ -1,5 +1,5 @@
 import { getAutonomyStatus } from '@/app/api/_lib/autonomy';
-import { getMemorySummary, getMemoryTimeline } from '@/app/api/_lib/memory';
+import { getMemorySummaryRuntime, getMemoryTimelineRuntime } from '@/app/api/_lib/memory';
 import { getNfaDetail } from '@/app/api/_lib/nfas';
 import { buildEventCards } from '@/app/api/_lib/terminal-chat';
 import { getWorldSummary } from '@/app/api/_lib/world';
@@ -30,20 +30,8 @@ export async function GET(request: Request) {
       getNfaDetail(tokenId, owner),
       getWorldSummary().catch(() => null),
       getAutonomyStatus(Number(tokenId)).catch(() => null),
-      (() => {
-        try {
-          return Promise.resolve(getMemorySummary(Number(tokenId)));
-        } catch {
-          return Promise.resolve(null);
-        }
-      })(),
-      (() => {
-        try {
-          return Promise.resolve(getMemoryTimeline(Number(tokenId), 1));
-        } catch {
-          return Promise.resolve([]);
-        }
-      })(),
+      getMemorySummaryRuntime(Number(tokenId)),
+      getMemoryTimelineRuntime(Number(tokenId), 1),
     ]);
 
     const cards = buildEventCards({

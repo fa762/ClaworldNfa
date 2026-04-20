@@ -30,6 +30,9 @@ type BackendChatResponse = {
   messages?: TerminalCard[];
   reply?: string;
   text?: string;
+  message?: string;
+  content?: string;
+  output_text?: string;
 };
 
 function backendBaseUrl() {
@@ -118,7 +121,7 @@ function normalizeBackendCards(payload: BackendChatResponse, tokenId: string): T
     return cards.map(normalizeBackendCard);
   }
 
-  const text = polishBackendText(payload.reply || payload.text || '');
+  const text = polishBackendText(payload.reply || payload.text || payload.message || payload.content || payload.output_text || '');
   if (!text) {
     return [];
   }
@@ -150,7 +153,7 @@ function parseSseCards(raw: string): TerminalCard[] {
     try {
       const payload = JSON.parse(dataLines.join('\n')) as unknown;
       const value = payload as { type?: string; card?: TerminalCard };
-      if (value.type === 'card' && value.card) {
+      if ((value.type === 'card' || value.card) && value.card) {
         cards.push(normalizeBackendCard(value.card));
       }
     } catch {

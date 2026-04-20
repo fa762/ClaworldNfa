@@ -54,7 +54,7 @@ type DirectiveApiResponse = {
 };
 
 const AUTONOMY_ACTION_MODES = [
-  { key: 'task', label: '任务代理', actionKind: 0, oneLine: '自动挑任务，优先稳收益。' },
+  { key: 'task', label: '任务代理', actionKind: 0, oneLine: '自动挑任务，少冒无意义的险。' },
   { key: 'pk', label: 'PK 代理', actionKind: 1, oneLine: '只接胜率舒服的局。' },
   { key: 'br', label: '大逃杀代理', actionKind: 3, oneLine: '选房间，控质押，等结算。' },
 ] as const;
@@ -114,7 +114,7 @@ function buildTerminalTasks(companion: ActiveCompanionValue, roll: number): Task
       base: 30 + companion.traits.wisdom * 0.26 + companion.traits.create * 0.12,
       min: 45,
       max: 75,
-      note: '稳收益',
+      note: '低风险',
     },
     {
       key: 'social',

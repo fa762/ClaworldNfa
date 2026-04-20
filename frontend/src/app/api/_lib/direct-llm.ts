@@ -163,6 +163,7 @@ function cardId(prefix: string) {
 }
 
 type ResponsesApiPayload = {
+  output_text?: string;
   output?: Array<{
     type?: string;
     content?: Array<{ type?: string; text?: string }>;
@@ -170,6 +171,8 @@ type ResponsesApiPayload = {
 };
 
 function extractResponsesText(payload: ResponsesApiPayload) {
+  if (payload.output_text?.trim()) return payload.output_text.trim();
+
   const chunks: string[] = [];
   for (const item of payload.output ?? []) {
     for (const content of item.content ?? []) {
@@ -179,6 +182,16 @@ function extractResponsesText(payload: ResponsesApiPayload) {
     }
   }
   return chunks.join('\n\n').trim();
+}
+
+function maxOutputTokens() {
+  const raw =
+    process.env.CLAWORLD_CHAT_MAX_OUTPUT_TOKENS ||
+    process.env.CLAWORLD_MODEL_MAX_OUTPUT_TOKENS ||
+    '';
+  const parsed = Number(raw);
+  if (Number.isFinite(parsed) && parsed >= 256) return Math.min(Math.floor(parsed), 4096);
+  return 1800;
 }
 
 function polishReply(text: string, displayName: string) {
@@ -212,8 +225,9 @@ async function requestResponsesWithTools(input: DirectLlmInput, config: ReturnTy
       input: messages,
       tools,
       tool_choice: 'auto',
+      include: tools.length ? ['web_search_call.action.sources'] : undefined,
       temperature: 0.8,
-      max_output_tokens: 900,
+      max_output_tokens: maxOutputTokens(),
     }),
     cache: 'no-store',
   });
@@ -262,7 +276,7 @@ export async function requestDirectLlm(input: DirectLlmInput): Promise<TerminalC
     body: JSON.stringify({
       model,
       temperature: 0.8,
-      max_tokens: 900,
+      max_tokens: maxOutputTokens(),
       messages: [
         { role: 'system', content: buildSystemPrompt(input.snapshot) },
         ...buildHistoryMessages(input.history),

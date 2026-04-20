@@ -116,6 +116,18 @@ function parseSseChunk(chunk: string) {
   return { events, remainder };
 }
 
+function normalizeRouteAction(value: string | null): TerminalActionIntent | null {
+  const key = value?.trim().toLowerCase();
+  if (!key) return null;
+  if (key === 'mining' || key === 'mine' || key === 'play' || key === 'task') return 'mining';
+  if (key === 'arena' || key === 'pk' || key === 'br' || key === 'battle') return 'arena';
+  if (key === 'auto' || key === 'autonomy' || key === 'proxy') return 'auto';
+  if (key === 'mint') return 'mint';
+  if (key === 'memory' || key === 'cml') return 'memory';
+  if (key === 'status') return 'status';
+  return null;
+}
+
 function ConnectWall() {
   return (
     <div className={styles.connectShell}>
@@ -189,6 +201,7 @@ export function TerminalHome() {
   const [memoryCandidate, setMemoryCandidate] = useState('');
   const streamRef = useRef<HTMLDivElement | null>(null);
   const streamEndRef = useRef<HTMLDivElement | null>(null);
+  const routeActionRef = useRef<string | null>(null);
 
   const baseCards = useMemo(
     () => buildBaseFeed(companion, terminalNfas.detail, terminalMemory),
@@ -199,6 +212,21 @@ export function TerminalHome() {
     () => [...seedCards, ...terminalEvents.cards, ...localChat.cards],
     [localChat.cards, seedCards, terminalEvents.cards],
   );
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const htmlOverflow = document.documentElement.style.overflow;
+    const bodyOverflow = document.body.style.overflow;
+    const bodyOverscroll = document.body.style.overscrollBehavior;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+    return () => {
+      document.documentElement.style.overflow = htmlOverflow;
+      document.body.style.overflow = bodyOverflow;
+      document.body.style.overscrollBehavior = bodyOverscroll;
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const node = streamRef.current;
@@ -222,6 +250,32 @@ export function TerminalHome() {
   useEffect(() => {
     setWalletMenuOpen(false);
   }, [address]);
+
+  useEffect(() => {
+    if (!companion.hasToken || typeof window === 'undefined') return;
+
+    const url = new URL(window.location.href);
+    const action = normalizeRouteAction(url.searchParams.get('action'));
+    if (!action) return;
+
+    const memoryText = url.searchParams.get('memory') || '';
+    const routeKey = `${companion.tokenId.toString()}:${action}:${memoryText}`;
+    if (routeActionRef.current === routeKey) return;
+    routeActionRef.current = routeKey;
+
+    if (action === 'memory' && memoryText.trim()) {
+      setMemoryCandidate(memoryText.trim().slice(0, 500));
+    }
+
+    setRailOpen(false);
+    setDrawerOpen(false);
+    setActiveAction(action);
+
+    url.searchParams.delete('action');
+    url.searchParams.delete('memory');
+    const nextSearch = url.searchParams.toString();
+    window.history.replaceState(null, '', `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`);
+  }, [companion.hasToken, companion.tokenId]);
 
   if (!isConnected || !address) {
     return <ConnectWall />;

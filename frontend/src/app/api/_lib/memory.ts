@@ -55,6 +55,45 @@ const CML_ROOT =
   process.env.AUTONOMY_CML_DIR ||
   path.join(os.homedir(), '.openclaw', 'claw-world');
 
+function remoteBaseUrl() {
+  const value =
+    process.env.CLAWORLD_API_URL ||
+    process.env.CLAWORLD_BACKEND_API_URL ||
+    process.env.CLAWORLD_AI_BACKEND_URL ||
+    '';
+  return value.replace(/\/+$/, '');
+}
+
+function remotePath(templateEnv: string | undefined, fallback: string, tokenId: number, limit?: number) {
+  const template = templateEnv || fallback;
+  return template
+    .replace('{tokenId}', encodeURIComponent(String(tokenId)))
+    .replace('{limit}', encodeURIComponent(String(limit ?? '')));
+}
+
+async function readRemoteJson<T>(pathTemplate: string | undefined, fallback: string, tokenId: number, limit?: number): Promise<T | null> {
+  const baseUrl = remoteBaseUrl();
+  if (!baseUrl) return null;
+
+  const pathValue = remotePath(pathTemplate, fallback, tokenId, limit);
+  const url = `${baseUrl}${pathValue.startsWith('/') ? pathValue : `/${pathValue}`}`;
+  const headers: Record<string, string> = { accept: 'application/json' };
+  const token =
+    process.env.CLAWORLD_API_TOKEN ||
+    process.env.CLAWORLD_BACKEND_API_TOKEN ||
+    process.env.CLAWORLD_AI_BACKEND_TOKEN ||
+    '';
+  if (token) headers.authorization = `Bearer ${token}`;
+
+  try {
+    const response = await fetch(url, { headers, cache: 'no-store' });
+    if (!response.ok) return null;
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
 function currentCmlPath(tokenId: number) {
   return path.join(CML_ROOT, `nfa-${tokenId}.cml`);
 }
@@ -199,4 +238,36 @@ export function getMemoryTimeline(tokenId: number, limit: number): MemorySnapsho
       hippocampusMerged: 0,
     };
   });
+}
+
+export async function getMemorySummaryRuntime(tokenId: number): Promise<MemorySummaryPayload | null> {
+  const remote = await readRemoteJson<MemorySummaryPayload>(
+    process.env.CLAWORLD_MEMORY_SUMMARY_PATH,
+    '/memory/{tokenId}/summary',
+    tokenId,
+  );
+  if (remote) return remote;
+
+  try {
+    return getMemorySummary(tokenId);
+  } catch {
+    return null;
+  }
+}
+
+export async function getMemoryTimelineRuntime(tokenId: number, limit: number): Promise<MemorySnapshotPayload[]> {
+  const remote = await readRemoteJson<{ snapshots?: MemorySnapshotPayload[] } | MemorySnapshotPayload[]>(
+    process.env.CLAWORLD_MEMORY_TIMELINE_PATH,
+    '/memory/{tokenId}/timeline?limit={limit}',
+    tokenId,
+    limit,
+  );
+  if (Array.isArray(remote)) return remote.slice(0, limit);
+  if (Array.isArray(remote?.snapshots)) return remote.snapshots.slice(0, limit);
+
+  try {
+    return getMemoryTimeline(tokenId, limit);
+  } catch {
+    return [];
+  }
 }

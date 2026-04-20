@@ -3637,3 +3637,46 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - strengthened `.shell`, `.main`, `.conversation`, `.conversationHead`, `.heroComposer`, and `.stream` sizing/flex behavior
 - verification completed:
   - `npm run build`
+
+## 2026-04-20 Terminal Route/API Convergence Pass
+
+- confirmed the real production repository is `D:\claworldNfa\clawworld`
+  - current branch: `main`
+  - remotes: private `origin` and public `public`/`nfa`
+  - the separate skill/backend package is `D:\claworldNfa\claw-world-skill`
+  - the separate skill repo only has an untracked `claw-world-skill-1.1.12.tgz`; it was not included in this frontend commit
+- production direction from `new/` was rechecked:
+  - Terminal must be the primary surface
+  - chain actions should open as current-conversation action cards, not route users into old page stacks
+  - CML context should be loaded through backend/API when available, with local OpenClaw files only as fallback
+- completed:
+  - added Next redirects for `/play`, `/arena`, `/auto`, and `/mint` into `/?action=...`
+  - added terminal URL action parsing so `/?action=mining|arena|auto|mint|memory|status` opens the correct card after wallet/NFA context loads
+  - locked `html/body` while TerminalHome is mounted so mobile drag gestures do not move the whole document
+  - removed message-card clipping risk by allowing terminal cards to render full height and adding extra stream bottom padding
+  - hardened backend chat parsing for JSON and SSE payload variants
+  - increased direct model output budget default to `1800` tokens with `CLAWORLD_CHAT_MAX_OUTPUT_TOKENS` override
+  - direct Responses API now reads top-level `output_text` and includes web-search source metadata when web tools are enabled
+  - memory routes now prefer the configured Claworld backend API before falling back to local `OPENCLAW_CML_DIR` / `AUTONOMY_CML_DIR`
+- updated files:
+  - `frontend/next.config.ts`
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+  - `frontend/src/components/terminal/TerminalActionPanel.tsx`
+  - `frontend/src/app/api/_lib/backend-chat.ts`
+  - `frontend/src/app/api/_lib/direct-llm.ts`
+  - `frontend/src/app/api/_lib/memory.ts`
+  - `frontend/src/app/api/_lib/terminal-chat.ts`
+  - `frontend/src/app/api/chat/[tokenId]/send/route.ts`
+  - `frontend/src/app/api/chat/[tokenId]/history/route.ts`
+  - `frontend/src/app/api/events/stream/route.ts`
+  - `frontend/src/app/api/memory/[tokenId]/summary/route.ts`
+  - `frontend/src/app/api/memory/[tokenId]/timeline/route.ts`
+- verification completed:
+  - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+  - `npm run build`
+  - `git diff --check`
+- still not complete from `new/`:
+  - PK/BR receipts are not yet normalized into first-class terminal receipt cards for every legacy sub-action
+  - full CML plaintext persistence/SLEEP consolidation remains backend/runtime work
+  - Genesis mint still embeds the existing `MintPanel`; the full ritual animation from the design spec is not implemented

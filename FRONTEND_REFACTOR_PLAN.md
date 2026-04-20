@@ -3542,3 +3542,47 @@ For this rewrite, every meaningful decision or completed step should be written 
   - `frontend/src/components/terminal/TerminalHome.module.css`
 - verification completed:
   - `npm run build`
+
+## 2026-04-20 Route/API Convergence Toward `new/`
+
+### What changed
+
+- the live frontend now treats the terminal as the primary product surface:
+  - `/play` redirects to `/?action=mining`
+  - `/arena` redirects to `/?action=arena`
+  - `/auto` redirects to `/?action=auto`
+  - `/mint` redirects to `/?action=mint`
+- `TerminalHome` now consumes `?action=` and opens the matching action card after wallet/NFA context is ready
+- mobile/document scroll locking was reinforced from the component layer, not only CSS
+- terminal message cards no longer use hidden overflow for the main card shell, reducing the chance of long replies being visually clipped
+- chat API fallback is more tolerant:
+  - backend JSON can return `cards`, `messages`, `reply`, `text`, `message`, `content`, or `output_text`
+  - backend SSE can return either `{ type: "card", card }` or `{ card }`
+  - direct model fallback now supports larger replies by default
+- CML memory read path now has the right production order:
+  - configured Claworld backend API first
+  - local OpenClaw CML files second
+
+### New validation baseline
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`
+
+### Remaining product gaps against `new/`
+
+- action receipt normalization:
+  - mining already returns terminal receipts
+  - PK, Battle Royale, claim, and mint still need every successful sub-action to emit a consistent terminal receipt card
+- CML memory:
+  - summary/timeline can now come from backend
+  - full plaintext storage, SLEEP consolidation, and memory replay UI are still not complete
+- autonomy:
+  - directive editor exists
+  - background result cards still need richer human-readable reasoning/result summaries
+- mint:
+  - old `MintPanel` is embedded in terminal
+  - the Genesis reveal ritual from the design spec is still pending
+- visual/product polish:
+  - Claude Design handoff remains a design-only package and is not part of production code
+  - final art, motion, and mobile detail pass should happen after the above action/result wiring is stable

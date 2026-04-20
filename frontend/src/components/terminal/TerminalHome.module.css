@@ -632,7 +632,7 @@
   max-height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 22px;
+  padding: 22px 22px 34px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -654,7 +654,7 @@
 .systemCard {
   position: relative;
   flex: 0 0 auto;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
@@ -2026,7 +2026,7 @@
   .stream {
     flex: 1;
     min-height: 0;
-    padding: 10px 12px 20px;
+    padding: 10px 12px 28px;
     gap: 10px;
   }
 

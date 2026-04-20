@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getAutonomyStatus } from '@/app/api/_lib/autonomy';
-import { getMemorySummary, getMemoryTimeline } from '@/app/api/_lib/memory';
+import { getMemorySummaryRuntime, getMemoryTimelineRuntime } from '@/app/api/_lib/memory';
 import { getNfaDetail } from '@/app/api/_lib/nfas';
 import { buildSeedCards } from '@/app/api/_lib/terminal-chat';
 import { getWorldSummary } from '@/app/api/_lib/world';
@@ -21,20 +21,8 @@ export async function GET(
       getNfaDetail(tokenId, owner),
       getWorldSummary().catch(() => null),
       getAutonomyStatus(Number(tokenId)).catch(() => null),
-      (() => {
-        try {
-          return Promise.resolve(getMemorySummary(Number(tokenId)));
-        } catch {
-          return Promise.resolve(null);
-        }
-      })(),
-      (() => {
-        try {
-          return Promise.resolve(getMemoryTimeline(Number(tokenId), 3));
-        } catch {
-          return Promise.resolve([]);
-        }
-      })(),
+      getMemorySummaryRuntime(Number(tokenId)),
+      getMemoryTimelineRuntime(Number(tokenId), 3),
     ]);
 
     return NextResponse.json({

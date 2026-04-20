@@ -1,7 +1,7 @@
 import { getAutonomyStatus } from '@/app/api/_lib/autonomy';
 import { requestBackendChat } from '@/app/api/_lib/backend-chat';
 import { requestDirectLlm } from '@/app/api/_lib/direct-llm';
-import { getMemorySummary, getMemoryTimeline } from '@/app/api/_lib/memory';
+import { getMemorySummaryRuntime, getMemoryTimelineRuntime } from '@/app/api/_lib/memory';
 import { getNfaDetail } from '@/app/api/_lib/nfas';
 import { buildIntentCards, inferTerminalIntent, type CommandIntent } from '@/app/api/_lib/terminal-chat';
 import { getWorldSummary } from '@/app/api/_lib/world';
@@ -59,20 +59,8 @@ export async function POST(
       getNfaDetail(tokenId, body.owner),
       getWorldSummary().catch(() => null),
       getAutonomyStatus(Number(tokenId)).catch(() => null),
-      (() => {
-        try {
-          return Promise.resolve(getMemorySummary(Number(tokenId)));
-        } catch {
-          return Promise.resolve(null);
-        }
-      })(),
-      (() => {
-        try {
-          return Promise.resolve(getMemoryTimeline(Number(tokenId), 3));
-        } catch {
-          return Promise.resolve([]);
-        }
-      })(),
+      getMemorySummaryRuntime(Number(tokenId)),
+      getMemoryTimelineRuntime(Number(tokenId), 3),
     ]);
 
     const snapshot = {
