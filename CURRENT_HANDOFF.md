@@ -3886,3 +3886,19 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
   - `npm run build`
   - `git diff --check`
+
+## 2026-04-20 Logo and drawer polish
+
+- switched the app icon set to `new/logonew.jpg`
+  - regenerated `frontend/src/app/icon.png` as a 512px PNG
+  - regenerated `frontend/src/app/apple-icon.png` as a 180px PNG
+  - this now feeds the browser tab icon and installed PWA icon from the same artwork
+- tightened terminal microcopy a little more in the shell open-state receipts
+  - shorter open messages
+  - shorter BYOK locked hint
+- mobile status drawer now slides and fades in instead of appearing abruptly
+  - `frontend/src/components/terminal/TerminalHome.module.css`
+- verification completed:
+  - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+  - `npm run build`
+  - `git diff --check`

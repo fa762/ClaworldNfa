@@ -137,7 +137,7 @@ function ConnectWall() {
       <div className={styles.connectCard}>
         <p className={styles.eyebrow}>龙虾世界</p>
         <h1>连接钱包</h1>
-        <p>接入你的 NFA，开始聊天、挖矿、竞技和代理。</p>
+        <p>接入 NFA，直接进入对话、挖矿、竞技和代理。</p>
         <div className={styles.connectActions}>
           <ConnectButton />
           <span className={styles.connectHint}>有 NFA 会直接进入。</span>
@@ -403,7 +403,7 @@ export function TerminalHome() {
           role: 'system',
           label: '模型设置',
           title: '',
-          body: '你选的是 BYOK，但当前还没解锁。先去设置页解锁你的模型 Key。',
+          body: 'BYOK 未解锁，先开模型设置。',
           tone: 'alert',
           meta: '刚刚',
         },
@@ -526,16 +526,16 @@ export function TerminalHome() {
     if (options?.silent) return;
     const title =
       intent === 'mining'
-        ? '挖矿卡已打开'
+        ? '挖矿'
         : intent === 'arena'
-          ? '竞技卡已打开'
-            : intent === 'auto'
-              ? '代理卡已打开'
-              : intent === 'mint'
-                ? '铸造卡已打开'
+          ? '竞技'
+          : intent === 'auto'
+            ? '代理'
+            : intent === 'mint'
+              ? '铸造'
                 : intent === 'settings'
-                  ? '模型设置已打开'
-              : '状态卡已打开';
+                  ? '模型设置'
+              : '状态';
     localChat.appendCards([
       {
         id: `action-open-${intent}-${Date.now()}`,
@@ -543,7 +543,7 @@ export function TerminalHome() {
         role: 'system',
         label: '动作卡',
         title: '',
-        body: `${title}，就在当前对话里处理。`,
+        body: `已打开${title}。`,
         tone: 'warm',
         meta: '刚刚',
       },

@@ -3799,3 +3799,27 @@ For this rewrite, every meaningful decision or completed step should be written 
 - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
 - `npm run build`
 - `git diff --check`
+
+## 2026-04-20 Icon swap and drawer motion polish
+
+### What closed in this pass
+
+- `new/logonew.jpg` is now the site icon source
+  - regenerated `frontend/src/app/icon.png`
+  - regenerated `frontend/src/app/apple-icon.png`
+- browser tab icon and installed PWA icon are now aligned to the same artwork
+- terminal shell status drawer now enters with slide + fade motion on mobile
+- shell receipt copy was trimmed again so the open-state messages stay shorter
+
+### Files updated
+
+- `frontend/src/app/icon.png`
+- `frontend/src/app/apple-icon.png`
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- `frontend/src/components/terminal/TerminalHome.module.css`
+
+### Verification
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`

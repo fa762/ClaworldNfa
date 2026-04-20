@@ -1018,6 +1018,8 @@
   backdrop-filter: blur(16px);
   overflow-y: auto;
   overscroll-behavior: contain;
+  transition: transform 220ms ease, opacity 220ms ease;
+  will-change: transform, opacity;
 }
 
 .drawerBody {
@@ -1283,6 +1285,15 @@
 
 .drawerOverlay {
   display: none;
+}
+
+@keyframes drawerOverlayFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .hiddenDesktop {
@@ -1889,11 +1900,14 @@
     width: min(100%, 360px);
     z-index: 30;
     transform: translateX(100%);
-    transition: transform 180ms ease;
+    opacity: 0;
+    visibility: hidden;
   }
 
   .drawerOpen {
     transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
   }
 
   .drawerOverlay {
@@ -1902,6 +1916,7 @@
     inset: 0;
     z-index: 24;
     background: rgba(0, 0, 0, 0.48);
+    animation: drawerOverlayFade 220ms ease forwards;
   }
 
   .hiddenDesktop {
