@@ -1,6 +1,65 @@
 # Current Handoff
 
-Last updated: 2026-04-20 (session 47) Asia/Singapore
+Last updated: 2026-04-20 (session 48) Asia/Singapore
+
+## Terminal modal action and AI tool-permission checkpoint - 2026-04-20 session 48
+
+This pass makes terminal actions feel less like old pages and adds a safe AI tool-permission contract for the backend.
+
+What changed:
+
+1. Action operations now open in modal sheets
+- PK operation surface opens as a centered modal on desktop
+- Battle Royale operation surface opens as a centered modal on desktop
+- agent authorization / budget / lease controls open as a modal
+- mint flow opens as a modal
+- on mobile, these modals become bottom sheets with safe-area padding
+- this removes the "scroll to the bottom of chat and find a giant form" feeling
+
+2. The default conversation card stays short
+- chat still opens the light action summary first
+- the heavy operation layer appears only after the user taps the primary operation button
+- close buttons and scrim close are available for the sheets
+
+3. AI backend tool permissions added
+- frontend BFF now sends a `capabilities` object to the backend chat API
+- included capabilities:
+  - `webSearch`
+  - `chainRead`
+  - `chainActionCards`
+  - `memoryRead`
+  - `memoryWriteIntent`
+  - `autonomyDirectives`
+- frontend BFF also sends `toolPolicy`:
+  - web search is backend-only
+  - chain writes must be returned as intent/action cards
+  - memory writes must be backend-validated
+- web search is disabled by default and can be enabled with:
+  - `CLAWORLD_ENABLE_WEB_TOOLS=1`
+  - or `CLAWORLD_CHAT_WEB_SEARCH=1`
+  - or `CLAWORLD_AI_WEB_TOOLS=1`
+
+4. Direct LLM fallback guard
+- the direct OpenAI-compatible fallback now tells the model it has no live web tool
+- this reduces hallucinated answers for news, prices, webpages, or other live questions
+
+5. Environment example updated
+- `.env.example` now documents:
+  - `CLAWORLD_API_URL`
+  - `CLAWORLD_CHAT_PATH`
+  - `CLAWORLD_API_TOKEN`
+  - direct model fallback env vars
+  - `CLAWORLD_ENABLE_WEB_TOOLS`
+
+Validation:
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json` passes
+- `npm run build` passes
+
+Important boundary:
+
+- frontend can declare and gate tool permissions
+- real web search must be implemented inside the project backend API, where API keys, rate limits, logging, and abuse controls can be handled server-side
 
 ## Terminal intent action-card checkpoint - 2026-04-20 session 47
 

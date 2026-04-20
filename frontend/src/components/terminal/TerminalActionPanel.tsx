@@ -553,7 +553,19 @@ function TerminalArenaPanel({ companion }: { companion: ActiveCompanionValue }) 
       </div>
 
       {expanded ? (
-        <div className={styles.advancedPanel}>
+        <div className={styles.actionModal} role="dialog" aria-modal="true" aria-label={mode === 'pk' ? 'PK 操作' : '大逃杀操作'}>
+          <button type="button" className={styles.actionModalScrim} aria-label="关闭操作窗口" onClick={() => setExpanded(false)} />
+          <div className={styles.actionModalSheet}>
+            <div className={styles.actionModalHead}>
+              <div>
+                <span>{mode === 'pk' ? 'PK 操作' : '大逃杀操作'}</span>
+                <strong>{mode === 'pk' ? '选擂台 / 开擂 / 亮招 / 结算' : '选房 / 入场 / 揭示 / 领奖'}</strong>
+              </div>
+              <button type="button" className={styles.modalCloseButton} onClick={() => setExpanded(false)} aria-label="关闭">
+                <X size={16} />
+              </button>
+            </div>
+            <div className={styles.actionModalBody}>
           {mode === 'pk' ? (
             <PKArenaPanel
               tokenId={companion.hasToken ? companion.tokenId : undefined}
@@ -584,6 +596,8 @@ function TerminalArenaPanel({ companion }: { companion: ActiveCompanionValue }) 
               isRefreshing={battleRoyale.isRefreshing}
             />
           )}
+            </div>
+          </div>
         </div>
       ) : null}
     </section>
@@ -780,13 +794,27 @@ function TerminalAutonomyPanel({ companion }: { companion: ActiveCompanionValue 
       </div>
 
       {expanded ? (
-        <div className={styles.advancedPanel}>
+        <div className={styles.actionModal} role="dialog" aria-modal="true" aria-label="代理开通设置">
+          <button type="button" className={styles.actionModalScrim} aria-label="关闭代理设置" onClick={() => setExpanded(false)} />
+          <div className={styles.actionModalSheet}>
+            <div className={styles.actionModalHead}>
+              <div>
+                <span>代理设置</span>
+                <strong>授权、预算、租约和风险控制</strong>
+              </div>
+              <button type="button" className={styles.modalCloseButton} onClick={() => setExpanded(false)} aria-label="关闭">
+                <X size={16} />
+              </button>
+            </div>
+            <div className={styles.actionModalBody}>
           <AutonomyPanel
             tokenId={companion.tokenId}
             ownerAddress={companion.ownerAddress}
             clwBalance={companion.routerClaworld}
             dailyCost={companion.dailyCost}
           />
+            </div>
+          </div>
         </div>
       ) : null}
     </section>
@@ -822,8 +850,22 @@ function TerminalMintPanel({ onClose }: { onClose: () => void }) {
         </button>
       </div>
       {expanded ? (
-        <div className={styles.advancedPanel}>
-          <MintPanel />
+        <div className={styles.actionModal} role="dialog" aria-modal="true" aria-label="铸造流程">
+          <button type="button" className={styles.actionModalScrim} aria-label="关闭铸造流程" onClick={() => setExpanded(false)} />
+          <div className={styles.actionModalSheet}>
+            <div className={styles.actionModalHead}>
+              <div>
+                <span>铸造流程</span>
+                <strong>付款、等待揭示、接入终端</strong>
+              </div>
+              <button type="button" className={styles.modalCloseButton} onClick={() => setExpanded(false)} aria-label="关闭">
+                <X size={16} />
+              </button>
+            </div>
+            <div className={styles.actionModalBody}>
+              <MintPanel />
+            </div>
+          </div>
         </div>
       ) : null}
     </section>

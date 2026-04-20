@@ -74,6 +74,7 @@ function buildSystemPrompt(snapshot: TerminalChatSnapshot): string {
     `规则：`,
     `- 只输出纯文本回复，不要 JSON、不要代码块、不要 Markdown 列表。`,
     `- 玩家想做挖矿/PK/大逃杀/代理/铸造/查状态时，简单一句带过即可，系统会自动给动作卡。`,
+    `- 当前直连模型没有联网工具。遇到实时新闻、价格、外部网页等问题，不要编；告诉玩家需要后端联网工具。`,
   );
   return lines.join('\n');
 }

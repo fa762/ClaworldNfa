@@ -1,6 +1,65 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-20 (session 47) Asia/Singapore
+Last updated: 2026-04-20 (session 48) Asia/Singapore
+
+## Terminal modal action and AI tool-permission pass - 2026-04-20 session 48
+
+Accepted product rule:
+
+- the conversation should remain the main surface
+- heavy transaction controls should appear as focused sheets, not long inline pages
+- AI can have more capability only through explicit backend-side permissions
+- browser-side chat should not receive unrestricted web or private-key power
+
+What is now implemented:
+
+1. Focused operation sheets
+- PK, Battle Royale, agent setup, and mint now open in modal sheets from terminal action cards
+- desktop uses centered sheets
+- mobile uses bottom sheets with safe-area padding
+- each sheet has a clear close control and can be dismissed from the scrim
+
+2. Better action hierarchy
+- first layer: short card with state, condition, reward/status, and one primary button
+- second layer: actual operation sheet for transaction controls
+- this keeps the terminal readable while preserving existing live chain functionality
+
+3. Backend AI capability contract
+- `/api/chat/[tokenId]/send` -> project backend now includes:
+  - current NFA context
+  - memory context
+  - autonomy context
+  - world context
+  - recent chat history
+  - explicit `capabilities`
+  - explicit `toolPolicy`
+- web search capability is env-gated and defaults off
+- chain writes remain action-card driven, so the wallet/user still controls transaction signing
+
+4. AI permission model
+- `CLAWORLD_ENABLE_WEB_TOOLS=1` allows the frontend BFF to tell the backend that web search is permitted
+- actual web access should be implemented in the backend API, not in the browser
+- direct LLM fallback is marked as non-web, so it should not pretend to know live external information
+
+Validation:
+
+- TypeScript: passed
+- Production build: passed
+
+Remaining work after this pass:
+
+1. Backend-side web/search tool implementation
+- receive `capabilities.webSearch`
+- run the approved search provider/tool server-side
+- return normal chat cards plus source snippets if needed
+
+2. Final custom transaction sheets
+- current terminal sheets are focused and modal, but still reuse the proven live PK / Battle Royale transaction components inside the sheet
+- a later polish pass can replace their internal rows with a fully bespoke terminal layout without changing the chain path
+
+3. Durable memory/writeback
+- chat can load context and open actions
+- long-term chat storage and CML writeback still depend on the final backend memory endpoint
 
 ## Terminal intent action-card pass - 2026-04-20 session 47
 

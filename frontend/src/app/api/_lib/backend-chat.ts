@@ -16,6 +16,15 @@ type BackendChatRequest = {
   };
 };
 
+type BackendToolCapabilities = {
+  webSearch: boolean;
+  chainRead: boolean;
+  chainActionCards: boolean;
+  memoryRead: boolean;
+  memoryWriteIntent: boolean;
+  autonomyDirectives: boolean;
+};
+
 type BackendChatResponse = {
   cards?: TerminalCard[];
   messages?: TerminalCard[];
@@ -46,6 +55,24 @@ function buildUrl(tokenId: string) {
   if (!baseUrl) return null;
   const path = backendChatPath(tokenId);
   return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+function enabledFlag(...names: string[]) {
+  return names.some((name) => {
+    const value = process.env[name];
+    return value === '1' || value?.toLowerCase() === 'true' || value?.toLowerCase() === 'yes';
+  });
+}
+
+function toolCapabilities(): BackendToolCapabilities {
+  return {
+    webSearch: enabledFlag('CLAWORLD_ENABLE_WEB_TOOLS', 'CLAWORLD_CHAT_WEB_SEARCH', 'CLAWORLD_AI_WEB_TOOLS'),
+    chainRead: true,
+    chainActionCards: true,
+    memoryRead: true,
+    memoryWriteIntent: true,
+    autonomyDirectives: true,
+  };
 }
 
 function normalizeBackendCards(payload: BackendChatResponse, tokenId: string): TerminalCard[] {
@@ -129,6 +156,12 @@ export async function requestBackendChat(input: BackendChatRequest): Promise<Ter
         memoryTimeline: input.snapshot.memoryTimeline,
         autonomy: input.snapshot.autonomy,
         world: input.snapshot.world,
+      },
+      capabilities: toolCapabilities(),
+      toolPolicy: {
+        webSearch: 'backend_only',
+        chainWrite: 'intent_card_only',
+        memoryWrite: 'backend_validated',
       },
       engine: input.engine?.apiKey
         ? {
