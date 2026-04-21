@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -29,7 +29,18 @@ export function useTerminalEvents(tokenId?: bigint, owner?: string) {
     if (!token) return;
 
     const ownerQuery = normalizedOwner ? `&owner=${normalizedOwner}` : '';
-    const source = new EventSource(`/api/events/stream?tokenId=${token}${ownerQuery}`);
+    if (typeof window === 'undefined' || typeof window.EventSource === 'undefined') {
+      setState(INITIAL_STATE);
+      return;
+    }
+
+    let source: EventSource;
+    try {
+      source = new window.EventSource(`/api/events/stream?tokenId=${token}${ownerQuery}`);
+    } catch {
+      setState(INITIAL_STATE);
+      return;
+    }
 
     const handleCard = (event: MessageEvent<string>) => {
       try {
@@ -42,12 +53,12 @@ export function useTerminalEvents(tokenId?: bigint, owner?: string) {
           cards: [...current.cards, payload.card],
         }));
       } catch {
-        setState((current) => ({ ...current, error: '事件流解析失败' }));
+        setState((current) => ({ ...current, error: '事件流解析失败。' }));
       }
     };
 
     const handleError = () => {
-      setState((current) => ({ ...current, error: '事件流暂时断开，下次进入会继续同步状态' }));
+      setState((current) => ({ ...current, error: '事件流暂时断开，下次进入会继续同步状态。' }));
     };
 
     source.addEventListener('card', handleCard as EventListener);

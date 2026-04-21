@@ -4013,3 +4013,22 @@ For this rewrite, every meaningful decision or completed step should be written 
 - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
 - `npm run build`
 - `git diff --check`
+
+## 2026-04-21 Mobile EventSource compatibility fix
+
+### What closed in this pass
+
+- terminal live events no longer assume SSE support in every mobile wallet browser
+- if EventSource is missing, the shell now skips the live event stream instead of throwing a client-side exception
+- this keeps wallet connect + NFA load usable even on weaker WebViews
+- the event hook file was also rewritten back to valid UTF-8 after a local encoding corruption during patching
+
+### Files updated
+
+- rontend/src/components/terminal/useTerminalEvents.ts`n- CURRENT_HANDOFF.md`n- FRONTEND_REFACTOR_PLAN.md`n
+### Verification
+
+- 
+pm exec tsc -- --noEmit --project frontend/tsconfig.json`n- 
+pm run build`n- git diff --check
+

@@ -4068,3 +4068,18 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
   - `npm run build`
   - `git diff --check`
+
+## 2026-04-21 Mobile EventSource crash fix
+
+- root cause of the latest deployed client-side exception:
+  - terminal live events were instantiated with EventSource unguarded
+  - some wallet/mobile WebViews do not expose window.EventSource`n  - once the terminal finished loading NFA state and mounted the event hook, the page could throw on the client
+- fix applied:
+  - rontend/src/components/terminal/useTerminalEvents.ts`n  - now checks for window.EventSource before opening the stream
+  - if the browser does not support SSE, the terminal silently degrades instead of crashing the whole page
+  - also rewrote the hook file back to valid UTF-8 after a local patch step had corrupted the file encoding
+- verification completed:
+  - 
+pm exec tsc -- --noEmit --project frontend/tsconfig.json`n  - 
+pm run build`n  - git diff --check
+
