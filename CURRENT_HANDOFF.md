@@ -1,6 +1,68 @@
 # Current Handoff
 
-Last updated: 2026-04-21 (session 56) Asia/Singapore
+Last updated: 2026-04-21 (session 57) Asia/Singapore
+
+## Terminal command grammar and proactive event pass - 2026-04-21 session 57
+
+User asked to keep going instead of stopping after the previous cleanup pass.
+
+This pass closes three of the remaining `new/`-aligned terminal gaps:
+
+1. Terminal input now supports direct command grammar
+- file: `frontend/src/components/terminal/TerminalHome.tsx`
+- added local command parsing for:
+  - `/mine`
+  - `/arena`
+  - `/auto`
+  - `/memory`
+  - `/mint`
+  - `/status`
+  - `/settings`
+  - `/next`
+  - `/prev`
+  - `/help`
+- added direct token switching:
+  - `@123`
+  - `#123`
+- combined form such as `@123 /mine` now works as a local terminal action open
+- safe guard added for `@123 hello`:
+  - terminal switches to that NFA first
+  - then asks the user to send the text again
+  - this avoids accidentally sending the old NFA's memory/history context to the backend
+
+2. World/receipt cards can now open terminal actions directly
+- file: `frontend/src/components/terminal/TerminalHome.tsx`
+- `world` and `receipt` cards no longer depend on explorer-style links only
+- if a card carries `cta.intent`, the UI now renders a button that opens the matching terminal action panel in place
+
+3. Proactive terminal events are stronger now
+- files:
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - `frontend/src/components/terminal/useTerminalAutonomy.ts`
+  - `frontend/src/components/terminal/useTerminalWorld.ts`
+- autonomy status now refreshes every 20s
+- world summary now refreshes every 30s
+- terminal now emits ambient cards when:
+  - a new recent autonomy action appears
+  - a new world active event appears
+- these cards are deduplicated per selected NFA so they do not spam the stream on every render
+
+4. Composer hint updated
+- file: `frontend/src/components/terminal/TerminalHome.tsx`
+- placeholder now hints at the command grammar:
+  - `去挖矿 /arena /auto /memory @12`
+
+Validation completed:
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`
+
+State after this pass:
+
+- terminal input now supports both natural-language intent and explicit command-mode usage
+- proactive event surfacing is no longer only the initial SSE seed
+- the terminal shell is closer to the `new/` target of "conversation first, action cards second, legacy pages nowhere"
 
 ## Legacy page cleanup and terminal receipt tightening - 2026-04-21 session 56
 

@@ -1,6 +1,73 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-21 (session 56) Asia/Singapore
+Last updated: 2026-04-21 (session 57) Asia/Singapore
+
+## Terminal command grammar and proactive events - 2026-04-21 session 57
+
+Accepted product rule:
+
+- terminal input should support both natural-language intent and explicit command-mode control
+- power users should be able to switch NFA and open action panels without waiting on AI intent parsing
+- proactive event flow should not depend only on the first load; important world/autonomy updates should surface while the terminal stays open
+
+What is now implemented:
+
+1. Slash command layer
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- supported:
+  - `/mine`
+  - `/arena`
+  - `/auto`
+  - `/memory`
+  - `/mint`
+  - `/status`
+  - `/settings`
+  - `/next`
+  - `/prev`
+  - `/help`
+
+2. Direct NFA switching from the composer
+- `@123`
+- `#123`
+- `@123 /mine` style combined commands supported
+- plain text after a switch token no longer risks being sent under the wrong NFA context
+
+3. Intent buttons from world/receipt cards
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- `world` and `receipt` cards can now carry `cta.intent`
+- the shell opens terminal actions directly from those cards instead of relying only on href links
+
+4. Stronger live-event feeling
+- `frontend/src/components/terminal/useTerminalAutonomy.ts`
+- `frontend/src/components/terminal/useTerminalWorld.ts`
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- world summary now refreshes on a timer
+- autonomy summary now refreshes on a timer
+- new ambient cards appear for:
+  - latest autonomy action
+  - latest world active event
+- terminal deduplicates these cards per selected NFA so the stream stays clean
+
+5. Terminal command discoverability
+- composer placeholder now teaches the hybrid grammar:
+  - natural language
+  - slash commands
+  - direct token switch
+
+Validation:
+
+- TypeScript: passed
+- Production build: passed
+- Diff whitespace check: passed
+
+Remaining after this pass:
+
+1. PK / Battle Royale / autonomy advanced internals still need one more full terminal-native interaction pass
+2. Proactive narration can still get richer
+- unread/event pacing
+- more "the NFA speaks first" moments
+- less debug-feeling state exposure
+3. The final Claude Design visual pass is still separate from this functionality closure work
 
 ## Legacy-shell reduction and mining result flow cleanup - 2026-04-21 session 56
 

@@ -49,25 +49,36 @@ export function useTerminalWorld() {
 
   useEffect(() => {
     let cancelled = false;
+    let interval: number | null = null;
 
     setState((current) => ({ ...current, isLoading: true, error: null }));
 
-    readJson<WorldSummary>('/api/world/summary')
-      .then((summary) => {
-        if (cancelled) return;
-        setState({ summary, isLoading: false, error: null });
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setState({
-          summary: null,
-          isLoading: false,
-          error: error instanceof Error ? error.message : 'World request failed',
+    const load = (showLoading: boolean) => {
+      if (showLoading) {
+        setState((current) => ({ ...current, isLoading: true, error: null }));
+      }
+
+      readJson<WorldSummary>('/api/world/summary')
+        .then((summary) => {
+          if (cancelled) return;
+          setState({ summary, isLoading: false, error: null });
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          setState((current) => ({
+            summary: current.summary,
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'World request failed',
+          }));
         });
-      });
+    };
+
+    load(true);
+    interval = window.setInterval(() => load(false), 30000);
 
     return () => {
       cancelled = true;
+      if (interval) window.clearInterval(interval);
     };
   }, []);
 

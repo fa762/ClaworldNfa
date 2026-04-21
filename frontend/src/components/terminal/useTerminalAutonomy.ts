@@ -69,6 +69,7 @@ export function useTerminalAutonomy(tokenId?: bigint) {
 
   useEffect(() => {
     let cancelled = false;
+    let interval: number | null = null;
 
     if (!token) {
       setState(INITIAL_STATE);
@@ -77,22 +78,32 @@ export function useTerminalAutonomy(tokenId?: bigint) {
 
     setState((current) => ({ ...current, isLoading: true, error: null }));
 
-    readJson<AutonomyStatus>(`/api/autonomy/${token}/status`)
-      .then((status) => {
-        if (cancelled) return;
-        setState({ status, isLoading: false, error: null });
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setState({
-          status: null,
-          isLoading: false,
-          error: error instanceof Error ? error.message : 'Autonomy request failed',
+    const load = (showLoading: boolean) => {
+      if (showLoading) {
+        setState((current) => ({ ...current, isLoading: true, error: null }));
+      }
+
+      readJson<AutonomyStatus>(`/api/autonomy/${token}/status`)
+        .then((status) => {
+          if (cancelled) return;
+          setState({ status, isLoading: false, error: null });
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          setState((current) => ({
+            status: current.status,
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Autonomy request failed',
+          }));
         });
-      });
+    };
+
+    load(true);
+    interval = window.setInterval(() => load(false), 20000);
 
     return () => {
       cancelled = true;
+      if (interval) window.clearInterval(interval);
     };
   }, [token]);
 

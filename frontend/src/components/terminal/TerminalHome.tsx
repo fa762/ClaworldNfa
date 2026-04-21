@@ -130,6 +130,160 @@ function normalizeRouteAction(value: string | null): TerminalActionIntent | null
   return null;
 }
 
+type LocalTerminalCommand =
+  | { kind: 'help'; tokenId?: bigint }
+  | { kind: 'next' }
+  | { kind: 'prev' }
+  | { kind: 'switch'; tokenId: bigint }
+  | { kind: 'open'; action: TerminalActionIntent; tokenId?: bigint; memoryText?: string }
+  | { kind: 'send'; content: string; tokenId?: bigint };
+
+function parseLeadingTokenSwitch(input: string, ownedTokens: bigint[]) {
+  const match = input.match(/^\s*(?:@|#)(\d+)\b\s*/);
+  if (!match) return { tokenId: undefined, rest: input.trim() };
+  const tokenId = BigInt(match[1]);
+  if (!ownedTokens.some((item) => item === tokenId)) {
+    return { tokenId: undefined, rest: input.trim() };
+  }
+  return {
+    tokenId,
+    rest: input.slice(match[0].length).trim(),
+  };
+}
+
+function parseLocalTerminalCommand(input: string, ownedTokens: bigint[]): LocalTerminalCommand {
+  const trimmed = input.trim();
+  const switched = parseLeadingTokenSwitch(trimmed, ownedTokens);
+  const content = switched.rest;
+
+  if (!content) {
+    if (switched.tokenId !== undefined) return { kind: 'switch', tokenId: switched.tokenId };
+    return { kind: 'help' };
+  }
+
+  if (!content.startsWith('/')) {
+    return { kind: 'send', content, tokenId: switched.tokenId };
+  }
+
+  const [rawCommand, ...restParts] = content.slice(1).split(/\s+/);
+  const command = rawCommand.toLowerCase();
+  const rest = restParts.join(' ').trim();
+
+  if (command === 'help' || command === 'h') return { kind: 'help', tokenId: switched.tokenId };
+  if (command === 'next') return { kind: 'next' };
+  if (command === 'prev' || command === 'previous') return { kind: 'prev' };
+  if (command === 'status' || command === 'state') return { kind: 'open', action: 'status', tokenId: switched.tokenId };
+  if (command === 'settings' || command === 'model' || command === 'byok') return { kind: 'open', action: 'settings', tokenId: switched.tokenId };
+  if (command === 'mint') return { kind: 'open', action: 'mint', tokenId: switched.tokenId };
+  if (command === 'mine' || command === 'mining' || command === 'task') return { kind: 'open', action: 'mining', tokenId: switched.tokenId };
+  if (command === 'arena' || command === 'pk' || command === 'br' || command === 'battle') return { kind: 'open', action: 'arena', tokenId: switched.tokenId };
+  if (command === 'auto' || command === 'proxy' || command === 'autonomy') return { kind: 'open', action: 'auto', tokenId: switched.tokenId };
+  if (command === 'memory' || command === 'remember' || command === 'cml') {
+    return { kind: 'open', action: 'memory', tokenId: switched.tokenId, memoryText: rest || undefined };
+  }
+
+  return { kind: 'send', content: rest ? `${command} ${rest}` : command, tokenId: switched.tokenId };
+}
+
+function buildLocalCommandCards(command: LocalTerminalCommand): TerminalCard[] {
+  if (command.kind === 'help') {
+    return [
+      {
+        id: `local-help-${Date.now()}`,
+        type: 'receipt',
+        label: '终端命令',
+        title: '直接输命令也可以',
+        body: '常用命令都能直接开动作，不用先聊一轮。',
+        details: [
+          { label: '/mine', value: '打开挖矿', tone: 'growth' },
+          { label: '/arena', value: '打开竞技', tone: 'warm' },
+          { label: '/auto', value: '打开代理', tone: 'cool' },
+          { label: '/memory', value: '写长期记忆' },
+          { label: '@123', value: '切到 #123' },
+          { label: '/next', value: '切下一只' },
+        ],
+      },
+    ];
+  }
+
+  if (command.kind === 'switch') {
+    return [
+      {
+        id: `local-switch-${command.tokenId.toString()}-${Date.now()}`,
+        type: 'message',
+        role: 'system',
+        label: '切换',
+        title: '',
+        body: `已切到 #${command.tokenId.toString()}`,
+        tone: 'cool',
+        meta: '刚刚',
+      },
+    ];
+  }
+
+  if (command.kind === 'next') {
+    return [
+      {
+        id: `local-next-${Date.now()}`,
+        type: 'message',
+        role: 'system',
+        label: '切换',
+        title: '',
+        body: '已切到下一只 NFA',
+        tone: 'cool',
+        meta: '刚刚',
+      },
+    ];
+  }
+
+  if (command.kind === 'prev') {
+    return [
+      {
+        id: `local-prev-${Date.now()}`,
+        type: 'message',
+        role: 'system',
+        label: '切换',
+        title: '',
+        body: '已切到上一只 NFA',
+        tone: 'cool',
+        meta: '刚刚',
+      },
+    ];
+  }
+
+  if (command.kind === 'open') {
+    const label =
+      command.action === 'mining'
+        ? '挖矿'
+        : command.action === 'arena'
+          ? '竞技'
+          : command.action === 'auto'
+            ? '代理'
+            : command.action === 'memory'
+              ? '记忆'
+              : command.action === 'mint'
+                ? '铸造'
+                : command.action === 'settings'
+                  ? '模型设置'
+                  : '状态';
+
+    return [
+      {
+        id: `local-open-${command.action}-${Date.now()}`,
+        type: 'message',
+        role: 'nfa',
+        label: '回复',
+        title: '',
+        body: `行，直接看${label}。`,
+        tone: command.action === 'auto' || command.action === 'settings' ? 'cool' : 'warm',
+        meta: '刚刚',
+      },
+    ];
+  }
+
+  return [];
+}
+
 function ConnectWall() {
   return (
     <div className={styles.connectShell}>
@@ -206,6 +360,7 @@ export function TerminalHome() {
   const streamRef = useRef<HTMLDivElement | null>(null);
   const streamEndRef = useRef<HTMLDivElement | null>(null);
   const routeActionRef = useRef<string | null>(null);
+  const ambientEventIdsRef = useRef<Set<string>>(new Set());
 
   const baseCards = useMemo(
     () => buildBaseFeed(companion, terminalNfas.detail, terminalMemory),
@@ -321,6 +476,10 @@ export function TerminalHome() {
   }, [address]);
 
   useEffect(() => {
+    ambientEventIdsRef.current = new Set();
+  }, [companion.tokenId]);
+
+  useEffect(() => {
     if (!companion.hasToken || typeof window === 'undefined') return;
 
     const url = new URL(window.location.href);
@@ -395,6 +554,45 @@ export function TerminalHome() {
     ]);
     setDraft('');
 
+    const localCommand = parseLocalTerminalCommand(content, companion.ownedTokens);
+    if (localCommand.kind !== 'send') {
+      if (localCommand.kind === 'switch') {
+        companion.selectCompanion(localCommand.tokenId);
+      }
+      if (localCommand.kind === 'next') {
+        companion.selectNext();
+      }
+      if (localCommand.kind === 'prev') {
+        companion.selectPrevious();
+      }
+      if ('tokenId' in localCommand && localCommand.tokenId !== undefined && localCommand.kind !== 'switch') {
+        companion.selectCompanion(localCommand.tokenId);
+      }
+      if (localCommand.kind === 'open') {
+        if (localCommand.memoryText) setMemoryCandidate(localCommand.memoryText);
+        openAction(localCommand.action, { silent: true });
+      }
+      localChat.appendCards(buildLocalCommandCards(localCommand));
+      return;
+    }
+
+    if (localCommand.tokenId !== undefined && localCommand.tokenId !== companion.tokenId) {
+      companion.selectCompanion(localCommand.tokenId);
+      localChat.appendCards([
+        {
+          id: `switch-before-send-${localCommand.tokenId.toString()}-${Date.now()}`,
+          type: 'message',
+          role: 'system',
+          label: '切换',
+          title: '',
+          body: `已切到 #${localCommand.tokenId.toString()}，继续把这句话发给它。`,
+          tone: 'cool',
+          meta: '刚刚',
+        },
+      ]);
+      return;
+    }
+
     if (chatEngine.preferredMode === 'byok' && !chatEngine.engine) {
       localChat.appendCards([
         {
@@ -420,7 +618,7 @@ export function TerminalHome() {
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          content,
+          content: localCommand.content,
           owner: companion.ownerAddress,
           history: cards.slice(-12),
           engine: chatEngine.engine ?? undefined,
@@ -565,6 +763,54 @@ export function TerminalHome() {
     { label: '代理', value: '开代理', icon: Bot, tone: styles.cool },
     { label: '记忆', value: '看记忆', icon: Brain, tone: styles.alert },
   ] as const;
+
+  useEffect(() => {
+    const latestAction = terminalAutonomy.status?.recentActions?.[0];
+    if (!latestAction) return;
+    const eventId = `ambient-autonomy-${latestAction.id}`;
+    if (ambientEventIdsRef.current.has(eventId)) return;
+    ambientEventIdsRef.current.add(eventId);
+    localChat.appendCards([
+      {
+        id: eventId,
+        type: 'receipt',
+        label: '代理结果',
+        title: latestAction.status === 'success' ? '刚执行了一次代理动作' : '刚结束了一次代理动作',
+        body: latestAction.summary,
+        details: [
+          { label: '类型', value: latestAction.skill === 'battle_royale' ? '大逃杀' : latestAction.skill === 'pk' ? 'PK' : '任务', tone: 'cool' },
+          { label: '状态', value: latestAction.status === 'success' ? '完成' : latestAction.status === 'failed' ? '失败' : '进行中', tone: latestAction.status === 'success' ? 'growth' : latestAction.status === 'failed' ? 'alert' : 'warm' },
+          { label: '花费', value: latestAction.costCLW || '--' },
+          { label: '结果', value: latestAction.rewardCLW || '--', tone: 'growth' },
+        ],
+        cta: { label: '打开代理', intent: 'auto' },
+      },
+    ]);
+  }, [localChat, terminalAutonomy.status?.recentActions]);
+
+  useEffect(() => {
+    const activeWorldEvent = terminalWorld.summary?.activeEvents?.[0];
+    if (!activeWorldEvent) return;
+    const eventId = `ambient-world-${activeWorldEvent.key}`;
+    if (ambientEventIdsRef.current.has(eventId)) return;
+    ambientEventIdsRef.current.add(eventId);
+    localChat.appendCards([
+      {
+        id: eventId,
+        type: 'world',
+        label: '世界',
+        title: activeWorldEvent.label,
+        body: '这轮世界状态已经变了，先看倍率和当前局面，再决定要不要动。',
+        details: [
+          { label: '事件', value: activeWorldEvent.label, tone: activeWorldEvent.tone },
+          { label: '大逃杀', value: battleRoyaleSummary?.matchId ? `#${battleRoyaleSummary.matchId}` : '--' },
+          { label: '人数', value: battleRoyaleSummary ? `${battleRoyaleSummary.players}/${battleRoyaleSummary.triggerCount || 10}` : '--' },
+          { label: '奖池', value: battleRoyaleSummary ? formatCLW(BigInt(battleRoyaleSummary.potCLW)) : '--', tone: 'warm' },
+        ],
+        cta: { label: '打开竞技', intent: 'arena' },
+      },
+    ]);
+  }, [battleRoyaleSummary, localChat, terminalWorld.summary?.activeEvents]);
 
   return (
     <div ref={rootRef} className={styles.root} style={{ ['--accent-color' as any]: accentColor }}>
@@ -802,6 +1048,11 @@ export function TerminalHome() {
                             {card.cta.label}
                             <ArrowRight size={14} />
                           </Link>
+                        ) : card.cta?.intent ? (
+                          <button type="button" className={styles.statusLink} onClick={() => openAction(card.cta!)}>
+                            {card.cta.label}
+                            <ArrowRight size={14} />
+                          </button>
                         ) : null}
                       </div>
                       <div className={styles.messageBody}>
@@ -833,6 +1084,11 @@ export function TerminalHome() {
                           {card.cta.label}
                           <ExternalLink size={14} />
                         </Link>
+                      ) : card.cta?.intent ? (
+                        <button type="button" className={styles.statusLink} onClick={() => openAction(card.cta!)}>
+                          {card.cta.label}
+                          <ArrowRight size={14} />
+                        </button>
                       ) : null}
                     </div>
                     <div className={styles.messageBody}>
@@ -914,7 +1170,7 @@ export function TerminalHome() {
                   className={styles.composerInput}
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
-                  placeholder="例如：去挖矿 / 打一场 PK / 看大逃杀 / 开代理"
+                  placeholder="例如：去挖矿 /arena /auto /memory @12"
                   disabled={isSending}
                 />
                 <button type="submit" className={styles.composerSendButton} disabled={isSending}>
