@@ -897,7 +897,12 @@ export function TerminalHome() {
                   memory={terminalMemory}
                   memoryCandidate={memoryCandidate}
                   onClose={() => setActiveAction(null)}
-                  onReceipt={(card) => localChat.appendCards([card])}
+                  onReceipt={(card) => {
+                    localChat.appendCards([card]);
+                    if (activeAction === 'mining') {
+                      setActiveAction(null);
+                    }
+                  }}
                 />
               ) : null}
               <div ref={streamEndRef} />

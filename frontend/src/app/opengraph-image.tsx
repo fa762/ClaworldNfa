@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'CLAW WORLD TERMINAL';
+export const alt = 'ClaworldNfa';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -79,7 +79,7 @@ export default function Image() {
               marginBottom: 18,
             }}
           >
-            CLAW WORLD
+            CLAWORLDNFA
           </div>
           <div
             style={{

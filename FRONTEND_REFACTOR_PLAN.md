@@ -3823,3 +3823,37 @@ For this rewrite, every meaningful decision or completed step should be written 
 - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
 - `npm run build`
 - `git diff --check`
+
+## 2026-04-21 Brand title and legacy-route shutdown
+
+### What closed in this pass
+
+- page title, install metadata, and OG label now use `ClaworldNfa`
+- legacy route surfaces are no longer reachable as standalone old-shell pages
+  - `/game`
+  - `/openclaw`
+  - `/guide`
+  - `/lore`
+  - `/nfa`
+  - `/nfa/[id]`
+- mining success no longer leaves the user staring at the preview card
+  - once the receipt returns, the terminal closes the mining panel and leaves the result receipt at the live bottom of the stream
+
+### Files updated
+
+- `frontend/src/app/layout.tsx`
+- `frontend/src/app/manifest.ts`
+- `frontend/src/app/opengraph-image.tsx`
+- `frontend/src/app/game/page.tsx`
+- `frontend/src/app/openclaw/page.tsx`
+- `frontend/src/app/guide/page.tsx`
+- `frontend/src/app/lore/page.tsx`
+- `frontend/src/app/nfa/page.tsx`
+- `frontend/src/app/nfa/[id]/page.tsx`
+- `frontend/src/components/terminal/TerminalHome.tsx`
+
+### Verification
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`

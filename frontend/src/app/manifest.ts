@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Clawworld',
-    short_name: 'Clawworld',
+    name: 'ClaworldNfa',
+    short_name: 'ClaworldNfa',
     description: 'Your lobster companion on BNB Chain.',
     start_url: '/',
     display: 'standalone',

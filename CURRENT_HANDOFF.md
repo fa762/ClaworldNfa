@@ -3902,3 +3902,20 @@ If you need a clean operational path again, create or reuse a clean worktree for
   - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
   - `npm run build`
   - `git diff --check`
+
+## 2026-04-21 Brand title, legacy-route cutoff, mining result flow
+
+- browser title and install metadata now use `ClaworldNfa`
+  - `frontend/src/app/layout.tsx`
+  - `frontend/src/app/manifest.ts`
+  - `frontend/src/app/opengraph-image.tsx`
+- old split pages that could still surface legacy UI are now cut back to the terminal root
+  - `frontend/src/app/game/page.tsx`
+  - `frontend/src/app/openclaw/page.tsx`
+  - `frontend/src/app/guide/page.tsx`
+  - `frontend/src/app/lore/page.tsx`
+  - `frontend/src/app/nfa/page.tsx`
+  - `frontend/src/app/nfa/[id]/page.tsx`
+- mining confirmation flow no longer leaves the user stranded in the preview panel after success
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - when a mining receipt lands, the inline action panel closes and the result receipt becomes the current visible terminal item
