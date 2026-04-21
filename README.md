@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/banner.png" alt="ClaworldNfa banner" width="100%" />
+</p>
+
 # ClaworldNfa
 
 Language / 语言: [English](#english) | [中文](#中文)
