@@ -4072,3 +4072,19 @@ For this rewrite, every meaningful decision or completed step should be written 
 pm exec tsc -- --noEmit --project frontend/tsconfig.json`n- 
 pm run build`n- git diff --check
 
+## 2026-04-21 Stability patch: terminal hook order
+
+### Closed
+
+- fixed the remaining production crash after wallet connect and NFA hydration
+- root cause was hook-order instability inside `frontend/src/components/terminal/TerminalHome.tsx`
+  - two ambient-event `useEffect` hooks were below the early returns
+  - the component rendered fewer hooks before NFA hydration and more hooks after hydration
+  - this matched React production error `#310`
+- moved the early returns below the full hook block so terminal render order stays stable
+
+### Verification
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`

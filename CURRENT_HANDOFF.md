@@ -4139,3 +4139,30 @@ If you need a clean operational path again, create or reuse a clean worktree for
 pm exec tsc -- --noEmit --project frontend/tsconfig.json`n  - 
 pm run build`n  - git diff --check
 
+## 2026-04-21 TerminalHome hook-order crash fix
+
+### What closed in this pass
+
+- root cause of the remaining desktop `Application error` after wallet connect:
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - two ambient-event `useEffect` hooks were placed after the early returns for:
+    - disconnected wallet
+    - loading without an owned NFA
+    - no owned NFA
+  - that made the component render fewer hooks on one pass and more hooks on the next pass once NFA state finished loading
+  - in production this surfaced as React minified error `#310`
+- fix applied:
+  - moved the early returns below the full hook block
+  - `TerminalHome` now keeps a stable hook order through wallet connect and NFA hydration
+
+### Files updated
+
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- `CURRENT_HANDOFF.md`
+- `FRONTEND_REFACTOR_PLAN.md`
+
+### Verification
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`

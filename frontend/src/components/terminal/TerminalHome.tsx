@@ -524,18 +524,6 @@ export function TerminalHome() {
     window.history.replaceState(null, '', `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`);
   }, [companion.hasToken, companion.tokenId]);
 
-  if (!isConnected || !address) {
-    return <ConnectWall />;
-  }
-
-  if (companion.isLoading && !companion.hasToken) {
-    return <CompanionLoadingState />;
-  }
-
-  if (!companion.hasToken) {
-    return <NoCompanionState />;
-  }
-
   function requestWalletConnect() {
     const inj = connectors.find((connector) => connector.type === 'injected');
     const wc = connectors.find((connector) => connector.name === 'WalletConnect');
@@ -832,6 +820,18 @@ export function TerminalHome() {
       },
     ]);
   }, [battleRoyaleSummary, localChat, terminalWorld.summary?.activeEvents]);
+
+  if (!isConnected || !address) {
+    return <ConnectWall />;
+  }
+
+  if (companion.isLoading && !companion.hasToken) {
+    return <CompanionLoadingState />;
+  }
+
+  if (!companion.hasToken) {
+    return <NoCompanionState />;
+  }
 
   return (
     <div ref={rootRef} className={styles.root} style={{ ['--accent-color' as any]: accentColor }}>
