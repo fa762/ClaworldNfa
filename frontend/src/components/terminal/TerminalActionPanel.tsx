@@ -12,6 +12,8 @@ import { useBattleRoyaleParticipantState } from '@/components/lobster/useBattleR
 import type { ActiveCompanionValue } from '@/components/lobster/useActiveCompanion';
 import { MintPanel } from '@/components/mint/MintPanel';
 import { AutonomyPanel } from '@/components/nfa/AutonomyPanel';
+import { TerminalFinancePanel } from '@/components/terminal/TerminalFinancePanel';
+import { TerminalMarketPanel } from '@/components/terminal/TerminalMarketPanel';
 import { TerminalMemoryPanel as TerminalMemoryPanelCard, type TerminalMemoryController } from '@/components/terminal/TerminalMemoryPanel';
 import { TerminalSettingsPanel } from '@/components/terminal/TerminalSettingsPanel';
 import { ClawNFAABI } from '@/contracts/abis/ClawNFA';
@@ -1215,6 +1217,20 @@ export function TerminalActionPanel({
     return (
       <div className={styles.actionPanelWrap}>
         <TerminalMemoryPanelCard companion={companion} memory={memory} memoryCandidate={memoryCandidate} onClose={onClose} onReceipt={onReceipt} />
+      </div>
+    );
+  }
+  if (action === 'finance') {
+    return (
+      <div className={styles.actionPanelWrap}>
+        <TerminalFinancePanel companion={companion} onClose={onClose} onReceipt={onReceipt} />
+      </div>
+    );
+  }
+  if (action === 'market') {
+    return (
+      <div className={styles.actionPanelWrap}>
+        <TerminalMarketPanel companion={companion} onClose={onClose} onReceipt={onReceipt} />
       </div>
     );
   }

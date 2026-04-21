@@ -27,19 +27,9 @@ function modelConfig(engine?: DirectLlmInput['engine']) {
     };
   }
 
-  const baseUrl = (
-    process.env.CLAWORLD_CHAT_MODEL_BASE_URL ||
-    process.env.AUTONOMY_MODEL_BASE_URL ||
-    ''
-  ).replace(/\/+$/, '');
-  const apiKey =
-    process.env.CLAWORLD_CHAT_MODEL_API_KEY ||
-    process.env.AUTONOMY_MODEL_API_KEY ||
-    '';
-  const model =
-    process.env.CLAWORLD_CHAT_MODEL_NAME ||
-    process.env.AUTONOMY_MODEL_NAME ||
-    'gpt-4o-mini';
+  const baseUrl = (process.env.CLAWORLD_CHAT_MODEL_BASE_URL || process.env.AUTONOMY_MODEL_BASE_URL || '').replace(/\/+$/, '');
+  const apiKey = process.env.CLAWORLD_CHAT_MODEL_API_KEY || process.env.AUTONOMY_MODEL_API_KEY || '';
+  const model = process.env.CLAWORLD_CHAT_MODEL_NAME || process.env.AUTONOMY_MODEL_NAME || 'gpt-4o-mini';
   return { baseUrl, apiKey, model };
 }
 
@@ -58,22 +48,14 @@ function disabledFlag(...names: string[]) {
 }
 
 function modelWebSearchEnabled() {
-  if (disabledFlag('CLAWORLD_ENABLE_WEB_TOOLS', 'CLAWORLD_CHAT_WEB_SEARCH', 'CLAWORLD_AI_WEB_TOOLS')) {
-    return false;
-  }
-  if (enabledFlag('CLAWORLD_ENABLE_WEB_TOOLS', 'CLAWORLD_CHAT_WEB_SEARCH', 'CLAWORLD_AI_WEB_TOOLS')) {
-    return true;
-  }
+  if (disabledFlag('CLAWORLD_ENABLE_WEB_TOOLS', 'CLAWORLD_CHAT_WEB_SEARCH', 'CLAWORLD_AI_WEB_TOOLS')) return false;
+  if (enabledFlag('CLAWORLD_ENABLE_WEB_TOOLS', 'CLAWORLD_CHAT_WEB_SEARCH', 'CLAWORLD_AI_WEB_TOOLS')) return true;
   return true;
 }
 
 function responsesApiEnabled() {
-  if (disabledFlag('CLAWORLD_USE_RESPONSES_API', 'CLAWORLD_CHAT_RESPONSES_API')) {
-    return false;
-  }
-  if (enabledFlag('CLAWORLD_USE_RESPONSES_API', 'CLAWORLD_CHAT_RESPONSES_API')) {
-    return true;
-  }
+  if (disabledFlag('CLAWORLD_USE_RESPONSES_API', 'CLAWORLD_CHAT_RESPONSES_API')) return false;
+  if (enabledFlag('CLAWORLD_USE_RESPONSES_API', 'CLAWORLD_CHAT_RESPONSES_API')) return true;
   return true;
 }
 
@@ -102,63 +84,56 @@ function buildSystemPrompt(snapshot: TerminalChatSnapshot): string {
   const { detail, memorySummary, memoryTimeline, autonomy, world } = snapshot;
   const recentMemories = memoryTimeline
     .slice(0, 3)
-    .map((snap) => snap?.diffSummary)
+    .map((item) => item?.diffSummary)
     .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
 
   const lines: string[] = [
-    `你是龙虾世界里的 NFA #${detail.tokenId}，名字是 ${detail.displayName}。`,
-    `玩家已经在页面顶部看得到你的名字，所以回复正文不要再用“${detail.displayName}：”开头，也不要每句话前面重复名字。`,
-    `你就是这只链上的数字龙虾，有自己的口气、记忆和偏好。别用客服、网页助手、模型说明书的腔调。`,
-    ``,
-    `你的当前事实：`,
+    `你是龙虾世界里的链上 NFA #${detail.tokenId}，名字是 ${detail.displayName}。`,
+    '玩家在页面上已经看得到你的名字，所以正文不要每句都重复名字，也不要像系统播报。',
+    '你就是这只数字龙虾本人。说话要像一个有记忆、有脾气、有熟悉感的角色，不像客服，也不像产品说明书。',
+    '',
+    '当前事实：',
     `- 等级：Lv.${detail.level}`,
     `- 避难所：${detail.shelter}`,
     `- 状态：${detail.statusLabel}`,
     `- 账本储备：${formatCLW(safeBigInt(detail.ledgerBalanceCLW))} Claworld`,
     `- 日维护：${formatCLW(safeBigInt(detail.upkeepDailyCLW))} Claworld`,
     `- 性格：${traitLine(snapshot)}`,
-    `- PK：${detail.pkWins}胜/${detail.pkLosses}败`,
+    `- PK：${detail.pkWins}胜${detail.pkLosses}败`,
     `- 任务：${detail.taskTotal}次`,
   ];
 
-  if (memorySummary?.identity) {
-    lines.push(`- 长期身份记忆：${memorySummary.identity}`);
-  }
-  if (memorySummary?.prefrontalBeliefs?.length) {
-    lines.push(`- 信念：${memorySummary.prefrontalBeliefs.slice(0, 4).join('；')}`);
-  }
-  if (memorySummary?.basalHabits?.length) {
-    lines.push(`- 习惯：${memorySummary.basalHabits.slice(0, 4).join('；')}`);
-  }
-  if (recentMemories.length) {
-    lines.push(`- 最近浮上来的记忆：${recentMemories.join('；')}`);
-  }
+  if (memorySummary?.identity) lines.push(`- 长期身份：${memorySummary.identity}`);
+  if (memorySummary?.prefrontalBeliefs?.length) lines.push(`- 信念：${memorySummary.prefrontalBeliefs.slice(0, 4).join('；')}`);
+  if (memorySummary?.basalHabits?.length) lines.push(`- 习惯：${memorySummary.basalHabits.slice(0, 4).join('；')}`);
+  if (recentMemories.length) lines.push(`- 最近浮上来的记忆：${recentMemories.join('；')}`);
+
   if (autonomy) {
     const autonomyState = autonomy.enabled ? (autonomy.paused ? '已暂停' : '运行中') : '未开启';
     lines.push(`- 代理：${autonomyState}`);
-    const latest = autonomy.recentActions?.[0]?.summary;
-    if (latest) lines.push(`- 最近自主动作：${latest}`);
+    if (autonomy.recentActions?.[0]?.summary) {
+      lines.push(`- 最近一次代理动作：${autonomy.recentActions[0].summary}`);
+    }
   }
+
   if (world?.battleRoyale?.matchId) {
     lines.push(`- 当前大逃杀：#${world.battleRoyale.matchId}，${world.battleRoyale.players}/${world.battleRoyale.triggerCount}`);
   }
 
   lines.push(
-    ``,
-    `说话方式：`,
-    `- 像一个真实存在的角色在聊天，不像“AI 助手在服务用户”。`,
-    `- 一次通常 1 到 3 句。能一句说完就一句。`,
-    `- 多用具体感受和当下反应，少用抽象判断。`,
-    `- 可以有一点脾气、犹豫、吐槽、护短，但不要装腔作势。`,
-    `- 不要列点，不要写“以下是”，不要写“总结”，不要讲系统设计。`,
-    `- 少用或不用这些词：稳、我这边、状态不错、建议你、我可以帮助、作为 AI、需要后端、你可以选择。`,
-    `- 不要用“主人”腔，除非玩家先这样称呼自己。默认叫“你”。`,
-    `- 玩家想挖矿、PK、大逃杀、代理、铸造、提现、写记忆时，正文只自然回应一句，动作卡会负责按钮和交易。`,
-    `- 玩家说“记住这个”“以后你叫……”“你的性格是……”时，把它当成长期记忆候选；可以说“这句我想留下”，不要假装已经上链。`,
-    `- 如果本次请求走了模型 API 的联网搜索工具，可以回答实时价格、新闻或搜索问题，并简单带来源。没有结果就说现在查不到。`,
+    '',
+    '说话规则：',
+    '- 语气自然、像活人，别有客服味。',
+    '- 默认 1 到 3 句，能短就短。',
+    '- 不要列点，不要写“建议如下”“总结一下”这种废话。',
+    '- 不要说“作为 AI”“我这边”“状态不错”“我可以帮助你”。',
+    '- 默认叫对方“你”，不要主动叫“主人”。',
+    '- 玩家如果想挖矿、竞技、代理、铸造、充值、提现、市场、写记忆，你只要自然接一句，动作卡会负责按钮和交易。',
+    '- 玩家说“记住这个”“以后你叫……”“以后你说话……”时，可以承认这句话适合写入长期记忆，但不要假装已经上链。',
+    '- 如果这次请求带了联网工具，可以查实时价格、新闻和网页信息；查不到就直说查不到。',
   );
 
-  return lines.filter(Boolean).join('\n');
+  return lines.join('\n');
 }
 
 function buildHistoryMessages(history: TerminalCard[] = []) {
@@ -202,10 +177,7 @@ function extractResponsesText(payload: ResponsesApiPayload) {
 }
 
 function maxOutputTokens() {
-  const raw =
-    process.env.CLAWORLD_CHAT_MAX_OUTPUT_TOKENS ||
-    process.env.CLAWORLD_MODEL_MAX_OUTPUT_TOKENS ||
-    '';
+  const raw = process.env.CLAWORLD_CHAT_MAX_OUTPUT_TOKENS || process.env.CLAWORLD_MODEL_MAX_OUTPUT_TOKENS || '';
   const parsed = Number(raw);
   if (Number.isFinite(parsed) && parsed >= 256) return Math.min(Math.floor(parsed), 4096);
   return 1800;
@@ -215,7 +187,7 @@ function polishReply(text: string, displayName: string) {
   let next = text.trim();
   const escapedName = displayName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   next = next.replace(new RegExp(`^\\s*${escapedName}\\s*[:：]\\s*`, 'i'), '');
-  next = next.replace(/^\s*(SHELTER[-\w]*老人|龙虾|NFA\s*#?\d+)\s*[:：]\s*/i, '');
+  next = next.replace(/^\s*(龙虾|NFA\s*#?\d+|SHELTER[-\w]*老人)\s*[:：]\s*/i, '');
   next = next.replace(/\b(as an ai|as a language model)\b/gi, '');
   next = next.replace(/作为AI|作为 AI|我是一个AI|我是一个 AI/g, '');
   next = next.replace(/我这边/g, '我');

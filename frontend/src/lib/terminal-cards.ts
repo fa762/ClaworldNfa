@@ -1,5 +1,14 @@
 export type TerminalTone = 'warm' | 'cool' | 'growth' | 'alert';
-export type TerminalActionIntent = 'mining' | 'arena' | 'auto' | 'mint' | 'memory' | 'status' | 'settings';
+export type TerminalActionIntent =
+  | 'mining'
+  | 'arena'
+  | 'auto'
+  | 'mint'
+  | 'memory'
+  | 'status'
+  | 'settings'
+  | 'finance'
+  | 'market';
 
 export type TerminalDetailRow = {
   label: string;
@@ -67,7 +76,17 @@ function isTone(value: unknown): value is TerminalTone {
 }
 
 function isIntent(value: unknown): value is TerminalActionIntent {
-  return value === 'mining' || value === 'arena' || value === 'auto' || value === 'mint' || value === 'memory' || value === 'status' || value === 'settings';
+  return (
+    value === 'mining' ||
+    value === 'arena' ||
+    value === 'auto' ||
+    value === 'mint' ||
+    value === 'memory' ||
+    value === 'status' ||
+    value === 'settings' ||
+    value === 'finance' ||
+    value === 'market'
+  );
 }
 
 function coerceDetailRow(value: unknown): TerminalDetailRow | null {
@@ -130,12 +149,16 @@ export function coerceTerminalCard(value: unknown): TerminalCard | null {
   }
 
   if (type === 'proposal' || type === 'world' || type === 'receipt') {
-    const details = Array.isArray(card.details) ? card.details.map(coerceDetailRow).filter((item): item is TerminalDetailRow => Boolean(item)) : [];
+    const details = Array.isArray(card.details)
+      ? card.details.map(coerceDetailRow).filter((item): item is TerminalDetailRow => Boolean(item))
+      : [];
     const cta = coerceAction(card.cta);
     if (!label && !title && !body) return null;
 
     if (type === 'proposal') {
-      const actions = Array.isArray(card.actions) ? card.actions.map(coerceAction).filter((item): item is TerminalProposalAction => Boolean(item)) : [];
+      const actions = Array.isArray(card.actions)
+        ? card.actions.map(coerceAction).filter((item): item is TerminalProposalAction => Boolean(item))
+        : [];
       if (!actions.length) return null;
       return {
         id,

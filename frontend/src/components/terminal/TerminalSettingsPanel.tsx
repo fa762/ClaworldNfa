@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, KeyRound, LockKeyhole, Server, ShieldCheck, Trash2, Wallet } from 'lucide-react';
+import { LockKeyhole, Server, ShieldCheck } from 'lucide-react';
 import { useAccount } from 'wagmi';
 
 import type { TerminalCard } from '@/lib/terminal-cards';
@@ -10,8 +10,8 @@ import { type ChatEngineDraft, type ChatEngineProviderId, useChatEngine } from '
 import styles from './TerminalHome.module.css';
 
 const PROVIDERS: Array<{ value: ChatEngineProviderId; label: string; hint: string }> = [
-  { value: 'openai', label: 'OpenAI', hint: '适合默认聊天、联网整理和动作意图。' },
-  { value: 'deepseek', label: 'DeepSeek', hint: '便宜，中文也够用。' },
+  { value: 'openai', label: 'OpenAI', hint: '适合日常对话、联网整理和动作意图。' },
+  { value: 'deepseek', label: 'DeepSeek', hint: '更便宜，中文也够用。' },
   { value: 'custom', label: '自定义', hint: '填你自己的 OpenAI 兼容接口。' },
 ];
 
@@ -56,12 +56,12 @@ export function TerminalSettingsPanel({
 
   const modeCopy = useMemo(() => {
     if (engine.activeMode === 'byok' && engine.unlocked) {
-      return '当前对话正在走你的 BYOK。';
+      return '当前对话正在走你自己的模型。';
     }
     if (engine.preferredMode === 'byok' && engine.hasStoredByok && !engine.unlocked) {
-      return '你已经切到 BYOK，但现在还没解锁。';
+      return '你已经切到 BYOK，但当前浏览器还没解锁。';
     }
-    return '当前对话走项目模型。';
+    return '当前对话正在走项目模型。';
   }, [engine.activeMode, engine.hasStoredByok, engine.preferredMode, engine.unlocked]);
 
   async function handleSave() {
@@ -75,7 +75,7 @@ export function TerminalSettingsPanel({
         type: 'receipt',
         label: '模型设置',
         title: 'BYOK 已生效',
-        body: `当前终端会优先使用 ${providerLabel(draft.provider)} / ${draft.model}。`,
+        body: `后续终端会优先走 ${providerLabel(draft.provider)} / ${draft.model}。`,
         details: [
           { label: '模式', value: 'BYOK', tone: 'warm' },
           { label: '提供商', value: providerLabel(draft.provider), tone: 'cool' },
@@ -94,13 +94,13 @@ export function TerminalSettingsPanel({
     setMessage(null);
     try {
       await engine.unlockByok();
-      setMessage('已解锁，终端聊天会直接使用你的模型。');
+      setMessage('已解锁，后续对话会直接用你的模型。');
       onReceipt({
         id: `settings-unlock-${Date.now()}`,
         type: 'receipt',
         label: '模型设置',
         title: 'BYOK 已解锁',
-        body: '当前浏览器里的加密模型配置已经解锁，后续终端消息会直接走你的 Key。',
+        body: '浏览器里加密保存的模型配置已经解锁，本次对话会直接走你的 Key。',
         details: [
           { label: '模式', value: 'BYOK', tone: 'warm' },
           { label: '钱包', value: address ? `${address.slice(0, 8)}...${address.slice(-4)}` : '--', tone: 'cool' },
@@ -122,9 +122,7 @@ export function TerminalSettingsPanel({
       label: '模型设置',
       title: '已切回项目模型',
       body: '浏览器里保存的 BYOK 已清除，终端后续会继续走项目默认模型。',
-      details: [
-        { label: '模式', value: 'PROJECT', tone: 'cool' },
-      ],
+      details: [{ label: '模式', value: '项目模型', tone: 'cool' }],
     });
   }
 
@@ -133,13 +131,12 @@ export function TerminalSettingsPanel({
       <div className={styles.inlineHead}>
         <div className={styles.inlineHeadActions}>
           <button type="button" className={styles.panelButton} onClick={onClose}>
-            <ChevronLeft size={14} />
             返回
           </button>
         </div>
         <div>
           <span>模型设置</span>
-          <strong>只控制终端对话走哪套模型</strong>
+          <strong>这里只控制对话走哪套模型</strong>
         </div>
       </div>
 
@@ -152,19 +149,19 @@ export function TerminalSettingsPanel({
         <div>
           <span>当前钱包</span>
           <strong>{address ? `${address.slice(0, 8)}...${address.slice(-4)}` : '未连接'}</strong>
-          <small className={styles.heroMetaLine}>保存和解锁都要当前钱包签名。</small>
+          <small className={styles.heroMetaLine}>保存和解锁都要当前钱包签名</small>
         </div>
         <div>
           <span>当前引擎</span>
           <strong>{engine.engine ? `${providerLabel(engine.engine.provider)} / ${engine.engine.model}` : '项目后端'}</strong>
-          <small className={styles.heroMetaLine}>链上动作、记忆、结果回执还是走同一条终端链路。</small>
+          <small className={styles.heroMetaLine}>链上动作、记忆和回执仍然走同一条终端链路</small>
         </div>
       </div>
 
       <div className={styles.inlineSummary}>
         <div>
           <span>模式</span>
-          <strong>{engine.activeMode === 'byok' ? 'BYOK' : 'PROJECT'}</strong>
+          <strong>{engine.activeMode === 'byok' ? 'BYOK' : '项目模型'}</strong>
         </div>
         <div>
           <span>已保存</span>
@@ -259,44 +256,22 @@ export function TerminalSettingsPanel({
         />
       </label>
 
-      <div className={styles.inlineNote}>
-        {PROVIDERS.find((item) => item.value === draft.provider)?.hint ?? '当前浏览器里会加密保存你的 Key。'}
-      </div>
-
       <div className={styles.inlineActions}>
-        <button
-          type="button"
-          className={styles.primaryPanelButton}
-          onClick={() => void handleSave()}
-          disabled={!isConnected || isWorking || engine.isBusy}
-        >
-          <KeyRound size={16} />
-          保存并切换
+        <button type="button" className={styles.primaryPanelButton} onClick={() => void handleSave()} disabled={!isConnected || isWorking}>
+          保存并切到 BYOK
         </button>
-        {engine.hasStoredByok ? (
-          <button
-            type="button"
-            className={styles.panelButton}
-            onClick={handleClear}
-            disabled={isWorking || engine.isBusy}
-          >
-            <Trash2 size={16} />
-            清除 BYOK
-          </button>
-        ) : null}
+        <button type="button" className={styles.panelButton} onClick={handleClear} disabled={!engine.hasStoredByok || isWorking}>
+          清除本地 BYOK
+        </button>
       </div>
 
-      {message ? <div className={styles.inlineNote}>{message}</div> : null}
-      <div className={styles.inlineSummary}>
-        <div>
-          <span>说明</span>
-          <strong>这一步只影响聊天模型</strong>
-        </div>
-        <div>
-          <span>动作</span>
-          <strong>仍由终端动作卡处理</strong>
-        </div>
-      </div>
+      {PROVIDERS.map((provider) => (
+        <p key={provider.value} className={styles.inlineNote}>
+          <strong>{provider.label}</strong>：{provider.hint}
+        </p>
+      ))}
+
+      {message ? <p className={message.includes('已') ? styles.panelSuccess : styles.panelError}>{message}</p> : null}
     </section>
   );
 }

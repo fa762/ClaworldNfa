@@ -99,11 +99,11 @@ function shortError(value: string | undefined) {
     .replace(/Docs:\s*https?:\/\/\S+/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
-  if (text.includes('Already entered this match')) return '这只龙虾已经在当前大逃杀里';
+  if (text.includes('Already entered this match')) return '这只 NFA 已经在当前大逃杀里';
   if (text.includes('Insufficient CLW')) return 'NFA 记账余额不够';
   if (text.includes('Not NFA owner')) return '当前钱包不是持有人';
   if (text.includes('Cooldown active')) return '任务还在冷却';
-  if (text.includes('AdapterNotApproved')) return '代理适配器未授权';
+  if (text.includes('AdapterNotApproved')) return '代理适配器还没授权';
   return text.length > 80 ? `${text.slice(0, 79)}…` : text;
 }
 

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { coerceTerminalCard, type TerminalCard } from '@/lib/terminal-cards';
 
 const MAX_LOCAL_CARDS = 80;
-const LOCAL_CHAT_VERSION = 'v3';
+const LOCAL_CHAT_VERSION = 'v6';
 
 function storageKey(token?: string, owner?: string) {
   if (!token || !owner) return null;
@@ -48,8 +48,8 @@ function writeCards(key: string | null, cards: TerminalCard[]) {
     const safeCards = sanitizeCards(cards).slice(-MAX_LOCAL_CARDS);
     window.localStorage.setItem(key, JSON.stringify({ cards: safeCards }));
   } catch {
-    // Local chat history is a convenience cache. If storage is full or blocked,
-    // keep the in-memory session alive and let the next server history refill it.
+    // Local chat history is a convenience cache. If storage is blocked or full,
+    // keep the session alive in memory and let the next server sync refill it.
   }
 }
 

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
@@ -131,6 +131,8 @@ function normalizeRouteAction(value: string | null): TerminalActionIntent | null
   if (key === 'mining' || key === 'mine' || key === 'play' || key === 'task') return 'mining';
   if (key === 'arena' || key === 'pk' || key === 'br' || key === 'battle') return 'arena';
   if (key === 'auto' || key === 'autonomy' || key === 'proxy') return 'auto';
+  if (key === 'finance' || key === 'fund' || key === 'deposit' || key === 'withdraw') return 'finance';
+  if (key === 'market' || key === 'trade') return 'market';
   if (key === 'mint') return 'mint';
   if (key === 'memory' || key === 'cml') return 'memory';
   if (key === 'settings' || key === 'model' || key === 'byok') return 'settings';
@@ -193,6 +195,8 @@ function parseLocalTerminalCommand(input: string, ownedTokens: bigint[]): LocalT
   if (command === 'prev' || command === 'previous') return { kind: 'prev' };
   if (command === 'status' || command === 'state') return { kind: 'open', action: 'status', tokenId: switched.tokenId };
   if (command === 'settings' || command === 'model' || command === 'byok') return { kind: 'open', action: 'settings', tokenId: switched.tokenId };
+  if (command === 'finance' || command === 'fund' || command === 'deposit' || command === 'withdraw') return { kind: 'open', action: 'finance', tokenId: switched.tokenId };
+  if (command === 'market' || command === 'trade') return { kind: 'open', action: 'market', tokenId: switched.tokenId };
   if (command === 'mint') return { kind: 'open', action: 'mint', tokenId: switched.tokenId };
   if (command === 'mine' || command === 'mining' || command === 'task') return { kind: 'open', action: 'mining', tokenId: switched.tokenId };
   if (command === 'arena' || command === 'pk' || command === 'br' || command === 'battle') return { kind: 'open', action: 'arena', tokenId: switched.tokenId };
@@ -217,9 +221,10 @@ function buildLocalCommandCards(command: LocalTerminalCommand): TerminalCard[] {
           { label: '/mine', value: '打开挖矿', tone: 'growth' },
           { label: '/arena', value: '打开竞技', tone: 'warm' },
           { label: '/auto', value: '打开代理', tone: 'cool' },
+          { label: '/finance', value: '打开资金' },
+          { label: '/market', value: '打开市场' },
           { label: '/memory', value: '写长期记忆' },
           { label: '@123', value: '切到 #123' },
-          { label: '/next', value: '切下一只' },
         ],
       },
     ];
@@ -282,6 +287,10 @@ function buildLocalCommandCards(command: LocalTerminalCommand): TerminalCard[] {
               ? '记忆'
               : command.action === 'mint'
                 ? '铸造'
+                : command.action === 'finance'
+                  ? '资金'
+                  : command.action === 'market'
+                    ? '市场'
                 : command.action === 'settings'
                   ? '模型设置'
                   : '状态';
@@ -733,6 +742,8 @@ export function TerminalHome() {
     if (action.href === '/play') return 'mining';
     if (action.href === '/arena') return 'arena';
     if (action.href === '/auto') return 'auto';
+    if (action.href === '/finance') return 'finance';
+    if (action.href === '/market') return 'market';
     if (action.href === '/mint') return 'mint';
     if (action.href === '/settings') return 'settings';
     return null;
@@ -796,32 +807,11 @@ export function TerminalHome() {
     { label: '挖矿', value: '去挖矿', icon: Pickaxe, tone: styles.growth },
     { label: '竞技', value: '看竞技', icon: Swords, tone: styles.warm },
     { label: '代理', value: '开代理', icon: Bot, tone: styles.cool },
+    { label: '资金', value: '补储备', icon: Sparkles, tone: styles.cool },
+    { label: '市场', value: '打开市场', icon: Compass, tone: styles.warm },
     { label: '记忆', value: '看记忆', icon: Brain, tone: styles.alert },
   ] as const;
 
-  useEffect(() => {
-    const latestAction = terminalAutonomy.status?.recentActions?.[0];
-    if (!latestAction) return;
-    const eventId = `ambient-autonomy-${latestAction.id}`;
-    if (ambientEventIdsRef.current.has(eventId)) return;
-    ambientEventIdsRef.current.add(eventId);
-    localChat.appendCards([
-      {
-        id: eventId,
-        type: 'receipt',
-        label: '代理结果',
-        title: latestAction.status === 'success' ? '刚执行了一次代理动作' : '刚结束了一次代理动作',
-        body: latestAction.summary,
-        details: [
-          { label: '类型', value: latestAction.skill === 'battle_royale' ? '大逃杀' : latestAction.skill === 'pk' ? 'PK' : '任务', tone: 'cool' },
-          { label: '状态', value: latestAction.status === 'success' ? '完成' : latestAction.status === 'failed' ? '失败' : '进行中', tone: latestAction.status === 'success' ? 'growth' : latestAction.status === 'failed' ? 'alert' : 'warm' },
-          { label: '花费', value: latestAction.costCLW || '--' },
-          { label: '结果', value: latestAction.rewardCLW || '--', tone: 'growth' },
-        ],
-        cta: { label: '打开代理', intent: 'auto' },
-      },
-    ]);
-  }, [localChat, terminalAutonomy.status?.recentActions]);
 
   useEffect(() => {
     const activeWorldEvent = terminalWorld.summary?.activeEvents?.[0];
@@ -1222,6 +1212,8 @@ export function TerminalHome() {
                       if (label === '挖矿') openAction('mining');
                       if (label === '竞技') openAction('arena');
                       if (label === '代理') openAction('auto');
+                      if (label === '资金') openAction('finance');
+                      if (label === '市场') openAction('market');
                       if (label === '记忆') openAction('memory');
                     }}
                   >
@@ -1236,7 +1228,7 @@ export function TerminalHome() {
                   className={styles.composerInput}
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
-                  placeholder="例如：去挖矿 /arena /auto /memory @12"
+                  placeholder="例如：去挖矿、看竞技、开代理、补储备、打开市场、@12"
                   disabled={isSending}
                 />
                 <button type="submit" className={styles.composerSendButton} disabled={isSending}>
@@ -1244,10 +1236,9 @@ export function TerminalHome() {
                   {isSending ? '整理中' : '发送'}
                 </button>
               </div>
-              {(terminalHistory.error || terminalEvents.error) ? (
+              {terminalHistory.error ? (
                 <div className={styles.composerTips}>
                   {terminalHistory.error ? <span className={styles.commandHint}>历史暂时没接上：{terminalHistory.error}</span> : null}
-                  {terminalEvents.error ? <span className={styles.commandHint}>事件流暂时断开：{terminalEvents.error}</span> : null}
                 </div>
               ) : null}
             </form>

@@ -14,7 +14,14 @@ function writeEvent(event: string, payload: unknown) {
 }
 
 function isActionIntent(intent: CommandIntent) {
-  return intent === 'mining' || intent === 'arena' || intent === 'auto' || intent === 'mint';
+  return (
+    intent === 'mining' ||
+    intent === 'arena' ||
+    intent === 'auto' ||
+    intent === 'mint' ||
+    intent === 'finance' ||
+    intent === 'market'
+  );
 }
 
 function hasActionProposal(cards: TerminalCard[]) {
