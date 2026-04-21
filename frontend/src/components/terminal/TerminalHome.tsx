@@ -26,7 +26,15 @@ import { useChatEngine } from '@/lib/chat-engine';
 import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
 import { MintPanel } from '@/components/mint/MintPanel';
 import { formatCLW, truncateAddress } from '@/lib/format';
-import type { TerminalActionIntent, TerminalCard, TerminalChatStreamEvent, TerminalProposalAction, TerminalTone } from '@/lib/terminal-cards';
+import {
+  coerceTerminalCard,
+  coerceTerminalCards,
+  type TerminalActionIntent,
+  type TerminalCard,
+  type TerminalChatStreamEvent,
+  type TerminalProposalAction,
+  type TerminalTone,
+} from '@/lib/terminal-cards';
 import { TerminalActionPanel } from './TerminalActionPanel';
 import { useTerminalNfas } from './useTerminalNfas';
 import { useTerminalWorld } from './useTerminalWorld';
@@ -149,6 +157,17 @@ function parseLeadingTokenSwitch(input: string, ownedTokens: bigint[]) {
     tokenId,
     rest: input.slice(match[0].length).trim(),
   };
+}
+
+function safeBigInt(value: unknown, fallback = 0n) {
+  try {
+    if (typeof value === 'bigint') return value;
+    if (typeof value === 'string' && /^-?\d+$/.test(value.trim())) return BigInt(value.trim());
+    if (typeof value === 'number' && Number.isFinite(value) && Number.isInteger(value)) return BigInt(value);
+    return fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function parseLocalTerminalCommand(input: string, ownedTokens: bigint[]): LocalTerminalCommand {
@@ -368,7 +387,7 @@ export function TerminalHome() {
   );
   const seedCards = terminalHistory.cards.length ? terminalHistory.cards : baseCards;
   const cards = useMemo(
-    () => [...seedCards, ...terminalEvents.cards, ...localChat.cards],
+    () => coerceTerminalCards([...seedCards, ...terminalEvents.cards, ...localChat.cards]),
     [localChat.cards, seedCards, terminalEvents.cards],
   );
 
@@ -639,8 +658,10 @@ export function TerminalHome() {
       const handleParsedEvent = (item: { event: string; data: string }) => {
         const payload = JSON.parse(item.data) as TerminalChatStreamEvent;
         if (item.event === 'card' && payload.type === 'card') {
-          localChat.appendCards([payload.card]);
-          const action = resolveCardAction(payload.card);
+          const nextCard = coerceTerminalCard(payload.card);
+          if (!nextCard) return;
+          localChat.appendCards([nextCard]);
+          const action = resolveCardAction(nextCard);
           if (action) openAction(action, { silent: true });
         }
         if (item.event === 'error' && payload.type === 'error') {
@@ -729,7 +750,7 @@ export function TerminalHome() {
   const railItems =
     terminalNfas.rail.length > 0
       ? terminalNfas.rail.map((item) => ({
-          tokenId: BigInt(item.tokenId),
+          tokenId: safeBigInt(item.tokenId),
           pulse: item.pulse,
           unreadCount: item.unreadCount,
           label: item.displayName,
@@ -754,8 +775,8 @@ export function TerminalHome() {
   const avatarSrc = terminalNfas.detail?.avatarUri || activeSummary?.avatarUri || companion.imageSrc;
   const pulsePercent = Math.round((terminalNfas.detail?.pulse ?? activeSummary?.pulse ?? 0) * 100);
   const drawerMemoryText = terminalMemory.summary?.identity ?? terminalNfas.detail?.memorySummary ?? describeCompanion(companion);
-  const totalBudget = terminalAutonomy.status?.budget.totalCLW ? BigInt(terminalAutonomy.status.budget.totalCLW) : 0n;
-  const usedBudget = terminalAutonomy.status?.budget.usedCLW ? BigInt(terminalAutonomy.status.budget.usedCLW) : 0n;
+  const totalBudget = terminalAutonomy.status?.budget.totalCLW ? safeBigInt(terminalAutonomy.status.budget.totalCLW) : 0n;
+  const usedBudget = terminalAutonomy.status?.budget.usedCLW ? safeBigInt(terminalAutonomy.status.budget.usedCLW) : 0n;
   const budgetPercent = totalBudget > 0n ? Number((usedBudget * 100n) / totalBudget) : 0;
   const quickPrompts = [
     { label: '挖矿', value: '去挖矿', icon: Pickaxe, tone: styles.growth },
@@ -805,7 +826,7 @@ export function TerminalHome() {
           { label: '事件', value: activeWorldEvent.label, tone: activeWorldEvent.tone },
           { label: '大逃杀', value: battleRoyaleSummary?.matchId ? `#${battleRoyaleSummary.matchId}` : '--' },
           { label: '人数', value: battleRoyaleSummary ? `${battleRoyaleSummary.players}/${battleRoyaleSummary.triggerCount || 10}` : '--' },
-          { label: '奖池', value: battleRoyaleSummary ? formatCLW(BigInt(battleRoyaleSummary.potCLW)) : '--', tone: 'warm' },
+          { label: '奖池', value: battleRoyaleSummary ? formatCLW(safeBigInt(battleRoyaleSummary.potCLW)) : '--', tone: 'warm' },
         ],
         cta: { label: '打开竞技', intent: 'arena' },
       },
@@ -1328,7 +1349,7 @@ export function TerminalHome() {
                   </div>
                   <div className={styles.statusCard}>
                     <span>奖池</span>
-                    <strong className={styles.warm}>{battleRoyaleSummary ? formatCLW(BigInt(battleRoyaleSummary.potCLW)) : '--'}</strong>
+                    <strong className={styles.warm}>{battleRoyaleSummary ? formatCLW(safeBigInt(battleRoyaleSummary.potCLW)) : '--'}</strong>
                   </div>
                 </div>
               </details>

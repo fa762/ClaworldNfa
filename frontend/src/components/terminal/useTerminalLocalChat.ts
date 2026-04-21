@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import type { TerminalCard } from '@/lib/terminal-cards';
+import { coerceTerminalCard, type TerminalCard } from '@/lib/terminal-cards';
 
 const MAX_LOCAL_CARDS = 80;
-const LOCAL_CHAT_VERSION = 'v2';
+const LOCAL_CHAT_VERSION = 'v3';
 
 function storageKey(token?: string, owner?: string) {
   if (!token || !owner) return null;
@@ -23,13 +23,20 @@ function isRenderableCard(card: TerminalCard) {
   return true;
 }
 
+function sanitizeCards(cards: TerminalCard[]) {
+  return cards
+    .map((card) => coerceTerminalCard(card))
+    .filter((card): card is TerminalCard => Boolean(card))
+    .filter(isRenderableCard);
+}
+
 function readCards(key: string | null) {
   if (!key || typeof window === 'undefined') return [];
   try {
     const raw = window.localStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as { cards?: TerminalCard[] };
-    return Array.isArray(parsed.cards) ? parsed.cards.filter(isRenderableCard) : [];
+    return Array.isArray(parsed.cards) ? sanitizeCards(parsed.cards) : [];
   } catch {
     return [];
   }
@@ -38,7 +45,7 @@ function readCards(key: string | null) {
 function writeCards(key: string | null, cards: TerminalCard[]) {
   if (!key || typeof window === 'undefined') return;
   try {
-    const safeCards = cards.filter(isRenderableCard).slice(-MAX_LOCAL_CARDS);
+    const safeCards = sanitizeCards(cards).slice(-MAX_LOCAL_CARDS);
     window.localStorage.setItem(key, JSON.stringify({ cards: safeCards }));
   } catch {
     // Local chat history is a convenience cache. If storage is full or blocked,
@@ -59,7 +66,7 @@ export function useTerminalLocalChat(tokenId?: bigint, owner?: string) {
     (nextCards: TerminalCard[]) => {
       if (!nextCards.length) return;
       setCards((current) => {
-        const merged = [...current, ...nextCards].filter(isRenderableCard).slice(-MAX_LOCAL_CARDS);
+        const merged = sanitizeCards([...current, ...nextCards]).slice(-MAX_LOCAL_CARDS);
         writeCards(key, merged);
         return merged;
       });

@@ -1,6 +1,46 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-21 (session 57) Asia/Singapore
+Last updated: 2026-04-21 (session 58) Asia/Singapore
+
+## Terminal runtime hardening after deployed client exception - 2026-04-21 session 58
+
+Accepted rule:
+
+- deployed terminal runtime cannot trust browser cache, history payloads, SSE payloads, or stringified bigint values
+- malformed cards should be dropped, not rendered
+- a stale browser cache should never be able to crash the shell after wallet connect
+
+What is now implemented:
+
+1. Render-boundary card coercion
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- the live card list is now sanitized with `coerceTerminalCards(...)` before render
+
+2. History/event/chat card validation
+- `frontend/src/components/terminal/useTerminalChatHistory.ts`
+- `frontend/src/components/terminal/useTerminalEvents.ts`
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- chat history, event stream cards, and chat SSE reply cards are now coerced before they touch UI state
+
+3. Browser cache reset for broken terminal cards
+- `frontend/src/components/terminal/useTerminalLocalChat.ts`
+- local terminal cache now sanitizes cards on read/write/append
+- cache version advanced to `v3` to ignore previously stored malformed records
+
+4. Safe bigint parsing in the terminal shell
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- token ids, autonomy budget numbers, and battle royale pot numbers now use guarded parsing instead of raw `BigInt(...)`
+
+Validation:
+
+- TypeScript: passed
+- Production build: passed
+- Diff whitespace check: passed
+
+Why this pass matters:
+
+- the reported deployed crash happened after NFA load, which strongly suggested a client-side hydration/runtime issue rather than compile failure
+- this pass hardens all known card and numeric hydration points in the live shell
 
 ## Terminal command grammar and proactive events - 2026-04-21 session 57
 

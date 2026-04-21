@@ -1,6 +1,62 @@
 # Current Handoff
 
-Last updated: 2026-04-21 (session 57) Asia/Singapore
+Last updated: 2026-04-21 (session 58) Asia/Singapore
+
+## Terminal client-side exception hardening - 2026-04-21 session 58
+
+User reported that the deployed terminal still crashed after wallet connect + NFA load on desktop with:
+
+- `Application error: a client-side exception has occurred while loading ...`
+
+This pass treated it as a runtime hydration/data-safety bug, not a build bug.
+
+What changed:
+
+1. Final shell rendering now sanitizes terminal cards before render
+- file: `frontend/src/components/terminal/TerminalHome.tsx`
+- the live card list is now passed through `coerceTerminalCards(...)`
+- malformed cards from any source are dropped instead of reaching JSX and crashing the stream render
+
+2. Chat history hydration is now validated
+- file: `frontend/src/components/terminal/useTerminalChatHistory.ts`
+- `/api/chat/[tokenId]/history` payloads are no longer trusted as-is
+- messages are coerced into valid terminal card shapes before entering state
+
+3. SSE event cards are now validated
+- file: `frontend/src/components/terminal/useTerminalEvents.ts`
+- `/api/events/stream` cards are coerced before append
+- malformed event payloads are skipped instead of poisoning the live card array
+
+4. Local browser chat cache is now sanitized and version-bumped
+- file: `frontend/src/components/terminal/useTerminalLocalChat.ts`
+- local cache entries are coerced before read/write/append
+- cache version moved from `v2` to `v3` so broken old browser cache is ignored on the next load
+
+5. Terminal shell BigInt parsing is now runtime-safe
+- file: `frontend/src/components/terminal/TerminalHome.tsx`
+- rail token ids, autonomy budget values, and battle royale pot values now use guarded bigint parsing
+- bad strings degrade to `0n` instead of throwing on the client
+
+6. Chat SSE replies are now validated before action resolution
+- file: `frontend/src/components/terminal/TerminalHome.tsx`
+- `/api/chat/[tokenId]/send` stream events no longer append raw `payload.card`
+- the shell now coerces the card first, then resolves any action intent from the sanitized card
+
+Validation completed:
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`
+
+Expected runtime effect:
+
+- old malformed local terminal cache should no longer crash the shell
+- malformed history/event/chat cards should now be dropped instead of breaking render
+- invalid bigint strings from API payloads should now degrade safely
+
+Remaining note:
+
+- if the deployed site still throws after this pass, the next missing artifact is the browser console stack from the deployed page; at that point the likely issue is a separate runtime branch, not the card hydration path
 
 ## Terminal command grammar and proactive event pass - 2026-04-21 session 57
 

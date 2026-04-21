@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import type { TerminalCard } from '@/lib/terminal-cards';
+import { coerceTerminalCards, type TerminalCard } from '@/lib/terminal-cards';
 
 type TerminalChatHistoryState = {
   cards: TerminalCard[];
@@ -50,7 +50,7 @@ export function useTerminalChatHistory(tokenId?: bigint, owner?: string) {
       .then((payload) => {
         if (cancelled) return;
         setState({
-          cards: payload.messages,
+          cards: coerceTerminalCards(payload.messages),
           isLoading: false,
           error: null,
         });

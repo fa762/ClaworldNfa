@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import type { TerminalCard, TerminalChatStreamEvent } from '@/lib/terminal-cards';
+import { coerceTerminalCard, type TerminalCard, type TerminalChatStreamEvent } from '@/lib/terminal-cards';
 
 type TerminalEventState = {
   cards: TerminalCard[];
@@ -46,11 +46,13 @@ export function useTerminalEvents(tokenId?: bigint, owner?: string) {
       try {
         const payload = JSON.parse(event.data) as TerminalChatStreamEvent;
         if (payload.type !== 'card') return;
-        if (seen.current.has(payload.card.id)) return;
-        seen.current.add(payload.card.id);
+        const nextCard = coerceTerminalCard(payload.card);
+        if (!nextCard) return;
+        if (seen.current.has(nextCard.id)) return;
+        seen.current.add(nextCard.id);
         setState((current) => ({
           ...current,
-          cards: [...current.cards, payload.card],
+          cards: [...current.cards, nextCard],
         }));
       } catch {
         setState((current) => ({ ...current, error: '事件流解析失败。' }));
