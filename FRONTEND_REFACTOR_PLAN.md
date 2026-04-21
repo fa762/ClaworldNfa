@@ -1,6 +1,61 @@
 # Frontend Refactor Plan
 
-Last updated: 2026-04-20 (session 55) Asia/Singapore
+Last updated: 2026-04-21 (session 56) Asia/Singapore
+
+## Legacy-shell reduction and mining result flow cleanup - 2026-04-21 session 56
+
+Accepted product rule:
+
+- if a route is no longer part of the terminal-first product, it should either redirect cleanly or disappear from the active repo surface
+- opening an action panel should not spam the chat stream with filler lines
+- mining success should show up as the current visible result, not feel buried behind the still-open preview panel
+
+What is now implemented:
+
+1. More repo-level legacy removal
+- deleted no-longer-used old-shell files:
+  - `frontend/src/components/wallet/WalletGate.tsx`
+  - `frontend/src/app/guide/GuideContent.tsx`
+  - `frontend/src/app/lore/LoreContent.tsx`
+  - `frontend/src/app/nfa/[id]/NFADetail.tsx`
+  - `frontend/src/app/game/layout.tsx`
+
+2. Offline route cutoff
+- `frontend/src/app/offline/page.tsx` now redirects to `/`
+- this removes another old panel-based leaf page from runtime
+
+3. Cleaner terminal action opening
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- opening an action panel no longer appends an extra `已打开...` system card
+- the action itself remains visible through the panel, so the chat history keeps only meaningful content
+
+4. Better mining completion feel
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- mining receipts now close the mining panel first, then append the receipt card
+- this keeps the result at the live bottom of the stream and makes the action feel finished in-place
+
+Validation:
+
+- TypeScript: passed
+- Production build: passed
+- Diff whitespace check: passed
+
+Remaining against the `new/` target after this pass:
+
+1. Terminal-native command grammar is still missing
+- `@NFA`
+- slash commands
+- richer intent shortcuts inside the composer
+
+2. Embedded child panels still need one more terminalization pass
+- PK
+- Battle Royale
+- autonomy advanced controls
+- mint flow interior
+
+3. Proactive event flow still needs another pass
+- more "the NFA speaks first" moments
+- cleaner unread/event-state surfacing without increasing noise
 
 ## Terminal action receipt closure - 2026-04-20 session 55
 

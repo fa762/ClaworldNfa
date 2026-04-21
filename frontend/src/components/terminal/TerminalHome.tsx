@@ -524,30 +524,6 @@ export function TerminalHome() {
     setDrawerOpen(false);
     setActiveAction(intent);
     if (options?.silent) return;
-    const title =
-      intent === 'mining'
-        ? '挖矿'
-        : intent === 'arena'
-          ? '竞技'
-          : intent === 'auto'
-            ? '代理'
-            : intent === 'mint'
-              ? '铸造'
-                : intent === 'settings'
-                  ? '模型设置'
-              : '状态';
-    localChat.appendCards([
-      {
-        id: `action-open-${intent}-${Date.now()}`,
-        type: 'message',
-        role: 'system',
-        label: '动作卡',
-        title: '',
-        body: `已打开${title}。`,
-        tone: 'warm',
-        meta: '刚刚',
-      },
-    ]);
   }
 
   const recentSummary = terminalAutonomy.status?.recentActions?.[0];
@@ -898,10 +874,14 @@ export function TerminalHome() {
                   memoryCandidate={memoryCandidate}
                   onClose={() => setActiveAction(null)}
                   onReceipt={(card) => {
-                    localChat.appendCards([card]);
-                    if (activeAction === 'mining') {
+                    if (activeAction === 'mining' && card.type === 'receipt') {
                       setActiveAction(null);
+                      requestAnimationFrame(() => {
+                        localChat.appendCards([card]);
+                      });
+                      return;
                     }
+                    localChat.appendCards([card]);
                   }}
                 />
               ) : null}

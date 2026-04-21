@@ -1,6 +1,61 @@
 # Current Handoff
 
-Last updated: 2026-04-20 (session 55) Asia/Singapore
+Last updated: 2026-04-21 (session 56) Asia/Singapore
+
+## Legacy page cleanup and terminal receipt tightening - 2026-04-21 session 56
+
+User asked for one more cleanup pass instead of leaving small tails:
+
+- list the remaining tasks
+- do the work
+- review it
+- push it
+
+What changed in this pass:
+
+1. Removed more old-shell leftovers from the repo
+- deleted unused files that were no longer on the terminal product path:
+  - `frontend/src/components/wallet/WalletGate.tsx`
+  - `frontend/src/app/guide/GuideContent.tsx`
+  - `frontend/src/app/lore/LoreContent.tsx`
+  - `frontend/src/app/nfa/[id]/NFADetail.tsx`
+  - `frontend/src/app/game/layout.tsx`
+- these files were not imported anywhere in the live terminal route tree anymore
+
+2. Offline route no longer shows the old panel stack
+- file: `frontend/src/app/offline/page.tsx`
+- `/offline` now redirects back to `/`
+- this removes another remaining standalone old-style surface from runtime
+
+3. Terminal no longer injects a useless "已打开 xxx" system message
+- file: `frontend/src/components/terminal/TerminalHome.tsx`
+- opening mining / arena / proxy / memory / mint / settings still opens the action panel
+- but it no longer adds an extra status line into the chat stream
+- result: less noise, denser terminal history, fewer pseudo-events
+
+4. Mining result now lands closer to the user's focus
+- file: `frontend/src/components/terminal/TerminalHome.tsx`
+- when a mining receipt returns:
+  - the mining panel closes first
+  - the receipt card is appended on the next frame
+- this makes the result card the live bottom item instead of being visually buried above the still-open mining panel
+
+Validation completed:
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`
+
+State after this pass:
+
+- main runtime is fully terminal-first for:
+  - home
+  - mining
+  - arena
+  - autonomy
+  - mint
+  - settings
+- one more class of old files has been removed from the repo, not only route-cut at runtime
 
 ## Terminal action receipt closure - 2026-04-20 session 55
 
