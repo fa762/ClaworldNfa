@@ -4166,3 +4166,32 @@ pm run build`n  - git diff --check
 - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
 - `npm run build`
 - `git diff --check`
+
+## 2026-04-21 Wallet menu and standalone shell polish
+
+### What closed in this pass
+
+- fixed the terminal wallet menu so it behaves like a real product menu
+  - root cause: the header action row was clipping the absolute-positioned wallet dropdown with `overflow: hidden`
+  - changed the header action row to allow overflow so the menu can render outside the pill row
+- wallet menu now includes the missing standalone-product actions
+  - mint a new NFA
+  - model settings
+  - switch wallet
+  - disconnect
+- wallet menu now closes cleanly on outside click and `Escape`
+- added a real `/favicon.ico` generated from the current app icon so browsers stop throwing the favicon 404
+
+### Files updated
+
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- `frontend/src/components/terminal/TerminalHome.module.css`
+- `frontend/public/favicon.ico`
+- `CURRENT_HANDOFF.md`
+- `FRONTEND_REFACTOR_PLAN.md`
+
+### Verification
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`

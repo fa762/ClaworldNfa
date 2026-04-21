@@ -378,6 +378,7 @@ export function TerminalHome() {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const streamRef = useRef<HTMLDivElement | null>(null);
   const streamEndRef = useRef<HTMLDivElement | null>(null);
+  const walletMenuRef = useRef<HTMLDivElement | null>(null);
   const routeActionRef = useRef<string | null>(null);
   const ambientEventIdsRef = useRef<Set<string>>(new Set());
 
@@ -493,6 +494,31 @@ export function TerminalHome() {
   useEffect(() => {
     setWalletMenuOpen(false);
   }, [address]);
+
+  useEffect(() => {
+    if (!walletMenuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) return;
+      if (!walletMenuRef.current?.contains(event.target)) {
+        setWalletMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setWalletMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [walletMenuOpen]);
 
   useEffect(() => {
     ambientEventIdsRef.current = new Set();
@@ -927,13 +953,29 @@ export function TerminalHome() {
                   <span className={styles.pulseDot} />
                   <span>{chatEngine.activeMode === 'byok' ? '自带模型' : '项目模型'}</span>
                 </div>
-                <div className={styles.walletMenuWrap}>
-                  <button type="button" className={styles.walletPill} onClick={() => setWalletMenuOpen((open) => !open)}>
+                <div ref={walletMenuRef} className={styles.walletMenuWrap}>
+                  <button
+                    type="button"
+                    className={styles.walletPill}
+                    aria-expanded={walletMenuOpen}
+                    aria-haspopup="menu"
+                    onClick={() => setWalletMenuOpen((open) => !open)}
+                  >
                     <Shield size={14} />
                     {truncateAddress(address)}
                   </button>
                   {walletMenuOpen ? (
-                    <div className={styles.walletMenu}>
+                    <div className={styles.walletMenu} role="menu" aria-label="钱包菜单">
+                      <button
+                        type="button"
+                        className={styles.walletMenuButton}
+                        onClick={() => {
+                          setWalletMenuOpen(false);
+                          openAction('mint');
+                        }}
+                      >
+                        铸造新 NFA
+                      </button>
                       <button
                         type="button"
                         className={styles.walletMenuButton}

@@ -4088,3 +4088,22 @@ pm run build`n- git diff --check
 - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
 - `npm run build`
 - `git diff --check`
+
+## 2026-04-21 Wallet menu product pass
+
+### Closed
+
+- fixed the terminal wallet dropdown being clipped by the header action row
+- added the missing standalone actions directly into the wallet menu
+  - mint
+  - model settings
+  - switch wallet
+  - disconnect
+- added outside-click and escape-to-close behavior so the wallet menu feels complete
+- added `/favicon.ico` from the current app icon to remove the browser 404
+
+### Verification
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`
