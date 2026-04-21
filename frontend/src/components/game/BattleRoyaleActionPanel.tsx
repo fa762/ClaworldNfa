@@ -10,6 +10,7 @@ import { BattleRoyaleABI } from '@/contracts/abis/BattleRoyale';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { formatCLW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
+import type { TerminalActionIntent } from '@/lib/terminal-cards';
 
 type BattleRoyaleActionPanelProps = {
   matchId: bigint | undefined;
@@ -19,6 +20,7 @@ type BattleRoyaleActionPanelProps = {
   pot: bigint;
   participant: ReturnType<typeof useBattleRoyaleParticipantState>;
   compact?: boolean;
+  onOpenIntent?: (intent: TerminalActionIntent) => void;
 };
 
 function matchStatusText(status: number, pick: <T,>(zh: T, en: T) => T) {
@@ -44,6 +46,7 @@ export function BattleRoyaleActionPanel({
   pot,
   participant,
   compact = false,
+  onOpenIntent,
 }: BattleRoyaleActionPanelProps) {
   const { pick } = useI18n();
   const [awaitingWallet, setAwaitingWallet] = useState(false);
@@ -180,21 +183,42 @@ export function BattleRoyaleActionPanel({
                   : pick(`领取 ${formatCLW(participant.claimable)}`, `Claim ${formatCLW(participant.claimable)}`)}
           </button>
         ) : (
-          <Link href="/arena" className="cw-button cw-button--secondary">
-            <Swords size={16} />
-            {participant.entered ? pick('查看赛况', 'View arena') : pick('查看对局', 'View arena')}
-          </Link>
+          onOpenIntent ? (
+            <button type="button" className="cw-button cw-button--secondary" onClick={() => onOpenIntent('arena')}>
+              <Swords size={16} />
+              {participant.entered ? pick('查看赛况', 'View arena') : pick('查看对局', 'View arena')}
+            </button>
+          ) : (
+            <Link href="/arena" className="cw-button cw-button--secondary">
+              <Swords size={16} />
+              {participant.entered ? pick('查看赛况', 'View arena') : pick('查看对局', 'View arena')}
+            </Link>
+          )
         )}
 
-        <Link href="/arena" className="cw-button cw-button--ghost">
-          <Shield size={16} />
-          {compact ? pick('竞技', 'Arena') : pick('竞技详情', 'Arena details')}
-        </Link>
-        {returnsToLedger ? (
-          <Link href="/" className="cw-button cw-button--ghost">
+        {onOpenIntent ? (
+          <button type="button" className="cw-button cw-button--ghost" onClick={() => onOpenIntent('arena')}>
             <Shield size={16} />
-            {pick('去维护提现', 'Withdraw on home')}
+            {compact ? pick('竞技', 'Arena') : pick('竞技详情', 'Arena details')}
+          </button>
+        ) : (
+          <Link href="/arena" className="cw-button cw-button--ghost">
+            <Shield size={16} />
+            {compact ? pick('竞技', 'Arena') : pick('竞技详情', 'Arena details')}
           </Link>
+        )}
+        {returnsToLedger ? (
+          onOpenIntent ? (
+            <button type="button" className="cw-button cw-button--ghost" onClick={() => onOpenIntent('status')}>
+              <Shield size={16} />
+              {pick('查看状态', 'View status')}
+            </button>
+          ) : (
+            <Link href="/" className="cw-button cw-button--ghost">
+              <Shield size={16} />
+              {pick('去维护提现', 'Withdraw on home')}
+            </Link>
+          )
         ) : null}
       </div>
 

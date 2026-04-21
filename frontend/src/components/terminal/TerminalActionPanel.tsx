@@ -674,6 +674,21 @@ function TerminalArenaPanel({
               onRefresh={battleRoyale.refresh}
               isRefreshing={battleRoyale.isRefreshing}
               onTerminalReceipt={onReceipt}
+              onTerminalOpenIntent={(intent) => {
+                setExpanded(false);
+                onClose();
+                onReceipt({
+                  id: `arena-link-${intent}-${Date.now()}`,
+                  type: 'receipt',
+                  label: '竞技回执',
+                  title: intent === 'status' ? '已切回状态视图' : '已回到终端',
+                  body: intent === 'status' ? '奖励、账本和状态继续在终端侧边栏里查看。' : '接下来的动作继续在终端里完成。',
+                  details: [
+                    { label: '下一步', value: intent === 'status' ? '查看状态' : '继续操作', tone: 'cool' },
+                  ],
+                  cta: intent === 'status' ? { label: '打开状态', intent: 'status' } : undefined,
+                });
+              }}
             />
           )}
             </div>
@@ -1144,7 +1159,7 @@ function TerminalMintPanel({
               </button>
             </div>
             <div className={styles.actionModalBody}>
-              <MintPanel onTerminalReceipt={onReceipt} />
+              <MintPanel onTerminalReceipt={onReceipt} onTerminalClose={onClose} />
             </div>
           </div>
         </div>

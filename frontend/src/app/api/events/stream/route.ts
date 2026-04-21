@@ -26,37 +26,68 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [detail, world, autonomy, memorySummary, memoryTimeline] = await Promise.all([
-      getNfaDetail(tokenId, owner),
-      getWorldSummary().catch(() => null),
-      getAutonomyStatus(Number(tokenId)).catch(() => null),
-      getMemorySummaryRuntime(Number(tokenId)),
-      getMemoryTimelineRuntime(Number(tokenId), 1),
-    ]);
-
-    const cards = buildEventCards({
-      detail,
-      world,
-      autonomy,
-      memorySummary,
-      memoryTimeline,
-    });
-
     const stream = new ReadableStream({
       start(controller) {
+        const emitted = new Set<string>();
+        let stopped = false;
+        let inFlight = false;
+        let heartbeat: ReturnType<typeof setInterval> | null = null;
+        let refresh: ReturnType<typeof setInterval> | null = null;
+
+        const emitLatest = async () => {
+          if (stopped || inFlight) return;
+          inFlight = true;
+          try {
+            const [detail, world, autonomy, memorySummary, memoryTimeline] = await Promise.all([
+              getNfaDetail(tokenId, owner),
+              getWorldSummary().catch(() => null),
+              getAutonomyStatus(Number(tokenId)).catch(() => null),
+              getMemorySummaryRuntime(Number(tokenId)),
+              getMemoryTimelineRuntime(Number(tokenId), 1),
+            ]);
+
+            const cards = buildEventCards({
+              detail,
+              world,
+              autonomy,
+              memorySummary,
+              memoryTimeline,
+            });
+
+            for (const card of cards) {
+              if (stopped || emitted.has(card.id)) continue;
+              emitted.add(card.id);
+              const payload: TerminalChatStreamEvent = { type: 'card', card };
+              controller.enqueue(encoder.encode(writeEvent('card', payload, card.id)));
+            }
+          } catch (error) {
+            if (!stopped) {
+              const payload: TerminalChatStreamEvent = {
+                type: 'error',
+                message: error instanceof Error ? error.message : 'Unknown error',
+              };
+              controller.enqueue(encoder.encode(writeEvent('error', payload)));
+            }
+          } finally {
+            inFlight = false;
+          }
+        };
+
         controller.enqueue(encoder.encode(':keep-alive\n\n'));
+        void emitLatest();
 
-        for (const card of cards) {
-          const payload: TerminalChatStreamEvent = { type: 'card', card };
-          controller.enqueue(encoder.encode(writeEvent('card', payload, card.id)));
-        }
-
-        const heartbeat = setInterval(() => {
-          controller.enqueue(encoder.encode(':keep-alive\n\n'));
+        heartbeat = setInterval(() => {
+          if (!stopped) controller.enqueue(encoder.encode(':keep-alive\n\n'));
         }, 30000);
 
+        refresh = setInterval(() => {
+          void emitLatest();
+        }, 15000);
+
         request.signal.addEventListener('abort', () => {
-          clearInterval(heartbeat);
+          stopped = true;
+          if (heartbeat) clearInterval(heartbeat);
+          if (refresh) clearInterval(refresh);
           try {
             controller.close();
           } catch {}

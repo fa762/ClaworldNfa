@@ -4036,3 +4036,35 @@ If you need a clean operational path again, create or reuse a clean worktree for
 - mining confirmation flow no longer leaves the user stranded in the preview panel after success
   - `frontend/src/components/terminal/TerminalHome.tsx`
   - when a mining receipt lands, the inline action panel closes and the result receipt becomes the current visible terminal item
+
+## 2026-04-21 Terminal receipt flow and wallet-connect crash fix
+
+- root cause of the latest `Application error: a client-side exception has occurred...` incident:
+  - several terminal action components were partially rewritten and ended up with broken client-side source
+  - once the wallet connected and terminal action modules loaded, the browser hit a client exception
+- fix applied:
+  - restored the affected action components to a stable parseable state
+  - re-applied the terminal-native changes in smaller patches instead of broad text replacement
+- terminal result flow is now broader than mining-only:
+  - `frontend/src/components/terminal/TerminalHome.tsx`
+  - any action receipt now closes the active action panel before appending the receipt card
+  - exception kept for `mint-commit-*` receipts so the mint flow can stay open through reveal/refund
+- terminal-native button routing tightened inside action panels:
+  - `frontend/src/components/mint/MintPanel.tsx`
+    - mint success can now return directly to the terminal instead of forcing a homepage jump
+  - `frontend/src/components/game/BattleRoyaleArenaPanel.tsx`
+    - NFA-ledger claim state can now jump back into terminal status instead of `/`
+  - `frontend/src/components/game/BattleRoyaleActionPanel.tsx`
+    - arena/status buttons can now stay inside terminal intent flow when mounted in terminal
+  - `frontend/src/components/game/BattleRoyaleClaimPanel.tsx`
+    - autonomy-claim handoff can now open terminal auto flow instead of hard-jumping to `/auto`
+  - `frontend/src/components/terminal/TerminalActionPanel.tsx`
+    - Battle Royale intent handoff now closes the modal and returns a terminal receipt/status CTA instead of leaking page navigation
+- event stream now behaves like a live feed instead of a one-shot snapshot:
+  - `frontend/src/app/api/events/stream/route.ts`
+  - the SSE route now refreshes world/autonomy/memory data every 15s and emits only unseen cards
+  - keep-alive heartbeat remains in place, but the stream now has real new-event payloads as state changes
+- verification completed after the crash fix:
+  - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+  - `npm run build`
+  - `git diff --check`

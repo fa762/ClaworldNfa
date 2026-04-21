@@ -9,12 +9,14 @@ import { BattleRoyaleABI } from '@/contracts/abis/BattleRoyale';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { formatCLW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
+import type { TerminalActionIntent } from '@/lib/terminal-cards';
 
 type ClaimPanelProps = {
   matchId?: bigint;
   claimable: bigint;
   claimPath?: 'owner' | 'autonomy' | null;
   hasConflict: boolean;
+  onOpenIntent?: (intent: TerminalActionIntent) => void;
 };
 
 function getClaimSubmitError(error: unknown, pick: <T,>(zh: T, en: T) => T) {
@@ -32,6 +34,7 @@ export function BattleRoyaleClaimPanel({
   claimable,
   claimPath,
   hasConflict,
+  onOpenIntent,
 }: ClaimPanelProps) {
   const { pick } = useI18n();
   const [awaitingWallet, setAwaitingWallet] = useState(false);
@@ -148,10 +151,17 @@ export function BattleRoyaleClaimPanel({
                 : pick(`领取 ${formatCLW(claimable)}`, `Claim ${formatCLW(claimable)}`)}
           </button>
         ) : needsAutonomyRequest ? (
-          <Link href="/auto" className="cw-button cw-button--secondary">
-            <TimerReset size={16} />
-            {pick('去代理页领取', 'Go to Auto')}
-          </Link>
+          onOpenIntent ? (
+            <button type="button" className="cw-button cw-button--secondary" onClick={() => onOpenIntent('auto')}>
+              <TimerReset size={16} />
+              {pick('去代理页领取', 'Go to Auto')}
+            </button>
+          ) : (
+            <Link href="/auto" className="cw-button cw-button--secondary">
+              <TimerReset size={16} />
+              {pick('去代理页领取', 'Go to Auto')}
+            </Link>
+          )
         ) : (
           <button type="button" className="cw-button cw-button--ghost" disabled>
             <Shield size={16} />

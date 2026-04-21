@@ -19,7 +19,7 @@ import { type ParticipantPath } from '@/components/lobster/useBattleRoyalePartic
 import { BattleRoyaleABI } from '@/contracts/abis/BattleRoyale';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { formatCLW } from '@/lib/format';
-import type { TerminalCard } from '@/lib/terminal-cards';
+import type { TerminalActionIntent, TerminalCard } from '@/lib/terminal-cards';
 
 const ROOMS = Array.from({ length: 10 }, (_, index) => index + 1);
 const BSC_BLOCK_SECONDS = 3;
@@ -81,6 +81,7 @@ export function BattleRoyaleArenaPanel({
   onRefresh,
   isRefreshing,
   onTerminalReceipt,
+  onTerminalOpenIntent,
 }: {
   matchId?: bigint;
   status: number;
@@ -102,6 +103,7 @@ export function BattleRoyaleArenaPanel({
   onRefresh: () => void;
   isRefreshing?: boolean;
   onTerminalReceipt?: (card: TerminalCard) => void;
+  onTerminalOpenIntent?: (intent: TerminalActionIntent) => void;
 }) {
   const [selectedRoom, setSelectedRoom] = useState(1);
   const [amountInput, setAmountInput] = useState('');
@@ -448,10 +450,17 @@ export function BattleRoyaleArenaPanel({
               <Coins size={16} />
               回记账账户 {formatCLW(participant.claimable)}
             </button>
-            <Link href="/" className="cw-button cw-button--ghost">
-              <Shield size={16} />
-              去维护提现
-            </Link>
+            {onTerminalOpenIntent ? (
+              <button type="button" className="cw-button cw-button--ghost" onClick={() => onTerminalOpenIntent('status')}>
+                <Shield size={16} />
+                查看状态
+              </button>
+            ) : (
+              <Link href="/" className="cw-button cw-button--ghost">
+                <Shield size={16} />
+                去维护提现
+              </Link>
+            )}
           </div>
         ) : null}
 

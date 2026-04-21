@@ -72,7 +72,13 @@ function mintError(error: unknown) {
   return message;
 }
 
-export function MintPanel({ onTerminalReceipt }: { onTerminalReceipt?: (card: TerminalCard) => void }) {
+export function MintPanel({
+  onTerminalReceipt,
+  onTerminalClose,
+}: {
+  onTerminalReceipt?: (card: TerminalCard) => void;
+  onTerminalClose?: () => void;
+}) {
   const { address, isConnected } = useAccount();
   const { lang } = useI18n();
   const isCN = lang === 'zh';
@@ -437,10 +443,17 @@ export function MintPanel({ onTerminalReceipt }: { onTerminalReceipt?: (card: Te
           </div>
 
           <div className="cw-button-row">
-            <Link href="/" className="cw-button cw-button--secondary">
-              <Compass size={16} />
-              返回首页
-            </Link>
+            {onTerminalClose ? (
+              <button type="button" className="cw-button cw-button--secondary" onClick={onTerminalClose}>
+                <Compass size={16} />
+                返回终端
+              </button>
+            ) : (
+              <Link href="/" className="cw-button cw-button--secondary">
+                <Compass size={16} />
+                返回首页
+              </Link>
+            )}
             <button type="button" className="cw-button cw-button--ghost" onClick={() => setRevealed(false)}>
               继续铸造
             </button>

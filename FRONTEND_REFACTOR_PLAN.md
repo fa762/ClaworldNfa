@@ -3979,3 +3979,37 @@ For this rewrite, every meaningful decision or completed step should be written 
 - `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
 - `npm run build`
 - `git diff --check`
+
+## 2026-04-21 Terminal receipt closeout and live-event fix
+
+### What closed in this pass
+
+- fixed the latest wallet-connect client crash
+  - several terminal action components had been left in a broken client-parsing state
+  - those components are now back to a stable compiled state
+- action completion now closes the active terminal panel for receipt-driven actions, not just mining
+  - mint commit stays open on purpose so reveal/refund can continue in the same flow
+- Battle Royale and mint child panels are less dependent on old page jumps
+  - mint success can return straight to terminal
+  - NFA-ledger claim surfaces can open terminal status
+  - autonomy-claim handoff can open terminal auto flow
+- `/api/events/stream` now refreshes and emits real new cards every 15 seconds
+  - the stream no longer behaves like a one-shot snapshot plus heartbeat only
+
+### Files updated
+
+- `frontend/src/app/api/events/stream/route.ts`
+- `frontend/src/components/game/BattleRoyaleActionPanel.tsx`
+- `frontend/src/components/game/BattleRoyaleArenaPanel.tsx`
+- `frontend/src/components/game/BattleRoyaleClaimPanel.tsx`
+- `frontend/src/components/mint/MintPanel.tsx`
+- `frontend/src/components/terminal/TerminalActionPanel.tsx`
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- `CURRENT_HANDOFF.md`
+- `FRONTEND_REFACTOR_PLAN.md`
+
+### Verification
+
+- `npm exec tsc -- --noEmit --project frontend/tsconfig.json`
+- `npm run build`
+- `git diff --check`

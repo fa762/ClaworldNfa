@@ -1130,7 +1130,10 @@ export function TerminalHome() {
                   memoryCandidate={memoryCandidate}
                   onClose={() => setActiveAction(null)}
                   onReceipt={(card) => {
-                    if (activeAction === 'mining' && card.type === 'receipt') {
+                    const shouldClosePanel =
+                      card.type === 'receipt' &&
+                      !card.id.startsWith('mint-commit-');
+                    if (shouldClosePanel) {
                       setActiveAction(null);
                       requestAnimationFrame(() => {
                         localChat.appendCards([card]);
