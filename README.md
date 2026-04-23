@@ -183,6 +183,19 @@ What they contribute:
 | `contracts/world/ClawOracleActionHub.sol` | action middle layer | stores pending autonomous actions, syncs oracle results, executes through adapters, emits receipts |
 | `contracts/world/adapters/BattleRoyaleAdapter.sol` | execution isolation for Battle Royale | decodes hub payloads and calls the target skill inside a bounded adapter contract |
 
+### Shared Protocol Patterns
+
+These patterns show up across the repository and are part of the actual design thesis, not just implementation detail:
+
+| Pattern | Where it appears | Why it matters |
+| --- | --- | --- |
+| NFA-ledger settlement | `ClawRouter`, task, PK, Battle Royale | gameplay resolves around the NFA account instead of an external wallet balance |
+| Commit-reveal | `GenesisVault`, `PKSkill`, oracle lifecycle | fairness, anti-front-running, and bounded reasoning windows |
+| Capability snapshots | `ClawOracleActionHub` | ties an autonomous request to the policy state that existed when it was created |
+| Dynamic reserve control | `ClawAutonomyRegistry` | lets policy stay strict without hard-coding one static minimum reserve |
+| Price-aware world state | `WorldState`, `DepositRouter` | links token conditions to reward multipliers and world economy settings |
+| Memory-aware runtime | frontend memory routes, `openclaw/` runtime | turns continuity into executable context instead of decorative lore |
+
 ### Autonomy Policy Engine
 
 If one module best represents the protocol-side originality of this repo, it is `contracts/world/ClawAutonomyRegistry.sol`.
@@ -214,7 +227,7 @@ The evaluation path checks multiple independent dimensions before an autonomous 
 | dynamic reserve source | supports external reserve logic |
 | dynamic reserve buffer | keeps reserve calculation adaptive instead of static |
 
-The dynamic reserve path is especially important. A static reserve floor is easy to reason about, but it is often wrong in volatile conditions. ClawworldNfa supports a reserve-source hook plus `dynamicReserveBufferBps` so the safe minimum can adapt to external conditions while still staying on-chain and policy-bounded.
+The dynamic reserve path is especially important. A static reserve floor is easy to reason about, but it is often wrong in volatile conditions. ClaworldNfa supports a reserve-source hook plus `dynamicReserveBufferBps` so the safe minimum can adapt to external conditions while still staying on-chain and policy-bounded.
 
 ### Autonomous Action Lifecycle
 
@@ -320,6 +333,20 @@ The oracle runner:
 8. fulfills the oracle request on-chain
 9. syncs and executes the action hub lifecycle
 
+### AI Surfaces and Tool Paths
+
+The same world is exposed through more than one AI surface:
+
+| Surface | Where it lives | What it does |
+| --- | --- | --- |
+| Terminal copilot | `frontend/src/app/api/chat/[tokenId]/send/route.ts` and terminal components | chat, intent parsing, action-card generation, chain-query answers |
+| Hosted backend path | `frontend/src/app/api/_lib/backend-chat.ts` | uses the project backend for persona-aware replies and tool mediation |
+| Direct model or BYOK path | `frontend/src/app/api/_lib/direct-llm.ts` | OpenAI-compatible fallback or user-provided model path |
+| Bounded autonomy runtime | `openclaw/autonomyPlanner.ts`, `openclaw/autonomyOracleRunner.ts` | offline planning, reasoning, execution, and finalization |
+| Skill runtime or tool surface | `openclaw/claw-world-skill/` and `hermes/` files | exposes world-facing skill logic through a reusable runtime or tool layer |
+
+This is why the repository should not be read as "just a frontend". The frontend, API routes, runtime, and contracts are all part of the same execution model.
+
 ### Memory and CML
 
 The project uses a CML-style memory model so the NFA can carry continuity across sessions and actions.
@@ -400,7 +427,7 @@ Important frontend libraries:
 
 Secondary surfaces still present in the repository:
 
-- page routes under `frontend/src/app/` for companion, arena, auto, mint, guide, lore, settings, NFA pages, and other earlier UI paths
+- route groups under `frontend/src/app/` for companion, arena, auto, mint, NFA pages, offline handling, and other earlier UI paths
 - a Phaser-based game surface under `frontend/src/game/`
 - an `openclaw/claw-world-skill/` package and Hermes-compatible tool files
 
@@ -408,12 +435,19 @@ Secondary surfaces still present in the repository:
 
 `contracts/world/WorldState.sol` controls global gameplay modifiers such as reward multiplier, PK stake limit, mutation bonus, daily cost multiplier, and event phases.
 
+The important thing is not only that these variables exist, but that they are connected to token conditions and world events:
+
+- the world can move into bubble, winter, or golden-age phases
+- price-sensitive state can update the broader economy
+- major parameter changes are timelocked
+- gameplay reward conditions and world conditions live in the same protocol layer
+
 `contracts/core/DepositRouter.sol` is where the repo directly touches the external token ingress path. It supports:
 
 - `Flap Portal` / bonding-curve routing before graduation
 - PancakeSwap routing after graduation
 
-That matters because the project economy is not pretending its token comes from nowhere. The ingress path is wired into the contract layer.
+That matters because the project economy is not pretending its token comes from nowhere. The ingress path is wired into the contract layer and reflects the Four.meme or Flap-style launch path before standard DEX routing takes over.
 
 ### Source Tree
 
@@ -561,7 +595,7 @@ Canonical mainnet defaults are kept in `frontend/src/contracts/addresses.ts`.
 | TaskSkill | `0xaed370784536e31BE4A5D0Dbb1bF275c98179D10` | mining |
 | PKSkill | `0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF` | PK |
 | MarketSkill | `0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54` | market |
-| DepositRouter | `0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269` | BNB -> Clawworld path |
+| DepositRouter | `0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269` | BNB -> Claworld path |
 | PersonalityEngine | `0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E` | progression bounds |
 | BattleRoyale | `0x2B2182326Fd659156B2B119034A72D1C2cC9758D` | BR |
 | AutonomyRegistry | `0xD18BaF2670fFcb4CC92260719AbFc9d637dB7044` | policy engine |
@@ -778,7 +812,7 @@ flowchart LR
 
 作用：
 
-- 每只 NFA 有自己的内部 Clawworld 账本
+- 每只 NFA 有自己的内部 Claworld 账本
 - 玩法消耗和奖励围绕这个账本结算
 - 钱包负责权限和进出
 - NFA 账本负责世界内的运作
@@ -829,7 +863,7 @@ flowchart LR
 | --- | --- |
 | `contracts/core/ClawNFA.sol` | BAP-578 身份锚点、learning-tree root、角色可见状态 |
 | `contracts/core/ClawRouter.sol` | NFA 账本、维护费、休眠、提现冷却、授权 skill 分发 |
-| `contracts/core/DepositRouter.sol` | BNB -> Clawworld 资金入口 |
+| `contracts/core/DepositRouter.sol` | BNB -> Claworld 资金入口 |
 | `contracts/core/PersonalityEngine.sol` | 五维性格成长与月度边界 |
 
 #### Skills
@@ -851,6 +885,19 @@ flowchart LR
 | `contracts/world/ClawAutonomyRegistry.sol` | 多维 policy engine |
 | `contracts/world/ClawOracleActionHub.sol` | request / sync / execute 生命周期与回执 |
 | `contracts/world/adapters/BattleRoyaleAdapter.sol` | ActionHub 到玩法执行的隔离层 |
+
+### 贯穿全仓库的协议模式
+
+下面这些不是零散的实现细节，而是这个项目真正的工程主张：
+
+| 模式 | 出现位置 | 为什么重要 |
+| --- | --- | --- |
+| NFA 账本结算 | `ClawRouter`、任务、PK、大逃杀 | 玩法围绕 NFA 账户，而不是围绕钱包余额 |
+| Commit-reveal | `GenesisVault`、`PKSkill`、oracle 生命周期 | 公平性、反抢跑、以及有边界的推理窗口 |
+| Capability 快照 | `ClawOracleActionHub` | 把自治请求绑定到发起时真实存在的策略状态 |
+| 动态 reserve 控制 | `ClawAutonomyRegistry` | 不用一个死板的固定保底金额 |
+| 价格联动的世界状态 | `WorldState`、`DepositRouter` | 把代币条件、世界倍率、玩法奖励放进同一层经济回路 |
+| 记忆驱动运行时 | 前端记忆路由、`openclaw/` runtime | 让连续性成为可执行上下文，而不是装饰 lore |
 
 ### AutonomyRegistry 和 ActionHub
 
@@ -907,6 +954,20 @@ flowchart LR
 3. 先由确定性代码打分
 4. 再让 LLM 在 bounded options 里选
 5. 模型失败时走 fallback
+
+### AI 入口和 Tool Path
+
+这个仓库里，不止有一种 AI 入口：
+
+| 入口 | 所在位置 | 负责什么 |
+| --- | --- | --- |
+| Terminal copilot | `frontend/src/app/api/chat/[tokenId]/send/route.ts` 和 terminal 组件 | 聊天、意图解析、动作卡生成、链上查询答复 |
+| 项目后端路径 | `frontend/src/app/api/_lib/backend-chat.ts` | 走项目后端，负责 persona 和工具中介 |
+| 直连模型或 BYOK | `frontend/src/app/api/_lib/direct-llm.ts` | OpenAI-compatible fallback 或用户自带模型 |
+| 有边界自治 | `openclaw/autonomyPlanner.ts`、`openclaw/autonomyOracleRunner.ts` | 离线规划、推理、执行、结算 |
+| skill runtime / tool surface | `openclaw/claw-world-skill/` 和 `hermes/` 文件 | 通过可复用的 skill/runtime 层暴露世界能力 |
+
+这也是为什么不能把它理解成“只是前端页面”。前端、API、运行时、合约，本来就是同一套执行模型的不同层。
 
 ### 记忆与 CML
 
@@ -1101,7 +1162,7 @@ ClaworldNfa/
 | ClawRouter | `0x60C0D5276c007Fd151f2A615c315cb364EF81BD5` | NFA 账本枢纽 |
 | WorldState | `0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA` | 世界参数 |
 | GenesisVault | `0xCe04f834aC4581FD5562f6c58C276E60C624fF83` | 铸造 |
-| Clawworld token | `0x3b486c191c74c9945fa944a3ddde24acdd63ffff` | 基础代币 |
+| Claworld token | `0x3b486c191c74c9945fa944a3ddde24acdd63ffff` | 基础代币 |
 | Flap Portal | `0x3525e9B10cD054E7A32248902EB158c863F3a18B` | bonding-curve 路径 |
 | Pancake Router | `0x114E4c57754c69dAA360a8894698F1D832E56350` | DEX 路径 |
 | TaskSkill | `0xaed370784536e31BE4A5D0Dbb1bF275c98179D10` | 挖矿 |
