@@ -717,6 +717,19 @@ ClaworldNfa 不是一个“AI 聊天壳 + NFT 图片”的项目。
 
 `NFA 身份 -> NFA 账本 -> 游戏状态 -> 记忆上下文 -> AI 理解意图 -> 动作卡 -> 钱包确认 / 有边界自治执行 -> 回执与记账`
 
+### 为什么这个仓库重要
+
+很多项目把关键层拆散了：
+
+- 身份是一张 NFT
+- 资产在别的地方
+- 玩法和身份层分离
+- 记忆只是装饰
+- AI 能聊天，但不能安全执行
+- 自治如果存在，常常只是一个权限很大的 signer
+
+ClaworldNfa 做的事情正好相反：把身份、账本、状态、记忆、玩法和有边界的执行放到一套体系里。
+
 ### 总体系统图
 
 ```mermaid
@@ -741,6 +754,72 @@ flowchart LR
   Q --> R["BattleRoyaleAdapter"]
   R --> K
 ```
+
+### BAP-578 在 ClaworldNfa 里的实现
+
+#### 身份
+
+来源：
+
+- `contracts/core/ClawNFA.sol`
+
+作用：
+
+- NFA 本身就是身份锚点
+- 等级、稀有度、避难所、成长状态这些都在协议层
+- learning-tree root 这条链上锚定路径也在这里
+
+#### 账户
+
+来源：
+
+- `contracts/core/ClawRouter.sol`
+- `contracts/core/DepositRouter.sol`
+
+作用：
+
+- 每只 NFA 有自己的内部 Clawworld 账本
+- 玩法消耗和奖励围绕这个账本结算
+- 钱包负责权限和进出
+- NFA 账本负责世界内的运作
+
+#### 执行
+
+来源：
+
+- `contracts/skills/TaskSkill.sol`
+- `contracts/skills/PKSkill.sol`
+- `contracts/skills/BattleRoyale.sol`
+- `contracts/skills/MarketSkill.sol`
+- `contracts/skills/GenesisVault.sol`
+- `contracts/world/ClawOracle.sol`
+- `contracts/world/ClawAutonomyRegistry.sol`
+- `contracts/world/ClawOracleActionHub.sol`
+- `contracts/world/adapters/BattleRoyaleAdapter.sol`
+
+作用：
+
+- 用户在线时走钱包确认
+- 用户离线时走有边界的 autonomy path
+- 所有玩法共享同一套身份和账本基础
+
+#### 学习
+
+来源：
+
+- `contracts/core/ClawNFA.sol` 里的 learning-tree 路径
+- `frontend/src/app/api/memory/[tokenId]/summary/route.ts`
+- `frontend/src/app/api/memory/[tokenId]/timeline/route.ts`
+- `frontend/src/app/api/memory/[tokenId]/write/route.ts`
+- `openclaw/cml.ts`
+- `openclaw/autonomyCmlRuntime.ts`
+- `openclaw/autonomyMemory.ts`
+
+作用：
+
+- 记忆摘要和时间线进入运行时上下文
+- 对话和自治都可以用这些上下文
+- 记忆可以链下保留主体内容，同时保留链上锚定能力
 
 ### 合约模块清单
 
@@ -829,6 +908,41 @@ flowchart LR
 4. 再让 LLM 在 bounded options 里选
 5. 模型失败时走 fallback
 
+### 记忆与 CML
+
+这个项目不是把记忆当作聊天气氛组，而是把记忆当作运行时状态。
+
+关键文件：
+
+- `openclaw/cml.ts`
+- `openclaw/autonomyCmlRuntime.ts`
+- `openclaw/autonomyMemory.ts`
+- `frontend/src/lib/terminal-memory-local.ts`
+
+关键 API 路由：
+
+- `frontend/src/app/api/memory/[tokenId]/summary/route.ts`
+- `frontend/src/app/api/memory/[tokenId]/timeline/route.ts`
+- `frontend/src/app/api/memory/[tokenId]/write/route.ts`
+
+记忆链路可以概括成：
+
+```mermaid
+flowchart LR
+  A["对话或玩法结果"] --> B["记忆写入路径"]
+  B --> C["摘要与时间线存储"]
+  C --> D["下一轮运行时加载"]
+  D --> E["可选的 CML snapshot 更新"]
+  E --> F["可选的 hash / learning-tree anchor"]
+```
+
+关键点：
+
+- 完整记忆正文不必直接上链
+- 运行时仍然可以读取记忆摘要与时间线
+- learning-tree 路径保留了可验证锚定空间
+- 记忆是运行时状态，不是装饰 lore
+
 ### 前端与对话路径
 
 主产品面是 Terminal PWA。
@@ -857,6 +971,29 @@ flowchart LR
 - `frontend/src/app/arena/`、`auto/`、`mint/`、`nfa/` 等页面
 - `openclaw/claw-world-skill/` 下的 skill / hermes 工具面
 
+### 世界经济与代币入口
+
+`contracts/world/WorldState.sol` 负责全局玩法参数，比如：
+
+- reward multiplier
+- PK stake limit
+- mutation bonus
+- daily cost multiplier
+- event phases
+
+`contracts/core/DepositRouter.sol` 则是真实代币入口。它支持：
+
+- 毕业前走 `Flap Portal` / bonding curve
+- 毕业后走 PancakeSwap
+
+这意味着：
+
+- 代币入口
+- 世界参数
+- 玩法经济
+
+是在同一套系统里联动设计的。
+
 ### 文件结构树
 
 下面这个结构树聚焦真实工程源码，刻意省略了 `node_modules`、缓存、构建产物、临时日志和本地工作目录。
@@ -865,37 +1002,123 @@ flowchart LR
 ClaworldNfa/
 ├── contracts/
 │   ├── core/
+│   │   ├── ClawNFA.sol
+│   │   ├── ClawRouter.sol
+│   │   ├── DepositRouter.sol
+│   │   └── PersonalityEngine.sol
 │   ├── interfaces/
 │   ├── mocks/
 │   ├── skills/
+│   │   ├── BattleRoyale.sol
+│   │   ├── GenesisVault.sol
+│   │   ├── MarketSkill.sol
+│   │   ├── PKSkill.sol
+│   │   └── TaskSkill.sol
 │   └── world/
 │       ├── adapters/
-│       └── interfaces/
+│       │   └── BattleRoyaleAdapter.sol
+│       ├── interfaces/
+│       ├── ClawAutonomyRegistry.sol
+│       ├── ClawOracle.sol
+│       ├── ClawOracleActionHub.sol
+│       └── WorldState.sol
 ├── docs/
 │   ├── assets/
 │   └── INNOVATION_MAP.md
 ├── frontend/
 │   └── src/
 │       ├── app/
+│       │   ├── api/
+│       │   ├── arena/
+│       │   ├── auto/
+│       │   ├── companion/
+│       │   ├── game/
+│       │   ├── mint/
+│       │   ├── nfa/
+│       │   ├── openclaw/
+│       │   ├── play/
+│       │   └── settings/
 │       ├── components/
+│       │   ├── auto/
+│       │   ├── game/
+│       │   ├── layout/
+│       │   ├── lobster/
+│       │   ├── nfa/
+│       │   ├── terminal/
+│       │   └── wallet/
 │       ├── contracts/
+│       │   ├── addresses.ts
+│       │   ├── abis/
+│       │   └── hooks/
 │       ├── game/
 │       └── lib/
 ├── openclaw/
+│   ├── autonomyPlanner.ts
+│   ├── autonomyOracleRunner.ts
+│   ├── autonomyCmlRuntime.ts
+│   ├── autonomyMemory.ts
+│   ├── autonomyTxPolicy.ts
+│   ├── battleRoyaleRevealWatcher.ts
+│   ├── reasoningUploader.ts
 │   ├── skills/
 │   └── claw-world-skill/
 ├── scripts/
+│   ├── deploy-phase1.ts
+│   ├── deploy-phase2.ts
+│   ├── deploy-phase3.ts
+│   ├── deploy-and-upgrade-all.ts
+│   ├── smoke-battle-royale-autonomy-mainnet.ts
+│   ├── watch-battle-royale-reveal.ts
+│   └── upgrade-*.ts
 ├── test/
+│   ├── BattleRoyale.test.ts
+│   ├── BattleRoyaleAutonomy.test.ts
+│   ├── ClawNFA.test.ts
+│   ├── ClawRouter.test.ts
+│   ├── DepositRouter.test.ts
+│   ├── GenesisVault.test.ts
+│   ├── Integration.test.ts
+│   ├── MarketSkill.test.ts
+│   ├── PersonalityEngine.test.ts
+│   ├── PKSkill.test.ts
+│   ├── TaskSkill.test.ts
+│   └── WorldState.test.ts
 ├── ARCHITECTURE.md
+├── CHANGELOG.md
+├── CONTRIBUTING.md
 ├── PROJECT.md
+├── LICENSE
 └── SECURITY.md
 ```
 
-完整、带注释的工程树请看上方 English section 的 `Source Tree`。
-
 ### 主网地址与开发
 
-主网默认地址来自 `frontend/src/contracts/addresses.ts`。完整地址表请看上方 English section 的 `Mainnet Addresses`。
+主网默认地址来自 `frontend/src/contracts/addresses.ts`。
+
+| 模块 | 地址 | 说明 |
+| --- | --- | --- |
+| ClawNFA | `0xAa2094798B5892191124eae9D77E337544FFAE48` | 身份层 |
+| ClawRouter | `0x60C0D5276c007Fd151f2A615c315cb364EF81BD5` | NFA 账本枢纽 |
+| WorldState | `0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA` | 世界参数 |
+| GenesisVault | `0xCe04f834aC4581FD5562f6c58C276E60C624fF83` | 铸造 |
+| Clawworld token | `0x3b486c191c74c9945fa944a3ddde24acdd63ffff` | 基础代币 |
+| Flap Portal | `0x3525e9B10cD054E7A32248902EB158c863F3a18B` | bonding-curve 路径 |
+| Pancake Router | `0x114E4c57754c69dAA360a8894698F1D832E56350` | DEX 路径 |
+| TaskSkill | `0xaed370784536e31BE4A5D0Dbb1bF275c98179D10` | 挖矿 |
+| PKSkill | `0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF` | PK |
+| MarketSkill | `0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54` | 市场 |
+| DepositRouter | `0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269` | 充值入口 |
+| PersonalityEngine | `0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E` | 性格成长 |
+| BattleRoyale | `0x2B2182326Fd659156B2B119034A72D1C2cC9758D` | 大逃杀 |
+| AutonomyRegistry | `0xD18BaF2670fFcb4CC92260719AbFc9d637dB7044` | policy engine |
+| AutonomyDelegationRegistry | `0x1C3A69fC7715563D9dDF9847BB5ffF3B6e09aAEa` | delegation |
+| OracleActionHub | `0xEdd04D821ab9E8eCD5723189A615333c3509f1D5` | 动作中枢 |
+| AutonomyFinalizationHub | `0x65F850536bE1B844c407418d8FbaE795045061bd` | finalization 地址 |
+| WorldEventSkill | `0xdD1273990234D591c098e1E029876F0236Ef8bD3` | 世界事件能力 |
+| TaskSkillAdapter | `0xe7a7E66F9F05eC14925B155C4261F32603857E8E` | adapter |
+| PKSkillAdapter | `0x1ef409114BAD145e5289a5e906E9Ea38B7d05A0c` | adapter |
+| BattleRoyaleAdapter | `0xCD71fD0429DC82EfD6Ef019a7e1F7f93a5A1AEcc` | adapter |
+| Autonomy operator | `0x567f863A3dB5CBaf59796F6524b1b3ca1793911C` | runtime operator |
 
 本地开发常用命令：
 
@@ -911,6 +1134,27 @@ npm --prefix frontend run build
 npm run runner:autonomy:check
 npm run watch:battle-royale:check
 ```
+
+### 环境变量
+
+示例文件：
+
+- `.env.example`
+- `frontend/.env.example`
+- `openclaw/.env.autonomy-runner.example`
+
+重要变量：
+
+- `CLAWORLD_API_URL`
+- `CLAWORLD_API_TOKEN`
+- `CLAWORLD_CHAT_MODEL_BASE_URL`
+- `CLAWORLD_CHAT_MODEL_API_KEY`
+- `CLAWORLD_CHAT_MODEL_NAME`
+- `CLAWORLD_ENABLE_WEB_TOOLS`
+- `NEXT_PUBLIC_CHAIN_ID`
+- `NEXT_PUBLIC_RPC_URL`
+- `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
+- `AUTONOMY_*` 系列变量
 
 ### 安全边界
 
@@ -937,3 +1181,22 @@ npm run watch:battle-royale:check
 10. `openclaw/autonomyOracleRunner.ts`
 11. `frontend/src/app/api/chat/[tokenId]/send/route.ts`
 12. `frontend/src/components/terminal/TerminalHome.tsx`
+
+### 开源仓库包含什么，不包含什么
+
+公开仓库里有：
+
+- 合约源码
+- runtime 源码
+- 前端源码
+- 脚本
+- 测试
+- 文档
+
+公开仓库里没有：
+
+- 线上 secrets
+- 生产 API keys
+- 私有 operator 钱包
+- 私有基础设施凭据
+- 个人运维笔记
