@@ -1,16 +1,17 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Bot, Brain, CheckCircle2, Pickaxe, RefreshCw, Shield, Swords, Trophy, X } from 'lucide-react';
-import { decodeEventLog, keccak256, parseEther, toBytes } from 'viem';
+import { simulateContract } from '@wagmi/core';
+import { Bot, Brain, CheckCircle2, Compass, Gift, Pickaxe, RefreshCw, Shield, Sparkles, Swords, TimerReset, Trophy, X } from 'lucide-react';
+import { decodeEventLog, keccak256, parseEther, toBytes, zeroHash } from 'viem';
 import { useAccount, useReadContract, useSignMessage, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 
 import { BattleRoyaleArenaPanel } from '@/components/game/BattleRoyaleArenaPanel';
 import { PKArenaPanel } from '@/components/game/PKArenaPanel';
 import { useBattleRoyaleOverview } from '@/components/lobster/useBattleRoyaleOverview';
 import { useBattleRoyaleParticipantState } from '@/components/lobster/useBattleRoyaleParticipantState';
-import type { ActiveCompanionValue } from '@/components/lobster/useActiveCompanion';
 import { MintPanel } from '@/components/mint/MintPanel';
+import type { ActiveCompanionValue } from '@/components/lobster/useActiveCompanion';
 import { AutonomyPanel } from '@/components/nfa/AutonomyPanel';
 import { TerminalFinancePanel } from '@/components/terminal/TerminalFinancePanel';
 import { TerminalMarketPanel } from '@/components/terminal/TerminalMarketPanel';
@@ -19,9 +20,31 @@ import { TerminalSettingsPanel } from '@/components/terminal/TerminalSettingsPan
 import { ClawNFAABI } from '@/contracts/abis/ClawNFA';
 import { TaskSkillABI } from '@/contracts/abis/TaskSkill';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
+import { useTotalSupply } from '@/contracts/hooks/useClawNFA';
+import {
+  clearSalt,
+  computeCommitHash,
+  generateSalt,
+  loadSalt,
+  RARITY_AIRDROPS,
+  RARITY_CAPS,
+  RARITY_PRICES,
+  saveSalt,
+  useCommitment,
+  useCommitMint,
+  useMintedCount,
+  useMintingActive,
+  useRarityMinted,
+  useRefund,
+  useRevealMint,
+  vaultContract,
+} from '@/contracts/hooks/useGenesisVault';
 import { useRewardMultiplier } from '@/contracts/hooks/useWorldState';
 import { formatCLW } from '@/lib/format';
+import { useI18n } from '@/lib/i18n';
+import { getRarityName, getRarityStars } from '@/lib/rarity';
 import type { TerminalActionIntent, TerminalCard } from '@/lib/terminal-cards';
+import { config } from '@/components/wallet/WalletProvider';
 
 import styles from './TerminalHome.module.css';
 import { useTerminalAutonomy } from './useTerminalAutonomy';
@@ -57,6 +80,17 @@ type DirectiveApiResponse = {
   error?: string;
 };
 
+function localizePanelStatus(value: string, pick: <T,>(zh: T, en: T) => T) {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === '稳定' || normalized === 'stable') return pick('稳定', 'Stable');
+  if (normalized === '需要维护' || normalized === 'needs upkeep') return pick('需要维护', 'Needs upkeep');
+  if (normalized === '储备告急' || normalized === 'reserve low') return pick('储备告急', 'Reserve low');
+  if (normalized === '储备预警' || normalized === 'reserve watch') return pick('储备预警', 'Reserve watch');
+  if (normalized === '连接钱包' || normalized === 'connect wallet') return pick('连接钱包', 'Connect wallet');
+  if (normalized === '未发现 nfa' || normalized === 'no nfa found') return pick('未发现 NFA', 'No NFA found');
+  return value;
+}
+
 const AUTONOMY_ACTION_MODES = [
   { key: 'task', label: '任务代理', actionKind: 0, oneLine: '自动挑任务，少冒无意义的险。' },
   { key: 'pk', label: 'PK 代理', actionKind: 1, oneLine: '只接胜率舒服的局。' },
@@ -68,6 +102,31 @@ const DIRECTIVE_STYLES: Array<{ value: DirectiveStyle; label: string; text: stri
   { value: 'balanced', label: '平衡', text: '收益和风险一起看。' },
   { value: 'expressive', label: '激进', text: '机会明显时更主动。' },
 ];
+
+const TOTAL_GENESIS = 888;
+const REVEAL_DELAY = 60;
+const REVEAL_WINDOW = 86400;
+
+type MintPhase = 'select' | 'waiting' | 'ready' | 'expired' | 'success';
+
+function formatMintCountdown(seconds: number) {
+  const safe = Math.max(0, seconds);
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const secs = safe % 60;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${secs}s`;
+  return `${secs}s`;
+}
+
+function mintError(error: unknown) {
+  if (!(error instanceof Error)) return 'Mint failed.';
+  const message = error.message;
+  if (message.includes('User rejected') || message.includes('OKX Wallet Reject')) return 'Wallet signature was cancelled.';
+  if (message.includes('insufficient funds')) return 'Not enough BNB in the wallet.';
+  if (message.includes('Already committed')) return 'This wallet already has an active mint commitment.';
+  return message;
+}
 
 const taskPreviewStateAbi = [
   {
@@ -1109,7 +1168,7 @@ function TerminalMemoryPanel({
   );
 }
 
-function TerminalMintPanel({
+function LegacyTerminalMintPanel({
   onClose,
   onReceipt,
 }: {
@@ -1170,6 +1229,514 @@ function TerminalMintPanel({
   );
 }
 
+function TerminalMintPanel({
+  onClose,
+  onReceipt,
+}: {
+  onClose: () => void;
+  onReceipt: (card: TerminalCard) => void;
+}) {
+  const { address, isConnected } = useAccount();
+  const { lang, pick } = useI18n();
+  const isCN = lang === 'zh';
+
+  const [selectedRarity, setSelectedRarity] = useState(0);
+  const [countdown, setCountdown] = useState(0);
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState(false);
+  const [handledCommitHash, setHandledCommitHash] = useState<string | null>(null);
+  const [handledRevealHash, setHandledRevealHash] = useState<string | null>(null);
+  const [handledRefundHash, setHandledRefundHash] = useState<string | null>(null);
+
+  const { data: mintingActive } = useMintingActive();
+  const { data: mintedCount } = useMintedCount();
+  const { data: rarityMinted } = useRarityMinted();
+  const { data: totalSupply } = useTotalSupply();
+  const { data: commitment } = useCommitment(address);
+
+  const commitMint = useCommitMint();
+  const revealMint = useRevealMint();
+  const refundHook = useRefund();
+
+  const commitHash = commitment?.[0] as `0x${string}` | undefined;
+  const commitTimestamp = commitment?.[2] ? Number(commitment[2]) : 0;
+  const commitRevealed = commitment?.[3] as boolean | undefined;
+  const hasActiveCommit = Boolean(commitHash && commitHash !== zeroHash && !commitRevealed);
+  const totalMinted =
+    totalSupply !== undefined ? Number(totalSupply) : mintedCount !== undefined ? Number(mintedCount) : 0;
+  const raritySold = (rarityMinted as readonly bigint[] | undefined) ?? [];
+  const currentMinted = Number(raritySold[selectedRarity] ?? 0n);
+  const soldOut = currentMinted >= RARITY_CAPS[selectedRarity];
+
+  const phase = useMemo<MintPhase>(() => {
+    if (revealed) return 'success';
+    if (!hasActiveCommit) return 'select';
+    const now = Math.floor(Date.now() / 1000);
+    const elapsed = now - commitTimestamp;
+    if (elapsed < REVEAL_DELAY) return 'waiting';
+    if (elapsed < REVEAL_WINDOW) return 'ready';
+    return 'expired';
+  }, [commitTimestamp, hasActiveCommit, revealed]);
+
+  useEffect(() => {
+    if (!hasActiveCommit) {
+      setCountdown(0);
+      return;
+    }
+
+    const update = () => {
+      const now = Math.floor(Date.now() / 1000);
+      const elapsed = now - commitTimestamp;
+      if (elapsed < REVEAL_DELAY) {
+        setCountdown(REVEAL_DELAY - elapsed);
+        return;
+      }
+      if (elapsed < REVEAL_WINDOW) {
+        setCountdown(REVEAL_WINDOW - elapsed);
+        return;
+      }
+      setCountdown(0);
+    };
+
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, [commitTimestamp, hasActiveCommit]);
+
+  useEffect(() => {
+    if (!address || !hasActiveCommit) return;
+    const saved = loadSalt(address);
+    if (saved) {
+      setSelectedRarity(saved.rarity);
+    }
+  }, [address, hasActiveCommit]);
+
+  useEffect(() => {
+    if (revealMint.isSuccess && address) {
+      clearSalt(address);
+      setRevealed(true);
+    }
+  }, [address, revealMint.isSuccess]);
+
+  useEffect(() => {
+    if (!commitMint.isSuccess || !commitMint.hash || handledCommitHash === commitMint.hash) return;
+    setHandledCommitHash(commitMint.hash);
+    onReceipt({
+      id: `mint-commit-${commitMint.hash}`,
+      type: 'receipt',
+      label: pick('铸造回执', 'Mint receipt'),
+      title: pick('铸造已付款', 'Mint payment sent'),
+      body: pick('这笔铸造已经进入等待揭示，倒计时结束后回来点揭示就行。', 'This mint is now waiting for reveal. Come back after the countdown.'),
+      details: [
+        { label: pick('稀有度', 'Rarity'), value: getRarityName(selectedRarity, isCN), tone: 'warm' },
+        { label: pick('价格', 'Price'), value: `${RARITY_PRICES[selectedRarity]} BNB` },
+        { label: pick('下一步', 'Next'), value: pick('揭示', 'Reveal'), tone: 'growth' },
+        { label: pick('交易', 'Tx'), value: `${commitMint.hash.slice(0, 10)}...`, tone: 'cool' },
+      ],
+      cta: { label: pick('查看交易', 'View transaction'), href: getBscScanTxUrl(commitMint.hash) },
+    });
+  }, [commitMint.hash, commitMint.isSuccess, handledCommitHash, isCN, onReceipt, pick, selectedRarity]);
+
+  useEffect(() => {
+    if (!revealMint.isSuccess || !revealMint.hash || handledRevealHash === revealMint.hash) return;
+    setHandledRevealHash(revealMint.hash);
+    onReceipt({
+      id: `mint-reveal-${revealMint.hash}`,
+      type: 'receipt',
+      label: pick('铸造回执', 'Mint receipt'),
+      title: pick('新伙伴已加入', 'New companion joined'),
+      body: pick(
+        `你获得了 ${getRarityName(selectedRarity, isCN)}，并拿到 ${RARITY_AIRDROPS[selectedRarity]} Claworld 空投。`,
+        `You got a ${getRarityName(selectedRarity, isCN)} and ${RARITY_AIRDROPS[selectedRarity]} Claworld airdrop.`,
+      ),
+      details: [
+        { label: pick('稀有度', 'Rarity'), value: getRarityName(selectedRarity, isCN), tone: 'warm' },
+        { label: pick('空投', 'Airdrop'), value: `${RARITY_AIRDROPS[selectedRarity]} Claworld`, tone: 'growth' },
+        { label: pick('状态', 'Status'), value: pick('已加入编组', 'Added to roster') },
+        { label: pick('交易', 'Tx'), value: `${revealMint.hash.slice(0, 10)}...`, tone: 'cool' },
+      ],
+      cta: { label: pick('查看交易', 'View transaction'), href: getBscScanTxUrl(revealMint.hash) },
+    });
+  }, [handledRevealHash, isCN, onReceipt, pick, revealMint.hash, revealMint.isSuccess, selectedRarity]);
+
+  useEffect(() => {
+    if (refundHook.isSuccess && address) {
+      clearSalt(address);
+    }
+  }, [address, refundHook.isSuccess]);
+
+  useEffect(() => {
+    if (!refundHook.isSuccess || !refundHook.hash || handledRefundHash === refundHook.hash) return;
+    setHandledRefundHash(refundHook.hash);
+    onReceipt({
+      id: `mint-refund-${refundHook.hash}`,
+      type: 'receipt',
+      label: pick('铸造回执', 'Mint receipt'),
+      title: pick('已提交退款', 'Refund submitted'),
+      body: pick('过期铸造已申请退款，稍后再看钱包余额刷新。', 'Refund has been submitted for the expired mint. Check the wallet balance again shortly.'),
+      details: [
+        { label: pick('动作', 'Action'), value: pick('退款', 'Refund'), tone: 'cool' },
+        { label: pick('状态', 'Status'), value: pick('已提交', 'Submitted') },
+        { label: pick('交易', 'Tx'), value: `${refundHook.hash.slice(0, 10)}...`, tone: 'warm' },
+      ],
+      cta: { label: pick('查看交易', 'View transaction'), href: getBscScanTxUrl(refundHook.hash) },
+    });
+  }, [handledRefundHash, onReceipt, pick, refundHook.hash, refundHook.isSuccess]);
+
+  const mintBlockedReason = !isConnected
+    ? pick('先连接钱包。', 'Connect the wallet first.')
+    : mintingActive === false
+      ? pick('当前还没开放铸造。', 'Minting is not active right now.')
+      : hasActiveCommit
+        ? pick('这个钱包已经有一笔待揭示铸造。', 'This wallet already has a pending mint.')
+        : soldOut
+          ? pick('这个稀有度已经售完。', 'This rarity is sold out.')
+          : null;
+
+  async function handleCommit() {
+    if (!address || mintBlockedReason || commitMint.isPending || commitMint.isConfirming) return;
+    const salt = generateSalt();
+    saveSalt(address, salt, selectedRarity);
+    const hash = computeCommitHash(selectedRarity, salt, address);
+    setErrorText(null);
+    commitMint.commitMint(hash, parseEther(RARITY_PRICES[selectedRarity]));
+  }
+
+  async function handleReveal() {
+    if (!address) return;
+    const saved = loadSalt(address);
+    if (!saved) {
+      setErrorText(pick('没找到这笔铸造的本地揭示凭据。', 'The local reveal proof for this mint was not found.'));
+      return;
+    }
+    if (!commitHash || commitHash === zeroHash) {
+      setErrorText(pick('链上没有找到当前钱包的铸造承诺。', 'No on-chain mint commitment was found for this wallet.'));
+      return;
+    }
+    const localHash = computeCommitHash(saved.rarity, saved.salt, address);
+    if (localHash.toLowerCase() !== commitHash.toLowerCase()) {
+      setErrorText(pick('本地凭据和链上承诺不一致。', 'The local proof does not match the on-chain commitment.'));
+      return;
+    }
+
+    setErrorText(null);
+    try {
+      await simulateContract(config, {
+        ...vaultContract,
+        functionName: 'reveal',
+        args: [saved.rarity, saved.salt],
+        account: address,
+      });
+    } catch (error) {
+      setErrorText(mintError(error));
+      return;
+    }
+
+    revealMint.revealMint(saved.rarity, saved.salt);
+  }
+
+  const actionError =
+    errorText
+    ?? (commitMint.error
+      ? mintError(commitMint.error)
+      : revealMint.error
+        ? mintError(revealMint.error)
+        : refundHook.error
+          ? mintError(refundHook.error)
+          : null);
+  const latestHash = revealMint.hash || refundHook.hash || commitMint.hash || null;
+
+  return (
+    <section className={styles.inlinePanel}>
+      <div className={styles.inlineHead}>
+        <div>
+          <span>{pick('铸造', 'Mint')}</span>
+          <strong>{pick('Genesis 铸造', 'Genesis mint')}</strong>
+        </div>
+        <div className={styles.inlineHeadActions}>
+          <span className={styles.heroMetaLine}>{totalMinted}/{TOTAL_GENESIS}</span>
+          <button type="button" className={styles.panelButton} onClick={onClose}>
+            <Compass size={14} />
+            {pick('返回', 'Back')}
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.actionHero}>
+        <div>
+          <span>{pick('当前阶段', 'Current stage')}</span>
+          <strong>
+            {phase === 'select'
+              ? pick('选稀有度', 'Choose rarity')
+              : phase === 'waiting'
+                ? pick('等待揭示', 'Waiting for reveal')
+                : phase === 'ready'
+                  ? pick('可以揭示', 'Ready to reveal')
+                  : phase === 'expired'
+                    ? pick('已过窗口', 'Reveal window passed')
+                    : pick('铸造完成', 'Mint complete')}
+          </strong>
+          <small className={styles.heroMetaLine}>
+            {phase === 'select'
+              ? pick('付 BNB 后进入倒计时。', 'Pay BNB to start the countdown.')
+              : phase === 'waiting'
+                ? pick('倒计时结束后回来揭示。', 'Come back after the countdown to reveal.')
+                : phase === 'ready'
+                  ? pick('现在就能把这只 NFA 揭示出来。', 'You can reveal this NFA right now.')
+                  : phase === 'expired'
+                    ? pick('这笔铸造已过揭示窗口，只能退款。', 'This mint passed the reveal window and can only be refunded now.')
+                    : pick('新伙伴已经加入左侧编组。', 'The new companion is now in the left roster.')}
+          </small>
+        </div>
+        <p>
+          {phase === 'select'
+            ? pick('终端里直接完成付款、等待、揭示，不再跳旧页面。', 'Finish payment, waiting, and reveal directly inside the terminal. No legacy page jump.')
+            : phase === 'waiting'
+              ? pick(`还要等 ${formatMintCountdown(countdown)}。到点后点揭示就行。`, `Wait ${formatMintCountdown(countdown)} more, then hit reveal.`)
+              : phase === 'ready'
+                ? pick(
+                    `当前稀有度是 ${getRarityName(selectedRarity, isCN)}，揭示后会拿到 ${RARITY_AIRDROPS[selectedRarity]} Claworld。`,
+                    `Current rarity is ${getRarityName(selectedRarity, isCN)}. Reveal grants ${RARITY_AIRDROPS[selectedRarity]} Claworld.`,
+                  )
+                : phase === 'expired'
+                  ? pick('这笔铸造不会再继续，需要先把 BNB 退回钱包。', 'This mint cannot continue. Refund the BNB back to the wallet first.')
+                  : pick(
+                      `这次揭示拿到了 ${getRarityName(selectedRarity, isCN)}，空投 ${RARITY_AIRDROPS[selectedRarity]} Claworld。`,
+                      `This reveal got ${getRarityName(selectedRarity, isCN)} with ${RARITY_AIRDROPS[selectedRarity]} Claworld airdrop.`,
+                    )}
+        </p>
+      </div>
+
+      {phase === 'select' ? (
+        <>
+          <div className={styles.taskDeck}>
+            {[0, 1, 2, 3, 4].map((rarity) => {
+              const minted = Number(raritySold[rarity] ?? 0n);
+              const raritySoldOut = minted >= RARITY_CAPS[rarity];
+              return (
+                <button
+                  key={rarity}
+                  type="button"
+                  className={`${styles.taskTile} ${selectedRarity === rarity ? styles.taskTileActive : ''}`}
+                  onClick={() => {
+                    if (!raritySoldOut) setSelectedRarity(rarity);
+                  }}
+                  disabled={raritySoldOut}
+                >
+                  <span>{pick('稀有度', 'Rarity')}</span>
+                  <strong>
+                    {getRarityName(rarity, isCN)} {getRarityStars(rarity)}
+                  </strong>
+                  <small>{RARITY_PRICES[rarity]} BNB</small>
+                  <em>
+                    {raritySoldOut
+                      ? pick('已售完', 'Sold out')
+                      : `${minted}/${RARITY_CAPS[rarity]} ${pick('已铸造', 'minted')}`}
+                  </em>
+                  <small>{pick('空投', 'Airdrop')} {RARITY_AIRDROPS[rarity]} Claworld</small>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className={styles.inlineSummary}>
+            <div>
+              <span>{pick('价格', 'Price')}</span>
+              <strong>{RARITY_PRICES[selectedRarity]} BNB</strong>
+            </div>
+            <div>
+              <span>{pick('空投', 'Airdrop')}</span>
+              <strong>{RARITY_AIRDROPS[selectedRarity]} Claworld</strong>
+            </div>
+            <div>
+              <span>{pick('供应', 'Supply')}</span>
+              <strong>{currentMinted}/{RARITY_CAPS[selectedRarity]}</strong>
+            </div>
+            <div>
+              <span>{pick('状态', 'Status')}</span>
+              <strong>{mintBlockedReason ? pick('暂不可用', 'Blocked') : pick('可铸造', 'Ready')}</strong>
+            </div>
+          </div>
+
+          <div className={styles.inlineNote}>
+            {pick('先选稀有度，再付一次 BNB。付款后等 60 秒，再回来揭示。', 'Pick a rarity, pay once in BNB, wait 60 seconds, then come back to reveal.')}
+          </div>
+
+          <div className={styles.inlineActions}>
+            <button
+              type="button"
+              className={styles.primaryPanelButton}
+              onClick={() => void handleCommit()}
+              disabled={Boolean(mintBlockedReason) || commitMint.isPending || commitMint.isConfirming}
+            >
+              <Sparkles size={16} />
+              {commitMint.isPending
+                ? pick('等待钱包签名', 'Waiting for wallet')
+                : commitMint.isConfirming
+                  ? pick('链上确认中', 'Confirming on-chain')
+                  : `${pick('支付', 'Pay')} ${RARITY_PRICES[selectedRarity]} BNB`}
+            </button>
+            <button type="button" className={styles.panelButton} onClick={onClose}>
+              <X size={16} />
+              {pick('取消', 'Cancel')}
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {phase === 'waiting' ? (
+        <>
+          <div className={styles.inlineSummary}>
+            <div>
+              <span>{pick('剩余时间', 'Time left')}</span>
+              <strong>{formatMintCountdown(countdown)}</strong>
+            </div>
+            <div>
+              <span>{pick('稀有度', 'Rarity')}</span>
+              <strong>{getRarityName(selectedRarity, isCN)}</strong>
+            </div>
+            <div>
+              <span>{pick('空投', 'Airdrop')}</span>
+              <strong>{RARITY_AIRDROPS[selectedRarity]} Claworld</strong>
+            </div>
+            <div>
+              <span>{pick('下一步', 'Next')}</span>
+              <strong>{pick('倒计时后揭示', 'Reveal after countdown')}</strong>
+            </div>
+          </div>
+          <div className={styles.inlineActions}>
+            <button type="button" className={styles.panelButton} onClick={onClose}>
+              <Compass size={16} />
+              {pick('先返回', 'Back for now')}
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {phase === 'ready' ? (
+        <>
+          <div className={styles.inlineSummary}>
+            <div>
+              <span>{pick('稀有度', 'Rarity')}</span>
+              <strong>{getRarityName(selectedRarity, isCN)}</strong>
+            </div>
+            <div>
+              <span>{pick('空投', 'Airdrop')}</span>
+              <strong>{RARITY_AIRDROPS[selectedRarity]} Claworld</strong>
+            </div>
+            <div>
+              <span>{pick('状态', 'Status')}</span>
+              <strong>{pick('可以揭示', 'Ready to reveal')}</strong>
+            </div>
+            <div>
+              <span>{pick('交易窗口', 'Window')}</span>
+              <strong>{formatMintCountdown(countdown)}</strong>
+            </div>
+          </div>
+          <div className={styles.inlineActions}>
+            <button type="button" className={styles.primaryPanelButton} onClick={() => void handleReveal()} disabled={revealMint.isPending || revealMint.isConfirming}>
+              <Gift size={16} />
+              {revealMint.isPending
+                ? pick('等待钱包签名', 'Waiting for wallet')
+                : revealMint.isConfirming
+                  ? pick('链上确认中', 'Confirming on-chain')
+                  : pick('立即揭示', 'Reveal now')}
+            </button>
+            <button type="button" className={styles.panelButton} onClick={onClose}>
+              <Compass size={16} />
+              {pick('返回', 'Back')}
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {phase === 'expired' ? (
+        <>
+          <div className={styles.inlineSummary}>
+            <div>
+              <span>{pick('状态', 'Status')}</span>
+              <strong>{pick('已过揭示窗口', 'Reveal window passed')}</strong>
+            </div>
+            <div>
+              <span>{pick('动作', 'Action')}</span>
+              <strong>{pick('退款', 'Refund')}</strong>
+            </div>
+            <div>
+              <span>{pick('价格', 'Price')}</span>
+              <strong>{RARITY_PRICES[selectedRarity]} BNB</strong>
+            </div>
+            <div>
+              <span>{pick('说明', 'Note')}</span>
+              <strong>{pick('需要先退款', 'Refund required')}</strong>
+            </div>
+          </div>
+          <div className={styles.inlineActions}>
+            <button type="button" className={styles.primaryPanelButton} onClick={() => refundHook.refund()} disabled={refundHook.isPending || refundHook.isConfirming}>
+              <TimerReset size={16} />
+              {refundHook.isPending
+                ? pick('等待钱包签名', 'Waiting for wallet')
+                : refundHook.isConfirming
+                  ? pick('链上确认中', 'Confirming on-chain')
+                  : pick('申请退款', 'Request refund')}
+            </button>
+            <button type="button" className={styles.panelButton} onClick={onClose}>
+              <Compass size={16} />
+              {pick('返回', 'Back')}
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {phase === 'success' ? (
+        <>
+          <div className={styles.inlineSummary}>
+            <div>
+              <span>{pick('稀有度', 'Rarity')}</span>
+              <strong>{getRarityName(selectedRarity, isCN)}</strong>
+            </div>
+            <div>
+              <span>{pick('空投', 'Airdrop')}</span>
+              <strong>{RARITY_AIRDROPS[selectedRarity]} Claworld</strong>
+            </div>
+            <div>
+              <span>{pick('状态', 'Status')}</span>
+              <strong>{pick('已加入编组', 'Added to roster')}</strong>
+            </div>
+            <div>
+              <span>{pick('总铸造', 'Total minted')}</span>
+              <strong>{totalMinted}/{TOTAL_GENESIS}</strong>
+            </div>
+          </div>
+          <div className={styles.inlineActions}>
+            <button type="button" className={styles.primaryPanelButton} onClick={onClose}>
+              <CheckCircle2 size={16} />
+              {pick('返回终端', 'Back to terminal')}
+            </button>
+            <button
+              type="button"
+              className={styles.panelButton}
+              onClick={() => {
+                setRevealed(false);
+                setErrorText(null);
+              }}
+            >
+              <Sparkles size={16} />
+              {pick('继续铸造', 'Mint another')}
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {actionError ? <p className={styles.panelError}>{actionError}</p> : null}
+      {latestHash ? (
+        <a className={styles.panelLink} href={getBscScanTxUrl(latestHash)} target="_blank" rel="noreferrer">
+          {pick('查看交易', 'View transaction')} {latestHash.slice(0, 10)}...
+        </a>
+      ) : null}
+    </section>
+  );
+}
+
 export function TerminalActionPanel({
   action,
   companion,
@@ -1185,6 +1752,8 @@ export function TerminalActionPanel({
   onClose: () => void;
   onReceipt: (card: TerminalCard) => void;
 }) {
+  const { lang, pick } = useI18n();
+
   if (action === 'mining') {
     return (
       <div className={styles.actionPanelWrap}>
@@ -1246,27 +1815,27 @@ export function TerminalActionPanel({
       <section className={styles.inlinePanel}>
         <div className={styles.inlineHead}>
           <div>
-            <span>状态</span>
+            <span>{pick('状态', 'Status')}</span>
             <strong>{companion.name}</strong>
           </div>
           <CheckCircle2 size={18} />
         </div>
         <div className={styles.inlineSummary}>
           <div>
-            <span>储备</span>
+            <span>{pick('储备', 'Reserve')}</span>
             <strong>{companion.routerClaworldText}</strong>
           </div>
           <div>
-            <span>续航</span>
-            <strong>{companion.upkeepDays === null ? '--' : `${companion.upkeepDays}天`}</strong>
+            <span>{pick('续航', 'Runway')}</span>
+            <strong>{companion.upkeepDays === null ? '--' : `${companion.upkeepDays}${lang === 'zh' ? '天' : 'd'}`}</strong>
           </div>
           <div>
-            <span>胜败</span>
-            <strong>{companion.pkWins}胜 / {companion.pkLosses}败</strong>
+            <span>{pick('胜败', 'Record')}</span>
+            <strong>{lang === 'zh' ? `${companion.pkWins}胜 / ${companion.pkLosses}败` : `${companion.pkWins}W / ${companion.pkLosses}L`}</strong>
           </div>
           <div>
-            <span>状态</span>
-            <strong>{companion.statusLabel}</strong>
+            <span>{pick('状态', 'Status')}</span>
+            <strong>{localizePanelStatus(companion.statusLabel, pick)}</strong>
           </div>
         </div>
       </section>

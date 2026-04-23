@@ -16,6 +16,7 @@ export async function GET(
     const { tokenId } = await context.params;
     const url = new URL(request.url);
     const owner = url.searchParams.get('owner');
+    const lang = url.searchParams.get('lang') === 'en' ? 'en' : 'zh';
 
     const [detail, world, autonomy, memorySummary, memoryTimeline] = await Promise.all([
       getNfaDetail(tokenId, owner),
@@ -32,7 +33,7 @@ export async function GET(
         autonomy,
         memorySummary,
         memoryTimeline,
-      }),
+      }, lang),
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {

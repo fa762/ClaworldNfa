@@ -291,6 +291,15 @@ export function MintPanel({
             <strong>{RARITY_AIRDROPS[selectedRarity]} Claworld</strong>
           </div>
         </div>
+
+        {onTerminalClose ? (
+          <div className="cw-button-row">
+            <button type="button" className="cw-button cw-button--secondary" onClick={onTerminalClose}>
+              <Compass size={16} />
+              返回
+            </button>
+          </div>
+        ) : null}
       </section>
 
       {phase === 'select' ? (

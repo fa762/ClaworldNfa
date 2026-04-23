@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { createPortal } from 'react-dom';
 import {
   ArrowRight,
   Bot,
-  Brain,
   CircleDot,
   Compass,
   ExternalLink,
@@ -23,6 +23,7 @@ import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import styles from './TerminalHome.module.css';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { useChatEngine } from '@/lib/chat-engine';
+import { useI18n } from '@/lib/i18n';
 import { useActiveCompanion } from '@/components/lobster/useActiveCompanion';
 import { MintPanel } from '@/components/mint/MintPanel';
 import { formatCLW, truncateAddress } from '@/lib/format';
@@ -43,41 +44,94 @@ import { useTerminalAutonomy } from './useTerminalAutonomy';
 import { useTerminalChatHistory } from './useTerminalChatHistory';
 import { useTerminalEvents } from './useTerminalEvents';
 import { useTerminalLocalChat } from './useTerminalLocalChat';
+import { TerminalMarketPanel } from './TerminalMarketPanel';
 
 function toneClass(tone?: TerminalTone) {
   if (!tone) return '';
   return styles[tone];
 }
 
-function describeCompanion(companion: ReturnType<typeof useActiveCompanion>) {
+type PickFn = <T,>(zh: T, en: T) => T;
+
+function describeCompanion(companion: ReturnType<typeof useActiveCompanion>, pick: PickFn) {
   if (!companion.connected) {
-    return '先接入钱包，终端才会读取你的 NFA、账本和动作结果。';
+    return pick(
+      '先接入钱包，终端才会读取你的 NFA、账本和动作结果。',
+      'Connect a wallet so the terminal can read your NFA, ledger, and action results.',
+    );
   }
   if (!companion.hasToken) {
-    return '你还没有可用的 NFA。先去铸造，终端会把它接进来。';
+    return pick(
+      '你还没有可用的 NFA。先去铸造，终端会把它接进来。',
+      'No usable NFA found yet. Mint one first and the terminal will bring it online.',
+    );
   }
   if (!companion.active) {
-    return '这只 NFA 当前停在维护前。先补储备，它才能继续挖矿、PK 和自治。';
+    return pick(
+      '这只 NFA 当前停在维护前。先补储备，它才能继续挖矿、PK 和自治。',
+      'This NFA needs upkeep before mining, PK, or autonomy can continue.',
+    );
   }
   return companion.stance;
+}
+
+function localizeStatusLabel(value: string | undefined, pick: PickFn) {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (!normalized) return '--';
+  if (normalized === '稳定' || normalized === 'stable') return pick('稳定', 'Stable');
+  if (normalized === '需要维护' || normalized === 'needs upkeep') return pick('需要维护', 'Needs upkeep');
+  if (normalized === '储备告急' || normalized === 'reserve low') return pick('储备告急', 'Reserve low');
+  if (normalized === '储备预警' || normalized === 'reserve watch') return pick('储备预警', 'Reserve watch');
+  if (normalized === '连接钱包' || normalized === 'connect wallet') return pick('连接钱包', 'Connect wallet');
+  if (normalized === '未发现 nfa' || normalized === 'no nfa found') return pick('未发现 NFA', 'No NFA found');
+  if (normalized === 'demo view') return pick('演示', 'Demo');
+  return value ?? '--';
+}
+
+function localizeRarityLabel(value: string | undefined, pick: PickFn) {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (!normalized) return '';
+  if (normalized === '普通' || normalized === 'common') return pick('普通', 'Common');
+  if (normalized === '稀有' || normalized === 'rare') return pick('稀有', 'Rare');
+  if (normalized === '史诗' || normalized === 'epic') return pick('史诗', 'Epic');
+  if (normalized === '传说' || normalized === 'legendary') return pick('传说', 'Legendary');
+  if (normalized === '神话' || normalized === 'mythic') return pick('神话', 'Mythic');
+  return value ?? '';
+}
+
+function localizeShelterLabel(value: string | undefined, pick: PickFn) {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (!normalized) return '';
+  if (normalized === '废土' || normalized === 'wasteland') return pick('废土', 'Wasteland');
+  return value ?? '';
+}
+
+function localizeWorldEventLabel(key: string | undefined, fallback: string | undefined, pick: PickFn) {
+  const normalized = (key ?? fallback ?? '').trim().toUpperCase();
+  if (normalized === 'BUBBLE' || fallback === '泡沫') return pick('泡沫', 'Bubble');
+  if (normalized === 'WINTER' || fallback === '寒冬') return pick('寒冬', 'Winter');
+  if (normalized === 'GOLDEN_AGE' || fallback === '繁荣') return pick('繁荣', 'Golden Age');
+  return fallback ?? key ?? '--';
 }
 
 function buildBaseFeed(
   companion: ReturnType<typeof useActiveCompanion>,
   detail: ReturnType<typeof useTerminalNfas>['detail'],
   memory: ReturnType<typeof useTerminalMemory>,
+  pick: PickFn,
+  lang: 'zh' | 'en',
 ): TerminalCard[] {
   const cards: TerminalCard[] = [];
-  const detailMemorySummary = memory.summary?.identity ?? detail?.memorySummary;
+  const detailMemorySummary = memory.summary?.identity ?? (lang === 'zh' ? detail?.memorySummary : undefined);
 
   if (companion.hasToken) {
     cards.push({
       id: 'intro',
       type: 'message',
       role: 'nfa',
-      label: '已接入',
+      label: pick('已接入', 'Online'),
       title: '',
-      body: detailMemorySummary ?? describeCompanion(companion),
+      body: detailMemorySummary ?? describeCompanion(companion, pick),
       tone: 'warm',
       meta: `#${companion.tokenNumber} · Lv.${companion.level}`,
     });
@@ -88,9 +142,9 @@ function buildBaseFeed(
     id: 'intro',
     type: 'message',
     role: 'system',
-    label: '等待接入',
-    title: '先接入一只 NFA',
-    body: describeCompanion(companion),
+    label: pick('等待接入', 'Waiting'),
+    title: pick('先接入一只 NFA', 'Bring an NFA online'),
+    body: describeCompanion(companion, pick),
     tone: 'cool',
   });
 
@@ -208,23 +262,23 @@ function parseLocalTerminalCommand(input: string, ownedTokens: bigint[]): LocalT
   return { kind: 'send', content: rest ? `${command} ${rest}` : command, tokenId: switched.tokenId };
 }
 
-function buildLocalCommandCards(command: LocalTerminalCommand): TerminalCard[] {
+function buildLocalCommandCards(command: LocalTerminalCommand, pick: PickFn): TerminalCard[] {
   if (command.kind === 'help') {
     return [
       {
         id: `local-help-${Date.now()}`,
         type: 'receipt',
-        label: '终端命令',
-        title: '直接输命令也可以',
-        body: '常用命令都能直接开动作，不用先聊一轮。',
+        label: pick('终端命令', 'Terminal commands'),
+        title: pick('直接输命令也可以', 'Commands work too'),
+        body: pick('常用命令都能直接开动作，不用先聊一轮。', 'Use a short command when you want to jump straight into an action.'),
         details: [
-          { label: '/mine', value: '打开挖矿', tone: 'growth' },
-          { label: '/arena', value: '打开竞技', tone: 'warm' },
-          { label: '/auto', value: '打开代理', tone: 'cool' },
-          { label: '/finance', value: '打开资金' },
-          { label: '/market', value: '打开市场' },
-          { label: '/memory', value: '写长期记忆' },
-          { label: '@123', value: '切到 #123' },
+          { label: '/mine', value: pick('打开挖矿', 'Open mining'), tone: 'growth' },
+          { label: '/arena', value: pick('打开竞技', 'Open arena'), tone: 'warm' },
+          { label: '/auto', value: pick('打开代理', 'Open auto'), tone: 'cool' },
+          { label: '/finance', value: pick('打开资金', 'Open funds') },
+          { label: '/market', value: pick('打开市场', 'Open market') },
+          { label: '/memory', value: pick('写长期记忆', 'Write memory') },
+          { label: '@123', value: pick('切到 #123', 'Switch to #123') },
         ],
       },
     ];
@@ -236,11 +290,11 @@ function buildLocalCommandCards(command: LocalTerminalCommand): TerminalCard[] {
         id: `local-switch-${command.tokenId.toString()}-${Date.now()}`,
         type: 'message',
         role: 'system',
-        label: '切换',
+        label: pick('切换', 'Switch'),
         title: '',
-        body: `已切到 #${command.tokenId.toString()}`,
+        body: pick(`已切到 #${command.tokenId.toString()}`, `Switched to #${command.tokenId.toString()}`),
         tone: 'cool',
-        meta: '刚刚',
+        meta: pick('刚刚', 'now'),
       },
     ];
   }
@@ -251,11 +305,11 @@ function buildLocalCommandCards(command: LocalTerminalCommand): TerminalCard[] {
         id: `local-next-${Date.now()}`,
         type: 'message',
         role: 'system',
-        label: '切换',
+        label: pick('切换', 'Switch'),
         title: '',
-        body: '已切到下一只 NFA',
+        body: pick('已切到下一只 NFA', 'Switched to the next NFA'),
         tone: 'cool',
-        meta: '刚刚',
+        meta: pick('刚刚', 'now'),
       },
     ];
   }
@@ -266,11 +320,11 @@ function buildLocalCommandCards(command: LocalTerminalCommand): TerminalCard[] {
         id: `local-prev-${Date.now()}`,
         type: 'message',
         role: 'system',
-        label: '切换',
+        label: pick('切换', 'Switch'),
         title: '',
-        body: '已切到上一只 NFA',
+        body: pick('已切到上一只 NFA', 'Switched to the previous NFA'),
         tone: 'cool',
-        meta: '刚刚',
+        meta: pick('刚刚', 'now'),
       },
     ];
   }
@@ -278,33 +332,33 @@ function buildLocalCommandCards(command: LocalTerminalCommand): TerminalCard[] {
   if (command.kind === 'open') {
     const label =
       command.action === 'mining'
-        ? '挖矿'
+        ? pick('挖矿', 'mining')
         : command.action === 'arena'
-          ? '竞技'
+          ? pick('竞技', 'arena')
           : command.action === 'auto'
-            ? '代理'
+            ? pick('代理', 'auto')
             : command.action === 'memory'
-              ? '记忆'
+              ? pick('记忆', 'memory')
               : command.action === 'mint'
-                ? '铸造'
+                ? pick('铸造', 'mint')
                 : command.action === 'finance'
-                  ? '资金'
+                  ? pick('资金', 'funds')
                   : command.action === 'market'
-                    ? '市场'
+                    ? pick('市场', 'market')
                 : command.action === 'settings'
-                  ? '模型设置'
-                  : '状态';
+                  ? pick('模型设置', 'model settings')
+                  : pick('状态', 'status');
 
     return [
       {
         id: `local-open-${command.action}-${Date.now()}`,
         type: 'message',
         role: 'nfa',
-        label: '回复',
+        label: pick('回复', 'Reply'),
         title: '',
-        body: `行，直接看${label}。`,
+        body: pick(`行，直接看${label}。`, `Opening ${label}.`),
         tone: command.action === 'auto' || command.action === 'settings' ? 'cool' : 'warm',
-        meta: '刚刚',
+        meta: pick('刚刚', 'now'),
       },
     ];
   }
@@ -312,48 +366,86 @@ function buildLocalCommandCards(command: LocalTerminalCommand): TerminalCard[] {
   return [];
 }
 
-function ConnectWall() {
+function ConnectWall({ pick }: { pick: PickFn }) {
   return (
     <div className={styles.connectShell}>
       <div className={styles.connectGrid} />
       <div className={styles.connectCard}>
-        <p className={styles.eyebrow}>龙虾世界</p>
-        <h1>连接钱包</h1>
-        <p>接入 NFA，直接进入对话、挖矿、竞技和代理。</p>
+        <p className={styles.eyebrow}>{pick('龙虾世界', 'ClaworldNfa')}</p>
+        <h1>{pick('连接钱包', 'Connect wallet')}</h1>
+        <p>{pick('接入 NFA，直接进入对话、挖矿、竞技和代理。', 'Connect an NFA to enter chat, mining, arena, and auto mode.')}</p>
         <div className={styles.connectActions}>
           <ConnectButton />
-          <span className={styles.connectHint}>有 NFA 会直接进入。</span>
+          <span className={styles.connectHint}>{pick('有 NFA 会直接进入。', 'Owned NFAs enter directly.')}</span>
         </div>
       </div>
     </div>
   );
 }
 
-function NoCompanionState() {
+function NoCompanionState({
+  pick,
+  companion,
+}: {
+  pick: PickFn;
+  companion: ReturnType<typeof useActiveCompanion>;
+}) {
+  const [mode, setMode] = useState<'mint' | 'market'>('mint');
+  const [marketReceipt, setMarketReceipt] = useState<TerminalCard | null>(null);
+
   return (
     <div className={styles.connectShell}>
       <div className={styles.connectGrid} />
       <div className={styles.connectCard}>
-        <p className={styles.eyebrow}>龙虾世界</p>
-        <h1>先铸造一只 NFA</h1>
-        <p>这个钱包还没有 NFA。铸造完成后会自动进入对话界面。</p>
+        <p className={styles.eyebrow}>{pick('龙虾世界', 'ClaworldNfa')}</p>
+        <h1>{mode === 'mint' ? pick('先铸造一只 NFA', 'Mint an NFA first') : pick('先去市场看看', 'Open the market')}</h1>
+        <p>
+          {mode === 'mint'
+            ? pick('这个钱包还没有 NFA。铸造完成后会自动进入对话界面。', 'This wallet has no NFA yet. After minting, it will enter chat automatically.')
+            : pick('当前钱包没有在手 NFA 也没关系。这里仍然可以购买挂单，或者取消你自己的挂单。', 'Even with no NFA in the wallet right now, you can still buy listings or cancel your own listings here.')}
+        </p>
+        <div className={styles.inlineActions}>
+          <button
+            type="button"
+            className={mode === 'mint' ? styles.primaryPanelButton : styles.panelButton}
+            onClick={() => setMode('mint')}
+          >
+            {pick('铸造', 'Mint')}
+          </button>
+          <button
+            type="button"
+            className={mode === 'market' ? styles.primaryPanelButton : styles.panelButton}
+            onClick={() => setMode('market')}
+          >
+            {pick('市场', 'Market')}
+          </button>
+        </div>
+        {marketReceipt ? <p className={styles.connectHint}>{marketReceipt.title || marketReceipt.body}</p> : null}
         <div className={styles.inlineMintWrap}>
-          <MintPanel />
+          {mode === 'mint' ? (
+            <MintPanel onTerminalClose={() => setMode('market')} />
+          ) : (
+            <TerminalMarketPanel
+              companion={companion}
+              onClose={() => setMode('mint')}
+              onReceipt={(card) => setMarketReceipt(card)}
+            />
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function CompanionLoadingState() {
+function CompanionLoadingState({ pick }: { pick: PickFn }) {
   return (
     <div className={styles.connectShell}>
       <div className={styles.connectGrid} />
       <div className={styles.connectCard}>
-        <p className={styles.eyebrow}>龙虾世界</p>
-        <h1>正在读取你的 NFA</h1>
-        <p>钱包已经连接。终端正在读取持有列表、当前龙虾、账本和记忆上下文。</p>
-        <div className={styles.loadingBars} aria-label="正在读取">
+        <p className={styles.eyebrow}>{pick('龙虾世界', 'ClaworldNfa')}</p>
+        <h1>{pick('正在读取你的 NFA', 'Reading your NFA')}</h1>
+        <p>{pick('钱包已经连接。终端正在读取持有列表、当前龙虾、账本和记忆上下文。', 'Wallet connected. Reading owned NFAs, current companion, ledger, and memory context.')}</p>
+        <div className={styles.loadingBars} aria-label={pick('正在读取', 'Reading')}>
           <span />
           <span />
           <span />
@@ -367,12 +459,13 @@ export function TerminalHome() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
+  const { lang, setLang, pick } = useI18n();
   const companion = useActiveCompanion();
   const terminalNfas = useTerminalNfas(companion.ownerAddress, companion.hasToken ? companion.tokenId : undefined);
   const terminalWorld = useTerminalWorld();
   const terminalMemory = useTerminalMemory(companion.hasToken ? companion.tokenId : undefined, companion.ownerAddress);
   const terminalAutonomy = useTerminalAutonomy(companion.hasToken ? companion.tokenId : undefined);
-  const terminalHistory = useTerminalChatHistory(companion.hasToken ? companion.tokenId : undefined, companion.ownerAddress);
+  const terminalHistory = useTerminalChatHistory(companion.hasToken ? companion.tokenId : undefined, companion.ownerAddress, lang);
   const terminalEvents = useTerminalEvents(companion.hasToken ? companion.tokenId : undefined, companion.ownerAddress);
   const localChat = useTerminalLocalChat(companion.hasToken ? companion.tokenId : undefined, companion.ownerAddress);
   const chatEngine = useChatEngine();
@@ -388,18 +481,44 @@ export function TerminalHome() {
   const streamRef = useRef<HTMLDivElement | null>(null);
   const streamEndRef = useRef<HTMLDivElement | null>(null);
   const walletMenuRef = useRef<HTMLDivElement | null>(null);
+  const walletButtonRef = useRef<HTMLButtonElement | null>(null);
   const routeActionRef = useRef<string | null>(null);
   const ambientEventIdsRef = useRef<Set<string>>(new Set());
+  const pendingReceiptScrollRef = useRef(false);
+  const [walletMenuPosition, setWalletMenuPosition] = useState<{ top: number; right: number; width: number } | null>(null);
 
   const baseCards = useMemo(
-    () => buildBaseFeed(companion, terminalNfas.detail, terminalMemory),
-    [companion, terminalMemory, terminalNfas.detail],
+    () => buildBaseFeed(companion, terminalNfas.detail, terminalMemory, pick, lang),
+    [companion, lang, pick, terminalMemory, terminalNfas.detail],
   );
   const seedCards = terminalHistory.cards.length ? terminalHistory.cards : baseCards;
   const cards = useMemo(
     () => coerceTerminalCards([...seedCards, ...terminalEvents.cards, ...localChat.cards]),
     [localChat.cards, seedCards, terminalEvents.cards],
   );
+  const scrollStreamToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const node = streamRef.current;
+    const end = streamEndRef.current;
+    if (!node || !end) return;
+    end.scrollIntoView({ block: 'end', behavior });
+    node.scrollTop = node.scrollHeight;
+  }, []);
+  const updateWalletMenuPosition = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const trigger = walletButtonRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const width = Math.min(248, Math.max(220, Math.round(rect.width + 84)));
+    const right = Math.max(12, Math.round(window.innerWidth - rect.right));
+    const viewportHeight = window.innerHeight;
+    const estimatedHeight = 236;
+    let top = Math.round(rect.bottom + 10);
+    if (top + estimatedHeight > viewportHeight - 12) {
+      top = Math.max(12, Math.round(rect.top - estimatedHeight - 10));
+    }
+    setWalletMenuPosition({ top, right, width });
+  }, []);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -482,23 +601,70 @@ export function TerminalHome() {
   }, []);
 
   useLayoutEffect(() => {
-    const node = streamRef.current;
-    const end = streamEndRef.current;
-    if (!node || !end) return;
-
-    const scrollToBottom = () => {
-      end.scrollIntoView({ block: 'end', behavior: 'smooth' });
-      node.scrollTop = node.scrollHeight;
-    };
-
-    scrollToBottom();
-    const raf = window.requestAnimationFrame(scrollToBottom);
-    const timeout = window.setTimeout(scrollToBottom, 80);
+    const behavior = pendingReceiptScrollRef.current ? 'auto' : 'smooth';
+    scrollStreamToBottom(behavior);
+    const raf = window.requestAnimationFrame(() => {
+      scrollStreamToBottom(behavior);
+    });
+    const timeout = window.setTimeout(() => {
+      scrollStreamToBottom('auto');
+      pendingReceiptScrollRef.current = false;
+    }, 96);
     return () => {
       window.cancelAnimationFrame(raf);
       window.clearTimeout(timeout);
     };
-  }, [activeAction, cards.length, isSending]);
+  }, [activeAction, cards.length, isSending, scrollStreamToBottom]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+
+    let raf = 0;
+    let timeout = 0;
+
+    const clearScheduled = () => {
+      if (raf) {
+        window.cancelAnimationFrame(raf);
+        raf = 0;
+      }
+      if (timeout) {
+        window.clearTimeout(timeout);
+        timeout = 0;
+      }
+    };
+
+    const flushPendingReceiptScroll = () => {
+      if (!pendingReceiptScrollRef.current) return;
+      clearScheduled();
+      scrollStreamToBottom('auto');
+      raf = window.requestAnimationFrame(() => {
+        scrollStreamToBottom('smooth');
+      });
+      timeout = window.setTimeout(() => {
+        scrollStreamToBottom('auto');
+        pendingReceiptScrollRef.current = false;
+      }, 140);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        flushPendingReceiptScroll();
+      }
+    };
+
+    const handlePageShow = () => {
+      flushPendingReceiptScroll();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      clearScheduled();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [scrollStreamToBottom]);
 
   useEffect(() => {
     setWalletMenuOpen(false);
@@ -528,6 +694,24 @@ export function TerminalHome() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [walletMenuOpen]);
+
+  useLayoutEffect(() => {
+    if (!walletMenuOpen) return;
+
+    updateWalletMenuPosition();
+
+    const handleViewportChange = () => {
+      updateWalletMenuPosition();
+    };
+
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+    };
+  }, [updateWalletMenuPosition, walletMenuOpen]);
 
   useEffect(() => {
     ambientEventIdsRef.current = new Set();
@@ -587,11 +771,11 @@ export function TerminalHome() {
         id: `user-${Date.now()}`,
         type: 'message',
         role: 'user',
-        label: '你',
+        label: pick('你', 'You'),
         title: '',
         body: content,
         tone: 'warm',
-        meta: '刚刚',
+        meta: pick('刚刚', 'now'),
       },
     ]);
     setDraft('');
@@ -614,7 +798,7 @@ export function TerminalHome() {
         if (localCommand.memoryText) setMemoryCandidate(localCommand.memoryText);
         openAction(localCommand.action, { silent: true });
       }
-      localChat.appendCards(buildLocalCommandCards(localCommand));
+      localChat.appendCards(buildLocalCommandCards(localCommand, pick));
       return;
     }
 
@@ -625,11 +809,14 @@ export function TerminalHome() {
           id: `switch-before-send-${localCommand.tokenId.toString()}-${Date.now()}`,
           type: 'message',
           role: 'system',
-          label: '切换',
+          label: pick('切换', 'Switch'),
           title: '',
-          body: `已切到 #${localCommand.tokenId.toString()}，继续把这句话发给它。`,
+          body: pick(
+            `已切到 #${localCommand.tokenId.toString()}，继续把这句话发给它。`,
+            `Switched to #${localCommand.tokenId.toString()}. Send the message again when ready.`,
+          ),
           tone: 'cool',
-          meta: '刚刚',
+          meta: pick('刚刚', 'now'),
         },
       ]);
       return;
@@ -641,11 +828,11 @@ export function TerminalHome() {
           id: `engine-locked-${Date.now()}`,
           type: 'message',
           role: 'system',
-          label: '模型设置',
+          label: pick('模型设置', 'Model settings'),
           title: '',
-          body: 'BYOK 未解锁，先开模型设置。',
+          body: pick('BYOK 未解锁，先开模型设置。', 'BYOK is locked. Open model settings first.'),
           tone: 'alert',
-          meta: '刚刚',
+          meta: pick('刚刚', 'now'),
         },
       ]);
       return;
@@ -662,6 +849,7 @@ export function TerminalHome() {
         body: JSON.stringify({
           content: localCommand.content,
           owner: companion.ownerAddress,
+          lang,
           history: cards.slice(-12),
           engine: chatEngine.engine ?? undefined,
           memoryOverride: {
@@ -672,7 +860,7 @@ export function TerminalHome() {
       });
 
       if (!response.ok || !response.body) {
-        throw new Error(`终端接口返回 ${response.status}`);
+        throw new Error(pick(`终端接口返回 ${response.status}`, `Terminal API returned ${response.status}`));
       }
 
       const reader = response.body.getReader();
@@ -693,8 +881,8 @@ export function TerminalHome() {
               id: `terminal-error-${Date.now()}`,
               type: 'message',
               role: 'system',
-              label: '终端错误',
-              title: '这次整理动作失败了',
+              label: pick('终端错误', 'Terminal error'),
+              title: pick('这次整理动作失败了', 'This action failed'),
               body: payload.message,
               tone: 'alert',
             },
@@ -726,9 +914,9 @@ export function TerminalHome() {
           id: `terminal-error-${Date.now()}`,
           type: 'message',
           role: 'system',
-          label: '终端错误',
-          title: '当前还没能完成这次整理',
-          body: error instanceof Error ? error.message : '未知错误',
+          label: pick('终端错误', 'Terminal error'),
+          title: pick('当前还没能完成这次整理', 'Could not finish this request'),
+          body: error instanceof Error ? error.message : pick('未知错误', 'Unknown error'),
           tone: 'alert',
         },
       ]);
@@ -799,18 +987,108 @@ export function TerminalHome() {
   const displayName = terminalNfas.detail?.displayName ?? companion.name;
   const avatarSrc = terminalNfas.detail?.avatarUri || activeSummary?.avatarUri || companion.imageSrc;
   const pulsePercent = Math.round((terminalNfas.detail?.pulse ?? activeSummary?.pulse ?? 0) * 100);
-  const drawerMemoryText = terminalMemory.summary?.identity ?? terminalNfas.detail?.memorySummary ?? describeCompanion(companion);
+  const statusText = localizeStatusLabel(companion.statusLabel, pick);
+  const rarityText = terminalNfas.detail?.rarity
+    ? localizeRarityLabel(terminalNfas.detail.rarity, pick)
+    : localizeShelterLabel(companion.shelterName, pick);
+  const shelterText = localizeShelterLabel(terminalNfas.detail?.shelter ?? companion.shelterName, pick);
+  const drawerMemoryText = terminalMemory.summary?.identity ?? (lang === 'zh' ? terminalNfas.detail?.memorySummary : undefined) ?? describeCompanion(companion, pick);
   const totalBudget = terminalAutonomy.status?.budget.totalCLW ? safeBigInt(terminalAutonomy.status.budget.totalCLW) : 0n;
   const usedBudget = terminalAutonomy.status?.budget.usedCLW ? safeBigInt(terminalAutonomy.status.budget.usedCLW) : 0n;
   const budgetPercent = totalBudget > 0n ? Number((usedBudget * 100n) / totalBudget) : 0;
   const quickPrompts = [
-    { label: '挖矿', value: '去挖矿', icon: Pickaxe, tone: styles.growth },
-    { label: '竞技', value: '看竞技', icon: Swords, tone: styles.warm },
-    { label: '代理', value: '开代理', icon: Bot, tone: styles.cool },
-    { label: '资金', value: '补储备', icon: Sparkles, tone: styles.cool },
-    { label: '市场', value: '打开市场', icon: Compass, tone: styles.warm },
-    { label: '记忆', value: '看记忆', icon: Brain, tone: styles.alert },
+    { label: pick('挖矿', 'Mine'), value: pick('去挖矿', 'mine'), icon: Pickaxe, tone: styles.growth, action: 'mining' },
+    { label: pick('竞技', 'Arena'), value: pick('看竞技', 'arena'), icon: Swords, tone: styles.warm, action: 'arena' },
+    { label: pick('代理', 'Auto'), value: pick('开代理', 'auto'), icon: Bot, tone: styles.cool, action: 'auto' },
+    { label: pick('资金', 'Funds'), value: pick('补储备', 'funds'), icon: Sparkles, tone: styles.cool, action: 'finance' },
+    { label: pick('市场', 'Market'), value: pick('打开市场', 'market'), icon: Compass, tone: styles.warm, action: 'market' },
   ] as const;
+  const walletMenuOverlay =
+    walletMenuOpen && typeof document !== 'undefined'
+      ? createPortal(
+          <>
+            <button
+              type="button"
+              className={styles.walletMenuBackdrop}
+              aria-label={pick('关闭钱包菜单', 'Close wallet menu')}
+              onClick={() => setWalletMenuOpen(false)}
+            />
+            <div
+              ref={walletMenuRef}
+              className={styles.walletMenu}
+              role="menu"
+              aria-label={pick('钱包菜单', 'Wallet menu')}
+              style={
+                walletMenuPosition
+                  ? {
+                      position: 'fixed',
+                      top: `${walletMenuPosition.top}px`,
+                      right: `${walletMenuPosition.right}px`,
+                      minWidth: `${walletMenuPosition.width}px`,
+                      zIndex: 1001,
+                    }
+                  : { position: 'fixed', top: '84px', right: '12px', minWidth: '220px', zIndex: 1001 }
+              }
+            >
+              <button
+                type="button"
+                className={styles.walletMenuButton}
+                onClick={() => {
+                  setWalletMenuOpen(false);
+                  openAction('mint');
+                }}
+              >
+                {pick('铸造新 NFA', 'Mint NFA')}
+              </button>
+              <button
+                type="button"
+                className={styles.walletMenuButton}
+                onClick={() => {
+                  setWalletMenuOpen(false);
+                  openAction('settings');
+                }}
+              >
+                {pick('模型设置', 'Model settings')}
+              </button>
+              <div className={styles.walletLanguageRow} role="group" aria-label={pick('语言切换', 'Language switch')}>
+                <span>{pick('语言', 'Language')}</span>
+                <div className={styles.walletLanguageButtons}>
+                  <button
+                    type="button"
+                    className={`${styles.walletLangButton} ${lang === 'zh' ? styles.walletLangButtonActive : ''}`}
+                    aria-pressed={lang === 'zh'}
+                    onClick={() => setLang('zh')}
+                  >
+                    中
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.walletLangButton} ${lang === 'en' ? styles.walletLangButtonActive : ''}`}
+                    aria-pressed={lang === 'en'}
+                    onClick={() => setLang('en')}
+                  >
+                    EN
+                  </button>
+                </div>
+              </div>
+              <button type="button" className={styles.walletMenuButton} onClick={requestWalletReconnect}>
+                {pick('切换钱包', 'Switch wallet')}
+              </button>
+              <button
+                type="button"
+                className={`${styles.walletMenuButton} ${styles.walletMenuButtonDanger}`}
+                onClick={() => {
+                  setWalletMenuOpen(false);
+                  disconnect();
+                }}
+              >
+                {pick('断开连接', 'Disconnect')}
+              </button>
+            </div>
+          </>,
+          document.body,
+        )
+      : null;
 
 
   useEffect(() => {
@@ -819,34 +1097,38 @@ export function TerminalHome() {
     const eventId = `ambient-world-${activeWorldEvent.key}`;
     if (ambientEventIdsRef.current.has(eventId)) return;
     ambientEventIdsRef.current.add(eventId);
+    const eventLabel = localizeWorldEventLabel(activeWorldEvent.key, activeWorldEvent.label, pick);
     localChat.appendCards([
       {
         id: eventId,
         type: 'world',
-        label: '世界',
-        title: activeWorldEvent.label,
-        body: '这轮世界状态已经变了，先看倍率和当前局面，再决定要不要动。',
+        label: pick('世界', 'World'),
+        title: eventLabel,
+        body: pick(
+          '这轮世界状态已经变了，先看倍率和当前局面，再决定要不要动。',
+          'World state changed. Check the multiplier and current board before acting.',
+        ),
         details: [
-          { label: '事件', value: activeWorldEvent.label, tone: activeWorldEvent.tone },
-          { label: '大逃杀', value: battleRoyaleSummary?.matchId ? `#${battleRoyaleSummary.matchId}` : '--' },
-          { label: '人数', value: battleRoyaleSummary ? `${battleRoyaleSummary.players}/${battleRoyaleSummary.triggerCount || 10}` : '--' },
-          { label: '奖池', value: battleRoyaleSummary ? formatCLW(safeBigInt(battleRoyaleSummary.potCLW)) : '--', tone: 'warm' },
+          { label: pick('事件', 'Event'), value: eventLabel, tone: activeWorldEvent.tone },
+          { label: pick('大逃杀', 'Battle Royale'), value: battleRoyaleSummary?.matchId ? `#${battleRoyaleSummary.matchId}` : '--' },
+          { label: pick('人数', 'Players'), value: battleRoyaleSummary ? `${battleRoyaleSummary.players}/${battleRoyaleSummary.triggerCount || 10}` : '--' },
+          { label: pick('奖池', 'Pot'), value: battleRoyaleSummary ? formatCLW(safeBigInt(battleRoyaleSummary.potCLW)) : '--', tone: 'warm' },
         ],
-        cta: { label: '打开竞技', intent: 'arena' },
+        cta: { label: pick('打开竞技', 'Open arena'), intent: 'arena' },
       },
     ]);
-  }, [battleRoyaleSummary, localChat, terminalWorld.summary?.activeEvents]);
+  }, [battleRoyaleSummary, localChat, pick, terminalWorld.summary?.activeEvents]);
 
   if (!isConnected || !address) {
-    return <ConnectWall />;
+    return <ConnectWall pick={pick} />;
   }
 
   if (companion.isLoading && !companion.hasToken) {
-    return <CompanionLoadingState />;
+    return <CompanionLoadingState pick={pick} />;
   }
 
   if (!companion.hasToken) {
-    return <NoCompanionState />;
+    return <NoCompanionState pick={pick} companion={companion} />;
   }
 
   return (
@@ -862,7 +1144,7 @@ export function TerminalHome() {
             <div className={styles.railBrand}>CLAWORLD · NFA</div>
             <button type="button" className={`${styles.drawerToggle} ${styles.mobileOnly}`} onClick={() => setRailOpen(false)}>
               <X size={16} />
-              关闭
+              {pick('关闭', 'Close')}
             </button>
           </div>
           <div className={styles.railList}>
@@ -877,7 +1159,7 @@ export function TerminalHome() {
                     companion.selectCompanion(item.tokenId);
                     setRailOpen(false);
                   }}
-                  aria-label={`切换到 ${item.label}`}
+                  aria-label={pick(`切换到 ${item.label}`, `Switch to ${item.label}`)}
                   title={`${item.label} · pulse ${Math.round(item.pulse * 100)}%`}
                   style={{ ['--rail-accent' as any]: item.accentColor }}
                 >
@@ -894,7 +1176,7 @@ export function TerminalHome() {
           <button
             type="button"
             className={styles.mintButton}
-            aria-label="打开铸造"
+            aria-label={pick('打开铸造', 'Open mint')}
             onClick={() => {
               setRailOpen(false);
               openAction('mint');
@@ -904,7 +1186,7 @@ export function TerminalHome() {
           </button>
           <div className={styles.railMeta}>
             <div>#{companion.tokenNumber}</div>
-            <div>{terminalNfas.rail.length || companion.ownedCount} 只在线</div>
+            <div>{terminalNfas.rail.length || companion.ownedCount} {pick('只在线', 'online')}</div>
           </div>
         </aside>
 
@@ -919,7 +1201,7 @@ export function TerminalHome() {
                     setDrawerOpen(false);
                     setRailOpen(true);
                   }}
-                  aria-label="打开 NFA 列表"
+                  aria-label={pick('打开 NFA 列表', 'Open NFA list')}
                 >
                   {avatarSrc ? <img src={avatarSrc} alt={displayName} /> : <RailGlyph tokenId={companion.tokenId} />}
                 </button>
@@ -927,70 +1209,38 @@ export function TerminalHome() {
                   {avatarSrc ? <img src={avatarSrc} alt={displayName} /> : <RailGlyph tokenId={companion.tokenId} />}
                 </div>
                 <div className={styles.titleBlock}>
-                  <p className={styles.eyebrow}>对话入口</p>
+                  <p className={styles.eyebrow}>{pick('对话入口', 'Chat entry')}</p>
                   <h2>{displayName}</h2>
                   <p className={`${styles.subline} ${styles.mono}`}>
-                    #{companion.tokenNumber} · {terminalNfas.detail?.rarity ?? companion.shelterName} · Lv.{terminalNfas.detail?.level ?? companion.level} · {companion.statusLabel}
+                    #{companion.tokenNumber} · {rarityText || shelterText || 'NFA'} · Lv.{terminalNfas.detail?.level ?? companion.level} · {statusText}
                   </p>
                 </div>
               </div>
               <div className={styles.headerActions}>
                 <div className={styles.pulsePill}>
                   <span className={styles.pulseDot} />
-                  <span>心跳 {pulsePercent}%</span>
+                  <span>{pick('心跳', 'Pulse')} {pulsePercent}%</span>
                 </div>
                 <div className={styles.pulsePill}>
                   <span className={styles.pulseDot} />
-                  <span>{chatEngine.activeMode === 'byok' ? '自带模型' : '项目模型'}</span>
+                  <span>{chatEngine.activeMode === 'byok' ? pick('自带模型', 'Own model') : pick('项目模型', 'Project model')}</span>
                 </div>
-                <div ref={walletMenuRef} className={styles.walletMenuWrap}>
+                <div className={styles.walletMenuWrap}>
                   <button
                     type="button"
+                    ref={walletButtonRef}
                     className={styles.walletPill}
                     aria-expanded={walletMenuOpen}
                     aria-haspopup="menu"
-                    onClick={() => setWalletMenuOpen((open) => !open)}
+                    onClick={() => {
+                      if (!walletMenuOpen) updateWalletMenuPosition();
+                      setWalletMenuOpen((open) => !open);
+                    }}
                   >
                     <Shield size={14} />
                     {truncateAddress(address)}
                   </button>
-                  {walletMenuOpen ? (
-                    <div className={styles.walletMenu} role="menu" aria-label="钱包菜单">
-                      <button
-                        type="button"
-                        className={styles.walletMenuButton}
-                        onClick={() => {
-                          setWalletMenuOpen(false);
-                          openAction('mint');
-                        }}
-                      >
-                        铸造新 NFA
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.walletMenuButton}
-                        onClick={() => {
-                          setWalletMenuOpen(false);
-                          openAction('settings');
-                        }}
-                      >
-                        模型设置
-                      </button>
-                      <button type="button" className={styles.walletMenuButton} onClick={requestWalletReconnect}>
-                        切换钱包
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.walletMenuButton} ${styles.walletMenuButtonDanger}`}
-                        onClick={() => {
-                          setWalletMenuOpen(false);
-                          disconnect();
-                        }}
-                      >
-                        断开连接
-                      </button>
-                    </div>
-                  ) : null}
+                  {walletMenuOverlay}
                 </div>
                 <button
                   type="button"
@@ -1001,7 +1251,7 @@ export function TerminalHome() {
                   }}
                 >
                   <Menu size={16} />
-                  状态
+                  {pick('状态', 'Status')}
                 </button>
               </div>
             </header>
@@ -1090,7 +1340,7 @@ export function TerminalHome() {
                 if (card.type === 'world') {
                   return (
                     <article key={card.id} className={styles.worldCard}>
-                      <span className={styles.cardWatermark}>世</span>
+                      <span className={styles.cardWatermark}>{pick('世', 'W')}</span>
                       <div className={styles.cardHead}>
                         <div className={styles.cardLabel}>
                           <Zap size={16} className={styles.cool} />
@@ -1166,9 +1416,9 @@ export function TerminalHome() {
                       <MessageSquareText size={16} className={styles.warm} />
                       {terminalNfas.detail?.displayName ?? companion.name}
                     </div>
-                    <span className={styles.messageTime}>正在思考</span>
+                    <span className={styles.messageTime}>{pick('正在思考', 'Thinking')}</span>
                   </div>
-                  <div className={styles.typingDots} aria-label="NFA 正在回复">
+                  <div className={styles.typingDots} aria-label={pick('NFA 正在回复', 'NFA is replying')}>
                     <span />
                     <span />
                     <span />
@@ -1186,11 +1436,10 @@ export function TerminalHome() {
                     const shouldClosePanel =
                       card.type === 'receipt' &&
                       !card.id.startsWith('mint-commit-');
+                    pendingReceiptScrollRef.current = shouldClosePanel;
                     if (shouldClosePanel) {
                       setActiveAction(null);
-                      requestAnimationFrame(() => {
-                        localChat.appendCards([card]);
-                      });
+                      localChat.appendCards([card]);
                       return;
                     }
                     localChat.appendCards([card]);
@@ -1202,19 +1451,14 @@ export function TerminalHome() {
 
             <form className={styles.heroComposer} onSubmit={handleCommandSubmit}>
               <div className={styles.suggestionChips}>
-                {quickPrompts.map(({ label, value, icon: Icon, tone }) => (
+                {quickPrompts.map(({ label, value, icon: Icon, tone, action }) => (
                   <button
                     key={value}
                     type="button"
                     className={styles.suggestionChip}
                     onClick={() => {
                       setDraft(value);
-                      if (label === '挖矿') openAction('mining');
-                      if (label === '竞技') openAction('arena');
-                      if (label === '代理') openAction('auto');
-                      if (label === '资金') openAction('finance');
-                      if (label === '市场') openAction('market');
-                      if (label === '记忆') openAction('memory');
+                      openAction(action);
                     }}
                   >
                     <Icon size={15} className={tone} />
@@ -1228,17 +1472,22 @@ export function TerminalHome() {
                   className={styles.composerInput}
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
-                  placeholder="例如：去挖矿、看竞技、开代理、补储备、打开市场、@12"
+                  placeholder={pick('例如：去挖矿、看竞技、开代理、补储备、打开市场、@12', 'Try: mine, arena, auto, funds, market, @12')}
                   disabled={isSending}
                 />
                 <button type="submit" className={styles.composerSendButton} disabled={isSending}>
                   <ArrowRight size={16} />
-                  {isSending ? '整理中' : '发送'}
+                  {isSending ? pick('整理中', 'Thinking') : pick('发送', 'Send')}
                 </button>
               </div>
               {terminalHistory.error ? (
                 <div className={styles.composerTips}>
-                  {terminalHistory.error ? <span className={styles.commandHint}>历史暂时没接上：{terminalHistory.error}</span> : null}
+                  {terminalHistory.error ? (
+                    <span className={styles.commandHint}>
+                      {pick('历史暂时没接上：', 'History is not connected: ')}
+                      {terminalHistory.error}
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
             </form>
@@ -1260,11 +1509,11 @@ export function TerminalHome() {
                 <div className={styles.cardHead}>
                   <div className={styles.cardLabel}>
                     <CircleDot size={16} className={toneClass(companion.statusTone)} />
-                    当前 NFA
+                    {pick('当前 NFA', 'Current NFA')}
                   </div>
                   <button type="button" className={`${styles.drawerToggle} ${styles.hiddenDesktop}`} onClick={() => setDrawerOpen(false)}>
                     <X size={16} />
-                    关闭
+                    {pick('关闭', 'Close')}
                   </button>
                 </div>
                 <div className={styles.drawerHeroTop}>
@@ -1272,20 +1521,20 @@ export function TerminalHome() {
                     {avatarSrc ? <img className={styles.drawerAvatarImage} src={avatarSrc} alt={displayName} /> : <RailGlyph tokenId={companion.tokenId} />}
                   </div>
                   <div>
-                    <div className={`${styles.drawerLineOne} ${styles.mono}`}>#{companion.tokenNumber} · {terminalNfas.detail?.rarity ?? 'NFA'}</div>
+                    <div className={`${styles.drawerLineOne} ${styles.mono}`}>#{companion.tokenNumber} · {rarityText || 'NFA'}</div>
                     <div className={styles.drawerLineTwo}>{displayName}</div>
                     <div className={`${styles.drawerLineThree} ${styles.mono}`}>
-                      Lv.{terminalNfas.detail?.level ?? companion.level} · {terminalNfas.detail?.shelter ?? companion.shelterName}
+                      Lv.{terminalNfas.detail?.level ?? companion.level} · {shelterText || 'NFA'}
                     </div>
                   </div>
                 </div>
                 <div className={styles.quoteBlock}>{drawerMemoryText}</div>
                 <div className={styles.drawerButtonPair}>
                   <button type="button" className={styles.drawerButton} onClick={() => openAction('auto')}>
-                    编辑指令
+                    {pick('编辑指令', 'Edit directive')}
                   </button>
                   <button type="button" className={styles.drawerButton} onClick={() => openAction('memory')}>
-                    记忆图谱
+                    {pick('记忆图谱', 'Memory map')}
                   </button>
                 </div>
               </section>
@@ -1293,23 +1542,23 @@ export function TerminalHome() {
               <section className={styles.drawerSection}>
                 <div className={styles.drawerSectionHead}>
                   <Zap size={12} />
-                  能量
+                  {pick('能量', 'Energy')}
                 </div>
                 <div className={styles.drawerRow}>
-                  <span className={styles.drawerKey}>心跳</span>
+                  <span className={styles.drawerKey}>{pick('心跳', 'Pulse')}</span>
                   <div className={styles.pulseBar}>
                     <div className={styles.pulseFill} style={{ width: `${pulsePercent}%` }} />
                   </div>
                   <span className={`${styles.drawerValue} ${styles.warm}`}>{pulsePercent}%</span>
                 </div>
                 <div className={styles.drawerRow}>
-                  <span className={styles.drawerKey}>日维护</span>
+                  <span className={styles.drawerKey}>{pick('日维护', 'Daily upkeep')}</span>
                   <span className={styles.drawerValue}>{companion.dailyCostText}</span>
                 </div>
                 <div className={styles.drawerRow}>
-                  <span className={styles.drawerKey}>续航</span>
+                  <span className={styles.drawerKey}>{pick('续航', 'Runway')}</span>
                   <span className={`${styles.drawerValue} ${toneClass(companion.statusTone)}`}>
-                    {companion.upkeepDays === null ? 'n/a' : `${companion.upkeepDays} 天`}
+                    {companion.upkeepDays === null ? 'n/a' : `${companion.upkeepDays} ${pick('天', 'd')}`}
                   </span>
                 </div>
               </section>
@@ -1317,20 +1566,20 @@ export function TerminalHome() {
               <section className={styles.drawerSection}>
                 <div className={styles.drawerSectionHead}>
                   <Shield size={12} />
-                  账本
+                  {pick('账本', 'Ledger')}
                 </div>
                 <div className={styles.drawerRow}>
-                  <span className={styles.drawerKey}>储备</span>
+                  <span className={styles.drawerKey}>{pick('储备', 'Reserve')}</span>
                   <span className={`${styles.drawerValue} ${styles.warm}`}>{companion.routerClaworldText}</span>
                 </div>
                 <div className={styles.drawerRow}>
-                  <span className={styles.drawerKey}>胜败</span>
+                  <span className={styles.drawerKey}>{pick('胜败', 'Record')}</span>
                   <span className={styles.drawerValue}>
-                    {companion.pkWins}胜 / {companion.pkLosses}败
+                    {lang === 'zh' ? `${companion.pkWins}胜 / ${companion.pkLosses}败` : `${companion.pkWins}W / ${companion.pkLosses}L`}
                   </span>
                 </div>
                 <div className={styles.drawerRow}>
-                  <span className={styles.drawerKey}>胜率</span>
+                  <span className={styles.drawerKey}>{pick('胜率', 'Win rate')}</span>
                   <span className={`${styles.drawerValue} ${styles.growth}`}>{companion.pkWinRate}%</span>
                 </div>
               </section>
@@ -1338,18 +1587,20 @@ export function TerminalHome() {
               <section className={styles.drawerSection}>
                 <div className={styles.drawerSectionHead}>
                   <Bot size={12} />
-                  自治
+                  {pick('自治', 'Autonomy')}
                 </div>
                 <div className={styles.drawerRow}>
-                  <span className={styles.drawerKey}>状态</span>
+                  <span className={styles.drawerKey}>{pick('状态', 'Status')}</span>
                   <span className={styles.drawerValue}>
-                    {terminalAutonomy.status?.enabled ? (terminalAutonomy.status.paused ? '暂停' : '运行') : '未开'}
+                    {terminalAutonomy.status?.enabled
+                      ? (terminalAutonomy.status.paused ? pick('暂停', 'Paused') : pick('运行', 'Running'))
+                      : pick('未开', 'Off')}
                   </span>
                 </div>
                 <div className={styles.drawerRow}>
-                  <span className={styles.drawerKey}>预算</span>
+                  <span className={styles.drawerKey}>{pick('预算', 'Budget')}</span>
                   <span className={styles.drawerValue}>
-                    {totalBudget > 0n ? `${formatCLW(usedBudget)} / ${formatCLW(totalBudget)}` : '未设置'}
+                    {totalBudget > 0n ? `${formatCLW(usedBudget)} / ${formatCLW(totalBudget)}` : pick('未设置', 'Not set')}
                   </span>
                 </div>
                 <div className={styles.budgetBar}>
@@ -1358,41 +1609,46 @@ export function TerminalHome() {
               </section>
 
               <details className={styles.drawerDetails}>
-                <summary>世界</summary>
+                <summary>{pick('世界', 'World')}</summary>
                 <div className={styles.compactStatusGrid}>
                   <div className={styles.statusCard}>
-                    <span>大逃杀</span>
+                    <span>{pick('大逃杀', 'Battle Royale')}</span>
                     <strong>{battleRoyaleSummary?.matchId ? `#${battleRoyaleSummary.matchId}` : '--'}</strong>
                   </div>
                   <div className={styles.statusCard}>
-                    <span>人数</span>
+                    <span>{pick('人数', 'Players')}</span>
                     <strong>{battleRoyaleSummary ? `${battleRoyaleSummary.players}/${battleRoyaleSummary.triggerCount || 10}` : '--'}</strong>
                   </div>
                   <div className={styles.statusCard}>
-                    <span>状态</span>
+                    <span>{pick('状态', 'Status')}</span>
                     <strong className={battleRoyaleSummary?.status === 'pending_reveal' ? styles.alert : styles.cool}>
                       {battleRoyaleSummary?.status === 'open'
-                        ? '开放'
+                        ? pick('开放', 'Open')
                         : battleRoyaleSummary?.status === 'pending_reveal'
-                          ? '待揭示'
+                          ? pick('待揭示', 'Reveal')
                           : battleRoyaleSummary?.status === 'settled'
-                            ? '已结算'
+                            ? pick('已结算', 'Settled')
                             : '--'}
                     </strong>
                   </div>
                   <div className={styles.statusCard}>
-                    <span>奖池</span>
+                    <span>{pick('奖池', 'Pot')}</span>
                     <strong className={styles.warm}>{battleRoyaleSummary ? formatCLW(safeBigInt(battleRoyaleSummary.potCLW)) : '--'}</strong>
                   </div>
                 </div>
               </details>
 
               <details className={styles.drawerDetails}>
-                <summary>记忆</summary>
+                <summary>{pick('记忆', 'Memory')}</summary>
                 <div className={styles.miniList}>
                   <div className={styles.miniItem}>
-                    <strong>{terminalMemory.summary ? '已加载' : '暂无摘要'}</strong>
-                    <p>{terminalMemory.summary?.identity ?? terminalNfas.detail?.memorySummary ?? terminalMemory.error ?? '新的记忆会在链下正文存储和学习树写回打通后继续变厚。'}</p>
+                    <strong>{terminalMemory.summary ? pick('已加载', 'Loaded') : pick('暂无摘要', 'No summary')}</strong>
+                    <p>
+                      {terminalMemory.summary?.identity ??
+                        (lang === 'zh' ? terminalNfas.detail?.memorySummary : undefined) ??
+                        terminalMemory.error ??
+                        pick('新的记忆会在链下正文存储和学习树写回打通后继续变厚。', 'New memories will appear here after storage and learning-tree sync.')}
+                    </p>
                   </div>
                   {terminalMemory.timeline.slice(0, 2).map((snapshot) => (
                     <div key={snapshot.snapshotId} className={styles.miniItem}>
@@ -1404,10 +1660,10 @@ export function TerminalHome() {
               </details>
 
               <details className={styles.drawerDetails}>
-                <summary>最近结果</summary>
+                <summary>{pick('最近结果', 'Recent results')}</summary>
                 <div className={styles.compactStatusGrid}>
                   <div className={styles.statusCard}>
-                    <span>任务</span>
+                    <span>{pick('任务', 'Tasks')}</span>
                     <strong>{terminalAutonomy.status?.recentActions.filter((item) => item.skill === 'task').length ?? 0}</strong>
                   </div>
                   <div className={styles.statusCard}>
@@ -1415,25 +1671,25 @@ export function TerminalHome() {
                     <strong>{terminalAutonomy.status?.recentActions.filter((item) => item.skill === 'pk').length ?? 0}</strong>
                   </div>
                   <div className={styles.statusCard}>
-                    <span>大逃杀</span>
+                    <span>{pick('大逃杀', 'Battle Royale')}</span>
                     <strong>{terminalAutonomy.status?.recentActions.filter((item) => item.skill === 'battle_royale').length ?? 0}</strong>
                   </div>
                   <div className={styles.statusCard}>
-                    <span>对话</span>
+                    <span>{pick('对话', 'Chat')}</span>
                     <strong>{localChat.count}</strong>
                   </div>
                 </div>
                 <div className={styles.miniList}>
                   {recentSummary ? (
                     <div className={styles.miniItem}>
-                      <strong>最近动作</strong>
+                      <strong>{pick('最近动作', 'Latest action')}</strong>
                       <p>{recentSummary.summary}</p>
                     </div>
                   ) : (
-                    <div className={styles.emptyState}>暂无代理动作。</div>
+                    <div className={styles.emptyState}>{pick('暂无代理动作。', 'No proxy action yet.')}</div>
                   )}
                   <button type="button" className={styles.statusLink} onClick={localChat.clearCards} disabled={localChat.count === 0}>
-                    清空本地对话
+                    {pick('清空本地对话', 'Clear local chat')}
                   </button>
                 </div>
               </details>

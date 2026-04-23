@@ -4,6 +4,7 @@ import { coerceTerminalCard, coerceTerminalCards, type TerminalCard } from '@/li
 type BackendChatRequest = {
   tokenId: string;
   owner?: string | null;
+  lang?: 'zh' | 'en';
   content: string;
   slashCommand?: string;
   history?: TerminalCard[];
@@ -168,6 +169,7 @@ function parseSseCards(raw: string): TerminalCard[] {
 export async function requestBackendChat(input: BackendChatRequest): Promise<TerminalCard[] | null> {
   const url = buildUrl(input.tokenId);
   if (!url) return null;
+  const lang = input.lang === 'en' ? 'en' : 'zh';
   const capabilities = toolCapabilities();
   const allowedTools = [
     capabilities.webSearch ? 'web_search' : null,
@@ -197,6 +199,10 @@ export async function requestBackendChat(input: BackendChatRequest): Promise<Ter
     body: JSON.stringify({
       tokenId: input.tokenId,
       owner: input.owner,
+      lang,
+      language: lang,
+      uiLang: lang,
+      replyLanguage: lang,
       content: input.content,
       slashCommand: input.slashCommand,
       history: input.history ?? [],

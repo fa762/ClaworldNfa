@@ -2,7 +2,6 @@
  * 钱包桥接层 — React (wagmi) ↔ Phaser (EventBus)
  * 读链操作使用 viem publicClient，写操作通过 EventBus 委托 React 层
  */
-import { eventBus } from '../EventBus';
 import { createPublicClient, http, parseAbiItem, type Address } from 'viem';
 import { bsc, bscTestnet } from 'viem/chains';
 import { addresses, chainId, deployBlock, rpcUrl } from '@/contracts/addresses';
@@ -865,7 +864,4 @@ export async function loadMatchResolution(matchId: number, phaseTimestamp?: numb
 // ─── Bridge 初始化 ───
 
 export function initBridge() {
-  eventBus.on('game:ready', () => {
-    console.log('[Bridge] Game ready, waiting for wallet...');
-  });
 }

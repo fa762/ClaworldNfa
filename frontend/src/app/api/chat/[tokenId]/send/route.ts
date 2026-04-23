@@ -1,5 +1,6 @@
 import { getAutonomyStatus } from '@/app/api/_lib/autonomy';
 import { requestBackendChat } from '@/app/api/_lib/backend-chat';
+import { buildChainQueryCards } from '@/app/api/_lib/chain-queries';
 import { requestDirectLlm } from '@/app/api/_lib/direct-llm';
 import { getMemorySummaryRuntime, getMemoryTimelineRuntime } from '@/app/api/_lib/memory';
 import { getNfaDetail } from '@/app/api/_lib/nfas';
@@ -18,6 +19,7 @@ function isActionIntent(intent: CommandIntent) {
     intent === 'mining' ||
     intent === 'arena' ||
     intent === 'auto' ||
+    intent === 'memory' ||
     intent === 'mint' ||
     intent === 'finance' ||
     intent === 'market'
@@ -44,6 +46,7 @@ export async function POST(
       content?: string;
       slashCommand?: string;
       owner?: string | null;
+      lang?: 'zh' | 'en';
       history?: unknown;
       engine?: {
         provider?: string;
@@ -59,6 +62,7 @@ export async function POST(
 
     const content = body.content?.trim() || '';
     const slashCommand = body.slashCommand?.trim() || undefined;
+    const lang = body.lang === 'en' ? 'en' : 'zh';
     if (!content && !slashCommand) {
       return new Response(JSON.stringify({ error: 'Missing content.' }), {
         status: 400,
@@ -94,23 +98,37 @@ export async function POST(
     const intent = inferTerminalIntent(content, slashCommand);
     const shouldOpenAction = isActionIntent(intent);
 
-    const backendCards = await requestBackendChat({
-      tokenId,
-      owner: body.owner,
-      content,
+    const chainQueryCards = await buildChainQueryCards({
+      input: content,
       slashCommand,
-      history,
+      owner: body.owner,
       snapshot,
-      engine: body.engine,
-    }).catch((error) => {
-      console.warn('[terminal-chat] backend fallback:', error);
-      return null;
+      lang,
     });
+    const isChainQuery = Boolean(chainQueryCards?.length);
 
-    let cards = backendCards?.length ? backendCards : null;
+    let cards = chainQueryCards?.length ? chainQueryCards : null;
 
-    if (cards && shouldOpenAction && !hasActionProposal(cards)) {
-      cards = [...cards, ...proposalCards(buildIntentCards(intent, content, snapshot))];
+    const backendCards = cards
+      ? null
+      : await requestBackendChat({
+          tokenId,
+          owner: body.owner,
+          content,
+          slashCommand,
+          history,
+          snapshot,
+          engine: body.engine,
+          lang,
+        }).catch((error) => {
+          console.warn('[terminal-chat] backend fallback:', error);
+          return null;
+        });
+
+    if (!cards && backendCards?.length) cards = backendCards;
+
+    if (cards && shouldOpenAction && !isChainQuery && !hasActionProposal(cards)) {
+      cards = [...cards, ...proposalCards(buildIntentCards(intent, content, snapshot, lang))];
     }
 
     if (!cards && !shouldOpenAction) {
@@ -120,6 +138,7 @@ export async function POST(
         history,
         snapshot,
         engine: body.engine,
+        lang,
       }).catch((error) => {
         console.warn('[terminal-chat] direct-llm fallback:', error);
         return null;
@@ -127,12 +146,12 @@ export async function POST(
       if (llmCards?.length) cards = llmCards;
     }
 
-    if (cards && shouldOpenAction && !hasActionProposal(cards)) {
-      cards = [...cards, ...proposalCards(buildIntentCards(intent, content, snapshot))];
+    if (cards && shouldOpenAction && !isChainQuery && !hasActionProposal(cards)) {
+      cards = [...cards, ...proposalCards(buildIntentCards(intent, content, snapshot, lang))];
     }
 
     if (!cards) {
-      cards = buildIntentCards(intent, content, snapshot);
+      cards = buildIntentCards(intent, content, snapshot, lang);
     }
 
     const stream = new ReadableStream({

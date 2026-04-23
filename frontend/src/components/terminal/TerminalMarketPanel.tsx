@@ -55,6 +55,7 @@ export function TerminalMarketPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingLabel, setPendingLabel] = useState('');
+  const hasCurrentNfa = companion.hasToken && companion.tokenNumber > 0;
 
   const { data: hash, error: writeError, isPending, writeContract } = useWriteContract();
   const receipt = useWaitForTransactionReceipt({ hash });
@@ -65,7 +66,7 @@ export function TerminalMarketPanel({
     abi: ClawNFAABI,
     functionName: 'getApproved',
     args: [companion.tokenId],
-    query: { enabled: companion.hasToken },
+    query: { enabled: hasCurrentNfa },
   });
 
   const isApproved = useMemo(() => {
@@ -114,12 +115,12 @@ export function TerminalMarketPanel({
       title: pendingLabel || '市场动作已确认',
       body: '市场动作已经上链，列表也刷新了。',
       details: [
-        { label: '当前 NFA', value: `#${companion.tokenNumber}` },
+        { label: '当前 NFA', value: hasCurrentNfa ? `#${companion.tokenNumber}` : '当前无 NFA' },
         { label: '动作', value: pendingLabel || '市场操作', tone: 'warm' },
         { label: '交易', value: getBscScanTxUrl(hash) },
       ],
     });
-  }, [companion.tokenNumber, hash, onReceipt, pendingLabel, receipt.isSuccess]);
+  }, [companion.tokenNumber, hash, hasCurrentNfa, onReceipt, pendingLabel, receipt.isSuccess]);
 
   const priceValue = useMemo(() => parsePrice(priceInput), [priceInput]);
 
@@ -148,7 +149,7 @@ export function TerminalMarketPanel({
         </div>
         <div>
           <span>当前 NFA</span>
-          <strong>#{companion.tokenNumber}</strong>
+          <strong>{hasCurrentNfa ? `#${companion.tokenNumber}` : '当前无 NFA'}</strong>
         </div>
         <div>
           <span>结算币种</span>
@@ -157,50 +158,63 @@ export function TerminalMarketPanel({
       </div>
 
       <div className={styles.inlineActions}>
-        <button type="button" className={styles.panelButton} onClick={() => void refreshListings()} disabled={loading}>
+        <button
+          type="button"
+          className={styles.panelButton}
+          onClick={() => void refreshListings()}
+          disabled={loading}
+        >
           <RefreshCw size={16} />
           {loading ? '刷新中' : '刷新市场'}
         </button>
-        <button
-          type="button"
-          className={isApproved ? styles.panelButton : styles.primaryPanelButton}
-          onClick={() => {
-            setPendingLabel('授权当前 NFA');
-            writeContract(nfaApproveArgs(companion.tokenNumber));
-          }}
-          disabled={isPending || isApproved}
-        >
-          <Tag size={16} />
-          {isApproved ? '已授权上架' : '授权当前 NFA'}
-        </button>
+        {hasCurrentNfa ? (
+          <button
+            type="button"
+            className={isApproved ? styles.panelButton : styles.primaryPanelButton}
+            onClick={() => {
+              setPendingLabel('授权当前 NFA');
+              writeContract(nfaApproveArgs(companion.tokenNumber));
+            }}
+            disabled={isPending || isApproved}
+          >
+            <Tag size={16} />
+            {isApproved ? '已授权上架' : '授权当前 NFA'}
+          </button>
+        ) : null}
       </div>
 
-      <label className={styles.compactField}>
-        <span>挂卖当前 NFA（固定价 BNB）</span>
-        <input
-          className={styles.compactInput}
-          inputMode="decimal"
-          placeholder="0.05"
-          value={priceInput}
-          onChange={(event) => setPriceInput(event.target.value)}
-        />
-      </label>
+      {hasCurrentNfa ? (
+        <>
+          <label className={styles.compactField}>
+            <span>挂卖当前 NFA（固定价 BNB）</span>
+            <input
+              className={styles.compactInput}
+              inputMode="decimal"
+              placeholder="0.05"
+              value={priceInput}
+              onChange={(event) => setPriceInput(event.target.value)}
+            />
+          </label>
 
-      <div className={styles.inlineActions}>
-        <button
-          type="button"
-          className={styles.primaryPanelButton}
-          disabled={isPending || !isApproved || priceValue === null}
-          onClick={() => {
-            if (priceValue === null) return;
-            setPendingLabel(`挂卖 #${companion.tokenNumber}`);
-            writeContract(marketListArgs(companion.tokenNumber, priceValue));
-          }}
-        >
-          <Coins size={16} />
-          {isPending ? '等待签名' : receipt.isLoading ? '确认中' : '挂卖当前 NFA'}
-        </button>
-      </div>
+          <div className={styles.inlineActions}>
+            <button
+              type="button"
+              className={styles.primaryPanelButton}
+              disabled={isPending || !isApproved || priceValue === null}
+              onClick={() => {
+                if (priceValue === null) return;
+                setPendingLabel(`挂卖 #${companion.tokenNumber}`);
+                writeContract(marketListArgs(companion.tokenNumber, priceValue));
+              }}
+            >
+              <Coins size={16} />
+              {isPending ? '等待签名' : receipt.isLoading ? '确认中' : '挂卖当前 NFA'}
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className={styles.heroMetaLine}>当前钱包没有可挂卖的 NFA。你仍然可以购买挂单，或者取消你自己的挂单。</p>
+      )}
 
       {error ? <p className={styles.panelError}>{error}</p> : null}
       {writeError ? <p className={styles.panelError}>{writeError.message}</p> : null}

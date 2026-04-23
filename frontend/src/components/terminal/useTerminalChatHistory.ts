@@ -25,7 +25,7 @@ async function readJson<T>(url: string) {
   return (await response.json()) as T;
 }
 
-export function useTerminalChatHistory(tokenId?: bigint, owner?: string) {
+export function useTerminalChatHistory(tokenId?: bigint, owner?: string, lang: 'zh' | 'en' = 'zh') {
   const [state, setState] = useState<TerminalChatHistoryState>(INITIAL_STATE);
   const token = tokenId?.toString();
   const normalizedOwner = owner?.toLowerCase();
@@ -44,7 +44,10 @@ export function useTerminalChatHistory(tokenId?: bigint, owner?: string) {
       error: null,
     }));
 
-    const ownerQuery = normalizedOwner ? `?owner=${normalizedOwner}` : '';
+    const params = new URLSearchParams();
+    if (normalizedOwner) params.set('owner', normalizedOwner);
+    params.set('lang', lang);
+    const ownerQuery = params.toString() ? `?${params.toString()}` : '';
 
     readJson<{ messages: TerminalCard[] }>(`/api/chat/${token}/history${ownerQuery}`)
       .then((payload) => {
@@ -67,7 +70,7 @@ export function useTerminalChatHistory(tokenId?: bigint, owner?: string) {
     return () => {
       cancelled = true;
     };
-  }, [normalizedOwner, token]);
+  }, [lang, normalizedOwner, token]);
 
   return useMemo(() => state, [state]);
 }
