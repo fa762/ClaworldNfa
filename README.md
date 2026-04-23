@@ -6,9 +6,9 @@
 
 Language: [English](#english) | [中文](#chinese)
 
-ClaworldNfa is an AI-native NFA companion and game protocol on BNB Chain.
+ClaworldNfa is a live BNB Chain project that turns a Non-Fungible Agent into one coherent runtime subject: identity, ledger account, gameplay actor, memory carrier, chat surface, and bounded autonomous executor.
 
-ClaworldNfa 是一个部署在 BNB Chain 上的 AI 原生 NFA 伙伴与游戏协议。
+ClaworldNfa 是一个已经跑在 BNB Chain 主网上的项目。这里的 NFA 不是一张图，也不是一个聊天皮肤，而是同一个主体同时承担身份、账本账户、玩法角色、记忆载体、对话入口和有边界的自治执行。
 
 - Live app: [www.clawnfaterminal.xyz](https://www.clawnfaterminal.xyz)
 - Public repository: [github.com/fa762/ClaworldNfa](https://github.com/fa762/ClaworldNfa)
@@ -21,463 +21,761 @@ ClaworldNfa 是一个部署在 BNB Chain 上的 AI 原生 NFA 伙伴与游戏协
 <a id="english"></a>
 ## English
 
-### What It Is
+### Executive Summary
 
-ClaworldNfa is live as a Terminal-style PWA where the user:
+ClaworldNfa is not a simple "AI + NFT" wrapper.
 
-1. connects a wallet
-2. loads owned NFAs
-3. selects one NFA
-4. talks to that NFA in natural language
-5. receives structured action cards
-6. confirms wallet actions from those cards
-7. reads balance, memory, world, and autonomy state in the same shell
-
-This repository includes smart contracts, a Next.js PWA, server-side API routes, memory endpoints, autonomy runner scripts, and deployment / upgrade / smoke scripts.
-
-### Paradigm Thesis
-
-The main claim of ClaworldNfa is not "AI + NFT".
-
-The main claim is that one NFA can be all of these at once:
+The engineering thesis is that one NFA can be all of these at once:
 
 - an owned on-chain identity
-- an in-world account holder
+- an in-world internal ledger account
 - a playable game actor
 - a memory-bearing companion
-- an AI runtime subject
+- a natural-language runtime endpoint
 - a bounded autonomous executor
 
-That is the paradigm change in this repository.
+This repository contains the full stack for that model:
 
-### Why It Is Different
+- 14 tracked Solidity source modules across core, skills, world, and adapter layers
+- 12 Hardhat test suites
+- a live Terminal-style PWA built with Next.js 16, React 19, wagmi, and viem
+- server-side chat, memory, world, event, and autonomy API routes
+- an `openclaw/` runtime with planner, runner, memory, tool, and watcher modules
+- deployment, upgrade, smoke, and reveal-watch scripts for mainnet operation
 
-ClaworldNfa connects the full chain below into one system:
+The shortest description of the project is still this chain:
 
 `NFA identity -> NFA ledger -> gameplay state -> memory context -> AI intent parsing -> action card -> wallet-confirmed or bounded autonomous execution -> receipt and accounting`
 
-Most projects stop at one or two of those layers. This project treats them as one runtime model.
+### Why This Repository Matters
 
-### Core Innovations
+Most projects split the important pieces apart:
 
-#### 1. NFA as identity plus account
+- identity is one NFT
+- balance is controlled somewhere else
+- gameplay is disconnected from the identity layer
+- memory is cosmetic or temporary
+- AI can chat but cannot act safely
+- autonomy, if present, is often just a signer with loose checks
 
-- `ClawNFA` is the identity anchor.
-- `ClawRouter` gives each NFA its own internal Claworld ledger account.
-- Gameplay, upkeep, rewards, and withdrawals revolve around the NFA ledger instead of a wallet-only account model.
+ClaworldNfa takes the opposite route. It keeps identity, ledger, state, memory, gameplay, and bounded execution in one architecture.
 
-#### 2. Conversation as the runtime interface
+### System Overview
 
-- The live frontend is a Terminal-style PWA.
-- The user talks to the selected NFA in natural language.
-- The system turns clear intent into structured action cards instead of allowing an LLM to directly sign arbitrary transactions.
+```mermaid
+flowchart LR
+  A["Owner Wallet"] --> B["Terminal PWA"]
+  B --> C["Next.js API Layer"]
+  C --> D["Project Backend Chat / Memory"]
+  C --> E["OpenAI-Compatible Model or BYOK Path"]
+  B --> F["Wallet-Confirmed Writes"]
+  F --> G["ClawNFA"]
+  F --> H["ClawRouter"]
+  H --> I["TaskSkill"]
+  H --> J["PKSkill"]
+  H --> K["BattleRoyale"]
+  H --> L["MarketSkill"]
+  H --> M["GenesisVault"]
+  N["WorldState"] --> I
+  N --> J
+  N --> K
+  O["Planner / Runner"] --> P["ClawOracle"]
+  P --> Q["ClawOracleActionHub"]
+  Q --> R["BattleRoyaleAdapter"]
+  R --> K
+  O --> S["Reasoning Upload + Memory Runtime"]
+```
 
-#### 3. Memory as runtime state
+### BAP-578 in ClaworldNfa
 
-- The chat path loads memory summary and recent timeline into context.
-- Memory is not decorative lore. It is part of the runtime state.
-- The learning-tree path leaves room for verifiable on-chain anchoring of memory state.
+#### Identity
 
-#### 4. Bounded autonomy instead of free-form agent signing
-
-- Autonomy runs through policy, registry, oracle, action hub, adapter, and finalization layers.
-- Offline execution is possible, but only inside explicit protocol boundaries.
-- This is not a generic unattended signer.
-
-#### 5. NFA-native settlement across game loops
-
-- mining
-- PK
-- Battle Royale
-- mint
-- claim flows
-
-These loops settle around the same NFA ledger model, so identity, assets, and gameplay do not drift apart.
-
-### On-Chain Protocol Layers
-
-#### Identity and account
+Source:
 
 - `contracts/core/ClawNFA.sol`
+
+What it contributes:
+
+- the NFA token is the identity anchor
+- visible state such as rarity, shelter, level, and progression lives on the protocol side
+- the contract includes the learning-tree root path used to anchor evolving memory state
+
+#### Account
+
+Sources:
+
 - `contracts/core/ClawRouter.sol`
-- `contracts/core/PersonalityEngine.sol`
 - `contracts/core/DepositRouter.sol`
 
-Highlights:
+What they contribute:
 
-- BAP-578-aligned NFA identity
-- learning-tree root storage
-- personality growth caps
-- upkeep, dormancy, withdraw cooldown
-- ledger-based gameplay spending
+- each NFA has its own internal Claworld ledger account
+- gameplay spends and rewards resolve around that ledger
+- the owner wallet becomes the permission and entry/exit layer
+- the NFA ledger becomes the in-world operating account
 
-#### Skills
+#### Execution
 
-- `contracts/skills/GenesisVault.sol`
+Sources:
+
 - `contracts/skills/TaskSkill.sol`
 - `contracts/skills/PKSkill.sol`
 - `contracts/skills/BattleRoyale.sol`
 - `contracts/skills/MarketSkill.sol`
+- `contracts/skills/GenesisVault.sol`
+- `contracts/world/ClawOracle.sol`
+- `contracts/world/ClawAutonomyRegistry.sol`
+- `contracts/world/ClawOracleActionHub.sol`
+- `contracts/world/adapters/BattleRoyaleAdapter.sol`
 
-Highlights:
+What they contribute:
 
-- `GenesisVault`: commit-reveal mint
-- `TaskSkill`: personality-weighted mining and world multiplier integration
-- `PKSkill`: commit-reveal strategy game with DNA mutation
-- `BattleRoyale`: room-based elimination, NFA-ledger participation, autonomy-facing entry points
-- `MarketSkill`: fixed price, auction, and swap flows
+- user-confirmed execution through the UI
+- bounded offline execution through the autonomy stack
+- gameplay that shares one identity and one ledger foundation
 
-#### World and economy
+#### Learning
 
-- `contracts/world/WorldState.sol`
-- `contracts/core/DepositRouter.sol`
+Sources:
 
-Highlights:
+- learning-tree path in `contracts/core/ClawNFA.sol`
+- `frontend/src/app/api/memory/[tokenId]/summary/route.ts`
+- `frontend/src/app/api/memory/[tokenId]/timeline/route.ts`
+- `frontend/src/app/api/memory/[tokenId]/write/route.ts`
+- `openclaw/cml.ts`
+- `openclaw/autonomyCmlRuntime.ts`
+- `openclaw/autonomyMemory.ts`
 
-- reward multiplier
-- PK stake limit
-- mutation bonus
-- daily cost multiplier
-- world events
-- 24 hour timelock for major manual world-state changes
-- token ingress path through bonding-curve / `Flap Portal` before graduation and PancakeSwap after graduation
+What they contribute:
 
-This means the token economy, gameplay economy, and world modifiers are part of the same design, not separate systems.
+- memory summary and memory timeline enter runtime context
+- chat and autonomy can use memory as live state
+- learning state can be anchored without dumping raw memory on-chain
+
+### Contract Module Inventory
+
+#### Core Contracts
+
+| File | Role | What it is responsible for |
+| --- | --- | --- |
+| `contracts/core/ClawNFA.sol` | BAP-578 identity anchor | identity, rarity, shelter, level path, learning-tree root storage, visible NFA state |
+| `contracts/core/ClawRouter.sol` | NFA ledger hub | balances, upkeep, dormancy, withdraw cooldown, gameplay dispatch, skill authorization |
+| `contracts/core/DepositRouter.sol` | token ingress bridge | routes BNB into the CLW/Claworld path through bonding-curve or DEX routes |
+| `contracts/core/PersonalityEngine.sol` | bounded personality evolution | monthly dimension caps, progression safeguards, personality shaping |
+
+#### Skill Contracts
+
+| File | Loop | Key mechanics |
+| --- | --- | --- |
+| `contracts/skills/GenesisVault.sol` | mint | commit-reveal, weighted rarity, reveal/refund flow, rescue paths for stuck commitments |
+| `contracts/skills/TaskSkill.sol` | mining | task execution, XP and token rewarding, personality-weighted outcome path, world multiplier integration |
+| `contracts/skills/PKSkill.sol` | arena | commit-reveal strategy game, strategy multipliers, mutation hooks, settlement |
+| `contracts/skills/BattleRoyale.sol` | elimination tournament | room system, reveal window, emergency reveal path, NFA-ledger participation, autonomy-facing entry functions |
+| `contracts/skills/MarketSkill.sol` | market | fixed price listings, auctions, NFA-for-NFA swaps, fee logic |
+
+#### World and Autonomy Contracts
+
+| File | Role | Key details |
+| --- | --- | --- |
+| `contracts/world/WorldState.sol` | global economy controller | reward multiplier, PK stake limit, mutation bonus, daily cost multiplier, event flags, timelocked changes |
+| `contracts/world/ClawOracle.sol` | bounded reasoning request contract | `reason`, `fulfillReasoning`, `expireRequest`, one-hour request window |
+| `contracts/world/ClawAutonomyRegistry.sol` | policy engine | checks approvals, budgets, reserve floors, limits, breakers, and dynamic reserve logic |
+| `contracts/world/ClawOracleActionHub.sol` | action middle layer | stores pending autonomous actions, syncs oracle results, executes through adapters, emits receipts |
+| `contracts/world/adapters/BattleRoyaleAdapter.sol` | execution isolation for Battle Royale | decodes hub payloads and calls the target skill inside a bounded adapter contract |
 
 ### Autonomy Policy Engine
 
-Key contract:
+If one module best represents the protocol-side originality of this repo, it is `contracts/world/ClawAutonomyRegistry.sol`.
 
-- `contracts/world/ClawAutonomyRegistry.sol`
+This contract is not a switch. It is a full multi-dimensional policy engine.
 
-This contract is not a simple allowlist. It is a multi-dimensional on-chain policy engine.
-
-The evaluation path checks dimensions such as:
-
-- policy enabled
-- emergency pause
-- operator approval
-- adapter approval
-- protocol approval
-- spend caps
-- daily limits
-- failure breaker
-- operator budget
-- per-asset budget
-- reserve floor
-- dynamic reserve source and buffer
-
-Important features:
+The core functions are:
 
 - `preflightAuthorizedAction(...)`
 - `previewAuthorizedAction(...)`
 - `consumeAuthorizedAction(...)`
-- dynamic reserve controls through reserve-source hooks and `dynamicReserveBufferBps`
+- `_evaluateAction(...)`
 
-This is one of the strongest protocol-level innovations in the repository.
+The evaluation path checks multiple independent dimensions before an autonomous action can be consumed:
 
-### Action Lifecycle and Auditability
+| Dimension | Why it exists |
+| --- | --- |
+| policy enabled | lets the owner shut the path off cleanly |
+| emergency pause | global stop mechanism |
+| operator approval | the runtime operator must still be explicitly approved |
+| adapter approval | the execution adapter itself must be allowed |
+| protocol approval | the target protocol/action family must be allowed |
+| spend cap | constrains single-action spend |
+| daily limit | constrains cumulative activity |
+| failure breaker | stops repeated failing execution loops |
+| operator budget | constrains the operator at a policy level |
+| asset budget | constrains per-asset spend |
+| reserve floor | protects minimum balance |
+| dynamic reserve source | supports external reserve logic |
+| dynamic reserve buffer | keeps reserve calculation adaptive instead of static |
 
-Key contract:
+The dynamic reserve path is especially important. A static reserve floor is easy to reason about, but it is often wrong in volatile conditions. ClawworldNfa supports a reserve-source hook plus `dynamicReserveBufferBps` so the safe minimum can adapt to external conditions while still staying on-chain and policy-bounded.
 
-- `contracts/world/ClawOracleActionHub.sol`
+### Autonomous Action Lifecycle
 
-The action lifecycle is explicit:
+The autonomy flow is explicit and auditable. It runs through `contracts/world/ClawOracleActionHub.sol`.
 
-1. `requestAutonomousAction(...)`
-2. `syncOracleResult(...)`
-3. `executeSyncedAction(...)`
-4. finalization / receipt update
+```mermaid
+flowchart LR
+  A["Planner"] --> B["requestAutonomousAction(...)"]
+  B --> C["ClawOracle.reason(...)"]
+  C --> D["PendingAction{REQUESTED}"]
+  E["Oracle Runner"] --> F["fulfillReasoning(requestId, choice, reasoningCid)"]
+  F --> G["syncOracleResult(requestId)"]
+  G --> H["PendingAction{FULFILLED}"]
+  I["Executor"] --> J["executeSyncedAction(requestId)"]
+  J --> K["AutonomyRegistry.preflightAuthorizedAction(...)"]
+  K --> L["Adapter.executeAutonomousAction(...)"]
+  L --> M["Skill Contract"]
+  M --> N["consumeAuthorizedAction(...)"]
+  N --> O["Receipt / status / spend / reward update"]
+```
 
-Important properties:
+Key properties of this design:
 
-- `capabilityHash` binds the policy snapshot used at request time
-- `reasoningCid` can link to uploaded reasoning documents
-- pending actions have explicit lifecycle states
-- receipts include spend, rewards, retry count, result hash, and receipt hash
+- `capabilityHash` snapshots the policy state at request time
+- the request carries bounded choices instead of open-ended execution
+- `syncOracleResult` and `executeSyncedAction` are separated because policy may change between reasoning and execution
+- adapters isolate protocol-specific execution
+- receipts preserve a durable audit trail
 
-This creates an auditable action trail for autonomous behavior.
+Important receipt content includes:
 
-### Agent Runtime Design
+- `requestId`
+- `nfaId`
+- `actionKind`
+- `protocolId`
+- `status`
+- `resolvedChoice`
+- `payloadHash`
+- `capabilityHash`
+- `resultHash`
+- `receiptHash`
+- `requestedSpend`
+- `actualSpend`
+- `clwCredit`
+- `xpCredit`
+- timestamps
+- `retryCount`
+- `reasoningCid`
+- `lastError`
 
-Key modules:
+### Planner and Runner Design
+
+The `openclaw/` runtime is where the AI model meets bounded execution.
+
+Main files:
 
 - `openclaw/autonomyPlanner.ts`
 - `openclaw/autonomyOracleRunner.ts`
+- `openclaw/autonomyTxPolicy.ts`
 - `openclaw/autonomyCmlRuntime.ts`
 - `openclaw/autonomyMemory.ts`
+- `openclaw/reasoningUploader.ts`
 - `openclaw/battleRoyaleRevealWatcher.ts`
+- `openclaw/skills/*.ts`
 
-The runtime model is important:
+#### Planner Method
 
-- deterministic code builds candidates first
-- deterministic code scores candidates first
-- the LLM chooses only from bounded candidate sets
-- fallback logic exists when the model fails or returns nothing
+The planner does **not** give the model a blank check.
 
-That is very different from handing the agent a free-form "decide everything" prompt.
+Its method is:
 
-### Reasoning and Memory Proof Path
+1. enumerate managed NFAs
+2. check cooldowns and policy readiness
+3. prioritize maintenance work first, such as reveals or claims
+4. build deterministic candidate sets for tasks, PK, and Battle Royale
+5. score candidates deterministically
+6. ask the LLM to choose among bounded options
+7. fall back to hardcoded safety ranking if the model fails
 
-The autonomy runner can produce full reasoning documents and upload them through the configured uploader path.
-
-Important pieces:
-
-- `reasoningCid` in oracle and action-hub flows
-- optional reasoning document upload
-- memory summary and timeline loaded into runtime context
-- learning-tree anchoring path for persistent memory state
-
-The repository supports both practical deployments and more verifiable deployments.
-
-### Live Product Surface
-
-The Terminal PWA is the main user-facing product.
-
-Core actions exposed in the current UI:
-
-- chat with the selected NFA
-- mint a new NFA
-- deposit Claworld into an NFA ledger account
-- withdraw Claworld from an NFA ledger account
-- run mining actions
-- browse and join PK
-- browse and join Battle Royale
-- claim available rewards
-- view and write memory
-- configure BYOK / model mode
-- open autonomy controls
-- use market actions where configured
-
-The UI rule is simple: show action, reward, condition, and result. Long explanations go behind panels or advanced views.
-
-### Repository Tree
-
-```text
-contracts/
-  core/
-    ClawNFA.sol
-    ClawRouter.sol
-    DepositRouter.sol
-    PersonalityEngine.sol
-  skills/
-    GenesisVault.sol
-    TaskSkill.sol
-    PKSkill.sol
-    BattleRoyale.sol
-    MarketSkill.sol
-  world/
-    ClawOracle.sol
-    ClawAutonomyRegistry.sol
-    ClawOracleActionHub.sol
-    ClawAutonomyFinalizationHub.sol
-    WorldState.sol
-    adapters/
-
-frontend/
-  src/
-    app/api/
-      chat/
-      memory/
-      world/
-      autonomy/
-      nfas/
-    components/
-      terminal/
-      game/
-      lobster/
-    contracts/
-      abis/
-      hooks/
-
-openclaw/
-  autonomyPlanner.ts
-  autonomyOracleRunner.ts
-  autonomyCmlRuntime.ts
-  autonomyMemory.ts
-  battleRoyaleRevealWatcher.ts
-  skills/
-
-scripts/
-  deploy-*.ts
-  upgrade-*.ts
-  smoke-*.ts
-  configure-*.ts
-
-docs/
-  INNOVATION_MAP.md
-
-test/
+```mermaid
+flowchart TD
+  A["Managed NFA set"] --> B["Read live chain state"]
+  B --> C["Load directive + memory context"]
+  C --> D["Build task / PK / BR candidates"]
+  D --> E["Deterministic scoring and filtering"]
+  E --> F["Bounded LLM choice"]
+  F --> G["requestAutonomousAction(...)"]
+  E --> H["Fallback decision if model fails"]
+  H --> G
 ```
 
-### Reviewer Reading Path
+#### Oracle Runner Method
 
-If you are reviewing the project for technical depth, read in this order:
+The oracle runner:
 
-1. `PROJECT.md`
-2. `docs/INNOVATION_MAP.md`
-3. `ARCHITECTURE.md`
-4. `contracts/world/ClawAutonomyRegistry.sol`
-5. `contracts/world/ClawOracleActionHub.sol`
-6. `contracts/core/ClawRouter.sol`
-7. `contracts/skills/BattleRoyale.sol`
-8. `openclaw/autonomyPlanner.ts`
-9. `openclaw/autonomyOracleRunner.ts`
-10. `frontend/src/components/terminal/`
+1. watches `ReasoningRequested`
+2. loads the request and choice context
+3. loads memory context
+4. assembles the bounded decision prompt
+5. parses the chosen option back into a concrete bounded choice
+6. builds a reasoning document
+7. uploads the reasoning document when configured
+8. fulfills the oracle request on-chain
+9. syncs and executes the action hub lifecycle
 
-### Mainnet Contract Addresses
+### Memory and CML
 
-The frontend contains canonical BNB Chain mainnet defaults in `frontend/src/contracts/addresses.ts`.
+The project uses a CML-style memory model so the NFA can carry continuity across sessions and actions.
 
-| Contract | Address |
-| --- | --- |
-| ClawNFA | `0xAa2094798B5892191124eae9D77E337544FFAE48` |
-| ClawRouter | `0x60C0D5276c007Fd151f2A615c315cb364EF81BD5` |
-| Claworld token | `0x3b486c191c74c9945fa944a3ddde24acdd63ffff` |
-| GenesisVault | `0xCe04f834aC4581FD5562f6c58C276E60C624fF83` |
-| TaskSkill | `0xaed370784536e31BE4A5D0Dbb1bF275c98179D10` |
-| PKSkill | `0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF` |
-| BattleRoyale | `0x2B2182326Fd659156B2B119034A72D1C2cC9758D` |
-| MarketSkill | `0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54` |
-| DepositRouter | `0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269` |
-| WorldState | `0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA` |
-| OracleActionHub | `0xEdd04D821ab9E8eCD5723189A615333c3509f1D5` |
-| AutonomyRegistry | `0xD18BaF2670fFcb4CC92260719AbFc9d637dB7044` |
-| BattleRoyaleAdapter | `0xCD71fD0429DC82EfD6Ef019a7e1F7f93a5A1AEcc` |
+Key runtime files:
+
+- `openclaw/cml.ts`
+- `openclaw/autonomyCmlRuntime.ts`
+- `openclaw/autonomyMemory.ts`
+- `frontend/src/lib/terminal-memory-local.ts`
+
+Key API routes:
+
+- `frontend/src/app/api/memory/[tokenId]/summary/route.ts`
+- `frontend/src/app/api/memory/[tokenId]/timeline/route.ts`
+- `frontend/src/app/api/memory/[tokenId]/write/route.ts`
+
+Memory lifecycle:
+
+```mermaid
+flowchart LR
+  A["Conversation or gameplay outcome"] --> B["Memory write path"]
+  B --> C["Summary and timeline storage"]
+  C --> D["Loaded into future runtime context"]
+  D --> E["Optional CML snapshot update"]
+  E --> F["Optional hash / learning-tree anchor"]
+```
+
+Important point:
+
+- the full memory body does not have to live on-chain
+- the runtime still supports verifiable anchoring through the learning-tree path
+- memory is treated as runtime state, not decorative lore
+
+### Terminal PWA and Frontend Architecture
+
+The live product surface is a Terminal-style PWA. That is the mainline product today.
+
+Primary UI modules:
+
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- `frontend/src/components/terminal/TerminalActionPanel.tsx`
+- `frontend/src/components/terminal/TerminalFinancePanel.tsx`
+- `frontend/src/components/terminal/TerminalMarketPanel.tsx`
+- `frontend/src/components/terminal/TerminalMemoryPanel.tsx`
+- `frontend/src/components/terminal/TerminalSettingsPanel.tsx`
+
+Primary data hooks:
+
+- `frontend/src/components/terminal/useTerminalChatHistory.ts`
+- `frontend/src/components/terminal/useTerminalLocalChat.ts`
+- `frontend/src/components/terminal/useTerminalAutonomy.ts`
+- `frontend/src/components/terminal/useTerminalMemory.ts`
+- `frontend/src/components/terminal/useTerminalNfas.ts`
+- `frontend/src/components/terminal/useTerminalWorld.ts`
+- `frontend/src/components/terminal/useTerminalEvents.ts`
+
+Primary server routes:
+
+| Route group | Files | Purpose |
+| --- | --- | --- |
+| chat | `frontend/src/app/api/chat/[tokenId]/history/route.ts`, `frontend/src/app/api/chat/[tokenId]/send/route.ts` | conversation history, intent parsing, reply generation, action-card generation |
+| memory | `frontend/src/app/api/memory/[tokenId]/summary/route.ts`, `timeline`, `write` | memory summary, recent timeline, write path |
+| autonomy | `frontend/src/app/api/autonomy/directive/route.ts`, `frontend/src/app/api/autonomy/[tokenId]/status/route.ts` | directive submission and runtime status |
+| NFA data | `frontend/src/app/api/nfas/route.ts`, `frontend/src/app/api/nfas/[tokenId]/route.ts`, `frontend/src/app/api/agents/[id]/route.ts` | owned NFA loading and detail aggregation |
+| world and events | `frontend/src/app/api/world/summary/route.ts`, `frontend/src/app/api/events/stream/route.ts` | world state and live event stream |
+| support | `frontend/src/app/api/pk/auto-reveal/route.ts`, `frontend/src/app/api/game-assets/[asset]/route.ts` | relay and asset helpers |
+
+Important frontend libraries:
+
+- `frontend/src/app/api/_lib/backend-chat.ts`
+- `frontend/src/app/api/_lib/direct-llm.ts`
+- `frontend/src/app/api/_lib/terminal-chat.ts`
+- `frontend/src/app/api/_lib/chain-queries.ts`
+- `frontend/src/lib/terminal-cards.ts`
+- `frontend/src/lib/chat-engine.tsx`
+- `frontend/src/lib/i18n.tsx`
+
+Secondary surfaces still present in the repository:
+
+- page routes under `frontend/src/app/` for companion, arena, auto, mint, guide, lore, settings, NFA pages, and other earlier UI paths
+- a Phaser-based game surface under `frontend/src/game/`
+- an `openclaw/claw-world-skill/` package and Hermes-compatible tool files
+
+### World Economy and Token Ingress
+
+`contracts/world/WorldState.sol` controls global gameplay modifiers such as reward multiplier, PK stake limit, mutation bonus, daily cost multiplier, and event phases.
+
+`contracts/core/DepositRouter.sol` is where the repo directly touches the external token ingress path. It supports:
+
+- `Flap Portal` / bonding-curve routing before graduation
+- PancakeSwap routing after graduation
+
+That matters because the project economy is not pretending its token comes from nowhere. The ingress path is wired into the contract layer.
+
+### Source Tree
+
+The tree below focuses on tracked engineering source and docs. It intentionally omits `node_modules`, caches, build artifacts, local logs, and temporary working folders.
+
+```text
+ClaworldNfa/
+├── contracts/
+│   ├── core/
+│   │   ├── ClawNFA.sol                         # BAP-578 identity anchor + learning-tree root
+│   │   ├── ClawRouter.sol                      # NFA ledger hub, upkeep, authorized dispatch
+│   │   ├── DepositRouter.sol                   # BNB -> CLW ingress via Flap Portal or Pancake
+│   │   └── PersonalityEngine.sol               # monthly-bounded personality evolution
+│   ├── interfaces/
+│   │   ├── IClawRouter.sol
+│   │   ├── IDepositRouter.sol
+│   │   ├── IFlapPortal.sol
+│   │   ├── IPancakeRouter.sol
+│   │   └── IPersonalityEngine.sol
+│   ├── mocks/
+│   │   ├── MockAutonomyNFA.sol
+│   │   ├── MockAutonomyRouter.sol
+│   │   ├── MockCLW.sol
+│   │   ├── MockFlapPortal.sol
+│   │   ├── MockPancakePair.sol
+│   │   └── MockPancakeRouter.sol
+│   ├── skills/
+│   │   ├── BattleRoyale.sol
+│   │   ├── GenesisVault.sol
+│   │   ├── MarketSkill.sol
+│   │   ├── PKSkill.sol
+│   │   └── TaskSkill.sol
+│   └── world/
+│       ├── adapters/
+│       │   └── BattleRoyaleAdapter.sol
+│       ├── interfaces/
+│       │   ├── IClawActionAdapter.sol
+│       │   └── IClawAutonomyDelegationRegistryView.sol
+│       ├── ClawAutonomyRegistry.sol
+│       ├── ClawOracle.sol
+│       ├── ClawOracleActionHub.sol
+│       └── WorldState.sol
+├── docs/
+│   ├── assets/
+│   │   └── banner.png
+│   └── INNOVATION_MAP.md
+├── frontend/
+│   ├── package.json
+│   └── src/
+│       ├── app/
+│       │   ├── page.tsx
+│       │   ├── globals.css
+│       │   ├── layout.tsx
+│       │   ├── manifest.ts
+│       │   ├── api/
+│       │   ├── arena/
+│       │   ├── auto/
+│       │   ├── companion/
+│       │   ├── game/
+│       │   ├── guide/
+│       │   ├── lore/
+│       │   ├── mint/
+│       │   ├── nfa/
+│       │   ├── openclaw/
+│       │   ├── play/
+│       │   └── settings/
+│       ├── components/
+│       │   ├── auto/
+│       │   ├── game/
+│       │   ├── home/
+│       │   ├── layout/
+│       │   ├── lobster/
+│       │   ├── mint/
+│       │   ├── nfa/
+│       │   ├── terminal/
+│       │   └── wallet/
+│       ├── contracts/
+│       │   ├── addresses.ts
+│       │   ├── abis/
+│       │   └── hooks/
+│       ├── game/
+│       └── lib/
+├── openclaw/
+│   ├── autonomyCmlRuntime.ts
+│   ├── autonomyMemory.ts
+│   ├── autonomyOracleRunner.ts
+│   ├── autonomyPlanner.ts
+│   ├── autonomyTxPolicy.ts
+│   ├── battleRoyaleRevealWatcher.ts
+│   ├── cml.ts
+│   ├── reasoningUploader.ts
+│   ├── skills/
+│   └── claw-world-skill/
+├── scripts/
+│   ├── deploy-phase1.ts
+│   ├── deploy-phase2.ts
+│   ├── deploy-phase3.ts
+│   ├── deploy-and-upgrade-all.ts
+│   ├── configure-deposit-router.ts
+│   ├── smoke-battle-royale-autonomy-mainnet.ts
+│   ├── watch-battle-royale-reveal.ts
+│   ├── upgrade-battle-royale.ts
+│   ├── upgrade-taskskill-mainnet.ts
+│   ├── upgrade-router-clw.ts
+│   ├── force-refund-stuck-commit.ts
+│   └── ...
+├── test/
+│   ├── BattleRoyale.test.ts
+│   ├── BattleRoyaleAutonomy.test.ts
+│   ├── ClawNFA.test.ts
+│   ├── ClawRouter.test.ts
+│   ├── DepositRouter.test.ts
+│   ├── GenesisVault.test.ts
+│   ├── Integration.test.ts
+│   ├── MarketSkill.test.ts
+│   ├── PersonalityEngine.test.ts
+│   ├── PKSkill.test.ts
+│   ├── TaskSkill.test.ts
+│   └── WorldState.test.ts
+├── ARCHITECTURE.md
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── Dockerfile.autonomy-runner
+├── LICENSE
+├── PROJECT.md
+├── SECURITY.md
+├── hardhat.config.ts
+├── package.json
+└── tsconfig.openclaw.json
+```
+
+### Mainnet Addresses
+
+Canonical mainnet defaults are kept in `frontend/src/contracts/addresses.ts`.
+
+| Module | Address | Notes |
+| --- | --- | --- |
+| ClawNFA | `0xAa2094798B5892191124eae9D77E337544FFAE48` | identity |
+| ClawRouter | `0x60C0D5276c007Fd151f2A615c315cb364EF81BD5` | NFA ledger hub |
+| WorldState | `0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA` | global gameplay parameters |
+| GenesisVault | `0xCe04f834aC4581FD5562f6c58C276E60C624fF83` | mint |
+| Claworld token | `0x3b486c191c74c9945fa944a3ddde24acdd63ffff` | product token |
+| Flap Portal | `0x3525e9B10cD054E7A32248902EB158c863F3a18B` | pre-graduation ingress |
+| Pancake Router | `0x114E4c57754c69dAA360a8894698F1D832E56350` | post-graduation ingress |
+| TaskSkill | `0xaed370784536e31BE4A5D0Dbb1bF275c98179D10` | mining |
+| PKSkill | `0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF` | PK |
+| MarketSkill | `0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54` | market |
+| DepositRouter | `0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269` | BNB -> Clawworld path |
+| PersonalityEngine | `0x19E8A11d8b6E94230f0C174f6Fc4Ca11e6f4331E` | progression bounds |
+| BattleRoyale | `0x2B2182326Fd659156B2B119034A72D1C2cC9758D` | BR |
+| AutonomyRegistry | `0xD18BaF2670fFcb4CC92260719AbFc9d637dB7044` | policy engine |
+| AutonomyDelegationRegistry | `0x1C3A69fC7715563D9dDF9847BB5ffF3B6e09aAEa` | delegation support |
+| OracleActionHub | `0xEdd04D821ab9E8eCD5723189A615333c3509f1D5` | action hub |
+| AutonomyFinalizationHub | `0x65F850536bE1B844c407418d8FbaE795045061bd` | runtime-integrated deployment address |
+| WorldEventSkill | `0xdD1273990234D591c098e1E029876F0236Ef8bD3` | world-event surface |
+| TaskSkillAdapter | `0xe7a7E66F9F05eC14925B155C4261F32603857E8E` | adapter |
+| PKSkillAdapter | `0x1ef409114BAD145e5289a5e906E9Ea38B7d05A0c` | adapter |
+| BattleRoyaleAdapter | `0xCD71fD0429DC82EfD6Ef019a7e1F7f93a5A1AEcc` | adapter |
+| Autonomy operator | `0x567f863A3dB5CBaf59796F6524b1b3ca1793911C` | runtime operator |
 
 ### Local Development
 
-Install dependencies:
+#### Root
 
 ```bash
 npm install
+npm run compile
+npm test
+```
+
+#### Frontend
+
+```bash
 npm --prefix frontend install
-```
-
-Run frontend locally:
-
-```bash
 npm --prefix frontend run dev
-```
-
-Build frontend:
-
-```bash
 npm --prefix frontend run build
 ```
 
-Compile contracts:
+#### Autonomy runner checks
 
 ```bash
-npm run compile
+npm run runner:autonomy:check
+npm run watch:battle-royale:check
 ```
 
-Run contract tests:
+#### Useful script families
 
-```bash
-npx hardhat test
-```
+- deploy: `scripts/deploy-phase*.ts`, `scripts/deploy-and-upgrade-all.ts`
+- upgrade: `scripts/upgrade-*.ts`
+- diagnostics and repair: `scripts/check-permissions.ts`, `scripts/fix-permissions.ts`, `scripts/force-refund-stuck-commit.ts`
+- autonomy smoke: `scripts/smoke-battle-royale-autonomy-mainnet.ts`
+- reveal watcher: `scripts/watch-battle-royale-reveal.ts`
 
 ### Environment Variables
 
 Examples live in:
 
 - `.env.example`
-- `frontend/.env.example`
 - `openclaw/.env.autonomy-runner.example`
+- `frontend/.env.example`
 
-Important server-side variables include:
+Important deployment variables include:
 
-- `CLAWORLD_API_URL`
-- `CLAWORLD_API_TOKEN`
-- `CLAWORLD_CHAT_MODEL_BASE_URL`
-- `CLAWORLD_CHAT_MODEL_API_KEY`
-- `CLAWORLD_CHAT_MODEL_NAME`
-- `CLAWORLD_ENABLE_WEB_TOOLS`
+| Variable | Purpose |
+| --- | --- |
+| `CLAWORLD_API_URL` | backend API base |
+| `CLAWORLD_API_TOKEN` | backend auth token |
+| `CLAWORLD_CHAT_MODEL_BASE_URL` | server-side model endpoint |
+| `CLAWORLD_CHAT_MODEL_API_KEY` | server-side model key |
+| `CLAWORLD_CHAT_MODEL_NAME` | active model name |
+| `CLAWORLD_ENABLE_WEB_TOOLS` | enable web search/tool path in supported deployments |
+| `NEXT_PUBLIC_CHAIN_ID` | BSC mainnet or testnet |
+| `NEXT_PUBLIC_RPC_URL` | frontend RPC endpoint |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | walletconnect client config |
+| `AUTONOMY_*` variables in `openclaw/.env.autonomy-runner.example` | autonomy operator, hub, oracle, memory, and reasoning-upload config |
 
-### Security
+Do not commit live keys, live private keys, WalletConnect secrets, operator wallets, or backend-only tokens.
 
-Please see `SECURITY.md` for reporting and security expectations.
+### Security Model
 
-Practical rules:
+#### Wallet boundary
 
-- user wallet writes require user confirmation
-- server keys stay server-side
-- BYOK keys are encrypted locally and unlocked by wallet signature
-- autonomy actions are bounded by policy and contract checks
-- public repository examples must not contain live secrets
+- user-initiated writes are wallet confirmed
+- the browser does not hold project-side private keys
+
+#### Protocol boundary
+
+- skills spend only through authorized paths
+- autonomy goes through registry checks, oracle choice syncing, and adapters
+- commit-reveal mechanics are used where game design needs them
+
+#### Runtime boundary
+
+- memory loading happens off-chain
+- reasoning documents can be uploaded off-chain and referenced by CID
+- BYOK settings stay local and are encrypted client-side
+
+#### Operational boundary
+
+- world parameter changes are timelocked
+- reserve and budget controls exist in the autonomy policy layer
+- failure breakers and reserve floors exist to stop unsafe repeated execution
+
+For vulnerability reporting and disclosure expectations, see `SECURITY.md`.
+
+### Reviewer Reading Path
+
+If you want to understand the project as an engineering system rather than a product demo, read in this order:
+
+1. `PROJECT.md`
+2. `ARCHITECTURE.md`
+3. `docs/INNOVATION_MAP.md`
+4. `contracts/core/ClawRouter.sol`
+5. `contracts/world/ClawAutonomyRegistry.sol`
+6. `contracts/world/ClawOracleActionHub.sol`
+7. `contracts/skills/BattleRoyale.sol`
+8. `contracts/skills/PKSkill.sol`
+9. `openclaw/autonomyPlanner.ts`
+10. `openclaw/autonomyOracleRunner.ts`
+11. `frontend/src/app/api/chat/[tokenId]/send/route.ts`
+12. `frontend/src/components/terminal/TerminalHome.tsx`
+
+### What Is in the Public Repo and What Is Not
+
+The public repository includes:
+
+- protocol contracts
+- runtime code
+- frontend code
+- script paths
+- docs
+- tests
+
+The public repository does not include:
+
+- hosted secrets
+- live production API keys
+- private operator wallets
+- private infrastructure credentials
+- personal runbooks or transient operations notes
 
 ---
 
 <a id="chinese"></a>
 ## 中文
 
-### 这是什么项目
+### 项目定位
 
-ClaworldNfa 是一个部署在 BNB Chain 上的 AI 原生 NFA 伙伴与游戏协议。
+ClaworldNfa 不是一个“AI 聊天壳 + NFT 图片”的项目。
 
-当前在线产品是一个 Terminal 风格 PWA。用户连接钱包后，可以读取自己持有的 NFA，和它对话，再通过动作卡去完成链上行为。
-
-### 它真正创新在哪里
-
-这个项目最重要的不是“AI + NFT”这几个字，而是把下面这条链完整接起来了：
-
-`NFA 身份 -> NFA 账本 -> 游戏状态 -> 记忆上下文 -> AI 理解意图 -> 动作卡 -> 钱包确认 / 有边界的自治执行 -> 回执与结算`
-
-同一个 NFA 在这里同时承担：
+它真正要做的是：让同一个 NFA 同时成为下面这些东西：
 
 - 链上身份
-- 世界里的账户
-- 游戏参与者
+- NFA 自己的记账账户
+- 玩法里的真实角色
 - 带记忆的伙伴
-- AI 运行时里的主体
-- 受限自治执行主体
+- 自然语言交互入口
+- 有边界的自治执行主体
 
-### 核心创新模块
+最短的一句话就是这条链：
 
-#### 1. NFA 既是身份，也是账户
+`NFA 身份 -> NFA 账本 -> 游戏状态 -> 记忆上下文 -> AI 理解意图 -> 动作卡 -> 钱包确认 / 有边界自治执行 -> 回执与记账`
 
-- `ClawNFA` 负责身份锚点
-- `ClawRouter` 给每只 NFA 单独的 Claworld 记账账户
-- 消耗、奖励、维护、提现都围绕 NFA 账本结算
+### 总体系统图
 
-#### 2. 对话不是装饰，是运行时入口
+```mermaid
+flowchart LR
+  A["用户钱包"] --> B["Terminal PWA"]
+  B --> C["Next.js API 层"]
+  C --> D["项目后端聊天 / 记忆服务"]
+  C --> E["OpenAI-compatible / BYOK 路径"]
+  B --> F["钱包确认的链上写入"]
+  F --> G["ClawNFA"]
+  F --> H["ClawRouter"]
+  H --> I["TaskSkill"]
+  H --> J["PKSkill"]
+  H --> K["BattleRoyale"]
+  H --> L["MarketSkill"]
+  H --> M["GenesisVault"]
+  N["WorldState"] --> I
+  N --> J
+  N --> K
+  O["Planner / Runner"] --> P["ClawOracle"]
+  P --> Q["ClawOracleActionHub"]
+  Q --> R["BattleRoyaleAdapter"]
+  R --> K
+```
 
-- 当前主产品是 Terminal PWA
-- 用户先说意图
-- 系统先生成结构化动作卡
-- 真正的链上写入仍然要经过钱包确认
+### 合约模块清单
 
-#### 3. 记忆是状态层，不是文案层
+#### Core
 
-- 对话会加载 memory summary 和 timeline
-- learning-tree 路径给链上锚定留下空间
-- 角色不是每次都重新扮演，而是能延续
+| 文件 | 作用 |
+| --- | --- |
+| `contracts/core/ClawNFA.sol` | BAP-578 身份锚点、learning-tree root、角色可见状态 |
+| `contracts/core/ClawRouter.sol` | NFA 账本、维护费、休眠、提现冷却、授权 skill 分发 |
+| `contracts/core/DepositRouter.sol` | BNB -> Clawworld 资金入口 |
+| `contracts/core/PersonalityEngine.sol` | 五维性格成长与月度边界 |
 
-#### 4. 自治不是裸签，是有边界的
+#### Skills
 
-- `ClawAutonomyRegistry` 负责策略约束
-- `ClawOracleActionHub` 负责动作中枢
-- adapter 负责协议执行隔离
-- finalization 负责结果和记账回写
+| 文件 | 作用 |
+| --- | --- |
+| `contracts/skills/GenesisVault.sol` | commit-reveal 铸造、揭示、退款 |
+| `contracts/skills/TaskSkill.sol` | 挖矿任务、奖励、XP、性格匹配 |
+| `contracts/skills/PKSkill.sol` | PK 策略 commit-reveal、对战结算、DNA 变化 |
+| `contracts/skills/BattleRoyale.sol` | 房间制大逃杀、揭示窗口、NFA 账本入场、自主接口 |
+| `contracts/skills/MarketSkill.sol` | 固定价、拍卖、互换 |
 
-#### 5. 玩法围绕 NFA 账本结算
+#### World / Autonomy
 
-- 挖矿
-- PK
-- 大逃杀
-- 铸造
-- 奖励领取
+| 文件 | 作用 |
+| --- | --- |
+| `contracts/world/WorldState.sol` | 世界参数、事件、倍率、timelock |
+| `contracts/world/ClawOracle.sol` | bounded choice 的链上推理请求 |
+| `contracts/world/ClawAutonomyRegistry.sol` | 多维 policy engine |
+| `contracts/world/ClawOracleActionHub.sol` | request / sync / execute 生命周期与回执 |
+| `contracts/world/adapters/BattleRoyaleAdapter.sol` | ActionHub 到玩法执行的隔离层 |
 
-这些玩法都围绕同一个 NFA 账本模型来运转。
+### AutonomyRegistry 和 ActionHub
 
-### 重要协议层
-
-#### AutonomyRegistry
-
-`contracts/world/ClawAutonomyRegistry.sol`
-
-这不是简单白名单，而是多维 policy engine。它会检查：
+`contracts/world/ClawAutonomyRegistry.sol` 不是简单白名单，而是策略引擎。它会检查：
 
 - policy 开关
 - emergency pause
@@ -485,137 +783,157 @@ ClaworldNfa 是一个部署在 BNB Chain 上的 AI 原生 NFA 伙伴与游戏协
 - spend cap
 - daily limit
 - failure breaker
+- operator budget
+- asset budget
 - reserve floor
 - dynamic reserve source 和 buffer
 
-这层是项目里最强的协议创新之一。
+关键函数：
 
-#### ActionHub
+- `preflightAuthorizedAction(...)`
+- `previewAuthorizedAction(...)`
+- `consumeAuthorizedAction(...)`
+- `_evaluateAction(...)`
 
-`contracts/world/ClawOracleActionHub.sol`
-
-动作生命周期是明确拆开的：
+`contracts/world/ClawOracleActionHub.sol` 负责把自治动作拆成明确生命周期：
 
 1. `requestAutonomousAction(...)`
 2. `syncOracleResult(...)`
 3. `executeSyncedAction(...)`
-4. finalize / receipt update
+4. receipt / result update
 
-关键点：
+关键设计：
 
 - `capabilityHash` 绑定动作发起时的策略快照
-- `reasoningCid` 连接推理证明
-- receipt 记录开销、奖励、重试次数、结果哈希和回执哈希
+- `reasoningCid` 连接推理文档
+- payload、result、receipt 都有哈希
+- spend、奖励、重试次数、错误信息都进入回执
 
-#### WorldState + DepositRouter
+### openclaw runtime
 
-- `WorldState` 把奖励倍率、维护倍率、事件、timelock 放到链上
-- `DepositRouter` 支持 bonding-curve 阶段的 `Flap Portal` 路径，以及毕业后的 PancakeSwap 路径
-
-这说明世界经济、代币入口和玩法经济是联动设计，不是分开的模块。
-
-### Agent Runtime 设计
-
-关键代码在：
+关键文件：
 
 - `openclaw/autonomyPlanner.ts`
 - `openclaw/autonomyOracleRunner.ts`
+- `openclaw/autonomyTxPolicy.ts`
 - `openclaw/autonomyCmlRuntime.ts`
 - `openclaw/autonomyMemory.ts`
+- `openclaw/reasoningUploader.ts`
 - `openclaw/battleRoyaleRevealWatcher.ts`
 
-重要方法论：
+方法论：
 
-- 先由确定性代码生成候选
-- 先由确定性代码做评分
-- LLM 只在候选里做多选
-- 模型失败时有 fallback
+1. 先读取链上状态、世界状态、记忆、directive
+2. 先由确定性代码生成候选
+3. 先由确定性代码打分
+4. 再让 LLM 在 bounded options 里选
+5. 模型失败时走 fallback
 
-这和“把一切交给模型自由发挥”不是一回事。
+### 前端与对话路径
 
-### 当前在线产品面
+主产品面是 Terminal PWA。
 
-当前 Terminal PWA 已经公开的主要动作包括：
+关键组件：
 
-- 对话
-- 铸造
-- 存款
-- 提现
-- 挖矿
-- PK
-- 大逃杀
-- 记忆读写
-- BYOK / 模型设置
-- 自治控制
-- 市场能力
+- `frontend/src/components/terminal/TerminalHome.tsx`
+- `frontend/src/components/terminal/TerminalActionPanel.tsx`
+- `frontend/src/components/terminal/TerminalFinancePanel.tsx`
+- `frontend/src/components/terminal/TerminalMarketPanel.tsx`
+- `frontend/src/components/terminal/TerminalMemoryPanel.tsx`
+- `frontend/src/components/terminal/TerminalSettingsPanel.tsx`
+
+关键服务端路由：
+
+- chat: `frontend/src/app/api/chat/[tokenId]/...`
+- memory: `frontend/src/app/api/memory/[tokenId]/...`
+- autonomy: `frontend/src/app/api/autonomy/...`
+- nfas: `frontend/src/app/api/nfas/...`
+- world: `frontend/src/app/api/world/summary/route.ts`
+- events: `frontend/src/app/api/events/stream/route.ts`
+
+仓库里也还保留了其他工程面：
+
+- `frontend/src/game/` 下的 Phaser 路径
+- `frontend/src/app/arena/`、`auto/`、`mint/`、`nfa/` 等页面
+- `openclaw/claw-world-skill/` 下的 skill / hermes 工具面
 
 ### 文件结构树
 
+下面这个结构树聚焦真实工程源码，刻意省略了 `node_modules`、缓存、构建产物、临时日志和本地工作目录。
+
 ```text
-contracts/
-  core/
-  skills/
-  world/
-    adapters/
-
-frontend/
-  src/
-    app/api/
-    components/
-      terminal/
-      game/
-      lobster/
-    contracts/
-
-openclaw/
-  autonomyPlanner.ts
-  autonomyOracleRunner.ts
-  autonomyCmlRuntime.ts
-  autonomyMemory.ts
-  battleRoyaleRevealWatcher.ts
-  skills/
-
-scripts/
-docs/
-test/
+ClaworldNfa/
+├── contracts/
+│   ├── core/
+│   ├── interfaces/
+│   ├── mocks/
+│   ├── skills/
+│   └── world/
+│       ├── adapters/
+│       └── interfaces/
+├── docs/
+│   ├── assets/
+│   └── INNOVATION_MAP.md
+├── frontend/
+│   └── src/
+│       ├── app/
+│       ├── components/
+│       ├── contracts/
+│       ├── game/
+│       └── lib/
+├── openclaw/
+│   ├── skills/
+│   └── claw-world-skill/
+├── scripts/
+├── test/
+├── ARCHITECTURE.md
+├── PROJECT.md
+└── SECURITY.md
 ```
 
-### 建议阅读顺序
+完整、带注释的工程树请看上方 English section 的 `Source Tree`。
 
-如果你想快速看懂项目，建议按这个顺序读：
+### 主网地址与开发
 
-1. `PROJECT.md`
-2. `docs/INNOVATION_MAP.md`
-3. `ARCHITECTURE.md`
-4. `contracts/world/ClawAutonomyRegistry.sol`
-5. `contracts/world/ClawOracleActionHub.sol`
-6. `contracts/core/ClawRouter.sol`
-7. `contracts/skills/BattleRoyale.sol`
-8. `openclaw/autonomyPlanner.ts`
-9. `openclaw/autonomyOracleRunner.ts`
-10. `frontend/src/components/terminal/`
+主网默认地址来自 `frontend/src/contracts/addresses.ts`。完整地址表请看上方 English section 的 `Mainnet Addresses`。
 
-### 主网地址
-
-主网默认地址写在 `frontend/src/contracts/addresses.ts` 里，README 英文段落上方有完整表格。
-
-### 本地运行
+本地开发常用命令：
 
 ```bash
 npm install
+npm run compile
+npm test
+
 npm --prefix frontend install
 npm --prefix frontend run dev
-npx hardhat test
+npm --prefix frontend run build
+
+npm run runner:autonomy:check
+npm run watch:battle-royale:check
 ```
 
-### 安全
+### 安全边界
 
-请查看 `SECURITY.md`。
-
-简单原则：
-
-- 用户钱包写入一定要用户确认
-- 服务端密钥不进浏览器
+- 用户写操作必须钱包确认
+- 浏览器不拿项目端私钥
+- skill 只能走授权路径
+- 自治必须经过 policy engine、oracle、hub、adapter
 - BYOK 密钥本地加密保存
-- 自治执行必须经过 policy 和合约边界
-- 开源仓库不放任何真实密钥
+- 世界参数变更要经过 timelock
+
+详细说明请看 `SECURITY.md`。
+
+### 建议阅读顺序
+
+1. `PROJECT.md`
+2. `ARCHITECTURE.md`
+3. `docs/INNOVATION_MAP.md`
+4. `contracts/core/ClawRouter.sol`
+5. `contracts/world/ClawAutonomyRegistry.sol`
+6. `contracts/world/ClawOracleActionHub.sol`
+7. `contracts/skills/BattleRoyale.sol`
+8. `contracts/skills/PKSkill.sol`
+9. `openclaw/autonomyPlanner.ts`
+10. `openclaw/autonomyOracleRunner.ts`
+11. `frontend/src/app/api/chat/[tokenId]/send/route.ts`
+12. `frontend/src/components/terminal/TerminalHome.tsx`
