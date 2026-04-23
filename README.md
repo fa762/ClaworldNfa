@@ -31,6 +31,48 @@ ClaworldNfa is live as a Terminal-style PWA. The active surface is a conversatio
 
 The project currently includes smart contracts, a Next.js PWA, server-side API routes, AI chat bridge logic, memory endpoints, autonomy runner scripts, and Hardhat deployment / upgrade / smoke scripts.
 
+### Why It Is Different
+
+ClaworldNfa is not a chat wrapper placed on top of a token. The main innovation is the full path from identity to execution:
+
+1. one NFA holds identity and state
+2. that NFA owns an internal Claworld ledger account
+3. gameplay spends and settles through that ledger
+4. memory is loaded into runtime context instead of being treated as disposable chat history
+5. AI converts natural-language intent into structured action cards
+6. wallet-confirmed writes and bounded autonomy both run inside explicit protocol limits
+
+That means the same NFA can be:
+
+- an owned on-chain identity
+- an in-world account holder
+- a game actor
+- a memory-bearing companion
+- an AI-facing runtime subject
+
+### What Is Open Source In This Repo
+
+This public repository already contains the main product and protocol layers:
+
+- Solidity contracts for identity, ledger, gameplay, oracle, action hub, autonomy registry, adapters, and finalization
+- the live Terminal PWA frontend
+- server-side chat, memory, and world API routes
+- bounded autonomy runner, planner, and watcher scripts
+- deployment, upgrade, reveal, and smoke scripts
+
+This repository does not contain:
+
+- hosted secrets
+- private infrastructure credentials
+- production API keys
+- machine-local runbooks or transient operator artifacts
+
+If you want the shortest innovation overview first, read:
+
+- `PROJECT.md`
+- `ARCHITECTURE.md`
+- `docs/INNOVATION_MAP.md`
+
 ### Product Surface
 
 The Terminal PWA is the main user-facing product.

@@ -4,7 +4,7 @@
 
 ClaworldNfa is an AI-first on-chain NFA companion and game protocol on BNB Chain.
 
-The current live product is a Terminal-style PWA where the user connects a wallet, selects an owned NFA, talks to it in natural language, and receives structured action cards for on-chain actions.
+The live product is a Terminal-style PWA where the user connects a wallet, selects an owned NFA, talks to it in natural language, and receives structured action cards for on-chain actions.
 
 It combines:
 
@@ -16,6 +16,47 @@ It combines:
 - bounded AI autonomy
 
 The core idea is simple: one NFA holds identity, keeps memory context, spends through its own ledger path, and can act on-chain inside owner-defined boundaries.
+
+## Core innovations
+
+The project has five core innovations that matter most:
+
+1. NFA as identity and account
+- `ClawNFA` is not just metadata. It is the identity anchor.
+- `ClawRouter` gives each NFA its own internal Claworld ledger.
+- Gameplay and upkeep operate through that NFA ledger instead of treating the NFT as a passive collectible.
+
+2. Conversation as runtime interface
+- The live frontend is a Terminal-style PWA.
+- The user talks to the selected NFA in natural language.
+- The runtime turns clear intent into structured action cards instead of letting an LLM directly sign transactions.
+
+3. Memory-aware AI companion model
+- Chat context loads memory summary and timeline.
+- Memory is part of runtime behavior, not a cosmetic lore layer.
+- The learning-tree path leaves room for verifiable on-chain anchoring of memory state.
+
+4. Bounded autonomy
+- Autonomy is separated from normal chat.
+- Policy, registry, oracle, action hub, adapters, and finalization sit in the execution path.
+- The result is an autonomy stack that can act offline, but only inside explicit protocol boundaries.
+
+5. NFA-native gameplay settlement
+- mining, PK, and Battle Royale all build around the NFA-ledger model
+- rewards, spending, and claim paths are tied back to the NFA account layer
+- the companion behaves more like an on-chain game actor than a cosmetic NFT
+
+## What the public repository already includes
+
+This open-source repository already contains:
+
+- smart contracts for identity, ledger, gameplay, oracle, action hub, registry, adapters, and finalization
+- the live Terminal PWA frontend
+- chat, memory, and world API routes
+- autonomy planner / runner / watcher scripts
+- deployment, upgrade, and smoke scripts
+
+This repository does not contain hosted secrets, private infrastructure credentials, production API keys, or operator-only runbooks.
 
 ## Why this project matters
 
@@ -227,10 +268,11 @@ The old `/game` and earlier 2D RPG direction are no longer the mainline product 
 
 Key point:
 
-The distinctive part of ClaworldNfa is not just “AI + NFT”. The distinctive part is the full chain from NFA identity -> ledger -> game state -> memory context -> AI intent parsing -> bounded execution -> receipt / accounting -> memory-aware continuation.
+The distinctive part of ClaworldNfa is not just "AI + NFT". The distinctive part is the full chain from NFA identity -> ledger -> game state -> memory context -> AI intent parsing -> bounded execution -> receipt / accounting -> memory-aware continuation.
 
 Supporting docs:
 
+- `docs/INNOVATION_MAP.md`
 - `ARCHITECTURE.md`
 - `SECURITY.md`
 - `CONTRIBUTING.md`
