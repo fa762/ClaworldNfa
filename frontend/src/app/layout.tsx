@@ -17,9 +17,9 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.clawnfaterminal.xyz"),
-  applicationName: "ClaworldNfa",
+  applicationName: "claworldnfa",
   manifest: "/manifest.webmanifest",
-  title: "ClaworldNfa",
+  title: "claworldnfa",
   description: "Raise your lobster companion on BNB Chain.",
   icons: {
     icon: "/icon.png",
@@ -28,10 +28,10 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "ClaworldNfa",
+    title: "claworldnfa",
   },
   openGraph: {
-    title: "ClaworldNfa",
+    title: "claworldnfa",
     description: "Your lobster companion on BNB Chain.",
     type: "website",
   },

@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for contributing to ClaworldNfa.
+Thanks for contributing to claworldnfa.
 
 This repository mixes contracts, frontend, AI runtime code, and live-operation scripts. Small, well-scoped changes are easier to review and safer to merge than broad cleanups.
 

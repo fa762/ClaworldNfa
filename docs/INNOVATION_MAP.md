@@ -132,6 +132,6 @@ Key frontend modules:
 
 ## One-line summary
 
-The distinctive part of ClaworldNfa is the full chain:
+The distinctive part of claworldnfa is the full chain:
 
 `NFA identity -> NFA ledger -> gameplay state -> memory context -> AI intent parsing -> action card -> wallet-confirmed or bounded autonomous execution -> receipt and accounting`

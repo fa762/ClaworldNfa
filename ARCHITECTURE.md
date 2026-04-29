@@ -2,7 +2,7 @@
 
 ## Overview
 
-ClaworldNfa is a single system with five connected layers:
+claworldnfa is a single system with five connected layers:
 
 - identity
 - account

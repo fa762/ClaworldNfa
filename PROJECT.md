@@ -1,8 +1,8 @@
-# ClaworldNfa
+# claworldnfa
 
 ## Summary
 
-ClaworldNfa is an AI-first on-chain NFA companion and game protocol on BNB Chain.
+claworldnfa is an AI-first on-chain NFA companion and game protocol on BNB Chain.
 
 The live product is a Terminal-style PWA where the user connects a wallet, selects an owned NFA, talks to it in natural language, and receives structured action cards for on-chain actions.
 
@@ -67,7 +67,7 @@ Most AI agent projects still split the important pieces apart:
 - memory is temporary or off to the side
 - AI can talk, but execution is either unsafe or disconnected from ownership
 
-ClaworldNfa brings those pieces back together. The user is not just chatting with a bot. The user is interacting with an owned on-chain character that has identity, balance, game state, memory context, and bounded execution paths.
+claworldnfa brings those pieces back together. The user is not just chatting with a bot. The user is interacting with an owned on-chain character that has identity, balance, game state, memory context, and bounded execution paths.
 
 ## Current product surface
 
@@ -97,7 +97,7 @@ Current actions exposed in the shipped product:
 
 ## AI runtime model
 
-AI is not a cosmetic layer in ClaworldNfa. It is the runtime interface for the product.
+AI is not a cosmetic layer in claworldnfa. It is the runtime interface for the product.
 
 In the current stack, AI is responsible for:
 
@@ -123,7 +123,7 @@ Main protocol and runtime pieces:
 
 ## Agent surface and runtime compatibility
 
-ClaworldNfa is designed so the same world can be used through more than one AI path.
+claworldnfa is designed so the same world can be used through more than one AI path.
 
 Today that includes:
 
@@ -143,7 +143,7 @@ This surface already covers:
 
 ## Memory model
 
-ClaworldNfa uses a CML-style memory model for persistent identity.
+claworldnfa uses a CML-style memory model for persistent identity.
 
 What is already in the shipped product:
 
@@ -260,15 +260,15 @@ The old `/game` and earlier 2D RPG direction are no longer the mainline product 
 
 ## Notes for judges and reviewers
 
-- project name: `ClaworldNfa`
+- project name: `claworldnfa`
 - token name used in the product UI: `Claworld`
 - live app: `https://www.clawnfaterminal.xyz`
-- public repository: `https://github.com/fa762/ClaworldNfa`
+- public repository: `https://github.com/fa762/claworldnfa`
 - network: BNB Smart Chain mainnet
 
 Key point:
 
-The distinctive part of ClaworldNfa is not just "AI + NFT". The distinctive part is the full chain from NFA identity -> ledger -> game state -> memory context -> AI intent parsing -> bounded execution -> receipt / accounting -> memory-aware continuation.
+The distinctive part of claworldnfa is not just "AI + NFT". The distinctive part is the full chain from NFA identity -> ledger -> game state -> memory context -> AI intent parsing -> bounded execution -> receipt / accounting -> memory-aware continuation.
 
 Supporting docs:
 

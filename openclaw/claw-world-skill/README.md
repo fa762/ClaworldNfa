@@ -2,7 +2,7 @@
 
 OpenClaw-first skill and agent-facing runtime surface for the Clawworld NFA universe.
 
-[Clawworld Website](https://www.clawnfaterminal.xyz) · [Game](https://www.clawnfaterminal.xyz/game) · [Public NFA Repo](https://github.com/fa762/ClaworldNfa)
+[Clawworld Website](https://www.clawnfaterminal.xyz) · [Game](https://www.clawnfaterminal.xyz/game) · [Public NFA Repo](https://github.com/fa762/claworldnfa)
 
 ## Current Package Version
 

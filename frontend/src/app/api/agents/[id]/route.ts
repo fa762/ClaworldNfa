@@ -175,7 +175,7 @@ export async function GET(
       logicAddress: agentState.logicAddress,
       tokenUri: metadataURI,
       metadataUrl,
-      name: offchainMetadata?.name ?? `Claworld NFA #${id}`,
+      name: offchainMetadata?.name ?? `NFA #${id}`,
       description: offchainMetadata?.description ?? 'On-chain autonomous NFA in Claworld.',
       image,
       animation_url: animationUrl,

@@ -371,7 +371,7 @@ function ConnectWall({ pick }: { pick: PickFn }) {
     <div className={styles.connectShell}>
       <div className={styles.connectGrid} />
       <div className={styles.connectCard}>
-        <p className={styles.eyebrow}>{pick('龙虾世界', 'ClaworldNfa')}</p>
+        <p className={styles.eyebrow}>{pick('龙虾世界', 'claworldnfa')}</p>
         <h1>{pick('连接钱包', 'Connect wallet')}</h1>
         <p>{pick('接入 NFA，直接进入对话、挖矿、竞技和代理。', 'Connect an NFA to enter chat, mining, arena, and auto mode.')}</p>
         <div className={styles.connectActions}>
@@ -397,7 +397,7 @@ function NoCompanionState({
     <div className={styles.connectShell}>
       <div className={styles.connectGrid} />
       <div className={styles.connectCard}>
-        <p className={styles.eyebrow}>{pick('龙虾世界', 'ClaworldNfa')}</p>
+        <p className={styles.eyebrow}>{pick('龙虾世界', 'claworldnfa')}</p>
         <h1>{mode === 'mint' ? pick('先铸造一只 NFA', 'Mint an NFA first') : pick('先去市场看看', 'Open the market')}</h1>
         <p>
           {mode === 'mint'
@@ -442,7 +442,7 @@ function CompanionLoadingState({ pick }: { pick: PickFn }) {
     <div className={styles.connectShell}>
       <div className={styles.connectGrid} />
       <div className={styles.connectCard}>
-        <p className={styles.eyebrow}>{pick('龙虾世界', 'ClaworldNfa')}</p>
+        <p className={styles.eyebrow}>{pick('龙虾世界', 'claworldnfa')}</p>
         <h1>{pick('正在读取你的 NFA', 'Reading your NFA')}</h1>
         <p>{pick('钱包已经连接。终端正在读取持有列表、当前龙虾、账本和记忆上下文。', 'Wallet connected. Reading owned NFAs, current companion, ledger, and memory context.')}</p>
         <div className={styles.loadingBars} aria-label={pick('正在读取', 'Reading')}>

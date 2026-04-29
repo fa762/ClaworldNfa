@@ -1,17 +1,17 @@
 <p align="center">
-  <img src="docs/assets/banner.png" alt="ClaworldNfa banner" width="100%" />
+  <img src="docs/assets/banner.png" alt="claworldnfa banner" width="100%" />
 </p>
 
-# ClaworldNfa
+# claworldnfa
 
 Language: [English](#english) | [中文](#chinese)
 
-ClaworldNfa is a live BNB Chain project that turns a Non-Fungible Agent into one coherent runtime subject: identity, ledger account, gameplay actor, memory carrier, chat surface, and bounded autonomous executor.
+claworldnfa is a live BNB Chain project that turns a Non-Fungible Agent into one coherent runtime subject: identity, ledger account, gameplay actor, memory carrier, chat surface, and bounded autonomous executor.
 
-ClaworldNfa 是一个已经跑在 BNB Chain 主网上的项目。这里的 NFA 不是一张图，也不是一个聊天皮肤，而是同一个主体同时承担身份、账本账户、玩法角色、记忆载体、对话入口和有边界的自治执行。
+claworldnfa 是一个已经跑在 BNB Chain 主网上的项目。这里的 NFA 不是一张图，也不是一个聊天皮肤，而是同一个主体同时承担身份、账本账户、玩法角色、记忆载体、对话入口和有边界的自治执行。
 
 - Live app: [www.clawnfaterminal.xyz](https://www.clawnfaterminal.xyz)
-- Public repository: [github.com/fa762/ClaworldNfa](https://github.com/fa762/ClaworldNfa)
+- Public repository: [github.com/fa762/claworldnfa](https://github.com/fa762/claworldnfa)
 - Network: BNB Smart Chain mainnet
 - Token name used in product UI: `Claworld`
 - License: MIT
@@ -23,7 +23,7 @@ ClaworldNfa 是一个已经跑在 BNB Chain 主网上的项目。这里的 NFA �
 
 ### Executive Summary
 
-ClaworldNfa is not a simple "AI + NFT" wrapper.
+claworldnfa is not a simple "AI + NFT" wrapper.
 
 The engineering thesis is that one NFA can be all of these at once:
 
@@ -58,7 +58,7 @@ Most projects split the important pieces apart:
 - AI can chat but cannot act safely
 - autonomy, if present, is often just a signer with loose checks
 
-ClaworldNfa takes the opposite route. It keeps identity, ledger, state, memory, gameplay, and bounded execution in one architecture.
+claworldnfa takes the opposite route. It keeps identity, ledger, state, memory, gameplay, and bounded execution in one architecture.
 
 ### System Overview
 
@@ -86,7 +86,7 @@ flowchart LR
   O --> S["Reasoning Upload + Memory Runtime"]
 ```
 
-### BAP-578 in ClaworldNfa
+### BAP-578 in claworldnfa
 
 #### Identity
 
@@ -227,7 +227,7 @@ The evaluation path checks multiple independent dimensions before an autonomous 
 | dynamic reserve source | supports external reserve logic |
 | dynamic reserve buffer | keeps reserve calculation adaptive instead of static |
 
-The dynamic reserve path is especially important. A static reserve floor is easy to reason about, but it is often wrong in volatile conditions. ClaworldNfa supports a reserve-source hook plus `dynamicReserveBufferBps` so the safe minimum can adapt to external conditions while still staying on-chain and policy-bounded.
+The dynamic reserve path is especially important. A static reserve floor is easy to reason about, but it is often wrong in volatile conditions. claworldnfa supports a reserve-source hook plus `dynamicReserveBufferBps` so the safe minimum can adapt to external conditions while still staying on-chain and policy-bounded.
 
 ### Autonomous Action Lifecycle
 
@@ -454,7 +454,7 @@ That matters because the project economy is not pretending its token comes from 
 The tree below focuses on tracked engineering source and docs. It intentionally omits `node_modules`, caches, build artifacts, local logs, and temporary working folders.
 
 ```text
-ClaworldNfa/
+claworldnfa/
 ├── contracts/
 │   ├── core/
 │   │   ├── ClawNFA.sol                         # BAP-578 identity anchor + learning-tree root
@@ -736,7 +736,7 @@ The public repository does not include:
 
 ### 项目定位
 
-ClaworldNfa 不是一个“AI 聊天壳 + NFT 图片”的项目。
+claworldnfa 不是一个“AI 聊天壳 + NFT 图片”的项目。
 
 它真正要做的是：让同一个 NFA 同时成为下面这些东西：
 
@@ -762,7 +762,7 @@ ClaworldNfa 不是一个“AI 聊天壳 + NFT 图片”的项目。
 - AI 能聊天，但不能安全执行
 - 自治如果存在，常常只是一个权限很大的 signer
 
-ClaworldNfa 做的事情正好相反：把身份、账本、状态、记忆、玩法和有边界的执行放到一套体系里。
+claworldnfa 做的事情正好相反：把身份、账本、状态、记忆、玩法和有边界的执行放到一套体系里。
 
 ### 总体系统图
 
@@ -789,7 +789,7 @@ flowchart LR
   R --> K
 ```
 
-### BAP-578 在 ClaworldNfa 里的实现
+### BAP-578 在 claworldnfa 里的实现
 
 #### 身份
 
@@ -1060,7 +1060,7 @@ flowchart LR
 下面这个结构树聚焦真实工程源码，刻意省略了 `node_modules`、缓存、构建产物、临时日志和本地工作目录。
 
 ```text
-ClaworldNfa/
+claworldnfa/
 ├── contracts/
 │   ├── core/
 │   │   ├── ClawNFA.sol
