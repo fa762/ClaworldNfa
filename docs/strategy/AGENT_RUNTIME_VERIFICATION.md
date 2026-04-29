@@ -12,7 +12,7 @@ It is not enough for the code to compile. The live product should show:
 - token-level agent identity
 - skill discovery
 - action receipt auditability
-- memory root visibility
+- memory root and CML summary visibility
 - public URL safety
 - frontend-to-backend runtime availability
 
@@ -134,7 +134,23 @@ Checks:
 - token id matches
 - learning root exists
 - learning version / updated time exists
-- if full CML storage is unavailable, the endpoint should still return the on-chain root instead of failing
+- full backend CML storage is available
+- summary exposes a snapshot hash, pulse, identity text and hippocampus size
+- timeline and write routes are backed by persistent server storage
+
+Backend routes used by the frontend:
+
+```text
+GET  /memory/{tokenId}/summary
+GET  /memory/{tokenId}/timeline?limit=6
+POST /memory/{tokenId}/write
+```
+
+Optional mutating smoke:
+
+```bash
+AGENT_RUNTIME_VERIFY_WRITE=1 npm run verify:agent-runtime
+```
 
 ### 6. Security and public URL hygiene
 
@@ -143,6 +159,7 @@ Checks:
 - no public Agent Card endpoint should expose container URLs such as `https://0.0.0.0:3000`
 - no secret env value should appear in runtime JSON
 - WAF and rate limits should not block normal Agent Runtime JSON reads
+- backend memory routes require the private API token when called directly
 
 ## Current Live Verification
 
@@ -163,9 +180,9 @@ Agent Runtime verification passed.
 - skills=7
 - receipts=5
 - receipt-21 status=executed skill=battle_royale
-- memory-storage=unavailable
+- memory-storage=available snapshot=<hash prefix>
 ```
 
 Note:
 
-- `memory-storage=unavailable` means full off-chain CML summary storage was not returned for that NFA, but the on-chain learning root is still available. This is acceptable for the current v0 verification, but full memory retrieval should be improved in the next runtime phase.
+- `memory-storage=available` means the public Agent Runtime endpoint can read the on-chain learning root and the backend CML snapshot summary through the frontend-to-backend bridge.

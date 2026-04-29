@@ -3,6 +3,7 @@
 const baseUrl = (process.env.AGENT_RUNTIME_BASE_URL || 'https://clawnfaterminal.xyz').replace(/\/+$/, '');
 const tokenId = process.env.AGENT_RUNTIME_TOKEN_ID || '3';
 const requestId = process.env.AGENT_RUNTIME_REQUEST_ID || '21';
+const verifyMemoryWrite = process.env.AGENT_RUNTIME_VERIFY_WRITE === '1';
 
 const paths = {
   projectCard: '/.well-known/agent-card.json',
@@ -52,6 +53,27 @@ async function fetchJson(label, path) {
       accept: 'application/json',
       'user-agent': 'claworldnfa-agent-runtime-verify/0',
     },
+  });
+  const text = await response.text();
+  assert(label, response.ok, `HTTP ${response.status} from ${url}`);
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    fail(label, `invalid JSON from ${url}: ${error.message}`);
+    return null;
+  }
+}
+
+async function postJson(label, path, body) {
+  const url = `${baseUrl}${path}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+      'user-agent': 'claworldnfa-agent-runtime-verify/0',
+    },
+    body: JSON.stringify(body),
   });
   const text = await response.text();
   assert(label, response.ok, `HTTP ${response.status} from ${url}`);
@@ -146,8 +168,22 @@ if (memorySummary) {
   assert('memory-summary', String(memorySummary.tokenId) === String(tokenId), 'tokenId mismatch');
   assert('memory-summary', memorySummary.learning?.root?.startsWith('0x'), 'missing learning.root');
   assert('memory-summary', memorySummary.learning?.updatedAtIso, 'missing updatedAtIso');
+  assert('memory-summary', memorySummary.storage === 'available', 'backend memory storage is not available');
+  assert('memory-summary', memorySummary.summary?.latestSnapshotHash, 'missing backend memory snapshot hash');
   assertNoPrivateUrls('memory-summary', memorySummary);
-  notes.push(`memory-storage=${memorySummary.storage ?? 'unknown'}`);
+  notes.push(`memory-storage=${memorySummary.storage ?? 'unknown'} snapshot=${memorySummary.summary?.latestSnapshotHash?.slice(0, 12) ?? 'none'}`);
+}
+
+if (verifyMemoryWrite) {
+  const writeResult = await postJson('memory-write', `/api/memory/${tokenId}/write`, {
+    content: `Agent Runtime verification memory write for NFA #${tokenId}.`,
+  });
+  if (writeResult) {
+    assert('memory-write', writeResult.ok === true, 'write did not return ok=true');
+    assert('memory-write', writeResult.summary?.latestSnapshotHash, 'missing write snapshot hash');
+    assertNoPrivateUrls('memory-write', writeResult);
+    notes.push(`memory-write=${writeResult.summary?.latestSnapshotHash?.slice(0, 12) ?? 'none'}`);
+  }
 }
 
 if (failures.length) {

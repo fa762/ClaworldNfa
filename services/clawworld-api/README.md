@@ -12,6 +12,7 @@ It keeps CPU-heavy work off Vercel and gives the NFA terminal a tool-backed runt
 - NFA chain reads
 - action-card generation
 - model-backed narrative summaries
+- CML memory summary, timeline, and write API for Agent Runtime
 
 Run:
 
@@ -32,6 +33,7 @@ BSC_RPC_URL=
 CLAWORLD_ROUTER_ADDRESS=
 CLAWORLD_TASK_SKILL_ADDRESS=
 CLAWORLD_PK_SKILL_ADDRESS=
+CLAWORLD_CML_DIR=/data/cml
 ```
 
 Optional env:
@@ -42,3 +44,13 @@ ETHERSCAN_API_KEY=
 CA_SCAN_BLOCK_RANGE=3500
 CA_SCAN_MAX_LOGS=900
 ```
+
+Memory routes:
+
+```text
+GET  /memory/:tokenId/summary
+GET  /memory/:tokenId/timeline?limit=6
+POST /memory/:tokenId/write
+```
+
+If `CLAWORLD_API_TOKEN` is set, these routes require `Authorization: Bearer <token>`.

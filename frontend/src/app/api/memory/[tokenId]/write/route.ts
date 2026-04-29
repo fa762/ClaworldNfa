@@ -32,7 +32,7 @@ export async function POST(
       memoryRoot: body.memoryRoot || null,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ok: result.persisted, ...result });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Memory write failed' },

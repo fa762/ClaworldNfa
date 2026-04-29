@@ -1,4 +1,7 @@
 import http from 'node:http';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import { URL } from 'node:url';
 
 const PORT = Number(process.env.PORT || 8787);
@@ -14,6 +17,12 @@ const PK = normalizeAddress(process.env.CLAWORLD_PK_SKILL_ADDRESS || process.env
 const BSCSCAN_API_KEY = String(process.env.BSCSCAN_API_KEY || process.env.ETHERSCAN_API_KEY || '');
 const SCAN_BLOCK_RANGE = clampInt(Number(process.env.CA_SCAN_BLOCK_RANGE || 12000), 500, 12000);
 const SCAN_MAX_LOGS = clampInt(Number(process.env.CA_SCAN_MAX_LOGS || 900), 100, 3000);
+const MEMORY_ROOT = String(
+  process.env.CLAWORLD_CML_DIR ||
+    process.env.CLAWORLD_MEMORY_DIR ||
+    process.env.AUTONOMY_CML_DIR ||
+    '/data/cml',
+);
 
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const IMPLEMENTATION_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
@@ -97,6 +106,219 @@ function readBody(req) {
 function authed(req) {
   if (!API_TOKEN) return true;
   return String(req.headers.authorization || '') === `Bearer ${API_TOKEN}`;
+}
+function parsePositiveInt(value) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function normalizeMemoryText(value, max = 500) {
+  return String(value || '').replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
+function sha256Hex(value) {
+  return crypto.createHash('sha256').update(String(value)).digest('hex');
+}
+
+function ensureDir(target) {
+  fs.mkdirSync(target, { recursive: true });
+}
+
+function readJson(target) {
+  try {
+    return JSON.parse(fs.readFileSync(target, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function writeJsonAtomic(target, value) {
+  ensureDir(path.dirname(target));
+  const tmp = `${target}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(value, null, 2));
+  fs.renameSync(tmp, target);
+}
+
+function cmlFilePath(tokenId) {
+  return path.join(MEMORY_ROOT, `nfa-${tokenId}.cml`);
+}
+
+function cmlArchiveDir(tokenId) {
+  return path.join(MEMORY_ROOT, 'archive', `nfa-${tokenId}`);
+}
+
+function cmlArchivePath(tokenId, iso) {
+  return path.join(cmlArchiveDir(tokenId), `${iso.replace(/[:.]/g, '-')}.cml`);
+}
+
+function normalizeCmlShape(tokenId, raw) {
+  const cml = raw && typeof raw === 'object' ? raw : {};
+  cml.VERSION = cml.VERSION || 1;
+  cml.IDENTITY = cml.IDENTITY && typeof cml.IDENTITY === 'object' ? cml.IDENTITY : {};
+  cml.IDENTITY.name = normalizeMemoryText(cml.IDENTITY.name || `NFA #${tokenId}`, 80);
+  cml.PREFRONTAL = cml.PREFRONTAL && typeof cml.PREFRONTAL === 'object' ? cml.PREFRONTAL : {};
+  cml.PREFRONTAL.beliefs = Array.isArray(cml.PREFRONTAL.beliefs) ? cml.PREFRONTAL.beliefs : [];
+  cml.BASAL = cml.BASAL && typeof cml.BASAL === 'object' ? cml.BASAL : {};
+  cml.CORTEX = cml.CORTEX && typeof cml.CORTEX === 'object' ? cml.CORTEX : {};
+  cml.CORTEX.vivid = Array.isArray(cml.CORTEX.vivid) ? cml.CORTEX.vivid : [];
+  cml.CORTEX.sediment = Array.isArray(cml.CORTEX.sediment) ? cml.CORTEX.sediment : [];
+  cml.PULSE = cml.PULSE && typeof cml.PULSE === 'object' ? cml.PULSE : {};
+  return cml;
+}
+
+function readCml(tokenId) {
+  const target = cmlFilePath(tokenId);
+  if (!fs.existsSync(target)) return null;
+  return normalizeCmlShape(tokenId, readJson(target));
+}
+
+function computeMemoryPulse(rawPulse) {
+  if (!rawPulse || typeof rawPulse !== 'object') return 0;
+  const valence = Number(rawPulse.valence || 0);
+  const arousal = Number(rawPulse.arousal || 0);
+  const longing = Number(rawPulse.longing || 0);
+  const normalizedValence = (Math.max(-1, Math.min(1, valence)) + 1) / 2;
+  const pulse = normalizedValence * 0.25 + Math.max(0, Math.min(1, arousal)) * 0.45 + Math.max(0, Math.min(1, longing)) * 0.3;
+  return Number(Math.max(0, Math.min(1, pulse)).toFixed(2));
+}
+
+function latestMemoryEntryText(cml) {
+  const vivid = Array.isArray(cml?.CORTEX?.vivid) ? cml.CORTEX.vivid : [];
+  for (const entry of vivid) {
+    if (typeof entry === 'string' && normalizeMemoryText(entry)) return normalizeMemoryText(entry, 160);
+    if (entry && typeof entry === 'object') {
+      const text = normalizeMemoryText(entry.content || entry.text || entry.summary || entry.memory || '', 160);
+      if (text) return text;
+    }
+  }
+  return '';
+}
+
+function cmlToSummary(tokenId, cml, rawText = '') {
+  const raw = rawText || JSON.stringify(cml);
+  const identity =
+    normalizeMemoryText(cml.IDENTITY?.soul || '', 180) ||
+    normalizeMemoryText(cml.IDENTITY?.voice || '', 180) ||
+    normalizeMemoryText(cml.IDENTITY?.name || '', 180) ||
+    latestMemoryEntryText(cml) ||
+    `NFA #${tokenId}`;
+  const beliefs = Array.isArray(cml.PREFRONTAL?.beliefs)
+    ? cml.PREFRONTAL.beliefs.map((item) => normalizeMemoryText(item, 160)).filter(Boolean).slice(0, 6)
+    : [];
+  const habits = [];
+  if (Array.isArray(cml.BASAL?.preferred_tasks) && cml.BASAL.preferred_tasks.length) {
+    habits.push(`preferred tasks: ${cml.BASAL.preferred_tasks.slice(0, 3).join(' / ')}`);
+  }
+  if (cml.BASAL?.pk_tendency) habits.push(`PK tendency: ${normalizeMemoryText(cml.BASAL.pk_tendency, 80)}`);
+  if (cml.BASAL?.speech_length) habits.push(`speech length: ${normalizeMemoryText(cml.BASAL.speech_length, 80)}`);
+  const vividCount = Array.isArray(cml.CORTEX?.vivid) ? cml.CORTEX.vivid.length : 0;
+  return {
+    latestSnapshotHash: sha256Hex(raw),
+    latestAnchorTxHash: cml.latestAnchorTxHash || null,
+    pulse: computeMemoryPulse(cml.PULSE),
+    hippocampusSize: vividCount,
+    identity,
+    prefrontalBeliefs: beliefs,
+    basalHabits: habits,
+  };
+}
+
+function getBackendMemorySummary(tokenId) {
+  const target = cmlFilePath(tokenId);
+  if (!fs.existsSync(target)) return null;
+  const raw = fs.readFileSync(target, 'utf8');
+  const cml = normalizeCmlShape(tokenId, JSON.parse(raw));
+  return cmlToSummary(tokenId, cml, raw);
+}
+
+function memorySnapshotFromFile(tokenId, target, fallbackIso = null) {
+  const raw = fs.readFileSync(target, 'utf8');
+  const cml = normalizeCmlShape(tokenId, JSON.parse(raw));
+  const summary = cmlToSummary(tokenId, cml, raw);
+  const stat = fs.statSync(target);
+  return {
+    snapshotId: path.basename(target),
+    hash: summary.latestSnapshotHash,
+    consolidatedAt: cml.UPDATED_AT || fallbackIso || stat.mtime.toISOString(),
+    anchorTxHash: cml.latestAnchorTxHash || null,
+    greenfieldUri: cml.greenfieldUri || null,
+    diffSummary: latestMemoryEntryText(cml) || summary.identity,
+    hippocampusMerged: summary.hippocampusSize,
+  };
+}
+
+function getBackendMemoryTimeline(tokenId, limit) {
+  const snapshots = [];
+  const current = cmlFilePath(tokenId);
+  if (fs.existsSync(current)) snapshots.push(memorySnapshotFromFile(tokenId, current));
+  const archive = cmlArchiveDir(tokenId);
+  if (fs.existsSync(archive)) {
+    const files = fs
+      .readdirSync(archive)
+      .filter((file) => file.endsWith('.cml'))
+      .sort()
+      .reverse()
+      .slice(0, Math.max(0, limit - snapshots.length));
+    for (const file of files) snapshots.push(memorySnapshotFromFile(tokenId, path.join(archive, file)));
+  }
+  return snapshots.slice(0, limit);
+}
+
+function maybeUpdateIdentityFromMemory(cml, content) {
+  if (/name|call me|identity|voice|personality|你叫|叫你|名字|身份|性格|口癖|以后你/i.test(content)) {
+    if (!normalizeMemoryText(cml.IDENTITY.soul || '')) cml.IDENTITY.soul = content;
+    const beliefs = Array.isArray(cml.PREFRONTAL.beliefs) ? cml.PREFRONTAL.beliefs : [];
+    cml.PREFRONTAL.beliefs = [content, ...beliefs.filter((item) => normalizeMemoryText(item) !== content)].slice(0, 12);
+  }
+}
+
+function writeBackendMemory({ tokenId, content, owner = null, memoryRoot = null }) {
+  const normalized = normalizeMemoryText(content, 800);
+  if (!normalized) {
+    const error = new Error('Memory content is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  const acceptedAt = new Date().toISOString();
+  const contentHash = sha256Hex(normalized);
+  const current = readCml(tokenId) || normalizeCmlShape(tokenId, null);
+  const entry = {
+    id: `memory-${Date.now().toString(36)}`,
+    source: 'terminal',
+    owner,
+    content: normalized,
+    contentHash,
+    memoryRoot: memoryRoot || null,
+    createdAt: acceptedAt,
+    weight: 1,
+  };
+  current.CORTEX.vivid = [entry, ...current.CORTEX.vivid].slice(0, 100);
+  current.PULSE = {
+    ...current.PULSE,
+    valence: Number.isFinite(Number(current.PULSE.valence)) ? Number(current.PULSE.valence) : 0.2,
+    arousal: Math.min(1, Math.max(0.2, Number(current.PULSE.arousal || 0.35))),
+    longing: Math.max(0, Math.min(1, Number(current.PULSE.longing || 0))),
+  };
+  current.UPDATED_AT = acceptedAt;
+  current.latestAnchorTxHash = current.latestAnchorTxHash || null;
+  maybeUpdateIdentityFromMemory(current, normalized);
+
+  ensureDir(cmlArchiveDir(tokenId));
+  writeJsonAtomic(cmlArchivePath(tokenId, acceptedAt), current);
+  writeJsonAtomic(cmlFilePath(tokenId), current);
+
+  const raw = JSON.stringify(current, null, 2);
+  const summary = cmlToSummary(tokenId, current, raw);
+  const snapshot = {
+    snapshotId: entry.id,
+    hash: summary.latestSnapshotHash,
+    consolidatedAt: acceptedAt,
+    anchorTxHash: null,
+    greenfieldUri: null,
+    diffSummary: normalized.slice(0, 160),
+    hippocampusMerged: summary.hippocampusSize,
+  };
+  return { ok: true, acceptedAt, contentHash, persisted: true, storage: 'backend', summary, snapshot };
 }
 
 function pickLang(body) {
@@ -2099,6 +2321,34 @@ const server = http.createServer(async (req, res) => {
         webTools: WEB_TOOLS,
         backend: 'contract-intel',
       });
+    }
+    const memoryMatch = url.pathname.match(/^\/(?:api\/)?memory\/([^/]+)\/(summary|timeline|write)\/?$/);
+    if (memoryMatch) {
+      if (!authed(req)) return sendJson(res, 401, { error: 'unauthorized' });
+      const tokenId = parsePositiveInt(decodeURIComponent(memoryMatch[1]));
+      if (!tokenId) return sendJson(res, 400, { error: 'invalid tokenId' });
+      const action = memoryMatch[2];
+      if (req.method === 'GET' && action === 'summary') {
+        const summary = getBackendMemorySummary(tokenId);
+        if (!summary) return sendJson(res, 404, { error: 'No CML memory for NFA #' + tokenId });
+        return sendJson(res, 200, summary);
+      }
+      if (req.method === 'GET' && action === 'timeline') {
+        const limit = clampInt(Number(url.searchParams.get('limit') || 6), 1, 50);
+        return sendJson(res, 200, { snapshots: getBackendMemoryTimeline(tokenId, limit) });
+      }
+      if (req.method === 'POST' && action === 'write') {
+        const body = await readBody(req);
+        const content = normalizeMemoryText(body.content || body.text || body.memory || '', 800);
+        const result = writeBackendMemory({
+          tokenId,
+          content,
+          owner: body.owner || null,
+          memoryRoot: body.memoryRoot || body.root || null,
+        });
+        return sendJson(res, 200, result);
+      }
+      return sendJson(res, 405, { error: 'method not allowed' });
     }
     const match = url.pathname.match(/^\/chat\/([^/]+)\/send\/?$/);
     if (req.method === 'POST' && match) return await handleChat(req, res, decodeURIComponent(match[1]));
