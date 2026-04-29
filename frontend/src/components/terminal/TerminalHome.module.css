@@ -941,6 +941,260 @@
 .kvItem strong {
   font-size: 1rem;
   color: #fff4da;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.cardAdvanced {
+  margin-top: 10px;
+}
+
+.cardAdvanced summary {
+  cursor: pointer;
+  width: fit-content;
+  list-style: none;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 165, 36, 0.16);
+  background: rgba(245, 165, 36, 0.07);
+  color: rgba(246, 231, 191, 0.72);
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 8px 12px;
+}
+
+.cardAdvanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.cardAdvanced summary::after {
+  content: ' +';
+  color: var(--accent-color, #f5a524);
+}
+
+.cardAdvanced[open] summary::after {
+  content: ' -';
+}
+
+.cardAdvancedGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.contractReport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 165, 36, 0.28);
+  background:
+    radial-gradient(circle at 82% 8%, rgba(245, 165, 36, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(27, 21, 13, 0.95), rgba(11, 12, 14, 0.96));
+  padding: 18px;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28);
+}
+
+.contractReport::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(245, 165, 36, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 165, 36, 0.05) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.95), transparent 82%);
+}
+
+.reportHeader,
+.reportAction,
+.reportMetrics,
+.reportFocus,
+.reportReceiver,
+.reportScoreGrid,
+.reportFooter {
+  position: relative;
+  z-index: 1;
+}
+
+.reportHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+}
+
+.reportHeader h3 {
+  margin: 10px 0 8px;
+  font-family: var(--font-heading);
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  line-height: 1.15;
+  color: #fff4da;
+}
+
+.reportHeader p,
+.reportFocus p,
+.reportReceiver p {
+  margin: 0;
+  color: rgba(246, 231, 191, 0.72);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.reportScoreBadge {
+  min-width: 92px;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 165, 36, 0.24);
+  background: rgba(0, 0, 0, 0.24);
+  padding: 12px;
+  text-align: center;
+}
+
+.reportScoreBadge span,
+.reportAction span,
+.reportMetric span,
+.reportFocus span,
+.reportReceiverHead span,
+.reportMini span,
+.reportScoreTop span {
+  display: block;
+  color: rgba(246, 231, 191, 0.48);
+  font-size: 0.76rem;
+}
+
+.reportScoreBadge strong {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-heading);
+  font-size: 2.1rem;
+  line-height: 1;
+}
+
+.reportAction {
+  margin-top: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(126, 207, 176, 0.16);
+  background: rgba(126, 207, 176, 0.08);
+  padding: 12px;
+}
+
+.reportAction strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+.reportMetrics,
+.reportFocusGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.reportMetric,
+.reportMini {
+  min-width: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.22);
+  padding: 11px;
+}
+
+.reportMetric strong,
+.reportMini strong {
+  display: block;
+  margin-top: 6px;
+  color: #fff4da;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.reportFocus,
+.reportReceiver {
+  margin-top: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 165, 36, 0.16);
+  background: rgba(245, 165, 36, 0.06);
+  padding: 14px;
+}
+
+.reportFocus h4,
+.reportReceiver h4 {
+  margin: 5px 0 8px;
+  font-family: var(--font-heading);
+  color: #fff4da;
+  font-size: 1.04rem;
+}
+
+.reportReceiver {
+  border-color: rgba(196, 69, 54, 0.22);
+  background: rgba(196, 69, 54, 0.07);
+}
+
+.reportReceiverHead,
+.reportScoreTop,
+.reportFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.reportScoreGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.reportScore {
+  min-width: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.18);
+  padding: 12px;
+}
+
+.reportScoreTrack {
+  overflow: hidden;
+  height: 7px;
+  margin-top: 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.reportScoreFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #f5a524;
+}
+
+.reportScoreFill.growth {
+  background: #7ecfb0;
+}
+
+.reportScoreFill.warm {
+  background: #f5a524;
+}
+
+.reportScoreFill.alert {
+  background: #c44536;
+}
+
+.reportScore p {
+  margin: 8px 0 0;
+  color: rgba(246, 231, 191, 0.62);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.reportFooter {
+  margin-top: 14px;
 }
 
 .proposalGrid {
@@ -2163,6 +2417,23 @@
     max-width: 136px;
   }
 
+  .contractReport {
+    padding: 14px;
+  }
+
+  .reportHeader {
+    grid-template-columns: 1fr;
+  }
+
+  .reportScoreBadge {
+    width: 100%;
+    text-align: left;
+  }
+
+  .reportScoreBadge strong {
+    font-size: 1.8rem;
+  }
+
   .walletMenu {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 74px);
@@ -2227,6 +2498,10 @@
 
   .proposalGrid,
   .kvGrid,
+  .cardAdvancedGrid,
+  .reportMetrics,
+  .reportFocusGrid,
+  .reportScoreGrid,
   .quickActionsGrid,
   .taskDeck,
   .inlineSummary,

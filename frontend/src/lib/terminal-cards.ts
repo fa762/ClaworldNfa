@@ -23,6 +23,45 @@ export type TerminalProposalAction = {
   memoryText?: string;
 };
 
+export type TerminalReportScore = {
+  label: string;
+  score: number;
+  reason: string;
+  tone?: TerminalTone;
+};
+
+export type TerminalContractReport = {
+  kind: 'contract-report';
+  asset: {
+    name: string;
+    address: string;
+    type: string;
+    venue?: string;
+  };
+  decision: {
+    label: string;
+    score: number;
+    tone?: TerminalTone;
+    summary: string;
+    action: string;
+  };
+  metrics: TerminalDetailRow[];
+  dimensions: TerminalReportScore[];
+  focus: {
+    label: string;
+    title: string;
+    body: string;
+    items: TerminalDetailRow[];
+  };
+  receiver?: {
+    title: string;
+    score: number;
+    tone?: TerminalTone;
+    body: string;
+    items: TerminalDetailRow[];
+  } | null;
+};
+
 export type TerminalCard =
   | {
       id: string;
@@ -41,6 +80,7 @@ export type TerminalCard =
       title: string;
       body: string;
       details: TerminalDetailRow[];
+      advancedDetails?: TerminalDetailRow[];
       actions: TerminalProposalAction[];
     }
   | {
@@ -49,7 +89,10 @@ export type TerminalCard =
       label: string;
       title: string;
       body: string;
+      layout?: 'contract-report';
+      report?: TerminalContractReport;
       details: TerminalDetailRow[];
+      advancedDetails?: TerminalDetailRow[];
       cta?: TerminalProposalAction;
     }
   | {
@@ -59,6 +102,7 @@ export type TerminalCard =
       title: string;
       body: string;
       details: TerminalDetailRow[];
+      advancedDetails?: TerminalDetailRow[];
       cta?: TerminalProposalAction;
     };
 
@@ -119,6 +163,80 @@ function coerceAction(value: unknown): TerminalProposalAction | null {
   };
 }
 
+function asNumber(value: unknown) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function coerceReportScore(value: unknown): TerminalReportScore | null {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  const label = asString(row.label).trim();
+  if (!label) return null;
+  return {
+    label,
+    score: Math.max(0, Math.min(100, Math.round(asNumber(row.score)))),
+    reason: asString(row.reason).trim() || '--',
+    tone: isTone(row.tone) ? row.tone : undefined,
+  };
+}
+
+function coerceContractReport(value: unknown): TerminalContractReport | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const report = value as Record<string, unknown>;
+  if (report.kind !== 'contract-report') return undefined;
+  const asset = (report.asset && typeof report.asset === 'object' ? report.asset : {}) as Record<string, unknown>;
+  const decision = (report.decision && typeof report.decision === 'object' ? report.decision : {}) as Record<string, unknown>;
+  const focus = (report.focus && typeof report.focus === 'object' ? report.focus : {}) as Record<string, unknown>;
+  const receiver = (report.receiver && typeof report.receiver === 'object' ? report.receiver : null) as Record<string, unknown> | null;
+  const metrics = Array.isArray(report.metrics)
+    ? report.metrics.map(coerceDetailRow).filter((item): item is TerminalDetailRow => Boolean(item))
+    : [];
+  const dimensions = Array.isArray(report.dimensions)
+    ? report.dimensions.map(coerceReportScore).filter((item): item is TerminalReportScore => Boolean(item))
+    : [];
+  const focusItems = Array.isArray(focus.items)
+    ? focus.items.map(coerceDetailRow).filter((item): item is TerminalDetailRow => Boolean(item))
+    : [];
+  const receiverItems = Array.isArray(receiver?.items)
+    ? receiver!.items.map(coerceDetailRow).filter((item): item is TerminalDetailRow => Boolean(item))
+    : [];
+
+  return {
+    kind: 'contract-report',
+    asset: {
+      name: asString(asset.name).trim(),
+      address: asString(asset.address).trim(),
+      type: asString(asset.type).trim(),
+      venue: asString(asset.venue).trim() || undefined,
+    },
+    decision: {
+      label: asString(decision.label).trim(),
+      score: Math.max(0, Math.min(100, Math.round(asNumber(decision.score)))),
+      tone: isTone(decision.tone) ? decision.tone : undefined,
+      summary: asString(decision.summary).trim(),
+      action: asString(decision.action).trim(),
+    },
+    metrics,
+    dimensions,
+    focus: {
+      label: asString(focus.label).trim(),
+      title: asString(focus.title).trim(),
+      body: asString(focus.body).trim(),
+      items: focusItems,
+    },
+    receiver: receiver
+      ? {
+          title: asString(receiver.title).trim(),
+          score: Math.max(0, Math.min(100, Math.round(asNumber(receiver.score)))),
+          tone: isTone(receiver.tone) ? receiver.tone : undefined,
+          body: asString(receiver.body).trim(),
+          items: receiverItems,
+        }
+      : null,
+  };
+}
+
 function coerceCardId(value: unknown) {
   const id = asString(value).trim();
   return id || `terminal-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -152,7 +270,12 @@ export function coerceTerminalCard(value: unknown): TerminalCard | null {
     const details = Array.isArray(card.details)
       ? card.details.map(coerceDetailRow).filter((item): item is TerminalDetailRow => Boolean(item))
       : [];
+    const advancedDetails = Array.isArray(card.advancedDetails)
+      ? card.advancedDetails.map(coerceDetailRow).filter((item): item is TerminalDetailRow => Boolean(item))
+      : [];
     const cta = coerceAction(card.cta);
+    const report = coerceContractReport(card.report);
+    const layout = card.layout === 'contract-report' && report ? 'contract-report' : undefined;
     if (!label && !title && !body) return null;
 
     if (type === 'proposal') {
@@ -167,6 +290,7 @@ export function coerceTerminalCard(value: unknown): TerminalCard | null {
         title,
         body,
         details,
+        advancedDetails,
         actions,
       };
     }
@@ -177,7 +301,10 @@ export function coerceTerminalCard(value: unknown): TerminalCard | null {
       label: label || (type === 'world' ? '世界' : '回执'),
       title,
       body,
+      layout,
+      report,
       details,
+      advancedDetails,
       cta: cta || undefined,
     };
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Coins, RefreshCw, ShoppingCart, Tag, Wallet } from 'lucide-react';
 import { formatEther, parseEther } from 'viem';
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
@@ -10,24 +10,38 @@ import { ClawNFAABI } from '@/contracts/abis/ClawNFA';
 import { addresses, getBscScanTxUrl } from '@/contracts/addresses';
 import { marketBuyArgs, marketCancelArgs, marketListArgs, marketSettleAuctionArgs, nfaApproveArgs } from '@/game/chain/contracts';
 import { loadMarketListings, type MarketListing } from '@/game/chain/wallet';
+import { useI18n } from '@/lib/i18n';
 import type { TerminalCard } from '@/lib/terminal-cards';
 
 import styles from './TerminalHome.module.css';
 
-function listingMode(type: number) {
-  if (type === 0) return '固定价';
-  if (type === 1) return '拍卖';
-  return '互换';
+type PickFn = <T,>(zh: T, en: T) => T;
+
+function listingMode(type: number, pick: PickFn) {
+  if (type === 0) return pick('固定价', 'Fixed price');
+  if (type === 1) return pick('拍卖', 'Auction');
+  return pick('互换', 'Swap');
 }
 
-function listingValue(listing: MarketListing) {
+function listingValue(listing: MarketListing, pick: PickFn) {
   if (listing.listingType === 1 && listing.highestBid > 0n) {
     return `${Number(formatEther(listing.highestBid)).toFixed(3)} BNB`;
   }
   if (listing.listingType === 2) {
-    return `换 #${listing.swapTargetId}`;
+    return pick(`换 #${listing.swapTargetId}`, `Swap for #${listing.swapTargetId}`);
   }
   return `${Number(formatEther(listing.price)).toFixed(3)} BNB`;
+}
+
+function visibleMarketListings(items: MarketListing[], address?: string) {
+  const head = items.slice(0, 12);
+  const mine = address ? items.filter((item) => item.seller.toLowerCase() === address.toLowerCase()) : [];
+  const seen = new Set<number>();
+  return [...head, ...mine].filter((item) => {
+    if (seen.has(item.listingId)) return false;
+    seen.add(item.listingId);
+    return true;
+  });
 }
 
 function parsePrice(value: string) {
@@ -50,8 +64,10 @@ export function TerminalMarketPanel({
   onReceipt: (card: TerminalCard) => void;
 }) {
   const { address } = useAccount();
+  const { pick } = useI18n();
   const [priceInput, setPriceInput] = useState('');
   const [listings, setListings] = useState<MarketListing[]>([]);
+  const [totalListingCount, setTotalListingCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingLabel, setPendingLabel] = useState('');
@@ -80,29 +96,30 @@ export function TerminalMarketPanel({
     return listings.filter((item) => item.seller.toLowerCase() === address.toLowerCase());
   }, [address, listings]);
 
-  async function refreshListings() {
+  const refreshListings = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const next = await loadMarketListings();
-      setListings(next.slice(0, 12));
+      setTotalListingCount(next.length);
+      setListings(visibleMarketListings(next, address));
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : '市场读取失败');
+      setError(nextError instanceof Error ? nextError.message : pick('市场读取失败', 'Market read failed'));
     } finally {
       setLoading(false);
     }
-  }
+  }, [address, pick]);
 
   useEffect(() => {
     void refreshListings();
-  }, []);
+  }, [refreshListings]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       void refreshListings();
     }, 30000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [refreshListings]);
 
   useEffect(() => {
     if (!receipt.isSuccess || !hash || handledTxsRef.current.has(hash)) return;
@@ -111,16 +128,16 @@ export function TerminalMarketPanel({
     onReceipt({
       id: `market-${hash}`,
       type: 'receipt',
-      label: '市场回执',
-      title: pendingLabel || '市场动作已确认',
-      body: '市场动作已经上链，列表也刷新了。',
+      label: pick('市场回执', 'Market receipt'),
+      title: pendingLabel || pick('市场动作已确认', 'Market action confirmed'),
+      body: pick('市场动作已经上链，列表也刷新了。', 'The market action is on-chain and the list has refreshed.'),
       details: [
-        { label: '当前 NFA', value: hasCurrentNfa ? `#${companion.tokenNumber}` : '当前无 NFA' },
-        { label: '动作', value: pendingLabel || '市场操作', tone: 'warm' },
-        { label: '交易', value: getBscScanTxUrl(hash) },
+        { label: pick('当前 NFA', 'Current NFA'), value: hasCurrentNfa ? `#${companion.tokenNumber}` : pick('当前无 NFA', 'No NFA in wallet') },
+        { label: pick('动作', 'Action'), value: pendingLabel || pick('市场操作', 'Market action'), tone: 'warm' },
+        { label: pick('交易', 'Tx'), value: getBscScanTxUrl(hash) },
       ],
     });
-  }, [companion.tokenNumber, hash, hasCurrentNfa, onReceipt, pendingLabel, receipt.isSuccess]);
+  }, [companion.tokenNumber, hash, hasCurrentNfa, onReceipt, pendingLabel, pick, receipt.isSuccess]);
 
   const priceValue = useMemo(() => parsePrice(priceInput), [priceInput]);
 
@@ -129,30 +146,30 @@ export function TerminalMarketPanel({
       <div className={styles.inlineHead}>
         <div className={styles.inlineHeadActions}>
           <button type="button" className={styles.panelButton} onClick={onClose}>
-            返回
+            {pick('返回', 'Back')}
           </button>
         </div>
         <div>
-          <span>市场</span>
-          <strong>浏览挂单、挂卖当前 NFA、买入固定价</strong>
+          <span>{pick('市场', 'Market')}</span>
+          <strong>{pick('买入、撤单、挂卖当前 NFA', 'Buy, cancel, or list the current NFA')}</strong>
         </div>
       </div>
 
       <div className={styles.inlineSummary}>
         <div>
-          <span>挂单</span>
-          <strong>{loading ? '读取中' : `${listings.length} 条`}</strong>
+          <span>{pick('挂单', 'Listings')}</span>
+          <strong>{loading ? pick('读取中', 'Loading') : `${listings.length}/${totalListingCount} ${pick('条', 'shown')}`}</strong>
         </div>
         <div>
-          <span>我的挂单</span>
-          <strong>{myListings.length} 条</strong>
+          <span>{pick('我的挂单', 'My listings')}</span>
+          <strong>{myListings.length} {pick('条', 'shown')}</strong>
         </div>
         <div>
-          <span>当前 NFA</span>
-          <strong>{hasCurrentNfa ? `#${companion.tokenNumber}` : '当前无 NFA'}</strong>
+          <span>{pick('当前 NFA', 'Current NFA')}</span>
+          <strong>{hasCurrentNfa ? `#${companion.tokenNumber}` : pick('当前无 NFA', 'No NFA')}</strong>
         </div>
         <div>
-          <span>结算币种</span>
+          <span>{pick('结算币种', 'Settlement')}</span>
           <strong>BNB</strong>
         </div>
       </div>
@@ -165,20 +182,20 @@ export function TerminalMarketPanel({
           disabled={loading}
         >
           <RefreshCw size={16} />
-          {loading ? '刷新中' : '刷新市场'}
+          {loading ? pick('刷新中', 'Refreshing') : pick('刷新市场', 'Refresh market')}
         </button>
         {hasCurrentNfa ? (
           <button
             type="button"
             className={isApproved ? styles.panelButton : styles.primaryPanelButton}
             onClick={() => {
-              setPendingLabel('授权当前 NFA');
+              setPendingLabel(pick('授权当前 NFA', 'Approve current NFA'));
               writeContract(nfaApproveArgs(companion.tokenNumber));
             }}
             disabled={isPending || isApproved}
           >
             <Tag size={16} />
-            {isApproved ? '已授权上架' : '授权当前 NFA'}
+            {isApproved ? pick('已授权上架', 'Approved') : pick('授权当前 NFA', 'Approve current NFA')}
           </button>
         ) : null}
       </div>
@@ -186,7 +203,7 @@ export function TerminalMarketPanel({
       {hasCurrentNfa ? (
         <>
           <label className={styles.compactField}>
-            <span>挂卖当前 NFA（固定价 BNB）</span>
+            <span>{pick('挂卖当前 NFA（固定价 BNB）', 'List current NFA, fixed price in BNB')}</span>
             <input
               className={styles.compactInput}
               inputMode="decimal"
@@ -203,17 +220,17 @@ export function TerminalMarketPanel({
               disabled={isPending || !isApproved || priceValue === null}
               onClick={() => {
                 if (priceValue === null) return;
-                setPendingLabel(`挂卖 #${companion.tokenNumber}`);
+                setPendingLabel(pick(`挂卖 #${companion.tokenNumber}`, `List #${companion.tokenNumber}`));
                 writeContract(marketListArgs(companion.tokenNumber, priceValue));
               }}
             >
               <Coins size={16} />
-              {isPending ? '等待签名' : receipt.isLoading ? '确认中' : '挂卖当前 NFA'}
+              {isPending ? pick('等待签名', 'Waiting for wallet') : receipt.isLoading ? pick('确认中', 'Confirming') : pick('挂卖当前 NFA', 'List current NFA')}
             </button>
           </div>
         </>
       ) : (
-        <p className={styles.heroMetaLine}>当前钱包没有可挂卖的 NFA。你仍然可以购买挂单，或者取消你自己的挂单。</p>
+        <p className={styles.heroMetaLine}>{pick('当前钱包没有可挂卖的 NFA。你仍然可以购买挂单，或者取消你自己的挂单。', 'No NFA is in this wallet. You can still buy listings or cancel your own listings.')}</p>
       )}
 
       {error ? <p className={styles.panelError}>{error}</p> : null}
@@ -234,24 +251,24 @@ export function TerminalMarketPanel({
                   <span>挂单 #{listing.listingId}</span>
                   <strong>NFA #{listing.nfaId}</strong>
                 </div>
-                <span className={styles.heroMetaLine}>{listingMode(listing.listingType)}</span>
+                <span className={styles.heroMetaLine}>{listingMode(listing.listingType, pick)}</span>
               </div>
               <div className={styles.inlineSummary}>
                 <div>
-                  <span>状态</span>
-                  <strong>{mine ? '我的挂单' : '可操作'}</strong>
+                  <span>{pick('状态', 'Status')}</span>
+                  <strong>{mine ? pick('我的挂单', 'My listing') : pick('可操作', 'Available')}</strong>
                 </div>
                 <div>
-                  <span>价格</span>
-                  <strong>{listingValue(listing)}</strong>
+                  <span>{pick('价格', 'Price')}</span>
+                  <strong>{listingValue(listing, pick)}</strong>
                 </div>
                 <div>
-                  <span>卖家</span>
-                  <strong>{mine ? '我' : `${listing.seller.slice(0, 6)}...${listing.seller.slice(-4)}`}</strong>
+                  <span>{pick('卖家', 'Seller')}</span>
+                  <strong>{mine ? pick('我', 'Me') : `${listing.seller.slice(0, 6)}...${listing.seller.slice(-4)}`}</strong>
                 </div>
                 <div>
-                  <span>模式</span>
-                  <strong>{listingMode(listing.listingType)}</strong>
+                  <span>{pick('模式', 'Mode')}</span>
+                  <strong>{listingMode(listing.listingType, pick)}</strong>
                 </div>
               </div>
               <div className={styles.inlineActions}>
@@ -260,13 +277,13 @@ export function TerminalMarketPanel({
                     type="button"
                     className={styles.primaryPanelButton}
                     onClick={() => {
-                      setPendingLabel(`买入挂单 #${listing.listingId}`);
+                      setPendingLabel(pick(`买入挂单 #${listing.listingId}`, `Buy listing #${listing.listingId}`));
                       writeContract(marketBuyArgs(listing.listingId, listing.price));
                     }}
                     disabled={isPending}
                   >
                     <ShoppingCart size={16} />
-                    买入
+                    {pick('买入', 'Buy')}
                   </button>
                 ) : null}
                 {canCancel ? (
@@ -274,12 +291,12 @@ export function TerminalMarketPanel({
                     type="button"
                     className={styles.panelButton}
                     onClick={() => {
-                      setPendingLabel(`取消挂单 #${listing.listingId}`);
+                      setPendingLabel(pick(`取消挂单 #${listing.listingId}`, `Cancel listing #${listing.listingId}`));
                       writeContract(marketCancelArgs(listing.listingId));
                     }}
                     disabled={isPending}
                   >
-                    撤单
+                    {pick('撤单', 'Cancel')}
                   </button>
                 ) : null}
                 {canSettle ? (
@@ -287,16 +304,16 @@ export function TerminalMarketPanel({
                     type="button"
                     className={styles.panelButton}
                     onClick={() => {
-                      setPendingLabel(`结算拍卖 #${listing.listingId}`);
+                      setPendingLabel(pick(`结算拍卖 #${listing.listingId}`, `Settle auction #${listing.listingId}`));
                       writeContract(marketSettleAuctionArgs(listing.listingId));
                     }}
                     disabled={isPending}
                   >
-                    结算
+                    {pick('结算', 'Settle')}
                   </button>
                 ) : null}
                 {!canBuy && !canCancel && !canSettle ? (
-                  <span className={styles.heroMetaLine}>{listing.listingType === 1 ? '拍卖和互换先做浏览' : '当前无可执行动作'}</span>
+                  <span className={styles.heroMetaLine}>{listing.listingType === 1 ? pick('拍卖和互换先做浏览', 'Auctions and swaps are browse-only for now') : pick('当前无可执行动作', 'No available action')}</span>
                 ) : null}
               </div>
             </article>

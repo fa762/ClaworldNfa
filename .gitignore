@@ -14,3 +14,4 @@ frontend/.env.mainnet
 *.log
 imgclaw/claw_nft_images/
 .claude/
+new/前端入口页素材参考/

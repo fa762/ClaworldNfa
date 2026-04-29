@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function PlayPage() {
-  redirect('/?action=mining');
+  redirect('/terminal?action=mining');
 }

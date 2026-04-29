@@ -141,7 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { t, pick, lang, setLang } = useI18n();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  if (pathname === '/') {
+  if (pathname === '/' || pathname.startsWith('/terminal')) {
     return <>{children}</>;
   }
 

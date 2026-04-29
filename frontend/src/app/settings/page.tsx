@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function SettingsPage() {
-  redirect('/?action=settings');
+  redirect('/terminal?action=settings');
 }

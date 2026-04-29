@@ -1,0 +1,10 @@
+{
+  "name": "clawworld-api",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check server.mjs",
+    "start": "node server.mjs"
+  }
+}

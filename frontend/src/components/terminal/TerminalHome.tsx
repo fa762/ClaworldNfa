@@ -33,10 +33,12 @@ import {
   type TerminalActionIntent,
   type TerminalCard,
   type TerminalChatStreamEvent,
+  type TerminalContractReport,
   type TerminalProposalAction,
   type TerminalTone,
 } from '@/lib/terminal-cards';
 import { TerminalActionPanel } from './TerminalActionPanel';
+import { TerminalSettingsPanel } from './TerminalSettingsPanel';
 import { useTerminalNfas } from './useTerminalNfas';
 import { useTerminalWorld } from './useTerminalWorld';
 import { useTerminalMemory } from './useTerminalMemory';
@@ -52,6 +54,7 @@ function toneClass(tone?: TerminalTone) {
 }
 
 type PickFn = <T,>(zh: T, en: T) => T;
+type NoCompanionMode = 'mint' | 'market' | 'settings';
 
 function describeCompanion(companion: ReturnType<typeof useActiveCompanion>, pick: PickFn) {
   if (!companion.connected) {
@@ -155,6 +158,140 @@ function RailGlyph({ tokenId }: { tokenId: bigint }) {
   return <div className={styles.railGlyph}>#{tokenId.toString().slice(-2)}</div>;
 }
 
+function AdvancedDetails({
+  card,
+  pick,
+}: {
+  card: Extract<TerminalCard, { type: 'proposal' | 'world' | 'receipt' }>;
+  pick: PickFn;
+}) {
+  if (!card.advancedDetails?.length) return null;
+  return (
+    <details className={styles.cardAdvanced}>
+      <summary>{pick('高级信息', 'Advanced')}</summary>
+      <div className={styles.cardAdvancedGrid}>
+        {card.advancedDetails.map((item) => (
+          <div key={`${card.id}-advanced-${item.label}`} className={styles.kvItem}>
+            <span>{item.label}</span>
+            <strong className={toneClass(item.tone)}>{item.value}</strong>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function ReportScoreBar({ item }: { item: TerminalContractReport['dimensions'][number] }) {
+  const width = `${Math.max(0, Math.min(100, item.score))}%`;
+  return (
+    <div className={styles.reportScore}>
+      <div className={styles.reportScoreTop}>
+        <span>{item.label}</span>
+        <strong className={toneClass(item.tone)}>{item.score}/100</strong>
+      </div>
+      <div className={styles.reportScoreTrack}>
+        <span className={`${styles.reportScoreFill} ${toneClass(item.tone)}`} style={{ width }} />
+      </div>
+      <p>{item.reason}</p>
+    </div>
+  );
+}
+
+function ContractReportCard({
+  card,
+  pick,
+}: {
+  card: Extract<TerminalCard, { type: 'world' }>;
+  pick: PickFn;
+}) {
+  const report = card.report;
+  if (!report) return null;
+  const decisionTone = toneClass(report.decision.tone);
+  return (
+    <article className={styles.contractReport}>
+      <div className={styles.reportHeader}>
+        <div>
+          <div className={styles.cardLabel}>
+            <Shield size={16} className={styles.warm} />
+            {card.label}
+          </div>
+          <h3>{card.title}</h3>
+          <p>{report.decision.summary || card.body}</p>
+        </div>
+        <div className={styles.reportScoreBadge}>
+          <span>{pick('综合', 'Score')}</span>
+          <strong className={decisionTone}>{report.decision.score}</strong>
+        </div>
+      </div>
+
+      <div className={styles.reportAction}>
+        <span>{pick('结论', 'Verdict')}</span>
+        <strong className={decisionTone}>{report.decision.action || report.decision.label}</strong>
+      </div>
+
+      <div className={styles.reportMetrics}>
+        {report.metrics.map((item) => (
+          <div key={`${card.id}-metric-${item.label}`} className={styles.reportMetric}>
+            <span>{item.label}</span>
+            <strong className={toneClass(item.tone)}>{item.value}</strong>
+          </div>
+        ))}
+      </div>
+
+      <section className={styles.reportFocus}>
+        <div>
+          <span>{report.focus.label}</span>
+          <h4>{report.focus.title}</h4>
+          <p>{report.focus.body}</p>
+        </div>
+        <div className={styles.reportFocusGrid}>
+          {report.focus.items.map((item) => (
+            <div key={`${card.id}-focus-${item.label}`} className={styles.reportMini}>
+              <span>{item.label}</span>
+              <strong className={toneClass(item.tone)}>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {report.receiver ? (
+        <section className={styles.reportReceiver}>
+          <div className={styles.reportReceiverHead}>
+            <span>{pick('收税地址', 'Tax receiver')}</span>
+            <strong className={toneClass(report.receiver.tone)}>{report.receiver.score}/100</strong>
+          </div>
+          <h4>{report.receiver.title}</h4>
+          <p>{report.receiver.body}</p>
+          <div className={styles.reportFocusGrid}>
+            {report.receiver.items.map((item) => (
+              <div key={`${card.id}-receiver-${item.label}`} className={styles.reportMini}>
+                <span>{item.label}</span>
+                <strong className={toneClass(item.tone)}>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <div className={styles.reportScoreGrid}>
+        {report.dimensions.map((item) => (
+          <ReportScoreBar key={`${card.id}-score-${item.label}`} item={item} />
+        ))}
+      </div>
+
+      <div className={styles.reportFooter}>
+        <AdvancedDetails card={card} pick={pick} />
+        {card.cta?.href ? (
+          <Link href={card.cta.href} className={styles.statusLink}>
+            {card.cta.label}
+            <ArrowRight size={14} />
+          </Link>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
 function parseSseChunk(chunk: string) {
   const blocks = chunk.split('\n\n');
   const remainder = blocks.pop() ?? '';
@@ -192,6 +329,12 @@ function normalizeRouteAction(value: string | null): TerminalActionIntent | null
   if (key === 'settings' || key === 'model' || key === 'byok') return 'settings';
   if (key === 'status') return 'status';
   return null;
+}
+
+function noCompanionModeFromAction(action: TerminalActionIntent | null): NoCompanionMode {
+  if (action === 'market') return 'market';
+  if (action === 'settings') return 'settings';
+  return 'mint';
 }
 
 type LocalTerminalCommand =
@@ -277,6 +420,7 @@ function buildLocalCommandCards(command: LocalTerminalCommand, pick: PickFn): Te
           { label: '/auto', value: pick('打开代理', 'Open auto'), tone: 'cool' },
           { label: '/finance', value: pick('打开资金', 'Open funds') },
           { label: '/market', value: pick('打开市场', 'Open market') },
+          { label: '0x...', value: pick('查 BSC CA', 'Scan BSC CA'), tone: 'cool' },
           { label: '/memory', value: pick('写长期记忆', 'Write memory') },
           { label: '@123', value: pick('切到 #123', 'Switch to #123') },
         ],
@@ -386,24 +530,39 @@ function ConnectWall({ pick }: { pick: PickFn }) {
 function NoCompanionState({
   pick,
   companion,
+  initialMode,
 }: {
   pick: PickFn;
   companion: ReturnType<typeof useActiveCompanion>;
+  initialMode: NoCompanionMode;
 }) {
-  const [mode, setMode] = useState<'mint' | 'market'>('mint');
+  const [mode, setMode] = useState<NoCompanionMode>(initialMode);
   const [marketReceipt, setMarketReceipt] = useState<TerminalCard | null>(null);
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
+
+  const title =
+    mode === 'settings'
+      ? pick('模型设置', 'Model settings')
+      : mode === 'market'
+        ? pick('先去市场看看', 'Open the market')
+        : pick('先铸造一只 NFA', 'Mint an NFA first');
+  const body =
+    mode === 'settings'
+      ? pick('没有 NFA 也可以先设置对话模型。之后买入或铸造 NFA，就能直接进入终端。', 'You can set the chat model before owning an NFA. Buy or mint one later to enter the terminal.')
+      : mode === 'market'
+        ? pick('当前钱包没有在手 NFA 也没关系。这里仍然可以购买挂单，或者取消你自己的挂单。', 'Even with no NFA in the wallet right now, you can still buy listings or cancel your own listings here.')
+        : pick('这个钱包还没有 NFA。铸造完成后会自动进入对话界面。', 'This wallet has no NFA yet. After minting, it will enter chat automatically.');
 
   return (
     <div className={styles.connectShell}>
       <div className={styles.connectGrid} />
       <div className={styles.connectCard}>
         <p className={styles.eyebrow}>{pick('龙虾世界', 'claworldnfa')}</p>
-        <h1>{mode === 'mint' ? pick('先铸造一只 NFA', 'Mint an NFA first') : pick('先去市场看看', 'Open the market')}</h1>
-        <p>
-          {mode === 'mint'
-            ? pick('这个钱包还没有 NFA。铸造完成后会自动进入对话界面。', 'This wallet has no NFA yet. After minting, it will enter chat automatically.')
-            : pick('当前钱包没有在手 NFA 也没关系。这里仍然可以购买挂单，或者取消你自己的挂单。', 'Even with no NFA in the wallet right now, you can still buy listings or cancel your own listings here.')}
-        </p>
+        <h1>{title}</h1>
+        <p>{body}</p>
         <div className={styles.inlineActions}>
           <button
             type="button"
@@ -419,14 +578,26 @@ function NoCompanionState({
           >
             {pick('市场', 'Market')}
           </button>
+          <button
+            type="button"
+            className={mode === 'settings' ? styles.primaryPanelButton : styles.panelButton}
+            onClick={() => setMode('settings')}
+          >
+            {pick('模型设置', 'Model settings')}
+          </button>
         </div>
         {marketReceipt ? <p className={styles.connectHint}>{marketReceipt.title || marketReceipt.body}</p> : null}
         <div className={styles.inlineMintWrap}>
           {mode === 'mint' ? (
             <MintPanel onTerminalClose={() => setMode('market')} />
-          ) : (
+          ) : mode === 'market' ? (
             <TerminalMarketPanel
               companion={companion}
+              onClose={() => setMode('mint')}
+              onReceipt={(card) => setMarketReceipt(card)}
+            />
+          ) : (
+            <TerminalSettingsPanel
               onClose={() => setMode('mint')}
               onReceipt={(card) => setMarketReceipt(card)}
             />
@@ -476,6 +647,7 @@ export function TerminalHome() {
   const [draft, setDraft] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [activeAction, setActiveAction] = useState<TerminalActionIntent | null>(null);
+  const [noCompanionRouteMode, setNoCompanionRouteMode] = useState<NoCompanionMode>('mint');
   const [memoryCandidate, setMemoryCandidate] = useState('');
   const rootRef = useRef<HTMLDivElement | null>(null);
   const streamRef = useRef<HTMLDivElement | null>(null);
@@ -718,16 +890,28 @@ export function TerminalHome() {
   }, [companion.tokenId]);
 
   useEffect(() => {
-    if (!companion.hasToken || typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return;
 
     const url = new URL(window.location.href);
     const action = normalizeRouteAction(url.searchParams.get('action'));
     if (!action) return;
 
     const memoryText = url.searchParams.get('memory') || '';
-    const routeKey = `${companion.tokenId.toString()}:${action}:${memoryText}`;
+    const routeKey = companion.hasToken
+      ? `${companion.tokenId.toString()}:${action}:${memoryText}`
+      : `no-nfa:${address ?? 'wallet'}:${action}:${memoryText}`;
     if (routeActionRef.current === routeKey) return;
     routeActionRef.current = routeKey;
+
+    if (!companion.hasToken) {
+      setNoCompanionRouteMode(noCompanionModeFromAction(action));
+      setActiveAction(null);
+      url.searchParams.delete('action');
+      url.searchParams.delete('memory');
+      const nextSearch = url.searchParams.toString();
+      window.history.replaceState(null, '', `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`);
+      return;
+    }
 
     if (action === 'memory' && memoryText.trim()) {
       setMemoryCandidate(memoryText.trim().slice(0, 500));
@@ -741,7 +925,7 @@ export function TerminalHome() {
     url.searchParams.delete('memory');
     const nextSearch = url.searchParams.toString();
     window.history.replaceState(null, '', `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`);
-  }, [companion.hasToken, companion.tokenId]);
+  }, [address, companion.hasToken, companion.tokenId]);
 
   function requestWalletConnect() {
     const inj = connectors.find((connector) => connector.type === 'injected');
@@ -872,8 +1056,6 @@ export function TerminalHome() {
           const nextCard = coerceTerminalCard(payload.card);
           if (!nextCard) return;
           localChat.appendCards([nextCard]);
-          const action = resolveCardAction(nextCard);
-          if (action) openAction(action, { silent: true });
         }
         if (item.event === 'error' && payload.type === 'error') {
           localChat.appendCards([
@@ -1128,7 +1310,7 @@ export function TerminalHome() {
   }
 
   if (!companion.hasToken) {
-    return <NoCompanionState pick={pick} companion={companion} />;
+    return <NoCompanionState pick={pick} companion={companion} initialMode={noCompanionRouteMode} />;
   }
 
   return (
@@ -1325,6 +1507,7 @@ export function TerminalHome() {
                           </div>
                         ))}
                       </div>
+                      <AdvancedDetails card={card} pick={pick} />
                       <div className={styles.proposalActions}>
                         {card.actions.map((action) => (
                           <button key={`${card.id}-${action.label}`} type="button" className={styles.commandButton} onClick={() => openAction(action)}>
@@ -1338,6 +1521,9 @@ export function TerminalHome() {
                 }
 
                 if (card.type === 'world') {
+                  if (card.layout === 'contract-report' && card.report) {
+                    return <ContractReportCard key={card.id} card={card} pick={pick} />;
+                  }
                   return (
                     <article key={card.id} className={styles.worldCard}>
                       <span className={styles.cardWatermark}>{pick('世', 'W')}</span>
@@ -1370,6 +1556,7 @@ export function TerminalHome() {
                           </div>
                         ))}
                       </div>
+                      <AdvancedDetails card={card} pick={pick} />
                     </article>
                   );
                 }
@@ -1406,6 +1593,7 @@ export function TerminalHome() {
                         </div>
                       ))}
                     </div>
+                    <AdvancedDetails card={card} pick={pick} />
                   </article>
                 );
               })}
@@ -1472,7 +1660,7 @@ export function TerminalHome() {
                   className={styles.composerInput}
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
-                  placeholder={pick('例如：去挖矿、看竞技、开代理、补储备、打开市场、@12', 'Try: mine, arena, auto, funds, market, @12')}
+                  placeholder={pick('例如：去挖矿、看竞技、查CA、补储备、打开市场、@12', 'Try: mine, arena, scan CA, funds, market, @12')}
                   disabled={isSending}
                 />
                 <button type="submit" className={styles.composerSendButton} disabled={isSending}>

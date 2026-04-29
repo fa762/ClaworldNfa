@@ -42,13 +42,13 @@ function modelConfig(engine?: DirectLlmInput['engine']) {
     return {
       baseUrl: directBaseUrl,
       apiKey: directApiKey,
-      model: directModel || 'gpt-4o-mini',
+      model: directModel || 'gpt-5.5',
     };
   }
 
   const baseUrl = (process.env.CLAWORLD_CHAT_MODEL_BASE_URL || process.env.AUTONOMY_MODEL_BASE_URL || '').replace(/\/+$/, '');
   const apiKey = process.env.CLAWORLD_CHAT_MODEL_API_KEY || process.env.AUTONOMY_MODEL_API_KEY || '';
-  const model = process.env.CLAWORLD_CHAT_MODEL_NAME || process.env.AUTONOMY_MODEL_NAME || 'gpt-4o-mini';
+  const model = process.env.CLAWORLD_CHAT_MODEL_NAME || process.env.AUTONOMY_MODEL_NAME || 'gpt-5.5';
   return { baseUrl, apiKey, model };
 }
 
