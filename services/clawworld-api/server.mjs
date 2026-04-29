@@ -11,9 +11,11 @@ const MODEL_NAME = String(process.env.CLAWORLD_CHAT_MODEL_NAME || process.env.AU
 const API_TOKEN = String(process.env.CLAWORLD_API_TOKEN || '');
 const WEB_TOOLS = !/^(0|false|no)$/i.test(String(process.env.CLAWORLD_ENABLE_WEB_TOOLS || '1'));
 const RPC_URL = String(process.env.BSC_RPC_URL || process.env.AUTONOMY_RPC_URL || 'https://bsc-rpc.publicnode.com');
-const ROUTER = normalizeAddress(process.env.CLAWORLD_ROUTER_ADDRESS || process.env.AUTONOMY_ROUTER_ADDRESS || '');
-const TASK = normalizeAddress(process.env.CLAWORLD_TASK_SKILL_ADDRESS || process.env.AUTONOMY_TASK_SKILL_ADDRESS || '');
-const PK = normalizeAddress(process.env.CLAWORLD_PK_SKILL_ADDRESS || process.env.AUTONOMY_PK_SKILL_ADDRESS || '');
+const ROUTER = normalizeAddress(process.env.CLAWORLD_ROUTER_ADDRESS || process.env.AUTONOMY_ROUTER_ADDRESS || '0x60C0D5276c007Fd151f2A615c315cb364EF81BD5');
+const TASK = normalizeAddress(process.env.CLAWORLD_TASK_SKILL_ADDRESS || process.env.AUTONOMY_TASK_SKILL_ADDRESS || '0xaed370784536e31BE4A5D0Dbb1bF275c98179D10');
+const PK = normalizeAddress(process.env.CLAWORLD_PK_SKILL_ADDRESS || process.env.AUTONOMY_PK_SKILL_ADDRESS || '0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF');
+const BATTLE_ROYALE = normalizeAddress(process.env.CLAWORLD_BATTLE_ROYALE_ADDRESS || process.env.AUTONOMY_BATTLE_ROYALE_ADDRESS || '0x2B2182326Fd659156B2B119034A72D1C2cC9758D');
+const DEPOSIT_ROUTER = normalizeAddress(process.env.CLAWORLD_DEPOSIT_ROUTER_ADDRESS || process.env.AUTONOMY_DEPOSIT_ROUTER_ADDRESS || '0xFe68460e9C55AB188b1E91fd4dB4D7219Bd3f269');
 const BSCSCAN_API_KEY = String(process.env.BSCSCAN_API_KEY || process.env.ETHERSCAN_API_KEY || '');
 const SCAN_BLOCK_RANGE = clampInt(Number(process.env.CA_SCAN_BLOCK_RANGE || 12000), 500, 12000);
 const SCAN_MAX_LOGS = clampInt(Number(process.env.CA_SCAN_MAX_LOGS || 900), 100, 3000);
@@ -23,6 +25,10 @@ const MEMORY_ROOT = String(
     process.env.AUTONOMY_CML_DIR ||
     '/data/cml',
 );
+const INDEXER_ROOT = String(process.env.CLAWORLD_INDEXER_DIR || path.join(MEMORY_ROOT, 'indexer-cache'));
+const INDEXER_CACHE_TTL_MS = clampInt(Number(process.env.CLAWORLD_INDEXER_CACHE_TTL_MS || 90000), 10000, 900000);
+const INDEXER_LOOKBACK_BLOCKS = clampInt(Number(process.env.CLAWORLD_INDEXER_LOOKBACK_BLOCKS || 900000), 1000, 1200000);
+const INDEXER_LOG_CHUNK = clampInt(Number(process.env.CLAWORLD_INDEXER_LOG_CHUNK || 8000), 500, 12000);
 
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const IMPLEMENTATION_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
@@ -141,6 +147,33 @@ function writeJsonAtomic(target, value) {
 
 function cmlFilePath(tokenId) {
   return path.join(MEMORY_ROOT, `nfa-${tokenId}.cml`);
+}
+
+const EVENT_TOPICS = {
+  CLWDeposited: '0x9ff5127e137e27f99f946662c2b708e99a8fb59457a60246599ff5c742158e61',
+  CLWSpent: '0x983cd589551a54b6a897618a1dc0896f1979e6c2ec7ed0aa4a012db289fc8af2',
+  CLWRewarded: '0x0eca9c6e6514680ce639dd2ddeebc6e22248a309dfbb1d1b40658ea0b7a45d27',
+  WithdrawRequested: '0x622ec52892a9917a9f66bd872232d3bea677db12565dd6da5f4bfc14607ec1d7',
+  WithdrawClaimed: '0xa846f966ce3c15907c930c35d20a0519e552955a092edd11f72fab18278b0a9f',
+  UpkeepProcessed: '0xff814cc33e652f5cb455f380df8e925dfe74c162b3be50907c6b280e8ef26ec0',
+  LobsterLevelUp: '0xf2ee168b7addd0a967196791f3ab8abd130e6ea8d48fe52b643db4f7286a18db',
+  PersonalityEvolved: '0x28e9802c949453ca493d8b0befe9b64635b5a3340d5a2a4393c5433d715e1396',
+  CLWWithdrawn: '0x4e8880b96927361faf990aecf71cee107b2d015fdb59ca56aef17edcfcc1546a',
+  TaskCompleted: '0xc6bf35f464bed3869f0ee8249c6004c7beb710009972f575fe1a30552d06bbaf',
+  PKMatchSettled: '0xeaeb82da30df531ef617b73e3bcfc1c636521a7a6e1f69a24d641e3393527efe',
+  BRPlayerClaimed: '0x94db8fcee8aeb11edecb3692d12a8f970f27cf42e64fc90d0b2341e358316735',
+  BRAutonomousClaimed: '0xcac3a9ab542a1c3ea05187a39a754c5229566e4d27dba793d6627e863bf00ce8',
+};
+
+const SKILL_LABELS = new Map([
+  [TASK, 'task'],
+  [PK, 'pk'],
+  [BATTLE_ROYALE, 'battle_royale'],
+  [DEPOSIT_ROUTER, 'deposit'],
+]);
+
+function indexerCachePath(tokenId, windowKey) {
+  return path.join(INDEXER_ROOT, `nfa-${tokenId}-${windowKey}.json`);
 }
 
 function cmlArchiveDir(tokenId) {
@@ -502,6 +535,293 @@ async function getStorageAt(address, slot) {
 
 async function latestBlockNumber() {
   return Number(BigInt(await rpc('eth_blockNumber', [])));
+}
+
+function topicUint(value) {
+  return `0x${hexArgUint(BigInt(value))}`;
+}
+
+function topicAddress(topic) {
+  return normalizeAddress(`0x${String(topic || '').replace(/^0x/, '').slice(-40)}`);
+}
+
+function logWord(log, index) {
+  return word(log.data || '0x', index);
+}
+
+function blockNumberOf(log) {
+  return Number(BigInt(log.blockNumber || '0x0'));
+}
+
+function txHashOf(log) {
+  return String(log.transactionHash || '');
+}
+
+function skillKey(address) {
+  const key = normalizeAddress(address);
+  return SKILL_LABELS.get(key) || 'other';
+}
+
+function skillName(key, lang = 'zh') {
+  if (lang === 'en') {
+    return ({ task: 'Mining', pk: 'PK', battle_royale: 'Battle Royale', deposit: 'Deposit', upkeep: 'Upkeep', finance: 'Finance', other: 'Other' })[key] || 'Other';
+  }
+  return ({ task: '挖矿', pk: 'PK', battle_royale: '大逃杀', deposit: '充值', upkeep: '维护', finance: '资金', other: '其他' })[key] || '其他';
+}
+
+function addAmount(totals, key, amount) {
+  totals[key] = (BigInt(totals[key] || '0') + BigInt(amount || 0)).toString();
+}
+
+async function getLogsChunked({ address, topics, fromBlock, toBlock }) {
+  if (!address || fromBlock > toBlock) return [];
+  const out = [];
+  for (let start = fromBlock; start <= toBlock; start += INDEXER_LOG_CHUNK + 1) {
+    const end = Math.min(toBlock, start + INDEXER_LOG_CHUNK);
+    const logs = await rpc('eth_getLogs', [{
+      address,
+      fromBlock: hexQuantity(BigInt(start)),
+      toBlock: hexQuantity(BigInt(end)),
+      topics,
+    }]);
+    if (Array.isArray(logs)) out.push(...logs);
+  }
+  return out;
+}
+
+async function blockTimestamp(blockNumber) {
+  const block = await rpc('eth_getBlockByNumber', [hexQuantity(BigInt(blockNumber)), false]);
+  return Number(BigInt(block?.timestamp || '0x0'));
+}
+
+function indexWindow(windowKey, latest) {
+  const now = new Date();
+  const approxBlockSeconds = 3;
+  if (windowKey === 'month') {
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+    const seconds = Math.max(0, Math.floor((now.getTime() - start.getTime()) / 1000));
+    const lookback = clampInt(Math.ceil(seconds / approxBlockSeconds) + 1200, 1000, INDEXER_LOOKBACK_BLOCKS);
+    return { key: 'month', label: 'this_month', startIso: start.toISOString(), fromBlock: Math.max(0, latest - lookback), toBlock: latest };
+  }
+  if (windowKey === 'week') {
+    const seconds = 7 * 24 * 60 * 60;
+    return { key: 'week', label: 'last_7d', startIso: new Date(now.getTime() - seconds * 1000).toISOString(), fromBlock: Math.max(0, latest - Math.ceil(seconds / approxBlockSeconds)), toBlock: latest };
+  }
+  const lookback = clampInt(Number(windowKey) || 120000, 1000, INDEXER_LOOKBACK_BLOCKS);
+  return { key: String(lookback), label: `last_${lookback}_blocks`, startIso: null, fromBlock: Math.max(0, latest - lookback), toBlock: latest };
+}
+
+async function readBlockTimes(events, limit = 30) {
+  const unique = [...new Set(events.slice(0, limit).map((event) => event.blockNumber).filter(Boolean))];
+  const map = new Map();
+  await Promise.all(unique.map(async (block) => {
+    try {
+      const ts = await blockTimestamp(block);
+      if (ts) map.set(block, new Date(ts * 1000).toISOString());
+    } catch {
+      // Keep timeline usable without timestamps.
+    }
+  }));
+  return map;
+}
+
+function eventBase(log, type, title, amountRaw, source, extra = {}) {
+  return {
+    id: `${type}-${txHashOf(log)}-${log.logIndex || '0x0'}`,
+    type,
+    title,
+    source,
+    amountRaw: BigInt(amountRaw || 0).toString(),
+    amount: formatUnits(amountRaw || 0),
+    txHash: txHashOf(log),
+    blockNumber: blockNumberOf(log),
+    ...extra,
+  };
+}
+
+function decodeRouterEvent(log, tokenId) {
+  const topic0 = String(log.topics?.[0] || '').toLowerCase();
+  const sourceAddress = topicAddress(log.topics?.[2]);
+  if (topic0 === EVENT_TOPICS.CLWRewarded) {
+    const amount = logWord(log, 0);
+    const source = skillKey(sourceAddress);
+    const type = source === 'deposit' ? 'deposit' : 'reward';
+    return eventBase(log, type, source === 'deposit' ? '充值到账' : `${skillName(source)}奖励`, amount, source, { skill: sourceAddress });
+  }
+  if (topic0 === EVENT_TOPICS.CLWSpent) {
+    const amount = logWord(log, 0);
+    const source = skillKey(sourceAddress);
+    return eventBase(log, 'spend', `${skillName(source)}花费`, amount, source, { skill: sourceAddress });
+  }
+  if (topic0 === EVENT_TOPICS.CLWDeposited) return eventBase(log, 'deposit', '充值到账', logWord(log, 0), 'finance', { depositor: sourceAddress });
+  if (topic0 === EVENT_TOPICS.UpkeepProcessed) return eventBase(log, 'upkeep', '日维护', logWord(log, 0), 'upkeep');
+  if (topic0 === EVENT_TOPICS.WithdrawRequested) return eventBase(log, 'withdraw_request', '提现申请', logWord(log, 0), 'finance');
+  if (topic0 === EVENT_TOPICS.WithdrawClaimed) return eventBase(log, 'withdraw_claim', '提现到账', logWord(log, 0), 'finance');
+  if (topic0 === EVENT_TOPICS.CLWWithdrawn) return eventBase(log, 'withdraw_claim', '提现到账', logWord(log, 1), 'finance', { ledgerBurnedRaw: logWord(log, 0).toString(), rateBps: Number(logWord(log, 2)) });
+  if (topic0 === EVENT_TOPICS.LobsterLevelUp) return eventBase(log, 'level_up', '升级', 0n, 'growth', { level: Number(logWord(log, 0)) });
+  if (topic0 === EVENT_TOPICS.PersonalityEvolved) return eventBase(log, 'trait_growth', '属性成长', 0n, 'growth', { dimension: Number(logWord(log, 0)), oldValue: Number(logWord(log, 1)), newValue: Number(logWord(log, 2)) });
+  return null;
+}
+
+function decodeTaskEvent(log) {
+  if (String(log.topics?.[0] || '').toLowerCase() !== EVENT_TOPICS.TaskCompleted) return null;
+  return eventBase(log, 'task_complete', '挖矿完成', logWord(log, 2), 'task', {
+    xp: Number(logWord(log, 0)),
+    quotedRewardRaw: logWord(log, 1).toString(),
+    matchScore: Number(logWord(log, 3)),
+  });
+}
+
+function decodePkEvent(log, tokenId) {
+  const topic0 = String(log.topics?.[0] || '').toLowerCase();
+  if (topic0 !== EVENT_TOPICS.PKMatchSettled) return null;
+  const winner = Number(BigInt(log.topics?.[2] || '0x0'));
+  const loser = Number(BigInt(log.topics?.[3] || '0x0'));
+  if (winner !== tokenId && loser !== tokenId) return null;
+  const reward = logWord(log, 0);
+  const burned = logWord(log, 1);
+  return eventBase(log, winner === tokenId ? 'pk_win' : 'pk_loss', winner === tokenId ? 'PK胜利' : 'PK失败', winner === tokenId ? reward : 0n, 'pk', {
+    matchId: BigInt(log.topics?.[1] || '0x0').toString(),
+    winner: String(winner),
+    loser: String(loser),
+    burnedRaw: burned.toString(),
+  });
+}
+
+function decodeBattleEvent(log) {
+  const topic0 = String(log.topics?.[0] || '').toLowerCase();
+  if (topic0 === EVENT_TOPICS.BRAutonomousClaimed) {
+    return eventBase(log, 'battle_claim', '大逃杀领取', logWord(log, 0), 'battle_royale', {
+      matchId: BigInt(log.topics?.[1] || '0x0').toString(),
+      participant: topicAddress(log.topics?.[2]),
+    });
+  }
+  return null;
+}
+
+function applyEventTotals(totals, event) {
+  if (!event) return;
+  const amount = BigInt(event.amountRaw || '0');
+  if (['reward', 'task_complete', 'pk_win', 'battle_claim'].includes(event.type)) {
+    addAmount(totals, 'earnedRaw', amount);
+    const key = event.source === 'battle_royale' ? 'battleRoyaleRaw' : event.source === 'pk' ? 'pkRaw' : event.source === 'task' ? 'taskRaw' : 'otherRewardRaw';
+    addAmount(totals, key, amount);
+  }
+  if (event.type === 'deposit') addAmount(totals, 'depositRaw', amount);
+  if (['spend', 'upkeep', 'withdraw_request'].includes(event.type)) addAmount(totals, 'spentRaw', amount);
+  if (event.type === 'upkeep') addAmount(totals, 'upkeepRaw', amount);
+  if (event.type === 'withdraw_claim') addAmount(totals, 'withdrawnRaw', amount);
+  totals.counts[event.type] = (totals.counts[event.type] || 0) + 1;
+}
+
+function formatIndexerTotals(totals) {
+  const earned = BigInt(totals.earnedRaw || '0');
+  const spent = BigInt(totals.spentRaw || '0');
+  const deposit = BigInt(totals.depositRaw || '0');
+  const withdrawn = BigInt(totals.withdrawnRaw || '0');
+  return {
+    ...totals,
+    earned: formatUnits(earned),
+    spent: formatUnits(spent),
+    net: formatUnits(earned + deposit - spent - withdrawn),
+    deposit: formatUnits(deposit),
+    withdrawn: formatUnits(withdrawn),
+    upkeep: formatUnits(totals.upkeepRaw || 0),
+    bySource: {
+      task: formatUnits(totals.taskRaw || 0),
+      pk: formatUnits(totals.pkRaw || 0),
+      battleRoyale: formatUnits(totals.battleRoyaleRaw || 0),
+      other: formatUnits(totals.otherRewardRaw || 0),
+    },
+  };
+}
+
+async function nfaEventSummary(tokenId, options = {}) {
+  if (!ROUTER) return null;
+  const windowKey = String(options.window || 'month');
+  const includeSkillDetails = options.details === true;
+  const cachePath = indexerCachePath(tokenId, `${windowKey}-${includeSkillDetails ? 'details' : 'ledger'}`);
+  const now = Date.now();
+  const cached = readJson(cachePath);
+  if (!options.refresh && cached?.cachedAt && now - Date.parse(cached.cachedAt) < INDEXER_CACHE_TTL_MS) return cached.payload;
+
+  const latest = await latestBlockNumber();
+  const window = indexWindow(windowKey, latest);
+  const nfaTopic = topicUint(tokenId);
+  const logs = [];
+
+  if (ROUTER) {
+    logs.push(...await getLogsChunked({
+      address: ROUTER,
+      topics: [[EVENT_TOPICS.CLWRewarded, EVENT_TOPICS.CLWSpent, EVENT_TOPICS.CLWDeposited, EVENT_TOPICS.WithdrawRequested, EVENT_TOPICS.WithdrawClaimed, EVENT_TOPICS.UpkeepProcessed, EVENT_TOPICS.LobsterLevelUp, EVENT_TOPICS.PersonalityEvolved, EVENT_TOPICS.CLWWithdrawn], nfaTopic],
+      fromBlock: window.fromBlock,
+      toBlock: window.toBlock,
+    }));
+  }
+  if (includeSkillDetails && TASK) {
+    logs.push(...await getLogsChunked({ address: TASK, topics: [EVENT_TOPICS.TaskCompleted, nfaTopic], fromBlock: window.fromBlock, toBlock: window.toBlock }));
+  }
+  if (includeSkillDetails && PK) {
+    logs.push(...await getLogsChunked({ address: PK, topics: [EVENT_TOPICS.PKMatchSettled, null, nfaTopic], fromBlock: window.fromBlock, toBlock: window.toBlock }));
+    logs.push(...await getLogsChunked({ address: PK, topics: [EVENT_TOPICS.PKMatchSettled, null, null, nfaTopic], fromBlock: window.fromBlock, toBlock: window.toBlock }));
+  }
+  if (includeSkillDetails && BATTLE_ROYALE) {
+    logs.push(...await getLogsChunked({ address: BATTLE_ROYALE, topics: [EVENT_TOPICS.BRAutonomousClaimed, null, null, nfaTopic], fromBlock: window.fromBlock, toBlock: window.toBlock }));
+  }
+
+  const seen = new Set();
+  const events = [];
+  for (const log of logs) {
+    const key = `${txHashOf(log)}:${log.logIndex}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const addr = normalizeAddress(log.address);
+    const decoded = addr === ROUTER
+      ? decodeRouterEvent(log, tokenId)
+      : addr === TASK
+        ? decodeTaskEvent(log)
+        : addr === PK
+          ? decodePkEvent(log, tokenId)
+          : addr === BATTLE_ROYALE
+            ? decodeBattleEvent(log)
+            : null;
+    if (decoded) events.push(decoded);
+  }
+
+  events.sort((a, b) => b.blockNumber - a.blockNumber);
+  const totals = { earnedRaw: '0', spentRaw: '0', depositRaw: '0', withdrawnRaw: '0', upkeepRaw: '0', taskRaw: '0', pkRaw: '0', battleRoyaleRaw: '0', otherRewardRaw: '0', counts: {} };
+  for (const event of events) applyEventTotals(totals, event);
+  const timeMap = await readBlockTimes(events, 40);
+  const timeline = events.slice(0, clampInt(Number(options.limit || 20), 1, 80)).map((event) => ({ ...event, atIso: timeMap.get(event.blockNumber) || null }));
+  const stats = await nfaStats(tokenId).catch(() => null);
+  const payload = {
+    tokenId: String(tokenId),
+    generatedAt: new Date().toISOString(),
+    contracts: { router: ROUTER, task: TASK, pk: PK, battleRoyale: BATTLE_ROYALE, depositRouter: DEPOSIT_ROUTER },
+    window,
+    detailSkills: includeSkillDetails,
+    current: stats ? {
+      level: stats.level,
+      xp: stats.xp,
+      ledgerBalanceRaw: stats.balance.toString(),
+      ledgerBalance: formatUnits(stats.balance),
+      monthlyGrowth: stats.monthly,
+      traits: stats.traits,
+      taskTotal: stats.task?.total ?? null,
+      taskEarnedRaw: stats.task?.earned?.toString?.() ?? null,
+      taskEarned: stats.task ? formatUnits(stats.task.earned) : null,
+      pkWins: stats.pk?.wins ?? null,
+      pkLosses: stats.pk?.losses ?? null,
+    } : null,
+    totals: formatIndexerTotals(totals),
+    timeline,
+    confidence: {
+      level: events.length ? 'event_indexed' : 'chain_state_only',
+      note: events.length ? 'Indexed matching NFA events from configured contracts.' : 'No matching events found in the scanned window; current state is still read from contracts.',
+    },
+  };
+  writeJsonAtomic(cachePath, { cachedAt: new Date().toISOString(), payload });
+  return payload;
 }
 
 function decodeString(ret) {
@@ -2111,34 +2431,54 @@ async function nfaStats(tokenId) {
 
 function isNfaQuery(text) {
   const value = lowerText(text);
-  return hasAny(value, ['属性', '本月', '增加', '成长', '赚了多少', '余额', '账本', '胜败', '任务', '状态', 'stats', 'status', 'balance', 'earned', 'month', 'trait', 'win', 'loss']);
+  return hasAny(value, [
+    '状态', '属性', '五围', '成长', '本月', '这个月', '收入', '赚', '收益', '花费', '支出', '余额', '储备', '账本', '钱包', '历史', '记录', '战绩', '胜率', '胜败', '赢', '输', '等级', '经验',
+    'stats', 'status', 'balance', 'earned', 'earn', 'spent', 'month', 'trait', 'win', 'loss', 'history', 'record', 'ledger'
+  ]);
 }
 
 async function buildNfaCards(tokenId, text, lang) {
   if (!isNfaQuery(text)) return null;
-  const stats = await nfaStats(tokenId).catch(() => null);
-  if (!stats) return null;
+  const [stats, eventSummary] = await Promise.all([
+    nfaStats(tokenId).catch(() => null),
+    nfaEventSummary(tokenId, { window: 'month', limit: 12 }).catch(() => null),
+  ]);
+  if (!stats && !eventSummary) return null;
+
   const isEn = lang === 'en';
   const names = isEn ? ['Courage', 'Wisdom', 'Social', 'Create', 'Grit'] : ['勇气', '智慧', '社交', '创造', '韧性'];
-  const monthly = stats.monthly.map((value, index) => `${names[index]} ${value >= 0 ? '+' : ''}${value}`).join(' / ');
+  const monthlyValues = eventSummary?.current?.monthlyGrowth || stats?.monthly || [0, 0, 0, 0, 0];
+  const monthly = monthlyValues.map((value, index) => `${names[index]} ${value >= 0 ? '+' : ''}${value}`).join(' / ');
+  const totals = eventSummary?.totals;
+  const current = eventSummary?.current;
+  const body = isEn
+    ? 'Live chain summary for this NFA. Amounts come from indexed Router and skill events.'
+    : '这是链上状态和本月账本汇总。';
+  const timeline = (eventSummary?.timeline || []).slice(0, 5).map((event) => ({
+    label: event.atIso ? event.atIso.slice(5, 16).replace('T', ' ') : `#${event.blockNumber}`,
+    value: event.amountRaw && event.amountRaw !== '0' ? `${event.title} ${['spend', 'upkeep', 'withdraw_request'].includes(event.type) ? '-' : '+'}${event.amount} Claworld` : event.title,
+  }));
+
   return [{
     id: cardId('nfa-status', tokenId),
     type: 'world',
-    label: isEn ? 'Chain status' : 'NFA 状态',
+    label: isEn ? 'Chain status' : '链上状态',
     title: `NFA #${tokenId}`,
-    body: isEn ? 'Live data read from BNB Chain.' : '这是刚从 BNB Chain 读到的数据。',
+    body,
     details: [
-      detail(isEn ? 'Level' : '等级', `Lv.${stats.level}`),
-      detail(isEn ? 'Ledger' : '账本储备', `${formatUnits(stats.balance)} Claworld`),
-      detail(isEn ? 'Traits' : '五围', stats.traits.map((value, index) => `${names[index]} ${value}`).join(' / ')),
-      detail(isEn ? 'This month' : '本月成长', monthly),
-      detail(isEn ? 'Tasks' : '任务', stats.task ? stats.task.total : '--'),
-      detail(isEn ? 'Task earned' : '累计收益', stats.task ? `${formatUnits(stats.task.earned)} Claworld` : '--'),
-      detail('PK', stats.pk ? `${stats.pk.wins}${isEn ? 'W' : '胜'} / ${stats.pk.losses}${isEn ? 'L' : '败'}` : '--'),
+      detail(isEn ? 'Level' : '等级', current?.level ? `Lv.${current.level}` : stats ? `Lv.${stats.level}` : '--'),
+      detail(isEn ? 'Ledger' : '账本储备', current?.ledgerBalance ? `${current.ledgerBalance} Claworld` : stats ? `${formatUnits(stats.balance)} Claworld` : '--'),
+      detail(isEn ? 'This month earned' : '本月收入', totals ? `${totals.earned} Claworld` : '--', 'growth'),
+      detail(isEn ? 'This month spent' : '本月花费', totals ? `${totals.spent} Claworld` : '--', 'danger'),
+      detail(isEn ? 'Net change' : '净变化', totals ? `${totals.net} Claworld` : '--', 'warm'),
+      detail(isEn ? 'By source' : '来源', totals ? `挖矿 ${totals.bySource.task} / PK ${totals.bySource.pk} / 大逃杀 ${totals.bySource.battleRoyale}` : '--'),
+      detail(isEn ? 'Traits' : '五围', stats ? stats.traits.map((value, index) => `${names[index]} ${value}`).join(' / ') : '--'),
+      detail(isEn ? 'Monthly growth' : '本月成长', monthly),
+      detail('PK', stats?.pk ? `${stats.pk.wins}${isEn ? 'W' : '胜'} / ${stats.pk.losses}${isEn ? 'L' : '败'}` : '--'),
+      ...timeline,
     ],
   }];
 }
-
 function intentFromText(text) {
   const value = lowerText(text);
   if (/^(\/mine|\/mining)\b/.test(value) || hasAny(value, ['挖矿', '任务', 'mine', 'mining'])) return 'mining';
@@ -2321,6 +2661,20 @@ const server = http.createServer(async (req, res) => {
         webTools: WEB_TOOLS,
         backend: 'contract-intel',
       });
+    }
+    const indexerMatch = url.pathname.match(/^\/(?:api\/)?(?:indexer\/)?nfa\/([^/]+)\/(events|summary|timeline)\/?$/);
+    if (indexerMatch) {
+      if (!authed(req)) return sendJson(res, 401, { error: 'unauthorized' });
+      const tokenId = parsePositiveInt(decodeURIComponent(indexerMatch[1]));
+      if (!tokenId) return sendJson(res, 400, { error: 'invalid tokenId' });
+      const windowKey = url.searchParams.get('window') || 'month';
+      const refresh = url.searchParams.get('refresh') === '1' || url.searchParams.get('refresh') === 'true';
+      const limit = clampInt(Number(url.searchParams.get('limit') || 20), 1, 80);
+      const details = url.searchParams.get('details') === '1' || url.searchParams.get('details') === 'true';
+      const summary = await nfaEventSummary(tokenId, { window: windowKey, refresh, limit, details });
+      if (!summary) return sendJson(res, 404, { error: 'NFA event summary unavailable' });
+      if (indexerMatch[2] === 'timeline') return sendJson(res, 200, { tokenId: summary.tokenId, window: summary.window, timeline: summary.timeline });
+      return sendJson(res, 200, summary);
     }
     const memoryMatch = url.pathname.match(/^\/(?:api\/)?memory\/([^/]+)\/(summary|timeline|write)\/?$/);
     if (memoryMatch) {

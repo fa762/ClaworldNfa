@@ -14,6 +14,7 @@ const paths = {
   receipt: `/api/receipts/${requestId}`,
   publicReceipt: `/receipts/${requestId}`,
   memorySummary: `/api/agents/${tokenId}/memory/summary`,
+  eventSummary: `/api/agents/${tokenId}/events/summary?window=30000&limit=5`,
 };
 
 const failures = [];
@@ -115,6 +116,7 @@ if (apiAgentCard) {
   assert('api-agent-card', apiAgentCard.memory?.root?.startsWith('0x'), 'missing memory root');
   assert('api-agent-card', Array.isArray(apiAgentCard.skills), 'missing embedded skills');
   assert('api-agent-card', apiAgentCard.receipts?.endpoint, 'missing receipts endpoint');
+  assert('api-agent-card', apiAgentCard.events?.endpoint, 'missing events endpoint');
   assertNoPrivateUrls('api-agent-card', apiAgentCard);
   notes.push(`agent-card owner=${apiAgentCard.owner} level=${apiAgentCard.body?.level}`);
 }
@@ -172,6 +174,17 @@ if (memorySummary) {
   assert('memory-summary', memorySummary.summary?.latestSnapshotHash, 'missing backend memory snapshot hash');
   assertNoPrivateUrls('memory-summary', memorySummary);
   notes.push(`memory-storage=${memorySummary.storage ?? 'unknown'} snapshot=${memorySummary.summary?.latestSnapshotHash?.slice(0, 12) ?? 'none'}`);
+}
+
+const eventSummary = await fetchJson('event-summary', paths.eventSummary);
+if (eventSummary) {
+  assert('event-summary', String(eventSummary.tokenId) === String(tokenId), 'tokenId mismatch');
+  assert('event-summary', eventSummary.window?.fromBlock !== undefined, 'missing window.fromBlock');
+  assert('event-summary', eventSummary.current?.ledgerBalanceRaw !== undefined, 'missing current ledger balance');
+  assert('event-summary', eventSummary.totals?.earnedRaw !== undefined, 'missing totals.earnedRaw');
+  assert('event-summary', Array.isArray(eventSummary.timeline), 'timeline should be an array');
+  assertNoPrivateUrls('event-summary', eventSummary);
+  notes.push(`event-index window=${eventSummary.window?.label ?? eventSummary.window?.key} events=${eventSummary.timeline?.length ?? 0}`);
 }
 
 if (verifyMemoryWrite) {

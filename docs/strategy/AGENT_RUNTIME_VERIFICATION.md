@@ -13,6 +13,7 @@ It is not enough for the code to compile. The live product should show:
 - skill discovery
 - action receipt auditability
 - memory root and CML summary visibility
+- event-indexed NFA activity summaries
 - public URL safety
 - frontend-to-backend runtime availability
 
@@ -152,7 +153,32 @@ Optional mutating smoke:
 AGENT_RUNTIME_VERIFY_WRITE=1 npm run verify:agent-runtime
 ```
 
-### 6. Security and public URL hygiene
+### 6. Event-indexed activity summary
+
+Endpoint:
+
+```text
+/api/agents/{tokenId}/events/summary?window=30000&limit=5
+```
+
+Checks:
+
+- returns `200`
+- token id matches
+- window includes `fromBlock` and `toBlock`
+- current state includes ledger balance, level, monthly growth and PK record
+- totals include earned, spent, net, deposit, upkeep and source breakdown
+- timeline is always an array, even when no matching events exist in the window
+- default mode scans Router ledger events only; `details=1` enables deeper skill logs for heavier inspection
+
+Backend routes used by the frontend:
+
+```text
+GET /nfa/{tokenId}/summary?window=month&limit=20
+GET /nfa/{tokenId}/timeline?window=month&limit=20
+```
+
+### 7. Security and public URL hygiene
 
 Checks:
 
@@ -160,6 +186,7 @@ Checks:
 - no secret env value should appear in runtime JSON
 - WAF and rate limits should not block normal Agent Runtime JSON reads
 - backend memory routes require the private API token when called directly
+- backend event index routes require the private API token when called directly
 
 ## Current Live Verification
 
@@ -175,14 +202,16 @@ Result:
 
 ```text
 Agent Runtime verification passed.
-- project-card capabilities=6
+- project-card capabilities=7
 - agent-card owner=0x4929BD86e8Be70a167cCe03A64AaC692E0c2B3b2 level=3
 - skills=7
 - receipts=5
 - receipt-21 status=executed skill=battle_royale
 - memory-storage=available snapshot=<hash prefix>
+- event-index window=last_30000_blocks events=0
 ```
 
 Note:
 
 - `memory-storage=available` means the public Agent Runtime endpoint can read the on-chain learning root and the backend CML snapshot summary through the frontend-to-backend bridge.
+- `event-index` means the frontend route can reach the Vultr backend indexer and return chain-state-backed ledger/history data without leaking the backend token.
