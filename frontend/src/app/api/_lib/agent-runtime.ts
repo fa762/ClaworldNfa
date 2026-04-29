@@ -105,7 +105,31 @@ function absoluteUrl(baseUrl: string | null | undefined, path: string) {
 }
 
 export function originFromRequest(request: Request) {
+  const configuredOrigin =
+    process.env.CLAWORLD_PUBLIC_ORIGIN ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_PUBLIC_ORIGIN ||
+    '';
+  if (configuredOrigin) {
+    try {
+      return new URL(configuredOrigin).origin;
+    } catch {
+      // Fall through to proxy-aware request headers.
+    }
+  }
+
+  const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
+  const host = forwardedHost.split(',')[0]?.trim();
+  const forwardedProto = request.headers.get('x-forwarded-proto') || '';
+  const proto = forwardedProto.split(',')[0]?.trim().replace(/:$/, '') || '';
+  if (host && host !== '0.0.0.0' && !host.startsWith('0.0.0.0:')) {
+    return `${proto || 'https'}://${host}`;
+  }
+
   const url = new URL(request.url);
+  if (url.hostname === '0.0.0.0' || url.hostname === '::') {
+    return 'https://clawnfaterminal.xyz';
+  }
   return `${url.protocol}//${url.host}`;
 }
 

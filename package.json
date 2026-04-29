@@ -23,7 +23,8 @@
     "smoke:battle-royale:autonomy:mainnet": "npx hardhat run scripts/smoke-battle-royale-autonomy-mainnet.ts --network bscMainnet",
     "watch:battle-royale": "node -e \"process.env.HARDHAT_NETWORK='bscMainnet'; process.env.BATTLE_ROYALE_WATCH_MODE='serve'; require('ts-node/register/transpile-only'); require('./scripts/watch-battle-royale-reveal.ts');\"",
     "watch:battle-royale:once": "node -e \"process.env.HARDHAT_NETWORK='bscMainnet'; process.env.BATTLE_ROYALE_WATCH_MODE='once'; require('ts-node/register/transpile-only'); require('./scripts/watch-battle-royale-reveal.ts');\"",
-    "watch:battle-royale:check": "node -e \"process.env.HARDHAT_NETWORK='bscMainnet'; process.env.BATTLE_ROYALE_WATCH_MODE='check-env'; require('ts-node/register/transpile-only'); require('./scripts/watch-battle-royale-reveal.ts');\""
+    "watch:battle-royale:check": "node -e \"process.env.HARDHAT_NETWORK='bscMainnet'; process.env.BATTLE_ROYALE_WATCH_MODE='check-env'; require('ts-node/register/transpile-only'); require('./scripts/watch-battle-royale-reveal.ts');\"",
+    "verify:agent-runtime": "node scripts/verify-agent-runtime.mjs"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.97",
