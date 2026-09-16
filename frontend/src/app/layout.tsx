@@ -12,7 +12,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#ffb45c",
+  themeColor: "#0b6b4f",
 };
 
 export const metadata: Metadata = {
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   applicationName: "claworldnfa",
   manifest: "/manifest.webmanifest",
   title: "claworldnfa",
-  description: "Raise your lobster companion on BNB Chain.",
+  description: "Persistent AI agent runtime with identity, memory, bounded execution, and auditable receipts.",
   icons: {
     icon: "/icon.png",
     apple: "/apple-icon.png",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "claworldnfa",
-    description: "Your lobster companion on BNB Chain.",
+    description: "Open-source runtime for persistent AI agents.",
     type: "website",
   },
 };

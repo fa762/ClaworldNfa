@@ -15,6 +15,7 @@ import { getRarityName, getRarityClass, getRarityStars } from '@/lib/rarity';
 import { getShelterName } from '@/lib/shelter';
 import { TerminalBox } from '@/components/terminal/TerminalBox';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 
 const defaultFilters: Filters = {
@@ -25,6 +26,7 @@ const defaultFilters: Filters = {
 const PAGE_SIZE = 50;
 
 export function LobsterGrid() {
+  const router = useRouter();
   const { address, isConnected } = useAccount();
   const { data: totalSupply } = useTotalSupply();
   const { data: myTokens } = useTokensOfOwner(address);
@@ -140,7 +142,7 @@ export function LobsterGrid() {
 
   // Reset to page 1 when filters change
   const filtersKey = JSON.stringify(filters);
-  useMemo(() => setPage(1), [filtersKey]);
+  useEffect(() => setPage(1), [filtersKey]);
 
   const isCN = lang === 'zh';
 
@@ -191,7 +193,7 @@ export function LobsterGrid() {
                 </thead>
                 <tbody>
                   {paged.map((l) => (
-                    <tr key={l.tokenId} className="group cursor-pointer" onClick={() => window.location.href = `/nfa/${l.tokenId}`}>
+                    <tr key={l.tokenId} className="group cursor-pointer" onClick={() => router.push(`/nfa/${l.tokenId}`)}>
                       <td>
                         <Link href={`/nfa/${l.tokenId}`} className="term-link">
                           #{String(l.tokenId).padStart(3, '0')}

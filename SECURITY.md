@@ -1,5 +1,7 @@
 # Security Policy
 
+The system-level trust assumptions and permission boundaries are documented in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md). Read it before reviewing wallet, oracle, autonomy, adapter, upgrade, or accounting changes.
+
 ## Scope
 
 This policy covers the code shipped in this repository, including:
@@ -16,6 +18,7 @@ Hosted secrets, private infrastructure, local developer machines, and third-part
 Security fixes are handled on a best-effort basis for:
 
 - the current `main` branch
+- the latest `v1.0.x` release
 - the latest mainnet contract set documented in `README.md`
 
 Older branches and historical deployments may not receive fixes.
@@ -67,6 +70,50 @@ Because this repository covers on-chain assets and bounded AI execution, high-pr
 - adapter routing bugs
 - directive injection that escapes policy boundaries
 - memory anchoring or state-sync bugs that can corrupt ownership or execution state
+
+The following boundaries deserve special attention:
+
+- browser or model output must not substitute for a wallet signature
+- an autonomy operator must not bypass `AutonomyRegistry`
+- an oracle result must remain a bounded choice, not arbitrary calldata
+- `ActionHub` must re-check current policy before execution
+- adapters must stay allowlisted and protocol-specific
+- skill contracts must enforce their own caller, accounting, settlement, and replay rules
+
+## Trust boundaries
+
+| Boundary | Trusted for | Not trusted for |
+| --- | --- | --- |
+| Browser / frontend | presenting state and assembling typed requests | custody, final authorization, or authoritative chain state |
+| Wallet | protecting the owner key and signing user-confirmed transactions | validating project-specific economics or model output |
+| Backend / API | model mediation, indexed reads, memory, and bounded helpers | signing as an owner or bypassing contracts |
+| Agent runtime | generating and scoring finite candidates | granting permissions or inventing arbitrary calldata |
+| Model provider | interpreting language and choosing among exposed options | holding keys, setting policy, or approving spend |
+| Memory store | continuity and retrieval context | authorization, accounting, or public proof by itself |
+| Oracle | recording one bounded choice and a reasoning reference | direct skill execution or policy mutation |
+| Autonomous operator | submitting approved lifecycle transactions | unrestricted NFA funds or arbitrary target calls |
+| Policy / ActionHub | current permission checks, lifecycle, dispatch, and receipts | replacing adapter and skill-level validation |
+| Adapter / skill | one typed protocol call and its own state machine | generic arbitrary execution or owner-policy changes |
+
+The detailed data flow, actors, residual risks, and review invariants are in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
+
+## What the agent cannot do by default
+
+The current architecture is designed so that model output alone cannot:
+
+- sign an owner transaction or obtain the owner's private key
+- reuse the deployer or upgrade key for PK automation; the server route accepts only a dedicated `PK_RELAYER_PRIVATE_KEY`
+- enable autonomy, approve an operator, or change an owner policy
+- bypass an emergency pause or a disabled policy
+- call an adapter or protocol that the owner has not approved
+- execute an action kind outside the configured policy
+- exceed the configured single-action, daily, operator, asset, or protocol budget
+- spend through the configured minimum reserve or dynamic reserve requirement
+- continue new autonomous actions after the failure breaker denies them
+- turn memory text or a reasoning document into authorization
+- make a narrow adapter behave as a generic arbitrary-call proxy without a contract change
+
+These controls reduce blast radius; they do not make a compromised wallet, admin key, backend, operator, oracle, adapter, or upgrade harmless. Residual risks are documented rather than treated as solved.
 
 ## Out of scope
 

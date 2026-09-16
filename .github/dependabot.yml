@@ -1,0 +1,34 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      hardhat-tooling:
+        patterns:
+          - hardhat
+          - "@nomicfoundation/*"
+          - "@nomiclabs/*"
+          - "@openzeppelin/*"
+          - "@typechain/*"
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      frontend-runtime:
+        patterns:
+          - next
+          - react
+          - react-dom
+          - wagmi
+          - viem
+          - "@walletconnect/*"
+          - "@web3modal/*"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

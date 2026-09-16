@@ -1,0 +1,51 @@
+name: Bug report
+description: Report a reproducible defect in contracts, runtime, frontend, or tooling.
+title: "bug: "
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: Do not disclose exploitable vulnerabilities here. Use the private security reporting path in SECURITY.md.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Contracts, Agent runtime, Frontend, API, Deployment or scripts, Documentation]
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Include the observed behavior and why it is incorrect.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Give the smallest reliable sequence, command, request, or transaction reference.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Commit or release, OS/browser/Node version, network, and relevant contract address.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing Issues.
+          required: true
+        - label: This report contains no secret or private key.
+          required: true
+        - label: This is not an undisclosed exploitable vulnerability.
+          required: true

@@ -63,7 +63,11 @@ async function main() {
     console.log("Proxy already imported in local manifest");
   }
 
-  const preparedImpl = await upgrades.prepareUpgrade(PROXY, BattleRoyale, { kind: "uups" });
+  const preparedUpgrade = await upgrades.prepareUpgrade(PROXY, BattleRoyale, { kind: "uups" });
+  if (typeof preparedUpgrade !== "string") {
+    throw new Error("prepareUpgrade returned a transaction response instead of an implementation address");
+  }
+  const preparedImpl = preparedUpgrade;
   console.log("Prepared implementation:", preparedImpl);
   const preparedHasSelectors = await implementationHasReserveSelectors(preparedImpl);
   console.log("Prepared implementation has NFA reserve selectors:", preparedHasSelectors);

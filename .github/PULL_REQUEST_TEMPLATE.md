@@ -1,5 +1,6 @@
 ## Summary
 
+- closes issue:
 - what changed:
 - why:
 
@@ -14,6 +15,8 @@
 
 - [ ] `npx hardhat compile`
 - [ ] `npx hardhat test`
+- [ ] `npm run lint`
+- [ ] `npm run typecheck`
 - [ ] `npm --prefix frontend run build`
 - [ ] other checks if needed
 
@@ -33,9 +36,21 @@
 
 ## Security
 
+- security impact:
+- contract / storage impact:
+- migration / deployment impact:
 - [ ] no new secret material added
 - [ ] no local runtime artifact added by mistake
 - [ ] approval / auth assumptions reviewed
+- [ ] `docs/THREAT_MODEL.md` was reviewed for wallet / oracle / policy / adapter / contract boundary changes
+- [ ] model output is not treated as authorization
+
+## Review decision
+
+- [ ] diff reviewed file by file
+- [ ] tests and build results reviewed
+- [ ] mainnet and rollback impact understood
+- [ ] ready to merge
 
 ## Notes
 

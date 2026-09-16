@@ -291,8 +291,8 @@ describe("BattleRoyale", function () {
 
     const claimableA = await battleRoyale.getClaimable(2, participantA);
     const claimableB = await battleRoyale.getClaimable(2, participantB);
-    const winningTokenId = claimableA > 0 ? tokenIdA : tokenIdB;
-    const claimable = claimableA > 0 ? claimableA : claimableB;
+    const winningTokenId = claimableA.gt(0) ? tokenIdA : tokenIdB;
+    const claimable = claimableA.gt(0) ? claimableA : claimableB;
 
     expect(claimable).to.be.gt(0);
 

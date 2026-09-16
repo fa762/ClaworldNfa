@@ -9,6 +9,8 @@
     "build": "next build",
     "build:testnet": "node -e \"const fs=require('fs'); if(fs.existsSync('.env.testnet')) fs.copyFileSync('.env.testnet','.env.local')\" && next build",
     "build:mainnet": "node -e \"process.env.NEXT_PUBLIC_APP_ENV='mainnet';process.env.NEXT_PUBLIC_CHAIN_ID=process.env.NEXT_PUBLIC_CHAIN_ID||'56';process.env.NEXT_PUBLIC_RPC_URL=process.env.NEXT_PUBLIC_RPC_URL||'https://bsc-rpc.publicnode.com';require('child_process').execSync('next build',{stdio:'inherit',env:process.env})\"",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
     "start": "next start"
   },
   "dependencies": {
@@ -16,7 +18,7 @@
     "@walletconnect/ethereum-provider": "^2.23.8",
     "@web3modal/wagmi": "^5.1.11",
     "lucide-react": "^0.577.0",
-    "next": "16.1.6",
+    "next": "16.3.5",
     "phaser": "^3.90.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -31,6 +33,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

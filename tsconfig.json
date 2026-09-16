@@ -12,6 +12,7 @@
   "include": [
     "./scripts",
     "./test",
+    "./openclaw",
     "./hardhat.config.ts"
   ],
   "files": [

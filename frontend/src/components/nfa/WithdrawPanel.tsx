@@ -30,8 +30,6 @@ export function WithdrawPanel({ tokenId, ownerAddress }: WithdrawPanelProps) {
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   const isOwner = !!address && !!ownerAddress && address.toLowerCase() === ownerAddress.toLowerCase();
-  if (!isOwner) return null;
-
   const balance = clwBalance ? Number(formatEther(clwBalance)) : 0;
   const reqAmount = withdrawRequest ? Number(formatEther((withdrawRequest as any).amount ?? withdrawRequest[0] ?? 0n)) : 0;
   const reqTime = withdrawRequest ? Number((withdrawRequest as any).requestTime ?? withdrawRequest[1] ?? 0n) * 1000 : 0;
@@ -50,6 +48,8 @@ export function WithdrawPanel({ tokenId, ownerAddress }: WithdrawPanelProps) {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [hasPending]);
+
+  if (!isOwner) return null;
 
   function requestWithdraw() {
     if (!validAmount) return;

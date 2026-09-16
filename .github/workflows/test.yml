@@ -5,8 +5,12 @@ on:
     branches: [main, master]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-test:
+  contracts:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,17 +23,49 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Compile contracts
         run: npm run compile
 
+      - name: Typecheck scripts, tests, and runtime
+        run: npm run typecheck:root
+
       - name: Run tests
         run: npm test
 
-      - name: Run coverage
-        if: github.event_name == 'pull_request'
-        run: npm run coverage
-
       - name: Check contract sizes
         run: npm run size
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Audit frontend production dependencies
+        run: npm --prefix frontend audit --omit=dev --audit-level=high
+
+      - name: Lint frontend
+        run: npm --prefix frontend run lint
+
+      - name: Typecheck frontend
+        run: npm --prefix frontend run typecheck
+
+      - name: Build frontend
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: npm --prefix frontend run build

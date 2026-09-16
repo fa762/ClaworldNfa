@@ -12,6 +12,7 @@ Please read:
 - `PROJECT.md`
 - `ARCHITECTURE.md`
 - `SECURITY.md`
+- `docs/THREAT_MODEL.md` for wallet, oracle, autonomy, adapter, upgrade, or accounting changes
 
 If your change touches user-facing flows, read the relevant surface in `frontend/` first. If it touches mainnet behavior, read the related scripts and tests before editing.
 
@@ -20,15 +21,15 @@ If your change touches user-facing flows, read the relevant surface in `frontend
 Root setup:
 
 ```bash
-npm install
-npx hardhat compile
-npx hardhat test
+npm ci
+npm run compile
+npm test
 ```
 
 Frontend setup:
 
 ```bash
-npm --prefix frontend install
+npm --prefix frontend ci
 npm --prefix frontend run dev
 ```
 
@@ -37,6 +38,8 @@ Useful checks:
 ```bash
 npm run coverage
 npm run size
+npm run lint
+npm run typecheck
 npm --prefix frontend run build
 npm run runner:autonomy:check
 npm run directive:check
@@ -48,6 +51,7 @@ npm run watch:battle-royale:check
 Please keep PRs focused and include:
 
 - the problem being solved
+- the Issue it closes or a short explanation when no Issue is needed
 - the files or subsystems touched
 - risks or tradeoffs
 - tests you ran
@@ -55,7 +59,37 @@ Please keep PRs focused and include:
 
 If you change contract behavior, include or update tests.
 
+If you change upgradeable storage, document the storage impact and run the relevant OpenZeppelin upgrade validation or deployment rehearsal.
+
 If you change mainnet-facing addresses, routes, or upgrade flows, update the docs that point to them.
+
+## Branch and review workflow
+
+All changes should follow this path:
+
+1. create a focused branch from current `main`
+2. make and verify the change on that branch
+3. push the branch and open a pull request
+4. review the diff, security boundary, tests, and mainnet impact
+5. resolve review comments and wait for required checks
+6. merge the pull request; do not push feature work directly to `main`
+
+Suggested branch names:
+
+- `feat/<short-name>`
+- `fix/<short-name>`
+- `docs/<short-name>`
+- `security/<short-name>`
+- `codex/<short-name>` for Codex-assisted work
+
+Emergency mainnet response may require a faster patch, but it should still use a branch and pull request whenever GitHub is available. Record the incident, transaction impact, and verification evidence in the PR.
+
+## Release expectations
+
+- user-visible or protocol behavior changes belong in `CHANGELOG.md`
+- releases are cut from reviewed `main`, never from a local-only branch
+- release notes list added, changed, security, migration, and known-limitation information when applicable
+- a tag is a maintained source baseline, not a claim that every experimental integration is production-ready
 
 ## Repo conventions
 

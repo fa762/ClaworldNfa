@@ -5,6 +5,9 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "test": "npx hardhat test",
+    "lint": "npm --prefix frontend run lint",
+    "typecheck": "npm run typecheck:root && npm --prefix frontend run typecheck",
+    "typecheck:root": "tsc --noEmit",
     "coverage": "npx hardhat coverage",
     "build": "npm --prefix frontend run build",
     "build:testnet": "npm --prefix frontend run build:testnet",
@@ -48,8 +51,8 @@
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.10",
     "https-proxy-agent": "^5.0.1",
-    "local-cors-proxy": "^1.1.0",
     "node-fetch": "^2.7.0",
+    "solc": "0.8.26",
     "solidity-coverage": "^0.8.13",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
@@ -60,7 +63,6 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "global-agent": "^4.1.3",
-    "solc": "^0.8.26"
+    "global-agent": "^4.1.3"
   }
 }
