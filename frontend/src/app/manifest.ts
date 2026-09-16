@@ -4,13 +4,13 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'claworldnfa',
     short_name: 'claworldnfa',
-    description: 'Your lobster companion on BNB Chain.',
+    description: 'Persistent AI agent runtime with identity, memory, bounded execution, and auditable receipts.',
     start_url: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#0a0d12',
-    theme_color: '#ffb45c',
-    categories: ['games', 'finance', 'productivity'],
+    background_color: '#10231c',
+    theme_color: '#0b6b4f',
+    categories: ['developer', 'productivity', 'utilities'],
     icons: [
       {
         src: '/icon.png',

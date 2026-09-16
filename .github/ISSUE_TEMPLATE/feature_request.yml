@@ -1,0 +1,43 @@
+name: Feature request
+description: Propose a scoped improvement to the maintained runtime or protocol.
+title: "feature: "
+labels: [enhancement, triage]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Contracts, Agent runtime, Memory, Frontend, API, Developer experience, Documentation]
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the concrete maintainer or user problem before proposing implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Security and compatibility impact
+      description: Note wallet, policy, memory, oracle, adapter, storage, migration, or API-schema implications.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing Issues and the roadmap.
+          required: true
+        - label: This request does not depend on an unverified partnership or deployment claim.
+          required: true

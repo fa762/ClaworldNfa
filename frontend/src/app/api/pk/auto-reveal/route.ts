@@ -23,7 +23,7 @@ import {
 export const runtime = 'nodejs';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
-const RELAYER_KEY = process.env.PK_RELAYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
+const RELAYER_KEY = process.env.PK_RELAYER_PRIVATE_KEY;
 
 const pkAbi = parseAbi([
   'function matches(uint256) view returns (uint256 nfaA, uint256 nfaB, bytes32 commitA, bytes32 commitB, uint8 strategyA, uint8 strategyB, uint256 stake, uint8 phase, uint64 phaseTimestamp, bool revealedA, bool revealedB, bytes32 saltA, bytes32 saltB)',

@@ -6,15 +6,52 @@
 
 Language: [English](#english) | [中文](#chinese)
 
-claworldnfa is a live BNB Chain project that turns a Non-Fungible Agent into one coherent runtime subject: identity, ledger account, gameplay actor, memory carrier, chat surface, and bounded autonomous executor.
+**Open-source runtime for persistent AI agents with on-chain identity, memory, policy-bounded execution, and auditable receipts.**
 
-claworldnfa 是一个已经跑在 BNB Chain 主网上的项目。这里的 NFA 不是一张图，也不是一个聊天皮肤，而是同一个主体同时承担身份、账本账户、玩法角色、记忆载体、对话入口和有边界的自治执行。
+**一个面向持久化 AI Agent 的开源运行时：统一链上身份、记忆、状态、受策略约束的自治执行与可审计回执。**
 
-- Live app: [www.clawnfaterminal.xyz](https://www.clawnfaterminal.xyz)
-- Public repository: [github.com/fa762/claworldnfa](https://github.com/fa762/claworldnfa)
-- Network: BNB Smart Chain mainnet
-- Token name used in product UI: `Claworld`
-- License: MIT
+[![CI](https://github.com/fa762/ClaworldNfa/actions/workflows/test.yml/badge.svg)](https://github.com/fa762/ClaworldNfa/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-0b6b4f.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/fa762/ClaworldNfa?display_name=tag)](https://github.com/fa762/ClaworldNfa/releases)
+
+[Live App](https://www.clawnfaterminal.xyz) · [Documentation](ARCHITECTURE.md) · [Security](SECURITY.md) · [Threat Model](docs/THREAT_MODEL.md) · [Roadmap](ROADMAP.md) · [Issues](https://github.com/fa762/ClaworldNfa/issues)
+
+Network: BNB Smart Chain mainnet · License: MIT · Product currency name: `Claworld`
+
+## Why this exists / 为什么做这个
+
+Identity, account state, memory, reasoning, execution authority, and receipts are usually split across unrelated systems. claworldnfa treats one NFA as the continuous subject across those boundaries. A model may interpret context and choose among bounded candidates, but wallets and on-chain policy remain the source of authority.
+
+传统 Agent 系统常把身份、账户状态、记忆、推理、执行权限和回执拆成互不相认的模块。claworldnfa 让同一个 NFA 贯穿这些边界。模型可以理解上下文并在有限候选中选择，但授权仍来自钱包和链上策略。
+
+## What is actually open source / 当前开源内容
+
+- **27 Solidity source files**: 14 production contracts/adapters, 7 interfaces, and 6 test mocks
+- **12 Hardhat test suites**: the current baseline runs 256 passing tests with 2 explicitly pending cases
+- **Next.js 16 terminal and PWA** with 20 server-side Agent Card, memory, event, receipt, world, and chat routes
+- **43 files under `openclaw/`** covering planning, oracle execution, CML memory, skills, tools, and watchers
+- **46 deployment, upgrade, verification, smoke, maintenance, and operational scripts**
+
+以上数字来自当前仓库扫描，不包含托管密钥、私有基础设施或第三方服务内部实现。
+
+## Live & Verifiable / 在线与可验证
+
+The live product and the contracts below are public. You can verify the deployed system without relying on this README alone.
+
+线上产品与核心合约均可公开验证，不需要只相信本仓库的文字说明。
+
+| Surface / 入口 | Link / 链接 | What it proves / 可验证内容 |
+| --- | --- | --- |
+| Live DApp / 在线产品 | [www.clawnfaterminal.xyz](https://www.clawnfaterminal.xyz) | Terminal PWA, wallet connection, NFA reads, chat and action surfaces / 终端、钱包、NFA 数据、对话与动作入口 |
+| Agent Card / Agent 描述 | [/.well-known/agent-card.json](https://www.clawnfaterminal.xyz/.well-known/agent-card.json) | Machine-readable project identity and runtime capabilities / 机器可读的项目身份与能力 |
+| ClawHub skill / 技能 | [claw-world on ClawHub](https://clawhub.ai/skills/claw-world) | Reusable skill surface for external agent runtimes / 可供外部 Agent runtime 使用的技能入口 |
+| ClawNFA | [BscScan](https://bscscan.com/address/0xAa2094798B5892191124eae9D77E337544FFAE48#code) | NFA identity, ownership and learning-tree anchor / NFA 身份、所有权与学习树锚点 |
+| ClawRouter | [BscScan](https://bscscan.com/address/0x60C0D5276c007Fd151f2A615c315cb364EF81BD5#code) | NFA ledger, upkeep and game accounting hub / NFA 账本、维护和玩法记账中枢 |
+| AutonomyRegistry | [BscScan](https://bscscan.com/address/0xD18BaF2670fFcb4CC92260719AbFc9d637dB7044#code) | On-chain policy, budget, reserve and breaker checks / 链上权限、预算、储备与熔断检查 |
+| OracleActionHub | [BscScan](https://bscscan.com/address/0xEdd04D821ab9E8eCD5723189A615333c3509f1D5#code) | Request, oracle sync, adapter execution and receipts / 请求、预言机同步、适配器执行与回执 |
+| First stable baseline / 首个稳定基线 | [v1.0.0](https://github.com/fa762/ClaworldNfa/releases/tag/v1.0.0) | Versioned source and release notes / 带版本的源码与发布说明 |
+
+Security boundaries are documented in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md). Mainnet addresses remain canonical in [`frontend/src/contracts/addresses.ts`](frontend/src/contracts/addresses.ts). The release link becomes authoritative only after the corresponding GitHub Release is published from reviewed `main`.
 
 ---
 
@@ -36,11 +73,11 @@ The engineering thesis is that one NFA can be all of these at once:
 
 This repository contains the full stack for that model:
 
-- 14 tracked Solidity source modules across core, skills, world, and adapter layers
+- 27 Solidity source files: 14 production contracts/adapters, 7 interfaces, and 6 test mocks
 - 12 Hardhat test suites
 - a live Terminal-style PWA built with Next.js 16, React 19, wagmi, and viem
 - server-side chat, memory, world, event, and autonomy API routes
-- an `openclaw/` runtime with planner, runner, memory, tool, and watcher modules
+- 43 files under `openclaw/` with planner, runner, memory, tool, skill, and watcher modules
 - deployment, upgrade, smoke, and reveal-watch scripts for mainnet operation
 
 The shortest description of the project is still this chain:
@@ -63,27 +100,26 @@ claworldnfa takes the opposite route. It keeps identity, ledger, state, memory, 
 ### System Overview
 
 ```mermaid
-flowchart LR
-  A["Owner Wallet"] --> B["Terminal PWA"]
-  B --> C["Next.js API Layer"]
-  C --> D["Project Backend Chat / Memory"]
-  C --> E["OpenAI-Compatible Model or BYOK Path"]
-  B --> F["Wallet-Confirmed Writes"]
-  F --> G["ClawNFA"]
-  F --> H["ClawRouter"]
-  H --> I["TaskSkill"]
-  H --> J["PKSkill"]
-  H --> K["BattleRoyale"]
-  H --> L["MarketSkill"]
-  H --> M["GenesisVault"]
-  N["WorldState"] --> I
-  N --> J
-  N --> K
-  O["Planner / Runner"] --> P["ClawOracle"]
-  P --> Q["ClawOracleActionHub"]
-  Q --> R["BattleRoyaleAdapter"]
-  R --> K
-  O --> S["Reasoning Upload + Memory Runtime"]
+flowchart TB
+  U["Owner / User"] --> T["Terminal / API"]
+  subgraph OFF["Off-chain runtime"]
+    T --> M["Memory + live state"]
+    M --> P["Planner: finite candidates"]
+    P --> L["Model: bounded choice"]
+    L --> I["Typed intent / action"]
+  end
+  I --> W["Owner wallet confirmation"]
+  I --> O["Approved operator"]
+  subgraph ON["On-chain authorization and execution"]
+    W --> S["Protocol contract"]
+    O --> R["Oracle result"]
+    R --> H["ActionHub"]
+    H --> G["AutonomyRegistry preflight"]
+    G --> A["Approved narrow adapter"]
+    A --> S
+    S --> N["NFA state / ledger"]
+    H --> Q["Action receipt"]
+  end
 ```
 
 ### BAP-578 in claworldnfa
@@ -493,7 +529,8 @@ claworldnfa/
 ├── docs/
 │   ├── assets/
 │   │   └── banner.png
-│   └── INNOVATION_MAP.md
+│   ├── INNOVATION_MAP.md
+│   └── THREAT_MODEL.md
 ├── frontend/
 │   ├── package.json
 │   └── src/
@@ -613,7 +650,7 @@ Canonical mainnet defaults are kept in `frontend/src/contracts/addresses.ts`.
 #### Root
 
 ```bash
-npm install
+npm ci
 npm run compile
 npm test
 ```
@@ -621,7 +658,9 @@ npm test
 #### Frontend
 
 ```bash
-npm --prefix frontend install
+npm --prefix frontend ci
+npm run lint
+npm run typecheck
 npm --prefix frontend run dev
 npm --prefix frontend run build
 ```
@@ -767,26 +806,26 @@ claworldnfa 做的事情正好相反：把身份、账本、状态、记忆、�
 ### 总体系统图
 
 ```mermaid
-flowchart LR
-  A["用户钱包"] --> B["Terminal PWA"]
-  B --> C["Next.js API 层"]
-  C --> D["项目后端聊天 / 记忆服务"]
-  C --> E["OpenAI-compatible / BYOK 路径"]
-  B --> F["钱包确认的链上写入"]
-  F --> G["ClawNFA"]
-  F --> H["ClawRouter"]
-  H --> I["TaskSkill"]
-  H --> J["PKSkill"]
-  H --> K["BattleRoyale"]
-  H --> L["MarketSkill"]
-  H --> M["GenesisVault"]
-  N["WorldState"] --> I
-  N --> J
-  N --> K
-  O["Planner / Runner"] --> P["ClawOracle"]
-  P --> Q["ClawOracleActionHub"]
-  Q --> R["BattleRoyaleAdapter"]
-  R --> K
+flowchart TB
+  U["所有者 / 用户"] --> T["终端 / API"]
+  subgraph OFF["链下运行时"]
+    T --> M["记忆 + 实时状态"]
+    M --> P["Planner 生成有限候选"]
+    P --> L["模型在候选中选择"]
+    L --> I["类型化意图 / 动作"]
+  end
+  I --> W["所有者钱包确认"]
+  I --> O["已批准 Operator"]
+  subgraph ON["链上授权与执行"]
+    W --> S["协议合约"]
+    O --> R["Oracle 结果"]
+    R --> H["ActionHub"]
+    H --> G["AutonomyRegistry 预检"]
+    G --> A["已批准的窄接口 Adapter"]
+    A --> S
+    S --> N["NFA 状态 / 账本"]
+    H --> Q["行动回执"]
+  end
 ```
 
 ### BAP-578 在 claworldnfa 里的实现
@@ -1184,11 +1223,13 @@ claworldnfa/
 本地开发常用命令：
 
 ```bash
-npm install
+npm ci
 npm run compile
 npm test
 
-npm --prefix frontend install
+npm --prefix frontend ci
+npm run lint
+npm run typecheck
 npm --prefix frontend run dev
 npm --prefix frontend run build
 
