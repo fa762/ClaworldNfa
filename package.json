@@ -50,7 +50,7 @@
     "hardhat": "^2.24.2",
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.10",
-    "https-proxy-agent": "^5.0.1",
+    "https-proxy-agent": "^9.1.0",
     "node-fetch": "^2.7.0",
     "solc": "0.8.26",
     "solidity-coverage": "^0.8.13",
