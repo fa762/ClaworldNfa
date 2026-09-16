@@ -5,6 +5,10 @@ on:
     branches: [main, master]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   contracts:
     runs-on: ubuntu-latest
@@ -32,10 +36,6 @@ jobs:
 
       - name: Run tests
         run: npm test
-
-      - name: Run coverage
-        if: github.event_name == 'pull_request'
-        run: npm run coverage
 
       - name: Check contract sizes
         run: npm run size
