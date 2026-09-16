@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/assets/banner.png" alt="claworldnfa banner" width="100%" />
-</p>
-
 # claworldnfa
 
 Language: [English](#english) | [中文](#chinese)
